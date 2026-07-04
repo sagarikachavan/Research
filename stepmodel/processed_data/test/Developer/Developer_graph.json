@@ -1,0 +1,76 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Developer",
+  "source": "test_data.csv, Machine == 'Developer', 10 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Developer:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Developer'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Developer:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 CTF challenges\n\u2713 3 Initial access\n\u2713 4 Privilege escalation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Developer:START",
+      "to": "agent:Developer:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 2,
+    "total_edges": 1,
+    "agent_nodes": 2,
+    "search_nodes": 0,
+    "track_nodes": 0,
+    "runs_detected": 1,
+    "rows_captured": 10
+  }
+}

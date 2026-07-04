@@ -1,0 +1,1966 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "TombWatcher",
+  "source": "training_data.csv, Machine == 'TombWatcher', 9 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:TombWatcher:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'TombWatcher'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s1_2",
+      "label": "Search: 2\nInitial Access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2: Initial Access\n\nMCP tool calls:\nNmap - Full port scan with service version detection on target 10.10.11.72",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s1_2",
+      "label": "Track: Initial Access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2 Initial Access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s1_2",
+      "label": "Agent: 2\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u25cb 2 Initial Access\n  \u25cb 2.1 Validate provided credentials\n  \u25cb 2.2 Enumerate user privileges",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s1_2.1",
+      "label": "Search: 2.1\nValidate provided credent\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: Validate provided credentials\n\nMCP tool calls:\nNmap - Full port scan with service version detection on target 10.10.11.72",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s1_2.1",
+      "label": "Track: Validate provided credentials",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 Validate provided credentials:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s1_2.1",
+      "label": "Agent: 2.1\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u25cb 2 Initial Access\n  \u25cb 2.1 Validate provided credentials\n  \u25cb 2.2 Enumerate user privileges",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s1_2.2",
+      "label": "Search: 2.2\nEnumerate user privileges",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.2: Enumerate user privileges\n\nMCP tool calls:\nNmap - Full port scan with service version detection on target 10.10.11.72",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s1_2.2",
+      "label": "Track: Enumerate user privileges",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.2 Enumerate user privileges:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s1_2.2",
+      "label": "Agent: 2.2\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u25cb 2 Initial Access\n  \u25cb 2.1 Validate provided credentials\n  \u25cb 2.2 Enumerate user privileges",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s2_3",
+      "label": "Search: 3\nTargeted Kerberoasting",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3: Targeted Kerberoasting\n\nMCP tool calls:\nSMB client - Validate credentials and enumerate shares, Interactive CLI - Test LDAP authentication and enumerate user privileges with BloodHound-Python or RustHound",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s2_3",
+      "label": "Track: Targeted Kerberoasting",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3 Targeted Kerberoasting:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s2_3",
+      "label": "Agent: 3\nTargeted Kerberoasting",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u25cb 3 Targeted Kerberoasting\n  \u25cb 3.1 Add SPN to Alfred account\n  \u25cb 3.2 Request and crack TGS",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s2_3.1",
+      "label": "Search: 3.1\nAdd SPN to Alfred account",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: Add SPN to Alfred account\n\nMCP tool calls:\nSMB client - Validate credentials and enumerate shares, Interactive CLI - Test LDAP authentication and enumerate user privileges with BloodHound-Python or RustHound",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s2_3.1",
+      "label": "Track: Add SPN to Alfred account",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 Add SPN to Alfred account:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s2_3.1",
+      "label": "Agent: 3.1\nTargeted Kerberoasting",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u25cb 3 Targeted Kerberoasting\n  \u25cb 3.1 Add SPN to Alfred account\n  \u25cb 3.2 Request and crack TGS",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s2_3.2",
+      "label": "Search: 3.2\nRequest and crack TGS",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.2: Request and crack TGS\n\nMCP tool calls:\nSMB client - Validate credentials and enumerate shares, Interactive CLI - Test LDAP authentication and enumerate user privileges with BloodHound-Python or RustHound",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s2_3.2",
+      "label": "Track: Request and crack TGS",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.2 Request and crack TGS:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s2_3.2",
+      "label": "Agent: 3.2\nTargeted Kerberoasting",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u25cb 3 Targeted Kerberoasting\n  \u25cb 3.1 Add SPN to Alfred account\n  \u25cb 3.2 Request and crack TGS",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s3_4",
+      "label": "Search: 4\nEscalate to ANSIBLE_DEV",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4: Escalate to ANSIBLE_DEV\n\nMCP tool calls:\nInteractive CLI - Add SPN to Alfred using BloodyAD, Metasploit - Request TGS ticket for Kerberoasting, John-the-ripper - Crack TGS hash offline",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s3_4",
+      "label": "Track: Escalate to ANSIBLE_DEV",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4 Escalate to ANSIBLE_DEV:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s3_4",
+      "label": "Agent: 4\nEscalate to ANSIBLE_D\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u2713 3 Targeted Kerberoasting\n  \u2713 3.1 Add SPN to Alfred account\n  \u2713 3.2 Request and crack TGS\n\u25cb 4 Escalate to ANSIBLE_DEV\n  \u25cb 4.1 Enumerate Alfred privileges\n  \u25cb 4.2 Extract GMSA password",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s3_4.1",
+      "label": "Search: 4.1\nEnumerate Alfred privileg\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Enumerate Alfred privileges\n\nMCP tool calls:\nInteractive CLI - Add SPN to Alfred using BloodyAD, Metasploit - Request TGS ticket for Kerberoasting, John-the-ripper - Crack TGS hash offline",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s3_4.1",
+      "label": "Track: Enumerate Alfred privileges",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Enumerate Alfred privileges:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s3_4.1",
+      "label": "Agent: 4.1\nEscalate to ANSIBLE_D\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u2713 3 Targeted Kerberoasting\n  \u2713 3.1 Add SPN to Alfred account\n  \u2713 3.2 Request and crack TGS\n\u25cb 4 Escalate to ANSIBLE_DEV\n  \u25cb 4.1 Enumerate Alfred privileges\n  \u25cb 4.2 Extract GMSA password",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s3_4.2",
+      "label": "Search: 4.2\nExtract GMSA password",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2: Extract GMSA password\n\nMCP tool calls:\nInteractive CLI - Add SPN to Alfred using BloodyAD, Metasploit - Request TGS ticket for Kerberoasting, John-the-ripper - Crack TGS hash offline",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s3_4.2",
+      "label": "Track: Extract GMSA password",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2 Extract GMSA password:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s3_4.2",
+      "label": "Agent: 4.2\nEscalate to ANSIBLE_D\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u2713 3 Targeted Kerberoasting\n  \u2713 3.1 Add SPN to Alfred account\n  \u2713 3.2 Request and crack TGS\n\u25cb 4 Escalate to ANSIBLE_DEV\n  \u25cb 4.1 Enumerate Alfred privileges\n  \u25cb 4.2 Extract GMSA password",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s4_5",
+      "label": "Search: 5\nCompromise Sam",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5: Compromise Sam\n\nMCP tool calls:\nInteractive CLI - Enumerate Alfred's group memberships and privileges using BloodHound data",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s4_5",
+      "label": "Track: Compromise Sam",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5 Compromise Sam:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s4_5",
+      "label": "Agent: 5\nCompromise Sam",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u2713 3 Targeted Kerberoasting\n  \u2713 3.1 Add SPN to Alfred account\n  \u2713 3.2 Request and crack TGS\n\u2713 4 Escalate to ANSIBLE_DEV\n  \u2713 4.1 Enumerate Alfred privileges\n  \u2713 4.2 Extract GMSA password\n\u25cb 5 Compromise Sam\n  \u25cb 5.1 Enumerate ANSIBLE_DEV privileges\n  \u25cb 5.2 Force password change on Sam",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s4_5.1",
+      "label": "Search: 5.1\nEnumerate ANSIBLE_DEV pri\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5.1: Enumerate ANSIBLE_DEV privileges\n\nMCP tool calls:\nInteractive CLI - Enumerate Alfred's group memberships and privileges using BloodHound data",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s4_5.1",
+      "label": "Track: Enumerate ANSIBLE_DEV privile\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5.1 Enumerate ANSIBLE_DEV privileges:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s4_5.1",
+      "label": "Agent: 5.1\nCompromise Sam",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u2713 3 Targeted Kerberoasting\n  \u2713 3.1 Add SPN to Alfred account\n  \u2713 3.2 Request and crack TGS\n\u2713 4 Escalate to ANSIBLE_DEV\n  \u2713 4.1 Enumerate Alfred privileges\n  \u2713 4.2 Extract GMSA password\n\u25cb 5 Compromise Sam\n  \u25cb 5.1 Enumerate ANSIBLE_DEV privileges\n  \u25cb 5.2 Force password change on Sam",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s4_5.2",
+      "label": "Search: 5.2\nForce password change on \u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5.2: Force password change on Sam\n\nMCP tool calls:\nInteractive CLI - Enumerate Alfred's group memberships and privileges using BloodHound data",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s4_5.2",
+      "label": "Track: Force password change on Sam",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5.2 Force password change on Sam:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s4_5.2",
+      "label": "Agent: 5.2\nCompromise Sam",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5.2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u2713 3 Targeted Kerberoasting\n  \u2713 3.1 Add SPN to Alfred account\n  \u2713 3.2 Request and crack TGS\n\u2713 4 Escalate to ANSIBLE_DEV\n  \u2713 4.1 Enumerate Alfred privileges\n  \u2713 4.2 Extract GMSA password\n\u25cb 5 Compromise Sam\n  \u25cb 5.1 Enumerate ANSIBLE_DEV privileges\n  \u25cb 5.2 Force password change on Sam",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s5_6",
+      "label": "Search: 6\nCompromise John",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6: Compromise John\n\nMCP tool calls:\nInteractive CLI - Authenticate with ANSIBLE_DEV$ NTLM hash and force Sam password reset using BloodyAD",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s5_6",
+      "label": "Track: Compromise John",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6 Compromise John:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s5_6",
+      "label": "Agent: 6\nCompromise John",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u2713 3 Targeted Kerberoasting\n  \u2713 3.1 Add SPN to Alfred account\n  \u2713 3.2 Request and crack TGS\n\u2713 4 Escalate to ANSIBLE_DEV\n  \u2713 4.1 Enumerate Alfred privileges\n  \u2713 4.2 Extract GMSA password\n\u2713 5 Compromise Sam\n  \u2713 5.1 Enumerate ANSIBLE_DEV privileges\n  \u2713 5.2 Force password change on Sam\n\u25cb 6 Compromise John\n  \u25cb 6.1 Enumerate Sam privileges\n  \u25cb 6.2 Exploit shadow credentials",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s5_6.1",
+      "label": "Search: 6.1\nEnumerate Sam privileges",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6.1: Enumerate Sam privileges\n\nMCP tool calls:\nInteractive CLI - Authenticate with ANSIBLE_DEV$ NTLM hash and force Sam password reset using BloodyAD",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s5_6.1",
+      "label": "Track: Enumerate Sam privileges",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6.1 Enumerate Sam privileges:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s5_6.1",
+      "label": "Agent: 6.1\nCompromise John",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u2713 3 Targeted Kerberoasting\n  \u2713 3.1 Add SPN to Alfred account\n  \u2713 3.2 Request and crack TGS\n\u2713 4 Escalate to ANSIBLE_DEV\n  \u2713 4.1 Enumerate Alfred privileges\n  \u2713 4.2 Extract GMSA password\n\u2713 5 Compromise Sam\n  \u2713 5.1 Enumerate ANSIBLE_DEV privileges\n  \u2713 5.2 Force password change on Sam\n\u25cb 6 Compromise John\n  \u25cb 6.1 Enumerate Sam privileges\n  \u25cb 6.2 Exploit shadow credentials",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s5_6.2",
+      "label": "Search: 6.2\nExploit shadow credentials",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6.2: Exploit shadow credentials\n\nMCP tool calls:\nInteractive CLI - Authenticate with ANSIBLE_DEV$ NTLM hash and force Sam password reset using BloodyAD",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s5_6.2",
+      "label": "Track: Exploit shadow credentials",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6.2 Exploit shadow credentials:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s5_6.2",
+      "label": "Agent: 6.2\nCompromise John",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6.2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u2713 3 Targeted Kerberoasting\n  \u2713 3.1 Add SPN to Alfred account\n  \u2713 3.2 Request and crack TGS\n\u2713 4 Escalate to ANSIBLE_DEV\n  \u2713 4.1 Enumerate Alfred privileges\n  \u2713 4.2 Extract GMSA password\n\u2713 5 Compromise Sam\n  \u2713 5.1 Enumerate ANSIBLE_DEV privileges\n  \u2713 5.2 Force password change on Sam\n\u25cb 6 Compromise John\n  \u25cb 6.1 Enumerate Sam privileges\n  \u25cb 6.2 Exploit shadow credentials",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s6_7",
+      "label": "Search: 7\nRecover cert_admin",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 7: Recover cert_admin\n\nMCP tool calls:\nInteractive CLI - Use Sam to take ownership of John using BloodyAD, Metasploit - Perform shadow credential attack with Certipy to obtain John's NTLM hash and WinRM access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s6_7",
+      "label": "Track: Recover cert_admin",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "7 Recover cert_admin:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s6_7",
+      "label": "Agent: 7\nRecover cert_admin",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 7:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u2713 3 Targeted Kerberoasting\n  \u2713 3.1 Add SPN to Alfred account\n  \u2713 3.2 Request and crack TGS\n\u2713 4 Escalate to ANSIBLE_DEV\n  \u2713 4.1 Enumerate Alfred privileges\n  \u2713 4.2 Extract GMSA password\n\u2713 5 Compromise Sam\n  \u2713 5.1 Enumerate ANSIBLE_DEV privileges\n  \u2713 5.2 Force password change on Sam\n\u2713 6 Compromise John\n  \u2713 6.1 Enumerate Sam privileges\n  \u2713 6.2 Exploit shadow credentials\n\u25cb 7 Recover cert_admin\n  \u25cb 7.1 Enumerate AD Recycle Bin\n  \u25cb 7.2 Restore deleted account",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s6_7.1",
+      "label": "Search: 7.1\nEnumerate AD Recycle Bin",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 7.1: Enumerate AD Recycle Bin\n\nMCP tool calls:\nInteractive CLI - Use Sam to take ownership of John using BloodyAD, Metasploit - Perform shadow credential attack with Certipy to obtain John's NTLM hash and WinRM access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s6_7.1",
+      "label": "Track: Enumerate AD Recycle Bin",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "7.1 Enumerate AD Recycle Bin:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s6_7.1",
+      "label": "Agent: 7.1\nRecover cert_admin",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 7.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u2713 3 Targeted Kerberoasting\n  \u2713 3.1 Add SPN to Alfred account\n  \u2713 3.2 Request and crack TGS\n\u2713 4 Escalate to ANSIBLE_DEV\n  \u2713 4.1 Enumerate Alfred privileges\n  \u2713 4.2 Extract GMSA password\n\u2713 5 Compromise Sam\n  \u2713 5.1 Enumerate ANSIBLE_DEV privileges\n  \u2713 5.2 Force password change on Sam\n\u2713 6 Compromise John\n  \u2713 6.1 Enumerate Sam privileges\n  \u2713 6.2 Exploit shadow credentials\n\u25cb 7 Recover cert_admin\n  \u25cb 7.1 Enumerate AD Recycle Bin\n  \u25cb 7.2 Restore deleted account",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s6_7.2",
+      "label": "Search: 7.2\nRestore deleted account",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 7.2: Restore deleted account\n\nMCP tool calls:\nInteractive CLI - Use Sam to take ownership of John using BloodyAD, Metasploit - Perform shadow credential attack with Certipy to obtain John's NTLM hash and WinRM access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s6_7.2",
+      "label": "Track: Restore deleted account",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "7.2 Restore deleted account:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s6_7.2",
+      "label": "Agent: 7.2\nRecover cert_admin",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 7.2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u2713 3 Targeted Kerberoasting\n  \u2713 3.1 Add SPN to Alfred account\n  \u2713 3.2 Request and crack TGS\n\u2713 4 Escalate to ANSIBLE_DEV\n  \u2713 4.1 Enumerate Alfred privileges\n  \u2713 4.2 Extract GMSA password\n\u2713 5 Compromise Sam\n  \u2713 5.1 Enumerate ANSIBLE_DEV privileges\n  \u2713 5.2 Force password change on Sam\n\u2713 6 Compromise John\n  \u2713 6.1 Enumerate Sam privileges\n  \u2713 6.2 Exploit shadow credentials\n\u25cb 7 Recover cert_admin\n  \u25cb 7.1 Enumerate AD Recycle Bin\n  \u25cb 7.2 Restore deleted account",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s7_8",
+      "label": "Search: 8\nPrivilege Escalation to A\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 8: Privilege Escalation to Administrator\n\nMCP tool calls:\nInteractive CLI - Query AD Recycle Bin and restore cert_admin object with GUID, reset password to 0xdf0xdf!",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s7_8",
+      "label": "Track: Privilege Escalation to Admin\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "8 Privilege Escalation to Administrator:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s7_8",
+      "label": "Agent: 8\nPrivilege Escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 8:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u2713 3 Targeted Kerberoasting\n  \u2713 3.1 Add SPN to Alfred account\n  \u2713 3.2 Request and crack TGS\n\u2713 4 Escalate to ANSIBLE_DEV\n  \u2713 4.1 Enumerate Alfred privileges\n  \u2713 4.2 Extract GMSA password\n\u2713 5 Compromise Sam\n  \u2713 5.1 Enumerate ANSIBLE_DEV privileges\n  \u2713 5.2 Force password change on Sam\n\u2713 6 Compromise John\n  \u2713 6.1 Enumerate Sam privileges\n  \u2713 6.2 Exploit shadow credentials\n\u2713 7 Recover cert_admin\n  \u2713 7.1 Enumerate AD Recycle Bin\n  \u2713 7.2 Restore deleted account\n\u25cb 8 Privilege Escalation to Administrator\n  \u25cb 8.1 Identify ADCS vulnerabilities\n  \u25cb 8.2 Exploit certificate template",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s7_8.1",
+      "label": "Search: 8.1\nIdentify ADCS vulnerabili\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 8.1: Identify ADCS vulnerabilities\n\nMCP tool calls:\nInteractive CLI - Query AD Recycle Bin and restore cert_admin object with GUID, reset password to 0xdf0xdf!",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s7_8.1",
+      "label": "Track: Identify ADCS vulnerabilities",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "8.1 Identify ADCS vulnerabilities:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s7_8.1",
+      "label": "Agent: 8.1\nPrivilege Escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 8.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u2713 3 Targeted Kerberoasting\n  \u2713 3.1 Add SPN to Alfred account\n  \u2713 3.2 Request and crack TGS\n\u2713 4 Escalate to ANSIBLE_DEV\n  \u2713 4.1 Enumerate Alfred privileges\n  \u2713 4.2 Extract GMSA password\n\u2713 5 Compromise Sam\n  \u2713 5.1 Enumerate ANSIBLE_DEV privileges\n  \u2713 5.2 Force password change on Sam\n\u2713 6 Compromise John\n  \u2713 6.1 Enumerate Sam privileges\n  \u2713 6.2 Exploit shadow credentials\n\u2713 7 Recover cert_admin\n  \u2713 7.1 Enumerate AD Recycle Bin\n  \u2713 7.2 Restore deleted account\n\u25cb 8 Privilege Escalation to Administrator\n  \u25cb 8.1 Identify ADCS vulnerabilities\n  \u25cb 8.2 Exploit certificate template",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:TombWatcher:r1_s7_8.2",
+      "label": "Search: 8.2\nExploit certificate templ\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 8.2: Exploit certificate template\n\nMCP tool calls:\nInteractive CLI - Query AD Recycle Bin and restore cert_admin object with GUID, reset password to 0xdf0xdf!",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:TombWatcher:r1_s7_8.2",
+      "label": "Track: Exploit certificate template",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "8.2 Exploit certificate template:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_s7_8.2",
+      "label": "Agent: 8.2\nPrivilege Escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 8.2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u2713 3 Targeted Kerberoasting\n  \u2713 3.1 Add SPN to Alfred account\n  \u2713 3.2 Request and crack TGS\n\u2713 4 Escalate to ANSIBLE_DEV\n  \u2713 4.1 Enumerate Alfred privileges\n  \u2713 4.2 Extract GMSA password\n\u2713 5 Compromise Sam\n  \u2713 5.1 Enumerate ANSIBLE_DEV privileges\n  \u2713 5.2 Force password change on Sam\n\u2713 6 Compromise John\n  \u2713 6.1 Enumerate Sam privileges\n  \u2713 6.2 Exploit shadow credentials\n\u2713 7 Recover cert_admin\n  \u2713 7.1 Enumerate AD Recycle Bin\n  \u2713 7.2 Restore deleted account\n\u25cb 8 Privilege Escalation to Administrator\n  \u25cb 8.1 Identify ADCS vulnerabilities\n  \u25cb 8.2 Exploit certificate template",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:TombWatcher:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network and port scanning\n  \u2713 1.2 Service enumeration\n  \u2713 1.3 Active Directory enumeration\n\u2713 2 Initial Access\n  \u2713 2.1 Validate provided credentials\n  \u2713 2.2 Enumerate user privileges\n\u2713 3 Targeted Kerberoasting\n  \u2713 3.1 Add SPN to Alfred account\n  \u2713 3.2 Request and crack TGS\n\u2713 4 Escalate to ANSIBLE_DEV\n  \u2713 4.1 Enumerate Alfred privileges\n  \u2713 4.2 Extract GMSA password\n\u2713 5 Compromise Sam\n  \u2713 5.1 Enumerate ANSIBLE_DEV privileges\n  \u2713 5.2 Force password change on Sam\n\u2713 6 Compromise John\n  \u2713 6.1 Enumerate Sam privileges\n  \u2713 6.2 Exploit shadow credentials\n\u2713 7 Recover cert_admin\n  \u2713 7.1 Enumerate AD Recycle Bin\n  \u2713 7.2 Restore deleted account\n\u2713 8 Privilege Escalation to Administrator\n  \u2713 8.1 Identify ADCS vulnerabilities\n  \u2713 8.2 Exploit certificate template",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:TombWatcher:START",
+      "to": "agent:TombWatcher:r1_s1_2",
+      "label": "\u2192 2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:START",
+      "to": "search:TombWatcher:r1_s1_2",
+      "label": "2 Initial Access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s1_2",
+      "to": "track:TombWatcher:r1_s1_2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s1_2",
+      "to": "agent:TombWatcher:r1_s1_2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s1_2",
+      "to": "agent:TombWatcher:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s1_2",
+      "to": "search:TombWatcher:r1_s1_2.1",
+      "label": "2.1 Validate provided c\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s1_2.1",
+      "to": "track:TombWatcher:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s1_2.1",
+      "to": "agent:TombWatcher:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s1_2.1",
+      "to": "agent:TombWatcher:r1_s1_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s1_2.1",
+      "to": "search:TombWatcher:r1_s1_2.2",
+      "label": "2.2 Enumerate user priv\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s1_2.2",
+      "to": "track:TombWatcher:r1_s1_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s1_2.2",
+      "to": "agent:TombWatcher:r1_s1_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s1_2.2",
+      "to": "agent:TombWatcher:r1_s2_3",
+      "label": "\u2192 3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s1_2.2",
+      "to": "search:TombWatcher:r1_s2_3",
+      "label": "3 Targeted Kerberoast\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s2_3",
+      "to": "track:TombWatcher:r1_s2_3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s2_3",
+      "to": "agent:TombWatcher:r1_s2_3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s2_3",
+      "to": "agent:TombWatcher:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s2_3",
+      "to": "search:TombWatcher:r1_s2_3.1",
+      "label": "3.1 Add SPN to Alfred a\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s2_3.1",
+      "to": "track:TombWatcher:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s2_3.1",
+      "to": "agent:TombWatcher:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s2_3.1",
+      "to": "agent:TombWatcher:r1_s2_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s2_3.1",
+      "to": "search:TombWatcher:r1_s2_3.2",
+      "label": "3.2 Request and crack T\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s2_3.2",
+      "to": "track:TombWatcher:r1_s2_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s2_3.2",
+      "to": "agent:TombWatcher:r1_s2_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s2_3.2",
+      "to": "agent:TombWatcher:r1_s3_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s2_3.2",
+      "to": "search:TombWatcher:r1_s3_4",
+      "label": "4 Escalate to ANSIBLE\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s3_4",
+      "to": "track:TombWatcher:r1_s3_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s3_4",
+      "to": "agent:TombWatcher:r1_s3_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s3_4",
+      "to": "agent:TombWatcher:r1_s3_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s3_4",
+      "to": "search:TombWatcher:r1_s3_4.1",
+      "label": "4.1 Enumerate Alfred pr\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s3_4.1",
+      "to": "track:TombWatcher:r1_s3_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s3_4.1",
+      "to": "agent:TombWatcher:r1_s3_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s3_4.1",
+      "to": "agent:TombWatcher:r1_s3_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s3_4.1",
+      "to": "search:TombWatcher:r1_s3_4.2",
+      "label": "4.2 Extract GMSA passwo\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s3_4.2",
+      "to": "track:TombWatcher:r1_s3_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s3_4.2",
+      "to": "agent:TombWatcher:r1_s3_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s3_4.2",
+      "to": "agent:TombWatcher:r1_s4_5",
+      "label": "\u2192 5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s3_4.2",
+      "to": "search:TombWatcher:r1_s4_5",
+      "label": "5 Compromise Sam",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s4_5",
+      "to": "track:TombWatcher:r1_s4_5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s4_5",
+      "to": "agent:TombWatcher:r1_s4_5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s4_5",
+      "to": "agent:TombWatcher:r1_s4_5.1",
+      "label": "\u2192 5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s4_5",
+      "to": "search:TombWatcher:r1_s4_5.1",
+      "label": "5.1 Enumerate ANSIBLE_D\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s4_5.1",
+      "to": "track:TombWatcher:r1_s4_5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s4_5.1",
+      "to": "agent:TombWatcher:r1_s4_5.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s4_5.1",
+      "to": "agent:TombWatcher:r1_s4_5.2",
+      "label": "\u2192 5.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s4_5.1",
+      "to": "search:TombWatcher:r1_s4_5.2",
+      "label": "5.2 Force password chan\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s4_5.2",
+      "to": "track:TombWatcher:r1_s4_5.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s4_5.2",
+      "to": "agent:TombWatcher:r1_s4_5.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s4_5.2",
+      "to": "agent:TombWatcher:r1_s5_6",
+      "label": "\u2192 6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s4_5.2",
+      "to": "search:TombWatcher:r1_s5_6",
+      "label": "6 Compromise John",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s5_6",
+      "to": "track:TombWatcher:r1_s5_6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s5_6",
+      "to": "agent:TombWatcher:r1_s5_6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s5_6",
+      "to": "agent:TombWatcher:r1_s5_6.1",
+      "label": "\u2192 6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s5_6",
+      "to": "search:TombWatcher:r1_s5_6.1",
+      "label": "6.1 Enumerate Sam privi\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s5_6.1",
+      "to": "track:TombWatcher:r1_s5_6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s5_6.1",
+      "to": "agent:TombWatcher:r1_s5_6.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s5_6.1",
+      "to": "agent:TombWatcher:r1_s5_6.2",
+      "label": "\u2192 6.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s5_6.1",
+      "to": "search:TombWatcher:r1_s5_6.2",
+      "label": "6.2 Exploit shadow cred\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s5_6.2",
+      "to": "track:TombWatcher:r1_s5_6.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s5_6.2",
+      "to": "agent:TombWatcher:r1_s5_6.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s5_6.2",
+      "to": "agent:TombWatcher:r1_s6_7",
+      "label": "\u2192 7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s5_6.2",
+      "to": "search:TombWatcher:r1_s6_7",
+      "label": "7 Recover cert_admin",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s6_7",
+      "to": "track:TombWatcher:r1_s6_7",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s6_7",
+      "to": "agent:TombWatcher:r1_s6_7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s6_7",
+      "to": "agent:TombWatcher:r1_s6_7.1",
+      "label": "\u2192 7.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s6_7",
+      "to": "search:TombWatcher:r1_s6_7.1",
+      "label": "7.1 Enumerate AD Recycl\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s6_7.1",
+      "to": "track:TombWatcher:r1_s6_7.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s6_7.1",
+      "to": "agent:TombWatcher:r1_s6_7.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s6_7.1",
+      "to": "agent:TombWatcher:r1_s6_7.2",
+      "label": "\u2192 7.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s6_7.1",
+      "to": "search:TombWatcher:r1_s6_7.2",
+      "label": "7.2 Restore deleted acc\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s6_7.2",
+      "to": "track:TombWatcher:r1_s6_7.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s6_7.2",
+      "to": "agent:TombWatcher:r1_s6_7.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s6_7.2",
+      "to": "agent:TombWatcher:r1_s7_8",
+      "label": "\u2192 8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s6_7.2",
+      "to": "search:TombWatcher:r1_s7_8",
+      "label": "8 Privilege Escalatio\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s7_8",
+      "to": "track:TombWatcher:r1_s7_8",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s7_8",
+      "to": "agent:TombWatcher:r1_s7_8",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s7_8",
+      "to": "agent:TombWatcher:r1_s7_8.1",
+      "label": "\u2192 8.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s7_8",
+      "to": "search:TombWatcher:r1_s7_8.1",
+      "label": "8.1 Identify ADCS vulne\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s7_8.1",
+      "to": "track:TombWatcher:r1_s7_8.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s7_8.1",
+      "to": "agent:TombWatcher:r1_s7_8.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s7_8.1",
+      "to": "agent:TombWatcher:r1_s7_8.2",
+      "label": "\u2192 8.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s7_8.1",
+      "to": "search:TombWatcher:r1_s7_8.2",
+      "label": "8.2 Exploit certificate\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:TombWatcher:r1_s7_8.2",
+      "to": "track:TombWatcher:r1_s7_8.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:TombWatcher:r1_s7_8.2",
+      "to": "agent:TombWatcher:r1_s7_8.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:TombWatcher:r1_s7_8.2",
+      "to": "agent:TombWatcher:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 65,
+    "total_edges": 85,
+    "agent_nodes": 23,
+    "search_nodes": 21,
+    "track_nodes": 21,
+    "runs_detected": 1,
+    "rows_captured": 9
+  }
+}

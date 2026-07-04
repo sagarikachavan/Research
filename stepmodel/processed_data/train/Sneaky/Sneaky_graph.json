@@ -1,0 +1,796 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Sneaky",
+  "source": "training_data.csv, Machine == 'Sneaky', 10 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Sneaky:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Sneaky'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Sneaky:r1_s1_1.1",
+      "label": "Search: 1.1\nTCP scanning",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.1: TCP scanning\n\nMCP tool calls:\nNmap: Execute full TCP port scan with --min-rate 10000 against target 10.10.10.20; Nmap: Execute UDP scan focusing on common services (53, 161, 162, 500) with -sU flag",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Sneaky:r1_s1_1.1",
+      "label": "Track: Only port 80 open running Apa\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.1 TCP scanning:\nOnly port 80 open running Apache 2.4.7 indicating Ubuntu 14.04",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sneaky:r1_s1_1.1",
+      "label": "Agent: 1.1\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.1:\n\u2026 1 Reconnaissance\n  \u2713 1.1 TCP scanning\n  \u25cb 1.2 UDP scanning\n\u25cb 2 Enumeration\n\u25cb 3 Initial Access\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Sneaky:r1_s2_2.1",
+      "label": "Search: 2.1\nSNMP enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: SNMP enumeration\n\nMCP tool calls:\nInteractive CLI: Use onesixtyone tool with common community string wordlist against target 10.10.10.20; Nmap: Perform targeted UDP scan on port 161 for SNMP service",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Sneaky:r1_s2_2.1",
+      "label": "Track: SNMP enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 SNMP enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sneaky:r1_s2_2.1",
+      "label": "Agent: 2.1\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u25cb 2.1 SNMP enumeration\n  \u25cb 2.2 Web enumeration\n\u25cb 3 Initial Access\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Sneaky:r1_s2_2.2",
+      "label": "Search: 2.2\nWeb enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.2: Web enumeration\n\nMCP tool calls:\nInteractive CLI: Use onesixtyone tool with common community string wordlist against target 10.10.10.20; Nmap: Perform targeted UDP scan on port 161 for SNMP service",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Sneaky:r1_s2_2.2",
+      "label": "Track: Web enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.2 Web enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sneaky:r1_s2_2.2",
+      "label": "Agent: 2.2\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u25cb 2.1 SNMP enumeration\n  \u25cb 2.2 Web enumeration\n\u25cb 3 Initial Access\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Sneaky:r1_s4_3.1",
+      "label": "Search: 3.1\nSQL injection",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: SQL injection\n\nMCP tool calls:\nDirbuster: Execute directory enumeration against http://10.10.10.20 to discover hidden paths; Web page interaction: Browse root page and examine available functionality",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Sneaky:r1_s4_3.1",
+      "label": "Track: SQL injection",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 SQL injection:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sneaky:r1_s4_3.1",
+      "label": "Agent: 3.1\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Initial Access\n  \u25cb 3.1 SQL injection\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Sneaky:r1_s5_3.2",
+      "label": "Search: 3.2\nSSH enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.2: SSH enumeration\n\nMCP tool calls:\nWeb page interaction: Test login form with username root' to observe error message differences indicating SQL injection; Web page interaction: Attempt SQLi authentication bypass with payload: ' or 1=1;-- -",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Sneaky:r1_s5_3.2",
+      "label": "Track: SSH enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.2 SSH enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sneaky:r1_s5_3.2",
+      "label": "Agent: 3.2\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.2:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Initial Access\n  \u2713 3.1 SQL injection\n  \u25cb 3.2 SSH enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Sneaky:r1_s6_4",
+      "label": "Search: 4\nPrivilege Escalation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4: Privilege Escalation\n\nMCP tool calls:\nInteractive CLI: Test SSH connection via IPv6: ssh -i id_rsa_sneaky thrasivoulos@dead:beef::250:56ff:feb9:be08 to authenticate with leaked private key",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Sneaky:r1_s6_4",
+      "label": "Track: Privilege Escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4 Privilege Escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sneaky:r1_s6_4",
+      "label": "Agent: 4\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2026 4 Privilege Escalation\n  \u25cb 4.1 SUID enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Sneaky:r1_s6_4.1",
+      "label": "Search: 4.1\nSUID enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: SUID enumeration\n\nMCP tool calls:\nInteractive CLI: Test SSH connection via IPv6: ssh -i id_rsa_sneaky thrasivoulos@dead:beef::250:56ff:feb9:be08 to authenticate with leaked private key",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Sneaky:r1_s6_4.1",
+      "label": "Track: SUID enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 SUID enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sneaky:r1_s6_4.1",
+      "label": "Agent: 4.1\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2026 4 Privilege Escalation\n  \u25cb 4.1 SUID enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Sneaky:r1_s7_4.2",
+      "label": "Search: 4.2\nBinary analysis",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2: Binary analysis\n\nMCP tool calls:\nInteractive CLI: Execute find / -perm -4000 -type f 2>/dev/null to enumerate all SUID binaries on system",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Sneaky:r1_s7_4.2",
+      "label": "Track: Binary analysis",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2 Binary analysis:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sneaky:r1_s7_4.2",
+      "label": "Agent: 4.2\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2026 4 Privilege Escalation\n  \u2713 4.1 SUID enumeration\n  \u25cb 4.2 Binary analysis",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sneaky:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2713 4 Privilege Escalation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Sneaky:START",
+      "to": "agent:Sneaky:r1_s1_1.1",
+      "label": "\u2192 1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sneaky:START",
+      "to": "search:Sneaky:r1_s1_1.1",
+      "label": "1.1 TCP scanning",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Sneaky:r1_s1_1.1",
+      "to": "track:Sneaky:r1_s1_1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Sneaky:r1_s1_1.1",
+      "to": "agent:Sneaky:r1_s1_1.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sneaky:r1_s1_1.1",
+      "to": "agent:Sneaky:r1_s2_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sneaky:r1_s1_1.1",
+      "to": "search:Sneaky:r1_s2_2.1",
+      "label": "2.1 SNMP enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Sneaky:r1_s2_2.1",
+      "to": "track:Sneaky:r1_s2_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Sneaky:r1_s2_2.1",
+      "to": "agent:Sneaky:r1_s2_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sneaky:r1_s2_2.1",
+      "to": "agent:Sneaky:r1_s2_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sneaky:r1_s2_2.1",
+      "to": "search:Sneaky:r1_s2_2.2",
+      "label": "2.2 Web enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Sneaky:r1_s2_2.2",
+      "to": "track:Sneaky:r1_s2_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Sneaky:r1_s2_2.2",
+      "to": "agent:Sneaky:r1_s2_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sneaky:r1_s2_2.2",
+      "to": "agent:Sneaky:r1_s4_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sneaky:r1_s2_2.2",
+      "to": "search:Sneaky:r1_s4_3.1",
+      "label": "3.1 SQL injection",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Sneaky:r1_s4_3.1",
+      "to": "track:Sneaky:r1_s4_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Sneaky:r1_s4_3.1",
+      "to": "agent:Sneaky:r1_s4_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sneaky:r1_s4_3.1",
+      "to": "agent:Sneaky:r1_s5_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sneaky:r1_s4_3.1",
+      "to": "search:Sneaky:r1_s5_3.2",
+      "label": "3.2 SSH enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Sneaky:r1_s5_3.2",
+      "to": "track:Sneaky:r1_s5_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Sneaky:r1_s5_3.2",
+      "to": "agent:Sneaky:r1_s5_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sneaky:r1_s5_3.2",
+      "to": "agent:Sneaky:r1_s6_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sneaky:r1_s5_3.2",
+      "to": "search:Sneaky:r1_s6_4",
+      "label": "4 Privilege Escalation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Sneaky:r1_s6_4",
+      "to": "track:Sneaky:r1_s6_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Sneaky:r1_s6_4",
+      "to": "agent:Sneaky:r1_s6_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sneaky:r1_s6_4",
+      "to": "agent:Sneaky:r1_s6_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sneaky:r1_s6_4",
+      "to": "search:Sneaky:r1_s6_4.1",
+      "label": "4.1 SUID enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Sneaky:r1_s6_4.1",
+      "to": "track:Sneaky:r1_s6_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Sneaky:r1_s6_4.1",
+      "to": "agent:Sneaky:r1_s6_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sneaky:r1_s6_4.1",
+      "to": "agent:Sneaky:r1_s7_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sneaky:r1_s6_4.1",
+      "to": "search:Sneaky:r1_s7_4.2",
+      "label": "4.2 Binary analysis",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Sneaky:r1_s7_4.2",
+      "to": "track:Sneaky:r1_s7_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Sneaky:r1_s7_4.2",
+      "to": "agent:Sneaky:r1_s7_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sneaky:r1_s7_4.2",
+      "to": "agent:Sneaky:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 26,
+    "total_edges": 33,
+    "agent_nodes": 10,
+    "search_nodes": 8,
+    "track_nodes": 8,
+    "runs_detected": 1,
+    "rows_captured": 10
+  }
+}

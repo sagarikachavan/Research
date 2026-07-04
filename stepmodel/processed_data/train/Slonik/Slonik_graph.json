@@ -1,0 +1,1928 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Slonik",
+  "source": "training_data.csv, Machine == 'Slonik', 20 row(s), 3 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Slonik:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Slonik'. 3 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r1_s1_2.1",
+      "label": "Search: 2.1\nEnumerate NFS shares",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/3] PTT item 2.1: Enumerate NFS shares\n\nMCP tool calls:\nNmap: Full TCP port scan with service version detection (-sV -sC -p- -A)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r1_s1_2.1",
+      "label": "Track: Enumerate NFS shares",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/3] 2.1 Enumerate NFS shares:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r1_s1_2.1",
+      "label": "Agent: 2.1\nService Enumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/3] Cumulative PTT after 2.1:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u25cb 2 Service Enumeration\n  \u25cb 2.1 Enumerate NFS shares",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r1_s2_3",
+      "label": "Search: 3\nCredential Discovery",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/3] PTT item 3: Credential Discovery\n\nMCP tool calls:\nInteractive CLI: Use showmount -e to enumerate NFS exports; Nmap: NFS enumeration scripts (nfs-ls, nfs-showmount, nfs-statfs)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r1_s2_3",
+      "label": "Track: Credential Discovery",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/3] 3 Credential Discovery:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r1_s2_3",
+      "label": "Agent: 3\nCredential Discovery",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/3] Cumulative PTT after 3:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate NFS shares\n\u25cb 3 Credential Discovery\n  \u25cb 3.1 Access NFS shares and extract sensitive files",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r1_s2_3.1",
+      "label": "Search: 3.1\nAccess NFS shares and ext\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/3] PTT item 3.1: Access NFS shares and extract sensitive files\n\nMCP tool calls:\nInteractive CLI: Use showmount -e to enumerate NFS exports; Nmap: NFS enumeration scripts (nfs-ls, nfs-showmount, nfs-statfs)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r1_s2_3.1",
+      "label": "Track: Access NFS shares and extract\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/3] 3.1 Access NFS shares and extract sensitive files:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r1_s2_3.1",
+      "label": "Agent: 3.1\nCredential Discovery",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/3] Cumulative PTT after 3.1:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate NFS shares\n\u25cb 3 Credential Discovery\n  \u25cb 3.1 Access NFS shares and extract sensitive files",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r1_s3_3.2",
+      "label": "Search: 3.2\nCrack password hashes",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/3] PTT item 3.2: Crack password hashes\n\nMCP tool calls:\nInteractive CLI: Mount NFS shares (mount -t nfs target:/home /mnt/home); enumerate directory contents; search for credentials in .ssh/, .bash_history, configuration files, and system files",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r1_s3_3.2",
+      "label": "Track: Crack password hashes",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/3] 3.2 Crack password hashes:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r1_s3_3.2",
+      "label": "Agent: 3.2\nCredential Discovery",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/3] Cumulative PTT after 3.2:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate NFS shares\n\u2713 3 Credential Discovery\n  \u2713 3.1 Access NFS shares and extract sensitive files\n  \u25cb 3.2 Crack password hashes",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r1_s4_4",
+      "label": "Search: 4\nInitial Access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/3] PTT item 4: Initial Access\n\nMCP tool calls:\nJohn-the-ripper: Crack service account yescrypt hash from /etc/shadow; Google search: Use crackstation or similar to decode MD5 hash aaabf0d39951f3e6c3e8a7911df524c2",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r1_s4_4",
+      "label": "Track: Initial Access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/3] 4 Initial Access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r1_s4_4",
+      "label": "Agent: 4\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/3] Cumulative PTT after 4:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate NFS shares\n\u2713 3 Credential Discovery\n  \u2713 3.1 Access NFS shares and extract sensitive files\n  \u2713 3.2 Crack password hashes\n\u25cb 4 Initial Access\n  \u25cb 4.1 Establish SSH connection to service account",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r1_s4_4.1",
+      "label": "Search: 4.1\nEstablish SSH connection \u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/3] PTT item 4.1: Establish SSH connection to service account\n\nMCP tool calls:\nJohn-the-ripper: Crack service account yescrypt hash from /etc/shadow; Google search: Use crackstation or similar to decode MD5 hash aaabf0d39951f3e6c3e8a7911df524c2",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r1_s4_4.1",
+      "label": "Track: Establish SSH connection to s\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/3] 4.1 Establish SSH connection to service account:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r1_s4_4.1",
+      "label": "Agent: 4.1\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/3] Cumulative PTT after 4.1:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate NFS shares\n\u2713 3 Credential Discovery\n  \u2713 3.1 Access NFS shares and extract sensitive files\n  \u2713 3.2 Crack password hashes\n\u25cb 4 Initial Access\n  \u25cb 4.1 Establish SSH connection to service account",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r1_s5_5",
+      "label": "Search: 5\nDatabase Exploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/3] PTT item 5: Database Exploitation\n\nMCP tool calls:\nInteractive CLI: Analyze service account capabilities; plan SSH local port forwarding strategy to access PostgreSQL via Unix socket",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r1_s5_5",
+      "label": "Track: Database Exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/3] 5 Database Exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r1_s5_5",
+      "label": "Agent: 5\nDatabase Exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/3] Cumulative PTT after 5:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate NFS shares\n\u2713 3 Credential Discovery\n  \u2713 3.1 Access NFS shares and extract sensitive files\n  \u2713 3.2 Crack password hashes\n\u2713 4 Initial Access\n  \u2713 4.1 Establish SSH connection to service account\n\u25cb 5 Database Exploitation\n  \u25cb 5.1 Connect to PostgreSQL and enumerate privileges",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r1_s5_5.1",
+      "label": "Search: 5.1\nConnect to PostgreSQL and\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/3] PTT item 5.1: Connect to PostgreSQL and enumerate privileges\n\nMCP tool calls:\nInteractive CLI: Analyze service account capabilities; plan SSH local port forwarding strategy to access PostgreSQL via Unix socket",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r1_s5_5.1",
+      "label": "Track: Connect to PostgreSQL and enu\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/3] 5.1 Connect to PostgreSQL and enumerate privileges:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r1_s5_5.1",
+      "label": "Agent: 5.1\nDatabase Exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/3] Cumulative PTT after 5.1:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate NFS shares\n\u2713 3 Credential Discovery\n  \u2713 3.1 Access NFS shares and extract sensitive files\n  \u2713 3.2 Crack password hashes\n\u2713 4 Initial Access\n  \u2713 4.1 Establish SSH connection to service account\n\u25cb 5 Database Exploitation\n  \u25cb 5.1 Connect to PostgreSQL and enumerate privileges",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r1_s6_5.2",
+      "label": "Search: 5.2\nEstablish shell access vi\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/3] PTT item 5.2: Establish shell access via PostgreSQL\n\nMCP tool calls:\nInteractive CLI: Execute SSH port forwarding command (sshpass -p service ssh -N -L 5432:/var/run/postgresql/.s.PGSQL.5432 service@target); connect to local port 5432 with psql as postgres user",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r1_s6_5.2",
+      "label": "Track: Establish shell access via Po\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/3] 5.2 Establish shell access via PostgreSQL:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r1_s6_5.2",
+      "label": "Agent: 5.2\nDatabase Exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/3] Cumulative PTT after 5.2:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate NFS shares\n\u2713 3 Credential Discovery\n  \u2713 3.1 Access NFS shares and extract sensitive files\n  \u2713 3.2 Crack password hashes\n\u2713 4 Initial Access\n  \u2713 4.1 Establish SSH connection to service account\n\u2713 5 Database Exploitation\n  \u2713 5.1 Connect to PostgreSQL and enumerate privileges\n  \u25cb 5.2 Establish shell access via PostgreSQL",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r1_s7_6",
+      "label": "Search: 6\nPrivilege Escalation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/3] PTT item 6: Privilege Escalation\n\nMCP tool calls:\nInteractive CLI: Execute PostgreSQL commands - COPY (SELECT 'ssh-ed25519 AAAA...publickey') TO PROGRAM 'tee /var/lib/postgresql/.ssh/authorized_keys'; then SSH as postgres user with private key",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r1_s7_6",
+      "label": "Track: Privilege Escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/3] 6 Privilege Escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r1_s7_6",
+      "label": "Agent: 6\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/3] Cumulative PTT after 6:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate NFS shares\n\u2713 3 Credential Discovery\n  \u2713 3.1 Access NFS shares and extract sensitive files\n  \u2713 3.2 Crack password hashes\n\u2713 4 Initial Access\n  \u2713 4.1 Establish SSH connection to service account\n\u2713 5 Database Exploitation\n  \u2713 5.1 Connect to PostgreSQL and enumerate privileges\n  \u2713 5.2 Establish shell access via PostgreSQL\n\u25cb 6 Privilege Escalation\n  \u25cb 6.1 Enumerate system for privilege escalation vectors",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r1_s7_6.1",
+      "label": "Search: 6.1\nEnumerate system for priv\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/3] PTT item 6.1: Enumerate system for privilege escalation vectors\n\nMCP tool calls:\nInteractive CLI: Execute PostgreSQL commands - COPY (SELECT 'ssh-ed25519 AAAA...publickey') TO PROGRAM 'tee /var/lib/postgresql/.ssh/authorized_keys'; then SSH as postgres user with private key",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r1_s7_6.1",
+      "label": "Track: Enumerate system for privileg\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/3] 6.1 Enumerate system for privilege escalation vectors:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r1_s7_6.1",
+      "label": "Agent: 6.1\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/3] Cumulative PTT after 6.1:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate NFS shares\n\u2713 3 Credential Discovery\n  \u2713 3.1 Access NFS shares and extract sensitive files\n  \u2713 3.2 Crack password hashes\n\u2713 4 Initial Access\n  \u2713 4.1 Establish SSH connection to service account\n\u2713 5 Database Exploitation\n  \u2713 5.1 Connect to PostgreSQL and enumerate privileges\n  \u2713 5.2 Establish shell access via PostgreSQL\n\u25cb 6 Privilege Escalation\n  \u25cb 6.1 Enumerate system for privilege escalation vectors",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r1_s8_6.2",
+      "label": "Search: 6.2\nExploit backup process fo\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/3] PTT item 6.2: Exploit backup process for privilege escalation\n\nMCP tool calls:\nInteractive CLI: Run pspy or monitor processes with ps; check /etc/crontab and cron jobs; enumerate /opt/backups/ directory; examine backup scripts for vulnerabilities",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r1_s8_6.2",
+      "label": "Track: Exploit backup process for pr\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/3] 6.2 Exploit backup process for privilege escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r1_s8_6.2",
+      "label": "Agent: 6.2\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/3] Cumulative PTT after 6.2:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate NFS shares\n\u2713 3 Credential Discovery\n  \u2713 3.1 Access NFS shares and extract sensitive files\n  \u2713 3.2 Crack password hashes\n\u2713 4 Initial Access\n  \u2713 4.1 Establish SSH connection to service account\n\u2713 5 Database Exploitation\n  \u2713 5.1 Connect to PostgreSQL and enumerate privileges\n  \u2713 5.2 Establish shell access via PostgreSQL\n\u2026 6 Privilege Escalation\n  \u2713 6.1 Enumerate system for privilege escalation vectors\n  \u25cb 6.2 Exploit backup process for privilege escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "[Run 1/3] Final cumulative PTT for this run:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate NFS shares\n\u2713 3 Credential Discovery\n  \u2713 3.1 Access NFS shares and extract sensitive files\n  \u2713 3.2 Crack password hashes\n\u2713 4 Initial Access\n  \u2713 4.1 Establish SSH connection to service account\n\u2713 5 Database Exploitation\n  \u2713 5.1 Connect to PostgreSQL and enumerate privileges\n  \u2713 5.2 Establish shell access via PostgreSQL\n\u2713 6 Privilege Escalation\n  \u2713 6.1 Enumerate system for privilege escalation vectors\n  \u2713 6.2 Exploit backup process for privilege escalation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r2_s1_2.1",
+      "label": "Search: 2.1\nNFS share enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/3] PTT item 2.1: NFS share enumeration\n\nMCP tool calls:\nNmap: Full port scan with service detection on target 10.129.234.160",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r2_s1_2.1",
+      "label": "Track: NFS share enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/3] 2.1 NFS share enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r2_s1_2.1",
+      "label": "Agent: 2.1\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/3] Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u2713 1.2 Service enumeration\n\u25cb 2 Enumeration\n  \u25cb 2.1 NFS share enumeration\n\u25cb 3 Exploitation\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r2_s2_2.2",
+      "label": "Search: 2.2\nSensitive file extraction",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/3] PTT item 2.2: Sensitive file extraction\n\nMCP tool calls:\nSMB client: Use showmount -e and netexec nfs to enumerate NFS shares and permissions",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r2_s2_2.2",
+      "label": "Track: Sensitive file extraction",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/3] 2.2 Sensitive file extraction:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r2_s2_2.2",
+      "label": "Agent: 2.2\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/3] Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u2713 2.1 NFS share enumeration\n  \u25cb 2.2 Sensitive file extraction\n\u25cb 3 Exploitation\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r2_s3_2.3",
+      "label": "Search: 2.3\nCredential cracking",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/3] PTT item 2.3: Credential cracking\n\nMCP tool calls:\nSMB client: Mount NFS shares access parent directories to extract /etc/passwd /etc/shadow .psql_history",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r2_s3_2.3",
+      "label": "Track: Credential cracking",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/3] 2.3 Credential cracking:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r2_s3_2.3",
+      "label": "Agent: 2.3\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/3] Cumulative PTT after 2.3:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u2713 2.1 NFS share enumeration\n  \u2713 2.2 Sensitive file extraction\n  \u25cb 2.3 Credential cracking\n\u25cb 3 Exploitation\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r2_s4_3.1",
+      "label": "Search: 3.1\nDatabase access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/3] PTT item 3.1: Database access\n\nMCP tool calls:\nJohn-the-ripper: Crack yescrypt hash from shadow file; Interactive CLI: Submit MD5 hash to CrackStation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r2_s4_3.1",
+      "label": "Track: Database access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/3] 3.1 Database access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r2_s4_3.1",
+      "label": "Agent: 3.1\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/3] Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Exploitation\n  \u25cb 3.1 Database access\n  \u25cb 3.2 Command execution\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r2_s4_3.2",
+      "label": "Search: 3.2\nCommand execution",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/3] PTT item 3.2: Command execution\n\nMCP tool calls:\nJohn-the-ripper: Crack yescrypt hash from shadow file; Interactive CLI: Submit MD5 hash to CrackStation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r2_s4_3.2",
+      "label": "Track: Command execution",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/3] 3.2 Command execution:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r2_s4_3.2",
+      "label": "Agent: 3.2\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/3] Cumulative PTT after 3.2:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Exploitation\n  \u25cb 3.1 Database access\n  \u25cb 3.2 Command execution\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r2_s6_4.1",
+      "label": "Search: 4.1\nUser flag",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/3] PTT item 4.1: User flag\n\nMCP tool calls:\nInteractive CLI: CREATE TABLE execute COPY FROM PROGRAM for command execution COPY TO PROGRAM to write SSH key",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r2_s6_4.1",
+      "label": "Track: user.txt retrieved from /var/\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/3] 4.1 User flag:\nuser.txt retrieved from /var/lib/postgresql/",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r2_s6_4.1",
+      "label": "Agent: 4.1\nPost-exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/3] Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Exploitation\n\u2026 4 Post-exploitation\n  \u2713 4.1 User flag\n  \u25cb 4.2 Privilege escalation\n    \u25cb 4.2.1 Cron monitoring",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r2_s7_4.2.2",
+      "label": "Search: 4.2.2\nBackup poisoning",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/3] PTT item 4.2.2: Backup poisoning\n\nMCP tool calls:\nInteractive CLI: Upload and run pspy64 to monitor process execution",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r2_s7_4.2.2",
+      "label": "Track: Backup poisoning",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/3] 4.2.2 Backup poisoning:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r2_s7_4.2.2",
+      "label": "Agent: 4.2.2\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/3] Cumulative PTT after 4.2.2:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Exploitation\n\u2026 4 Post-exploitation\n  \u2713 4.1 User flag\n  \u2026 4.2 Privilege escalation\n    \u2713 4.2.1 Cron monitoring\n    \u25cb 4.2.2 Backup poisoning",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r2_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "[Run 2/3] Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Exploitation\n\u2713 4 Post-exploitation\n  \u2713 4.1 User flag\n  \u2713 4.2 Privilege escalation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Slonik:r3_base",
+      "label": "Search: Baseline\n(1 item(s))",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 3/3] Baseline recon already completed before this run's first tracked step:\n4.2 Privilege escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Slonik:r3_base",
+      "label": "Track: Privilege escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 3/3] 4.2 Privilege escalation: Complete system compromise achieved",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r3_base",
+      "label": "Agent: Baseline\nPost-exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 3/3] Cumulative PTT so far:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Exploitation\n\u2713 4 Post-exploitation\n  \u2713 4.1 User flag\n  \u2713 4.2 Privilege escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Slonik:r3_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "[Run 3/3] Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Exploitation\n\u2713 4 Post-exploitation\n  \u2713 4.1 User flag\n  \u2713 4.2 Privilege escalation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Slonik:START",
+      "to": "agent:Slonik:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:START",
+      "to": "search:Slonik:r1_s1_2.1",
+      "label": "2.1 Enumerate NFS shares",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r1_s1_2.1",
+      "to": "track:Slonik:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r1_s1_2.1",
+      "to": "agent:Slonik:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s1_2.1",
+      "to": "agent:Slonik:r1_s2_3",
+      "label": "\u2192 3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s1_2.1",
+      "to": "search:Slonik:r1_s2_3",
+      "label": "3 Credential Discovery",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r1_s2_3",
+      "to": "track:Slonik:r1_s2_3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r1_s2_3",
+      "to": "agent:Slonik:r1_s2_3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s2_3",
+      "to": "agent:Slonik:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s2_3",
+      "to": "search:Slonik:r1_s2_3.1",
+      "label": "3.1 Access NFS shares a\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r1_s2_3.1",
+      "to": "track:Slonik:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r1_s2_3.1",
+      "to": "agent:Slonik:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s2_3.1",
+      "to": "agent:Slonik:r1_s3_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s2_3.1",
+      "to": "search:Slonik:r1_s3_3.2",
+      "label": "3.2 Crack password hash\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r1_s3_3.2",
+      "to": "track:Slonik:r1_s3_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r1_s3_3.2",
+      "to": "agent:Slonik:r1_s3_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s3_3.2",
+      "to": "agent:Slonik:r1_s4_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s3_3.2",
+      "to": "search:Slonik:r1_s4_4",
+      "label": "4 Initial Access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r1_s4_4",
+      "to": "track:Slonik:r1_s4_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r1_s4_4",
+      "to": "agent:Slonik:r1_s4_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s4_4",
+      "to": "agent:Slonik:r1_s4_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s4_4",
+      "to": "search:Slonik:r1_s4_4.1",
+      "label": "4.1 Establish SSH conne\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r1_s4_4.1",
+      "to": "track:Slonik:r1_s4_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r1_s4_4.1",
+      "to": "agent:Slonik:r1_s4_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s4_4.1",
+      "to": "agent:Slonik:r1_s5_5",
+      "label": "\u2192 5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s4_4.1",
+      "to": "search:Slonik:r1_s5_5",
+      "label": "5 Database Exploitati\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r1_s5_5",
+      "to": "track:Slonik:r1_s5_5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r1_s5_5",
+      "to": "agent:Slonik:r1_s5_5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s5_5",
+      "to": "agent:Slonik:r1_s5_5.1",
+      "label": "\u2192 5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s5_5",
+      "to": "search:Slonik:r1_s5_5.1",
+      "label": "5.1 Connect to PostgreS\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r1_s5_5.1",
+      "to": "track:Slonik:r1_s5_5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r1_s5_5.1",
+      "to": "agent:Slonik:r1_s5_5.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s5_5.1",
+      "to": "agent:Slonik:r1_s6_5.2",
+      "label": "\u2192 5.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s5_5.1",
+      "to": "search:Slonik:r1_s6_5.2",
+      "label": "5.2 Establish shell acc\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r1_s6_5.2",
+      "to": "track:Slonik:r1_s6_5.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r1_s6_5.2",
+      "to": "agent:Slonik:r1_s6_5.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s6_5.2",
+      "to": "agent:Slonik:r1_s7_6",
+      "label": "\u2192 6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s6_5.2",
+      "to": "search:Slonik:r1_s7_6",
+      "label": "6 Privilege Escalation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r1_s7_6",
+      "to": "track:Slonik:r1_s7_6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r1_s7_6",
+      "to": "agent:Slonik:r1_s7_6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s7_6",
+      "to": "agent:Slonik:r1_s7_6.1",
+      "label": "\u2192 6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s7_6",
+      "to": "search:Slonik:r1_s7_6.1",
+      "label": "6.1 Enumerate system fo\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r1_s7_6.1",
+      "to": "track:Slonik:r1_s7_6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r1_s7_6.1",
+      "to": "agent:Slonik:r1_s7_6.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s7_6.1",
+      "to": "agent:Slonik:r1_s8_6.2",
+      "label": "\u2192 6.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s7_6.1",
+      "to": "search:Slonik:r1_s8_6.2",
+      "label": "6.2 Exploit backup proc\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r1_s8_6.2",
+      "to": "track:Slonik:r1_s8_6.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r1_s8_6.2",
+      "to": "agent:Slonik:r1_s8_6.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r1_s8_6.2",
+      "to": "agent:Slonik:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:START",
+      "to": "agent:Slonik:r2_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:START",
+      "to": "search:Slonik:r2_s1_2.1",
+      "label": "2.1 NFS share enumerati\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r2_s1_2.1",
+      "to": "track:Slonik:r2_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r2_s1_2.1",
+      "to": "agent:Slonik:r2_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r2_s1_2.1",
+      "to": "agent:Slonik:r2_s2_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r2_s1_2.1",
+      "to": "search:Slonik:r2_s2_2.2",
+      "label": "2.2 Sensitive file extr\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r2_s2_2.2",
+      "to": "track:Slonik:r2_s2_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r2_s2_2.2",
+      "to": "agent:Slonik:r2_s2_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r2_s2_2.2",
+      "to": "agent:Slonik:r2_s3_2.3",
+      "label": "\u2192 2.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r2_s2_2.2",
+      "to": "search:Slonik:r2_s3_2.3",
+      "label": "2.3 Credential cracking",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r2_s3_2.3",
+      "to": "track:Slonik:r2_s3_2.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r2_s3_2.3",
+      "to": "agent:Slonik:r2_s3_2.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r2_s3_2.3",
+      "to": "agent:Slonik:r2_s4_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r2_s3_2.3",
+      "to": "search:Slonik:r2_s4_3.1",
+      "label": "3.1 Database access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r2_s4_3.1",
+      "to": "track:Slonik:r2_s4_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r2_s4_3.1",
+      "to": "agent:Slonik:r2_s4_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r2_s4_3.1",
+      "to": "agent:Slonik:r2_s4_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r2_s4_3.1",
+      "to": "search:Slonik:r2_s4_3.2",
+      "label": "3.2 Command execution",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r2_s4_3.2",
+      "to": "track:Slonik:r2_s4_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r2_s4_3.2",
+      "to": "agent:Slonik:r2_s4_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r2_s4_3.2",
+      "to": "agent:Slonik:r2_s6_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r2_s4_3.2",
+      "to": "search:Slonik:r2_s6_4.1",
+      "label": "4.1 User flag",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r2_s6_4.1",
+      "to": "track:Slonik:r2_s6_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r2_s6_4.1",
+      "to": "agent:Slonik:r2_s6_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r2_s6_4.1",
+      "to": "agent:Slonik:r2_s7_4.2.2",
+      "label": "\u2192 4.2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r2_s6_4.1",
+      "to": "search:Slonik:r2_s7_4.2.2",
+      "label": "4.2.2 Backup poisoning",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r2_s7_4.2.2",
+      "to": "track:Slonik:r2_s7_4.2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r2_s7_4.2.2",
+      "to": "agent:Slonik:r2_s7_4.2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r2_s7_4.2.2",
+      "to": "agent:Slonik:r2_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:START",
+      "to": "agent:Slonik:r3_base",
+      "label": "baseline",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:START",
+      "to": "search:Slonik:r3_base",
+      "label": "Baseline Recon",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Slonik:r3_base",
+      "to": "track:Slonik:r3_base",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Slonik:r3_base",
+      "to": "agent:Slonik:r3_base",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Slonik:r3_base",
+      "to": "agent:Slonik:r3_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 64,
+    "total_edges": 83,
+    "agent_nodes": 24,
+    "search_nodes": 20,
+    "track_nodes": 20,
+    "runs_detected": 3,
+    "rows_captured": 20
+  }
+}

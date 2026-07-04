@@ -1,0 +1,616 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "digital world.local Vengeance",
+  "source": "training_data.csv, Machine == 'digital world.local Vengeance', 7 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:digital world.local Vengeance:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'digital world.local Vengeance'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:digital world.local Vengeance:r1_s2_2",
+      "label": "Search: 2\nAnalysis and attack path \u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2: Analysis and attack path identification\n\nMCP tool calls:\nNmap (version detection); SMB client (share enumeration); Dirbuster (HTTP enumeration)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:digital world.local Vengeance:r1_s2_2",
+      "label": "Track: Analysis and attack path iden\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2 Analysis and attack path identification:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:digital world.local Vengeance:r1_s2_2",
+      "label": "Agent: 2\nAnalysis and attack p\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2:\n\u2026 1 Reconnaissance\n  \u2713 1.1 Network discovery and port scanning\n  \u2713 1.2 Service enumeration\n\u25cb 2 Analysis and attack path identification",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:digital world.local Vengeance:r1_s3_3",
+      "label": "Search: 3\nInitial access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3: Initial access\n\nMCP tool calls:\nInteractive CLI (file analysis); John-the-ripper (zip password cracking)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:digital world.local Vengeance:r1_s3_3",
+      "label": "Track: Initial access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3 Initial access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:digital world.local Vengeance:r1_s3_3",
+      "label": "Agent: 3\nInitial access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3:\n\u2713 1 Reconnaissance\n  \u2713 1.2 Service enumeration\n\u2713 2 Analysis and attack path identification\n\u25cb 3 Initial access\n  \u25cb 3.1 SSH authentication",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:digital world.local Vengeance:r1_s3_3.1",
+      "label": "Search: 3.1\nSSH authentication",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: SSH authentication\n\nMCP tool calls:\nInteractive CLI (file analysis); John-the-ripper (zip password cracking)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:digital world.local Vengeance:r1_s3_3.1",
+      "label": "Track: SSH authentication",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 SSH authentication:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:digital world.local Vengeance:r1_s3_3.1",
+      "label": "Agent: 3.1\nInitial access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n  \u2713 1.2 Service enumeration\n\u2713 2 Analysis and attack path identification\n\u25cb 3 Initial access\n  \u25cb 3.1 SSH authentication",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:digital world.local Vengeance:r1_s4_4",
+      "label": "Search: 4\nPrivilege escalation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4: Privilege escalation\n\nMCP tool calls:\nNetcat (SSH authentication on port 22222)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:digital world.local Vengeance:r1_s4_4",
+      "label": "Track: Privilege escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4 Privilege escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:digital world.local Vengeance:r1_s4_4",
+      "label": "Agent: 4\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4:\n\u2713 1 Reconnaissance\n  \u2713 1.2 Service enumeration\n\u2713 2 Analysis and attack path identification\n\u2713 3 Initial access\n\u25cb 4 Privilege escalation\n  \u25cb 4.1 Sudo permission analysis",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:digital world.local Vengeance:r1_s4_4.1",
+      "label": "Search: 4.1\nSudo permission analysis",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Sudo permission analysis\n\nMCP tool calls:\nNetcat (SSH authentication on port 22222)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:digital world.local Vengeance:r1_s4_4.1",
+      "label": "Track: Sudo permission analysis",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Sudo permission analysis:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:digital world.local Vengeance:r1_s4_4.1",
+      "label": "Agent: 4.1\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n  \u2713 1.2 Service enumeration\n\u2713 2 Analysis and attack path identification\n\u2713 3 Initial access\n\u25cb 4 Privilege escalation\n  \u25cb 4.1 Sudo permission analysis",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:digital world.local Vengeance:r1_s5_4.2",
+      "label": "Search: 4.2\nBinary manipulation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2: Binary manipulation\n\nMCP tool calls:\nInteractive CLI (deploy pspy64 for process monitoring)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:digital world.local Vengeance:r1_s5_4.2",
+      "label": "Track: Binary manipulation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2 Binary manipulation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:digital world.local Vengeance:r1_s5_4.2",
+      "label": "Agent: 4.2\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2:\n\u2713 1 Reconnaissance\n\u2713 2 Analysis and attack path identification\n\u2713 3 Initial access\n\u2026 4 Privilege escalation\n  \u2713 4.1 Sudo permission analysis\n  \u25cb 4.2 Binary manipulation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:digital world.local Vengeance:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Analysis and attack path identification\n\u2713 3 Initial access\n\u2713 4 Privilege escalation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:digital world.local Vengeance:START",
+      "to": "agent:digital world.local Vengeance:r1_s2_2",
+      "label": "\u2192 2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:digital world.local Vengeance:START",
+      "to": "search:digital world.local Vengeance:r1_s2_2",
+      "label": "2 Analysis and attack\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:digital world.local Vengeance:r1_s2_2",
+      "to": "track:digital world.local Vengeance:r1_s2_2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:digital world.local Vengeance:r1_s2_2",
+      "to": "agent:digital world.local Vengeance:r1_s2_2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:digital world.local Vengeance:r1_s2_2",
+      "to": "agent:digital world.local Vengeance:r1_s3_3",
+      "label": "\u2192 3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:digital world.local Vengeance:r1_s2_2",
+      "to": "search:digital world.local Vengeance:r1_s3_3",
+      "label": "3 Initial access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:digital world.local Vengeance:r1_s3_3",
+      "to": "track:digital world.local Vengeance:r1_s3_3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:digital world.local Vengeance:r1_s3_3",
+      "to": "agent:digital world.local Vengeance:r1_s3_3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:digital world.local Vengeance:r1_s3_3",
+      "to": "agent:digital world.local Vengeance:r1_s3_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:digital world.local Vengeance:r1_s3_3",
+      "to": "search:digital world.local Vengeance:r1_s3_3.1",
+      "label": "3.1 SSH authentication",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:digital world.local Vengeance:r1_s3_3.1",
+      "to": "track:digital world.local Vengeance:r1_s3_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:digital world.local Vengeance:r1_s3_3.1",
+      "to": "agent:digital world.local Vengeance:r1_s3_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:digital world.local Vengeance:r1_s3_3.1",
+      "to": "agent:digital world.local Vengeance:r1_s4_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:digital world.local Vengeance:r1_s3_3.1",
+      "to": "search:digital world.local Vengeance:r1_s4_4",
+      "label": "4 Privilege escalation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:digital world.local Vengeance:r1_s4_4",
+      "to": "track:digital world.local Vengeance:r1_s4_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:digital world.local Vengeance:r1_s4_4",
+      "to": "agent:digital world.local Vengeance:r1_s4_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:digital world.local Vengeance:r1_s4_4",
+      "to": "agent:digital world.local Vengeance:r1_s4_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:digital world.local Vengeance:r1_s4_4",
+      "to": "search:digital world.local Vengeance:r1_s4_4.1",
+      "label": "4.1 Sudo permission ana\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:digital world.local Vengeance:r1_s4_4.1",
+      "to": "track:digital world.local Vengeance:r1_s4_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:digital world.local Vengeance:r1_s4_4.1",
+      "to": "agent:digital world.local Vengeance:r1_s4_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:digital world.local Vengeance:r1_s4_4.1",
+      "to": "agent:digital world.local Vengeance:r1_s5_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:digital world.local Vengeance:r1_s4_4.1",
+      "to": "search:digital world.local Vengeance:r1_s5_4.2",
+      "label": "4.2 Binary manipulation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:digital world.local Vengeance:r1_s5_4.2",
+      "to": "track:digital world.local Vengeance:r1_s5_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:digital world.local Vengeance:r1_s5_4.2",
+      "to": "agent:digital world.local Vengeance:r1_s5_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:digital world.local Vengeance:r1_s5_4.2",
+      "to": "agent:digital world.local Vengeance:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 20,
+    "total_edges": 25,
+    "agent_nodes": 8,
+    "search_nodes": 6,
+    "track_nodes": 6,
+    "runs_detected": 1,
+    "rows_captured": 7
+  }
+}

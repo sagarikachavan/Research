@@ -1,0 +1,1002 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "KB-Vuln 3",
+  "source": "training_data.csv, Machine == 'KB-Vuln 3', 5 row(s), 2 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:KB-Vuln 3:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'KB-Vuln 3'. 2 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:KB-Vuln 3:r1_close",
+      "label": "Agent: Run End\n(no further PTT growth)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Final cumulative PTT for this run:\n\u25cb 1 Network Reconnaissance\n  \u25cb 1.1 Identify target IP\n  \u25cb 1.2 Enumerate ports and services",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:KB-Vuln 3:r2_base",
+      "label": "Search: Baseline\n(2 item(s))",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] Baseline recon already completed before this run's first tracked step:\n1.1 Identify target IP\n1.2 Enumerate ports and services",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:KB-Vuln 3:r2_base",
+      "label": "Track: Enumerate ports and servi\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 1.1 Identify target IP: Target located at 192.168.10.167\n\n1.2 Enumerate ports and services: Multiple open ports with running services identified",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:KB-Vuln 3:r2_base",
+      "label": "Agent: Baseline\nNetwork Reconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT so far:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Identify target IP\n  \u2713 1.2 Enumerate ports and services\n\u25cb 2 SMB Enumeration\n  \u25cb 2.1 Test for null SMB sessions\n  \u25cb 2.2 Download website backup",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:KB-Vuln 3:r2_s1_3",
+      "label": "Search: 3\nPassword Cracking",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 3: Password Cracking\n\nMCP tool calls:\nSMB client: Test null SMB connection; Enumerate shares with smbclient; Access Files share; Download website backup archive",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:KB-Vuln 3:r2_s1_3",
+      "label": "Track: Password Cracking",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 3 Password Cracking:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:KB-Vuln 3:r2_s1_3",
+      "label": "Agent: 3\nPassword Cracking",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 3:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Identify target IP\n  \u2713 1.2 Enumerate ports and services\n\u2713 2 SMB Enumeration\n  \u2713 2.1 Test for null SMB sessions\n  \u2713 2.2 Download website backup\n\u25cb 3 Password Cracking\n  \u25cb 3.1 Extract zip password hash\n  \u25cb 3.2 Crack password and extract archive",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:KB-Vuln 3:r2_s1_3.1",
+      "label": "Search: 3.1\nExtract zip password hash",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 3.1: Extract zip password hash\n\nMCP tool calls:\nSMB client: Test null SMB connection; Enumerate shares with smbclient; Access Files share; Download website backup archive",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:KB-Vuln 3:r2_s1_3.1",
+      "label": "Track: Extract zip password hash",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 3.1 Extract zip password hash:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:KB-Vuln 3:r2_s1_3.1",
+      "label": "Agent: 3.1\nPassword Cracking",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 3.1:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Identify target IP\n  \u2713 1.2 Enumerate ports and services\n\u2713 2 SMB Enumeration\n  \u2713 2.1 Test for null SMB sessions\n  \u2713 2.2 Download website backup\n\u25cb 3 Password Cracking\n  \u25cb 3.1 Extract zip password hash\n  \u25cb 3.2 Crack password and extract archive",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:KB-Vuln 3:r2_s1_3.2",
+      "label": "Search: 3.2\nCrack password and extrac\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 3.2: Crack password and extract archive\n\nMCP tool calls:\nSMB client: Test null SMB connection; Enumerate shares with smbclient; Access Files share; Download website backup archive",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:KB-Vuln 3:r2_s1_3.2",
+      "label": "Track: Crack password and extract ar\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 3.2 Crack password and extract archive:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:KB-Vuln 3:r2_s1_3.2",
+      "label": "Agent: 3.2\nPassword Cracking",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 3.2:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Identify target IP\n  \u2713 1.2 Enumerate ports and services\n\u2713 2 SMB Enumeration\n  \u2713 2.1 Test for null SMB sessions\n  \u2713 2.2 Download website backup\n\u25cb 3 Password Cracking\n  \u25cb 3.1 Extract zip password hash\n  \u25cb 3.2 Crack password and extract archive",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:KB-Vuln 3:r2_s2_4",
+      "label": "Search: 4\nConfiguration Analysis an\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 4: Configuration Analysis and Exploitation\n\nMCP tool calls:\nInteractive CLI: Execute zip2john on backup archive to generate pass-zip.hash; John-the-ripper: Execute john with rockyou dictionary against pass-zip.hash; Extract zip with recovered password",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:KB-Vuln 3:r2_s2_4",
+      "label": "Track: Configuration Analysis and Ex\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 4 Configuration Analysis and Exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:KB-Vuln 3:r2_s2_4",
+      "label": "Agent: 4\nConfiguration Analysi\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 4:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Identify target IP\n  \u2713 1.2 Enumerate ports and services\n\u2713 2 SMB Enumeration\n  \u2713 2.1 Test for null SMB sessions\n  \u2713 2.2 Download website backup\n\u2713 3 Password Cracking\n  \u2713 3.1 Extract zip password hash\n  \u2713 3.2 Crack password and extract archive\n\u25cb 4 Configuration Analysis and Exploitation\n  \u25cb 4.1 Extract admin credentials from config\n  \u25cb 4.2 Exploit CMS file upload vulnerability",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:KB-Vuln 3:r2_s2_4.1",
+      "label": "Search: 4.1\nExtract admin credentials\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 4.1: Extract admin credentials from config\n\nMCP tool calls:\nInteractive CLI: Execute zip2john on backup archive to generate pass-zip.hash; John-the-ripper: Execute john with rockyou dictionary against pass-zip.hash; Extract zip with recovered password",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:KB-Vuln 3:r2_s2_4.1",
+      "label": "Track: Extract admin credentials fro\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 4.1 Extract admin credentials from config:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:KB-Vuln 3:r2_s2_4.1",
+      "label": "Agent: 4.1\nConfiguration Analysi\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 4.1:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Identify target IP\n  \u2713 1.2 Enumerate ports and services\n\u2713 2 SMB Enumeration\n  \u2713 2.1 Test for null SMB sessions\n  \u2713 2.2 Download website backup\n\u2713 3 Password Cracking\n  \u2713 3.1 Extract zip password hash\n  \u2713 3.2 Crack password and extract archive\n\u25cb 4 Configuration Analysis and Exploitation\n  \u25cb 4.1 Extract admin credentials from config\n  \u25cb 4.2 Exploit CMS file upload vulnerability",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:KB-Vuln 3:r2_s2_4.2",
+      "label": "Search: 4.2\nExploit CMS file upload v\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 4.2: Exploit CMS file upload vulnerability\n\nMCP tool calls:\nInteractive CLI: Execute zip2john on backup archive to generate pass-zip.hash; John-the-ripper: Execute john with rockyou dictionary against pass-zip.hash; Extract zip with recovered password",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:KB-Vuln 3:r2_s2_4.2",
+      "label": "Track: Exploit CMS file upload vulne\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 4.2 Exploit CMS file upload vulnerability:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:KB-Vuln 3:r2_s2_4.2",
+      "label": "Agent: 4.2\nConfiguration Analysi\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 4.2:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Identify target IP\n  \u2713 1.2 Enumerate ports and services\n\u2713 2 SMB Enumeration\n  \u2713 2.1 Test for null SMB sessions\n  \u2713 2.2 Download website backup\n\u2713 3 Password Cracking\n  \u2713 3.1 Extract zip password hash\n  \u2713 3.2 Crack password and extract archive\n\u25cb 4 Configuration Analysis and Exploitation\n  \u25cb 4.1 Extract admin credentials from config\n  \u25cb 4.2 Exploit CMS file upload vulnerability",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:KB-Vuln 3:r2_s3_5",
+      "label": "Search: 5\nShell Access and Privileg\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 5: Shell Access and Privilege Escalation\n\nMCP tool calls:\nInteractive CLI: Execute cat config.xml.php to extract administrator credentials; Do a google search for more information: Search for SiteMagic CMS CVE-2020 file upload vulnerability exploit-db.com/exploits/48788; Web page interaction: Authenticate with recovered credentials; Upload pentestmonkey PHP reverse shell via Content section; Netcat: Set up listener",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:KB-Vuln 3:r2_s3_5",
+      "label": "Track: Shell Access and Privilege Es\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 5 Shell Access and Privilege Escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:KB-Vuln 3:r2_s3_5",
+      "label": "Agent: 5\nShell Access and Priv\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 5:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Identify target IP\n  \u2713 1.2 Enumerate ports and services\n\u2713 2 SMB Enumeration\n  \u2713 2.1 Test for null SMB sessions\n  \u2713 2.2 Download website backup\n\u2713 3 Password Cracking\n  \u2713 3.1 Extract zip password hash\n  \u2713 3.2 Crack password and extract archive\n\u2713 4 Configuration Analysis and Exploitation\n  \u2713 4.1 Extract admin credentials from config\n  \u2713 4.2 Exploit CMS file upload vulnerability\n\u25cb 5 Shell Access and Privilege Escalation\n  \u25cb 5.1 Execute webshell and stabilize\n  \u25cb 5.2 Exploit SUID binary",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:KB-Vuln 3:r2_s3_5.1",
+      "label": "Search: 5.1\nExecute webshell and stab\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 5.1: Execute webshell and stabilize\n\nMCP tool calls:\nInteractive CLI: Execute cat config.xml.php to extract administrator credentials; Do a google search for more information: Search for SiteMagic CMS CVE-2020 file upload vulnerability exploit-db.com/exploits/48788; Web page interaction: Authenticate with recovered credentials; Upload pentestmonkey PHP reverse shell via Content section; Netcat: Set up listener",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:KB-Vuln 3:r2_s3_5.1",
+      "label": "Track: Execute webshell and stabilize",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 5.1 Execute webshell and stabilize:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:KB-Vuln 3:r2_s3_5.1",
+      "label": "Agent: 5.1\nShell Access and Priv\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 5.1:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Identify target IP\n  \u2713 1.2 Enumerate ports and services\n\u2713 2 SMB Enumeration\n  \u2713 2.1 Test for null SMB sessions\n  \u2713 2.2 Download website backup\n\u2713 3 Password Cracking\n  \u2713 3.1 Extract zip password hash\n  \u2713 3.2 Crack password and extract archive\n\u2713 4 Configuration Analysis and Exploitation\n  \u2713 4.1 Extract admin credentials from config\n  \u2713 4.2 Exploit CMS file upload vulnerability\n\u25cb 5 Shell Access and Privilege Escalation\n  \u25cb 5.1 Execute webshell and stabilize\n  \u25cb 5.2 Exploit SUID binary",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:KB-Vuln 3:r2_s3_5.2",
+      "label": "Search: 5.2\nExploit SUID binary",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 5.2: Exploit SUID binary\n\nMCP tool calls:\nInteractive CLI: Execute cat config.xml.php to extract administrator credentials; Do a google search for more information: Search for SiteMagic CMS CVE-2020 file upload vulnerability exploit-db.com/exploits/48788; Web page interaction: Authenticate with recovered credentials; Upload pentestmonkey PHP reverse shell via Content section; Netcat: Set up listener",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:KB-Vuln 3:r2_s3_5.2",
+      "label": "Track: Exploit SUID binary",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 5.2 Exploit SUID binary:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:KB-Vuln 3:r2_s3_5.2",
+      "label": "Agent: 5.2\nShell Access and Priv\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 5.2:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Identify target IP\n  \u2713 1.2 Enumerate ports and services\n\u2713 2 SMB Enumeration\n  \u2713 2.1 Test for null SMB sessions\n  \u2713 2.2 Download website backup\n\u2713 3 Password Cracking\n  \u2713 3.1 Extract zip password hash\n  \u2713 3.2 Crack password and extract archive\n\u2713 4 Configuration Analysis and Exploitation\n  \u2713 4.1 Extract admin credentials from config\n  \u2713 4.2 Exploit CMS file upload vulnerability\n\u25cb 5 Shell Access and Privilege Escalation\n  \u25cb 5.1 Execute webshell and stabilize\n  \u25cb 5.2 Exploit SUID binary",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:KB-Vuln 3:r2_close",
+      "label": "Agent: Run End\n(no further PTT growth)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Final cumulative PTT for this run:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Identify target IP\n  \u2713 1.2 Enumerate ports and services\n\u2713 2 SMB Enumeration\n  \u2713 2.1 Test for null SMB sessions\n  \u2713 2.2 Download website backup\n\u2713 3 Password Cracking\n  \u2713 3.1 Extract zip password hash\n  \u2713 3.2 Crack password and extract archive\n\u2713 4 Configuration Analysis and Exploitation\n  \u2713 4.1 Extract admin credentials from config\n  \u2713 4.2 Exploit CMS file upload vulnerability\n\u25cb 5 Shell Access and Privilege Escalation\n  \u25cb 5.1 Execute webshell and stabilize\n  \u25cb 5.2 Exploit SUID binary",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:KB-Vuln 3:START",
+      "to": "agent:KB-Vuln 3:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:START",
+      "to": "agent:KB-Vuln 3:r2_base",
+      "label": "baseline",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:START",
+      "to": "search:KB-Vuln 3:r2_base",
+      "label": "Baseline Recon",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:KB-Vuln 3:r2_base",
+      "to": "track:KB-Vuln 3:r2_base",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:KB-Vuln 3:r2_base",
+      "to": "agent:KB-Vuln 3:r2_base",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_base",
+      "to": "agent:KB-Vuln 3:r2_s1_3",
+      "label": "\u2192 3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_base",
+      "to": "search:KB-Vuln 3:r2_s1_3",
+      "label": "3 Password Cracking",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:KB-Vuln 3:r2_s1_3",
+      "to": "track:KB-Vuln 3:r2_s1_3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:KB-Vuln 3:r2_s1_3",
+      "to": "agent:KB-Vuln 3:r2_s1_3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_s1_3",
+      "to": "agent:KB-Vuln 3:r2_s1_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_s1_3",
+      "to": "search:KB-Vuln 3:r2_s1_3.1",
+      "label": "3.1 Extract zip passwor\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:KB-Vuln 3:r2_s1_3.1",
+      "to": "track:KB-Vuln 3:r2_s1_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:KB-Vuln 3:r2_s1_3.1",
+      "to": "agent:KB-Vuln 3:r2_s1_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_s1_3.1",
+      "to": "agent:KB-Vuln 3:r2_s1_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_s1_3.1",
+      "to": "search:KB-Vuln 3:r2_s1_3.2",
+      "label": "3.2 Crack password and \u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:KB-Vuln 3:r2_s1_3.2",
+      "to": "track:KB-Vuln 3:r2_s1_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:KB-Vuln 3:r2_s1_3.2",
+      "to": "agent:KB-Vuln 3:r2_s1_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_s1_3.2",
+      "to": "agent:KB-Vuln 3:r2_s2_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_s1_3.2",
+      "to": "search:KB-Vuln 3:r2_s2_4",
+      "label": "4 Configuration Analy\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:KB-Vuln 3:r2_s2_4",
+      "to": "track:KB-Vuln 3:r2_s2_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:KB-Vuln 3:r2_s2_4",
+      "to": "agent:KB-Vuln 3:r2_s2_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_s2_4",
+      "to": "agent:KB-Vuln 3:r2_s2_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_s2_4",
+      "to": "search:KB-Vuln 3:r2_s2_4.1",
+      "label": "4.1 Extract admin crede\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:KB-Vuln 3:r2_s2_4.1",
+      "to": "track:KB-Vuln 3:r2_s2_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:KB-Vuln 3:r2_s2_4.1",
+      "to": "agent:KB-Vuln 3:r2_s2_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_s2_4.1",
+      "to": "agent:KB-Vuln 3:r2_s2_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_s2_4.1",
+      "to": "search:KB-Vuln 3:r2_s2_4.2",
+      "label": "4.2 Exploit CMS file up\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:KB-Vuln 3:r2_s2_4.2",
+      "to": "track:KB-Vuln 3:r2_s2_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:KB-Vuln 3:r2_s2_4.2",
+      "to": "agent:KB-Vuln 3:r2_s2_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_s2_4.2",
+      "to": "agent:KB-Vuln 3:r2_s3_5",
+      "label": "\u2192 5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_s2_4.2",
+      "to": "search:KB-Vuln 3:r2_s3_5",
+      "label": "5 Shell Access and Pr\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:KB-Vuln 3:r2_s3_5",
+      "to": "track:KB-Vuln 3:r2_s3_5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:KB-Vuln 3:r2_s3_5",
+      "to": "agent:KB-Vuln 3:r2_s3_5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_s3_5",
+      "to": "agent:KB-Vuln 3:r2_s3_5.1",
+      "label": "\u2192 5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_s3_5",
+      "to": "search:KB-Vuln 3:r2_s3_5.1",
+      "label": "5.1 Execute webshell an\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:KB-Vuln 3:r2_s3_5.1",
+      "to": "track:KB-Vuln 3:r2_s3_5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:KB-Vuln 3:r2_s3_5.1",
+      "to": "agent:KB-Vuln 3:r2_s3_5.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_s3_5.1",
+      "to": "agent:KB-Vuln 3:r2_s3_5.2",
+      "label": "\u2192 5.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_s3_5.1",
+      "to": "search:KB-Vuln 3:r2_s3_5.2",
+      "label": "5.2 Exploit SUID binary",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:KB-Vuln 3:r2_s3_5.2",
+      "to": "track:KB-Vuln 3:r2_s3_5.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:KB-Vuln 3:r2_s3_5.2",
+      "to": "agent:KB-Vuln 3:r2_s3_5.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:KB-Vuln 3:r2_s3_5.2",
+      "to": "agent:KB-Vuln 3:r2_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 33,
+    "total_edges": 42,
+    "agent_nodes": 13,
+    "search_nodes": 10,
+    "track_nodes": 10,
+    "runs_detected": 2,
+    "rows_captured": 5
+  }
+}

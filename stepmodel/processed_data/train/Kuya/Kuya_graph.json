@@ -1,0 +1,1066 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Kuya",
+  "source": "training_data.csv, Machine == 'Kuya', 12 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Kuya:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Kuya'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Kuya:r1_s1_2.1",
+      "label": "Search: 2.1\nHTTP Enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: HTTP Enumeration\n\nMCP tool calls:\nNmap: Use netdiscover to identify target IP, then perform full port scan with -p- and -A flags for comprehensive port enumeration, OS detection, version detection, and service identification",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Kuya:r1_s1_2.1",
+      "label": "Track: HTTP Enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 HTTP Enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kuya:r1_s1_2.1",
+      "label": "Agent: 2.1\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network Discovery\n  \u2713 1.2 Port Scanning\n\u25cb 2 Enumeration\n  \u25cb 2.1 HTTP Enumeration\n  \u25cb 2.2 SSH Enumeration\n\u25cb 3 Exploitation\n\u25cb 4 Post-Exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Kuya:r1_s1_2.2",
+      "label": "Search: 2.2\nSSH Enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.2: SSH Enumeration\n\nMCP tool calls:\nNmap: Use netdiscover to identify target IP, then perform full port scan with -p- and -A flags for comprehensive port enumeration, OS detection, version detection, and service identification",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Kuya:r1_s1_2.2",
+      "label": "Track: SSH Enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.2 SSH Enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kuya:r1_s1_2.2",
+      "label": "Agent: 2.2\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network Discovery\n  \u2713 1.2 Port Scanning\n\u25cb 2 Enumeration\n  \u25cb 2.1 HTTP Enumeration\n  \u25cb 2.2 SSH Enumeration\n\u25cb 3 Exploitation\n\u25cb 4 Post-Exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Kuya:r1_s3_2.3",
+      "label": "Search: 2.3\nCryptographic Decoding",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.3: Cryptographic Decoding\n\nMCP tool calls:\nInteractive CLI: Download all image files from /loot directory (1.jpg, 2.jpg, 3.jpg, 4.jpg, image.jpeg), then use steghide extract on each image without password to uncover hidden files (secret.txt, emb.txt)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Kuya:r1_s3_2.3",
+      "label": "Track: Cryptographic Decoding",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.3 Cryptographic Decoding:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kuya:r1_s3_2.3",
+      "label": "Agent: 2.3\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.3:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network Discovery\n  \u2713 1.2 Port Scanning\n\u2026 2 Enumeration\n  \u2713 2.1 HTTP Enumeration\n  \u2713 2.2 File Analysis\n  \u25cb 2.3 Cryptographic Decoding\n\u25cb 3 Exploitation\n\u25cb 4 Post-Exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Kuya:r1_s4_3.1",
+      "label": "Search: 3.1\nNetwork Traffic Analysis",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: Network Traffic Analysis\n\nMCP tool calls:\nInteractive CLI: Decode base64 string from secret.txt using 'base64 -d', then decrypt brainfuck code from emb.txt using online brainfuck interpreter or local tool to reveal first flag",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Kuya:r1_s4_3.1",
+      "label": "Track: Network Traffic Analysis",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 Network Traffic Analysis:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kuya:r1_s4_3.1",
+      "label": "Agent: 3.1\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network Discovery\n  \u2713 1.2 Port Scanning\n\u2713 2 Enumeration\n  \u2713 2.1 HTTP Enumeration\n  \u2713 2.2 File Analysis\n  \u2713 2.3 Cryptographic Decoding\n\u25cb 3 Exploitation\n  \u25cb 3.1 Network Traffic Analysis\n\u25cb 4 Post-Exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Kuya:r1_s5_3.2",
+      "label": "Search: 3.2\nArchive Cracking",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.2: Archive Cracking\n\nMCP tool calls:\nInteractive CLI: Download loot.pcapng, open with Wireshark, analyze HTTP traffic, use File > Export Objects > HTTP to extract transferred files (7z archive discovered)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Kuya:r1_s5_3.2",
+      "label": "Track: Archive Cracking",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.2 Archive Cracking:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kuya:r1_s5_3.2",
+      "label": "Agent: 3.2\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network Discovery\n  \u2713 1.2 Port Scanning\n\u2713 2 Enumeration\n  \u2713 2.1 HTTP Enumeration\n  \u2713 2.2 File Analysis\n  \u2713 2.3 Cryptographic Decoding\n\u2026 3 Exploitation\n  \u2713 3.1 Network Traffic Analysis\n  \u25cb 3.2 Archive Cracking\n\u25cb 4 Post-Exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Kuya:r1_s6_3.3",
+      "label": "Search: 3.3\nSSH Key Analysis",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.3: SSH Key Analysis\n\nMCP tool calls:\nJohn-the-ripper: Use 7z2john.pl to convert 7z file to hash format, then execute john with rockyou.txt wordlist to crack password (password: manchester)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Kuya:r1_s6_3.3",
+      "label": "Track: SSH Key Analysis",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.3 SSH Key Analysis:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kuya:r1_s6_3.3",
+      "label": "Agent: 3.3\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.3:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network Discovery\n  \u2713 1.2 Port Scanning\n\u2713 2 Enumeration\n  \u2713 2.1 HTTP Enumeration\n  \u2713 2.2 File Analysis\n  \u2713 2.3 Cryptographic Decoding\n\u2026 3 Exploitation\n  \u2713 3.1 Network Traffic Analysis\n  \u2713 3.2 Archive Cracking\n  \u25cb 3.3 SSH Key Analysis\n\u25cb 4 Post-Exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Kuya:r1_s7_4.1",
+      "label": "Search: 4.1\nCredential Discovery",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Credential Discovery\n\nMCP tool calls:\nJohn-the-ripper: Use ssh2john.py to convert id_rsa to hash format, crack with john to obtain passphrase (hello). Interactive CLI: Extract username from id_rsa.pub (test), execute 'ssh -i id_rsa test@192.168.0.16' with passphrase hello",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Kuya:r1_s7_4.1",
+      "label": "Track: Credential Discovery",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Credential Discovery:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kuya:r1_s7_4.1",
+      "label": "Agent: 4.1\nPost-Exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network Discovery\n  \u2713 1.2 Port Scanning\n\u2713 2 Enumeration\n  \u2713 2.1 HTTP Enumeration\n  \u2713 2.2 File Analysis\n  \u2713 2.3 Cryptographic Decoding\n\u2713 3 Exploitation\n  \u2713 3.1 Network Traffic Analysis\n  \u2713 3.2 Archive Cracking\n  \u2713 3.3 SSH Key Analysis\n\u25cb 4 Post-Exploitation\n  \u25cb 4.1 Credential Discovery\n  \u25cb 4.2 Lateral Movement\n  \u25cb 4.3 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Kuya:r1_s7_4.2",
+      "label": "Search: 4.2\nLateral Movement",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2: Lateral Movement\n\nMCP tool calls:\nJohn-the-ripper: Use ssh2john.py to convert id_rsa to hash format, crack with john to obtain passphrase (hello). Interactive CLI: Extract username from id_rsa.pub (test), execute 'ssh -i id_rsa test@192.168.0.16' with passphrase hello",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Kuya:r1_s7_4.2",
+      "label": "Track: Lateral Movement",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2 Lateral Movement:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kuya:r1_s7_4.2",
+      "label": "Agent: 4.2\nPost-Exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network Discovery\n  \u2713 1.2 Port Scanning\n\u2713 2 Enumeration\n  \u2713 2.1 HTTP Enumeration\n  \u2713 2.2 File Analysis\n  \u2713 2.3 Cryptographic Decoding\n\u2713 3 Exploitation\n  \u2713 3.1 Network Traffic Analysis\n  \u2713 3.2 Archive Cracking\n  \u2713 3.3 SSH Key Analysis\n\u25cb 4 Post-Exploitation\n  \u25cb 4.1 Credential Discovery\n  \u25cb 4.2 Lateral Movement\n  \u25cb 4.3 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Kuya:r1_s7_4.3",
+      "label": "Search: 4.3\nPrivilege Escalation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.3: Privilege Escalation\n\nMCP tool calls:\nJohn-the-ripper: Use ssh2john.py to convert id_rsa to hash format, crack with john to obtain passphrase (hello). Interactive CLI: Extract username from id_rsa.pub (test), execute 'ssh -i id_rsa test@192.168.0.16' with passphrase hello",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Kuya:r1_s7_4.3",
+      "label": "Track: Privilege Escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.3 Privilege Escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kuya:r1_s7_4.3",
+      "label": "Agent: 4.3\nPost-Exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.3:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network Discovery\n  \u2713 1.2 Port Scanning\n\u2713 2 Enumeration\n  \u2713 2.1 HTTP Enumeration\n  \u2713 2.2 File Analysis\n  \u2713 2.3 Cryptographic Decoding\n\u2713 3 Exploitation\n  \u2713 3.1 Network Traffic Analysis\n  \u2713 3.2 Archive Cracking\n  \u2713 3.3 SSH Key Analysis\n\u25cb 4 Post-Exploitation\n  \u25cb 4.1 Credential Discovery\n  \u25cb 4.2 Lateral Movement\n  \u25cb 4.3 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Kuya:r1_s9_4.3.1",
+      "label": "Search: 4.3.1\nCapability Enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.3.1: Capability Enumeration\n\nMCP tool calls:\nInteractive CLI: Extract credentials from wp-config-sample.php, execute 'su kuya' with discovered password to switch user context and gain kuya user privileges",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Kuya:r1_s9_4.3.1",
+      "label": "Track: Capability Enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.3.1 Capability Enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kuya:r1_s9_4.3.1",
+      "label": "Agent: 4.3.1\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.3.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network Discovery\n  \u2713 1.2 Port Scanning\n\u2713 2 Enumeration\n  \u2713 2.1 HTTP Enumeration\n  \u2713 2.2 File Analysis\n  \u2713 2.3 Cryptographic Decoding\n\u2713 3 Exploitation\n  \u2713 3.1 Network Traffic Analysis\n  \u2713 3.2 Archive Cracking\n  \u2713 3.3 SSH Key Analysis\n\u2026 4 Post-Exploitation\n  \u2713 4.1 Credential Discovery\n  \u2713 4.2 Lateral Movement\n  \u25cb 4.3 Privilege Escalation\n    \u25cb 4.3.1 Capability Enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Kuya:r1_s10_4.3.2",
+      "label": "Search: 4.3.2\nCapability Exploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.3.2: Capability Exploitation\n\nMCP tool calls:\nInteractive CLI: Read /home/kuya/.bash_history file to identify previous commands, specifically looking for getcap and setcap commands indicating capability-based privilege escalation techniques",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Kuya:r1_s10_4.3.2",
+      "label": "Track: Capability Exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.3.2 Capability Exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kuya:r1_s10_4.3.2",
+      "label": "Agent: 4.3.2\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.3.2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network Discovery\n  \u2713 1.2 Port Scanning\n\u2713 2 Enumeration\n  \u2713 2.1 HTTP Enumeration\n  \u2713 2.2 File Analysis\n  \u2713 2.3 Cryptographic Decoding\n\u2713 3 Exploitation\n  \u2713 3.1 Network Traffic Analysis\n  \u2713 3.2 Archive Cracking\n  \u2713 3.3 SSH Key Analysis\n\u2026 4 Post-Exploitation\n  \u2713 4.1 Credential Discovery\n  \u2713 4.2 Lateral Movement\n  \u2026 4.3 Privilege Escalation\n    \u2713 4.3.1 Capability Enumeration\n    \u25cb 4.3.2 Capability Exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kuya:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network Discovery\n  \u2713 1.2 Port Scanning\n\u2713 2 Enumeration\n  \u2713 2.1 HTTP Enumeration\n  \u2713 2.2 File Analysis\n  \u2713 2.3 Cryptographic Decoding\n\u2713 3 Exploitation\n  \u2713 3.1 Network Traffic Analysis\n  \u2713 3.2 Archive Cracking\n  \u2713 3.3 SSH Key Analysis\n\u2713 4 Post-Exploitation\n  \u2713 4.1 Credential Discovery\n  \u2713 4.2 Lateral Movement\n  \u2713 4.3 Privilege Escalation\n    \u2713 4.3.1 Capability Enumeration\n    \u2713 4.3.2 Capability Exploitation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Kuya:START",
+      "to": "agent:Kuya:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:START",
+      "to": "search:Kuya:r1_s1_2.1",
+      "label": "2.1 HTTP Enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Kuya:r1_s1_2.1",
+      "to": "track:Kuya:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Kuya:r1_s1_2.1",
+      "to": "agent:Kuya:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s1_2.1",
+      "to": "agent:Kuya:r1_s1_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s1_2.1",
+      "to": "search:Kuya:r1_s1_2.2",
+      "label": "2.2 SSH Enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Kuya:r1_s1_2.2",
+      "to": "track:Kuya:r1_s1_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Kuya:r1_s1_2.2",
+      "to": "agent:Kuya:r1_s1_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s1_2.2",
+      "to": "agent:Kuya:r1_s3_2.3",
+      "label": "\u2192 2.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s1_2.2",
+      "to": "search:Kuya:r1_s3_2.3",
+      "label": "2.3 Cryptographic Decod\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Kuya:r1_s3_2.3",
+      "to": "track:Kuya:r1_s3_2.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Kuya:r1_s3_2.3",
+      "to": "agent:Kuya:r1_s3_2.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s3_2.3",
+      "to": "agent:Kuya:r1_s4_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s3_2.3",
+      "to": "search:Kuya:r1_s4_3.1",
+      "label": "3.1 Network Traffic Ana\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Kuya:r1_s4_3.1",
+      "to": "track:Kuya:r1_s4_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Kuya:r1_s4_3.1",
+      "to": "agent:Kuya:r1_s4_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s4_3.1",
+      "to": "agent:Kuya:r1_s5_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s4_3.1",
+      "to": "search:Kuya:r1_s5_3.2",
+      "label": "3.2 Archive Cracking",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Kuya:r1_s5_3.2",
+      "to": "track:Kuya:r1_s5_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Kuya:r1_s5_3.2",
+      "to": "agent:Kuya:r1_s5_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s5_3.2",
+      "to": "agent:Kuya:r1_s6_3.3",
+      "label": "\u2192 3.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s5_3.2",
+      "to": "search:Kuya:r1_s6_3.3",
+      "label": "3.3 SSH Key Analysis",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Kuya:r1_s6_3.3",
+      "to": "track:Kuya:r1_s6_3.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Kuya:r1_s6_3.3",
+      "to": "agent:Kuya:r1_s6_3.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s6_3.3",
+      "to": "agent:Kuya:r1_s7_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s6_3.3",
+      "to": "search:Kuya:r1_s7_4.1",
+      "label": "4.1 Credential Discovery",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Kuya:r1_s7_4.1",
+      "to": "track:Kuya:r1_s7_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Kuya:r1_s7_4.1",
+      "to": "agent:Kuya:r1_s7_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s7_4.1",
+      "to": "agent:Kuya:r1_s7_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s7_4.1",
+      "to": "search:Kuya:r1_s7_4.2",
+      "label": "4.2 Lateral Movement",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Kuya:r1_s7_4.2",
+      "to": "track:Kuya:r1_s7_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Kuya:r1_s7_4.2",
+      "to": "agent:Kuya:r1_s7_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s7_4.2",
+      "to": "agent:Kuya:r1_s7_4.3",
+      "label": "\u2192 4.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s7_4.2",
+      "to": "search:Kuya:r1_s7_4.3",
+      "label": "4.3 Privilege Escalation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Kuya:r1_s7_4.3",
+      "to": "track:Kuya:r1_s7_4.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Kuya:r1_s7_4.3",
+      "to": "agent:Kuya:r1_s7_4.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s7_4.3",
+      "to": "agent:Kuya:r1_s9_4.3.1",
+      "label": "\u2192 4.3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s7_4.3",
+      "to": "search:Kuya:r1_s9_4.3.1",
+      "label": "4.3.1 Capability Enumerat\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Kuya:r1_s9_4.3.1",
+      "to": "track:Kuya:r1_s9_4.3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Kuya:r1_s9_4.3.1",
+      "to": "agent:Kuya:r1_s9_4.3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s9_4.3.1",
+      "to": "agent:Kuya:r1_s10_4.3.2",
+      "label": "\u2192 4.3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s9_4.3.1",
+      "to": "search:Kuya:r1_s10_4.3.2",
+      "label": "4.3.2 Capability Exploita\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Kuya:r1_s10_4.3.2",
+      "to": "track:Kuya:r1_s10_4.3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Kuya:r1_s10_4.3.2",
+      "to": "agent:Kuya:r1_s10_4.3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kuya:r1_s10_4.3.2",
+      "to": "agent:Kuya:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 35,
+    "total_edges": 45,
+    "agent_nodes": 13,
+    "search_nodes": 11,
+    "track_nodes": 11,
+    "runs_detected": 1,
+    "rows_captured": 12
+  }
+}

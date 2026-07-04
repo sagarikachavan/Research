@@ -1,0 +1,886 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Guardian",
+  "source": "training_data.csv, Machine == 'Guardian', 11 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Guardian:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Guardian'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Guardian:r1_s1_2.1",
+      "label": "Search: 2.1\nVirtual host discovery",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: Virtual host discovery\n\nMCP tool calls:\nNmap: Full port scan with service detection on target 10.129.237.248",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Guardian:r1_s1_2.1",
+      "label": "Track: Virtual host discovery",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 Virtual host discovery:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Guardian:r1_s1_2.1",
+      "label": "Agent: 2.1\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u2713 1.2 Service enumeration\n\u25cb 2 Enumeration\n  \u25cb 2.1 Virtual host discovery\n\u25cb 3 Exploitation\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Guardian:r1_s2_2.2",
+      "label": "Search: 2.2\nWeb enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.2: Web enumeration\n\nMCP tool calls:\nDirbuster: Subdomain enumeration via Host header fuzzing on guardian.htb",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Guardian:r1_s2_2.2",
+      "label": "Track: Web enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.2 Web enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Guardian:r1_s2_2.2",
+      "label": "Agent: 2.2\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u2713 2.1 Virtual host discovery\n  \u25cb 2.2 Web enumeration\n\u25cb 3 Exploitation\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Guardian:r1_s3_2.3",
+      "label": "Search: 2.3\nCredential analysis",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.3: Credential analysis\n\nMCP tool calls:\nDirbuster: Directory enumeration on portal.guardian.htb with PHP extension",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Guardian:r1_s3_2.3",
+      "label": "Track: Credential analysis",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.3 Credential analysis:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Guardian:r1_s3_2.3",
+      "label": "Agent: 2.3\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.3:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u2713 2.1 Virtual host discovery\n  \u2713 2.2 Web enumeration\n  \u25cb 2.3 Credential analysis\n\u25cb 3 Exploitation\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Guardian:r1_s4_3.1",
+      "label": "Search: 3.1\nInitial access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: Initial access\n\nMCP tool calls:\nHydra: Brute force login.php with student ID pattern and password GU1234",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Guardian:r1_s4_3.1",
+      "label": "Track: Authenticated as GU0142023",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 Initial access:\nAuthenticated as GU0142023",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Guardian:r1_s4_3.1",
+      "label": "Agent: 3.1\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Exploitation\n  \u2713 3.1 Initial access\n  \u25cb 3.2 IDOR exploitation\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Guardian:r1_s5_3.3",
+      "label": "Search: 3.3\nSource code access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.3: Source code access\n\nMCP tool calls:\nDirbuster: Fuzz /student/chat.php parameters chat_users with user ID ranges",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Guardian:r1_s5_3.3",
+      "label": "Track: Source code access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.3 Source code access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Guardian:r1_s5_3.3",
+      "label": "Agent: 3.3\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.3:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Exploitation\n  \u2713 3.1 Initial access\n  \u2713 3.2 IDOR exploitation\n  \u25cb 3.3 Source code access\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Guardian:r1_s6_3.3.1",
+      "label": "Search: 3.3.1\nGitea discovery",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.3.1: Gitea discovery\n\nMCP tool calls:\nDirbuster: Subdomain fuzzing for git-related domains on guardian.htb",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Guardian:r1_s6_3.3.1",
+      "label": "Track: gitea.guardian.htb accessible",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.3.1 Gitea discovery:\ngitea.guardian.htb accessible",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Guardian:r1_s6_3.3.1",
+      "label": "Agent: 3.3.1\nSource code access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.3.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Exploitation\n  \u2713 3.1 Initial access\n  \u2713 3.2 IDOR exploitation\n  \u2026 3.3 Source code access\n    \u2713 3.3.1 Gitea discovery\n    \u25cb 3.3.2 Repository cloning\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Guardian:r1_s7_3.4",
+      "label": "Search: 3.4\nXSS exploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.4: XSS exploitation\n\nMCP tool calls:\nInteractive CLI: Git clone with credentials from gitea.guardian.htb",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Guardian:r1_s7_3.4",
+      "label": "Track: XSS exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.4 XSS exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Guardian:r1_s7_3.4",
+      "label": "Agent: 3.4\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.4:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Exploitation\n  \u2713 3.1 Initial access\n  \u2713 3.2 IDOR exploitation\n  \u2713 3.3 Source code access\n  \u25cb 3.4 XSS exploitation\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Guardian:r1_s8_3.4.1",
+      "label": "Search: 3.4.1\nVulnerability research",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.4.1: Vulnerability research\n\nMCP tool calls:\nGoogle search: CVE vulnerabilities PHPSpreadsheet 3.7.0",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Guardian:r1_s8_3.4.1",
+      "label": "Track: CVE-2025-22131 XSS in PHPSpre\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.4.1 Vulnerability research:\nCVE-2025-22131 XSS in PHPSpreadsheet 3.7.0",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Guardian:r1_s8_3.4.1",
+      "label": "Agent: 3.4.1\nXSS exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.4.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Exploitation\n  \u2713 3.1 Initial access\n  \u2713 3.2 IDOR exploitation\n  \u2713 3.3 Source code access\n  \u2026 3.4 XSS exploitation\n    \u2713 3.4.1 Vulnerability research\n    \u25cb 3.4.2 Payload generation\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Guardian:r1_s9_3.4.3",
+      "label": "Search: 3.4.3\nCookie theft",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.4.3: Cookie theft\n\nMCP tool calls:\nInteractive CLI: Create XLSX modify workbook.xml inject payload upload as assignment",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Guardian:r1_s9_3.4.3",
+      "label": "Track: Lecturer PHPSESSID cookie exf\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.4.3 Cookie theft:\nLecturer PHPSESSID cookie exfiltrated, sammy.treat account",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Guardian:r1_s9_3.4.3",
+      "label": "Agent: 3.4.3\nXSS exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.4.3:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Exploitation\n  \u2026 3.4 XSS exploitation\n    \u2713 3.4.3 Cookie theft\n  \u25cb 3.5 Admin creation via CSRF\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Guardian:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Exploitation\n\u2713 4 Post-exploitation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Guardian:START",
+      "to": "agent:Guardian:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:START",
+      "to": "search:Guardian:r1_s1_2.1",
+      "label": "2.1 Virtual host discov\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Guardian:r1_s1_2.1",
+      "to": "track:Guardian:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Guardian:r1_s1_2.1",
+      "to": "agent:Guardian:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:r1_s1_2.1",
+      "to": "agent:Guardian:r1_s2_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:r1_s1_2.1",
+      "to": "search:Guardian:r1_s2_2.2",
+      "label": "2.2 Web enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Guardian:r1_s2_2.2",
+      "to": "track:Guardian:r1_s2_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Guardian:r1_s2_2.2",
+      "to": "agent:Guardian:r1_s2_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:r1_s2_2.2",
+      "to": "agent:Guardian:r1_s3_2.3",
+      "label": "\u2192 2.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:r1_s2_2.2",
+      "to": "search:Guardian:r1_s3_2.3",
+      "label": "2.3 Credential analysis",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Guardian:r1_s3_2.3",
+      "to": "track:Guardian:r1_s3_2.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Guardian:r1_s3_2.3",
+      "to": "agent:Guardian:r1_s3_2.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:r1_s3_2.3",
+      "to": "agent:Guardian:r1_s4_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:r1_s3_2.3",
+      "to": "search:Guardian:r1_s4_3.1",
+      "label": "3.1 Initial access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Guardian:r1_s4_3.1",
+      "to": "track:Guardian:r1_s4_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Guardian:r1_s4_3.1",
+      "to": "agent:Guardian:r1_s4_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:r1_s4_3.1",
+      "to": "agent:Guardian:r1_s5_3.3",
+      "label": "\u2192 3.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:r1_s4_3.1",
+      "to": "search:Guardian:r1_s5_3.3",
+      "label": "3.3 Source code access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Guardian:r1_s5_3.3",
+      "to": "track:Guardian:r1_s5_3.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Guardian:r1_s5_3.3",
+      "to": "agent:Guardian:r1_s5_3.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:r1_s5_3.3",
+      "to": "agent:Guardian:r1_s6_3.3.1",
+      "label": "\u2192 3.3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:r1_s5_3.3",
+      "to": "search:Guardian:r1_s6_3.3.1",
+      "label": "3.3.1 Gitea discovery",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Guardian:r1_s6_3.3.1",
+      "to": "track:Guardian:r1_s6_3.3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Guardian:r1_s6_3.3.1",
+      "to": "agent:Guardian:r1_s6_3.3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:r1_s6_3.3.1",
+      "to": "agent:Guardian:r1_s7_3.4",
+      "label": "\u2192 3.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:r1_s6_3.3.1",
+      "to": "search:Guardian:r1_s7_3.4",
+      "label": "3.4 XSS exploitation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Guardian:r1_s7_3.4",
+      "to": "track:Guardian:r1_s7_3.4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Guardian:r1_s7_3.4",
+      "to": "agent:Guardian:r1_s7_3.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:r1_s7_3.4",
+      "to": "agent:Guardian:r1_s8_3.4.1",
+      "label": "\u2192 3.4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:r1_s7_3.4",
+      "to": "search:Guardian:r1_s8_3.4.1",
+      "label": "3.4.1 Vulnerability resea\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Guardian:r1_s8_3.4.1",
+      "to": "track:Guardian:r1_s8_3.4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Guardian:r1_s8_3.4.1",
+      "to": "agent:Guardian:r1_s8_3.4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:r1_s8_3.4.1",
+      "to": "agent:Guardian:r1_s9_3.4.3",
+      "label": "\u2192 3.4.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:r1_s8_3.4.1",
+      "to": "search:Guardian:r1_s9_3.4.3",
+      "label": "3.4.3 Cookie theft",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Guardian:r1_s9_3.4.3",
+      "to": "track:Guardian:r1_s9_3.4.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Guardian:r1_s9_3.4.3",
+      "to": "agent:Guardian:r1_s9_3.4.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Guardian:r1_s9_3.4.3",
+      "to": "agent:Guardian:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 29,
+    "total_edges": 37,
+    "agent_nodes": 11,
+    "search_nodes": 9,
+    "track_nodes": 9,
+    "runs_detected": 1,
+    "rows_captured": 11
+  }
+}

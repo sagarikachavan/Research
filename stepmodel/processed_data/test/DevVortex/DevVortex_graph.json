@@ -1,0 +1,1516 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "DevVortex",
+  "source": "test_data.csv, Machine == 'DevVortex', 10 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:DevVortex:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'DevVortex'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:DevVortex:r1_s1_2",
+      "label": "Search: 2\nDNS Enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2: DNS Enumeration\n\nMCP tool calls:\nNmap: Execute full TCP port scan with service version detection on target 10.10.11.242",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:DevVortex:r1_s1_2",
+      "label": "Track: DNS Enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2 DNS Enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:DevVortex:r1_s1_2",
+      "label": "Agent: 2\nDNS Enumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u25cb 1.2 Service enumeration\n\u25cb 2 DNS Enumeration\n  \u25cb 2.1 Subdomain discovery",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:DevVortex:r1_s1_2.1",
+      "label": "Search: 2.1\nSubdomain discovery",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: Subdomain discovery\n\nMCP tool calls:\nNmap: Execute full TCP port scan with service version detection on target 10.10.11.242",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:DevVortex:r1_s1_2.1",
+      "label": "Track: Subdomain discovery",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 Subdomain discovery:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:DevVortex:r1_s1_2.1",
+      "label": "Agent: 2.1\nDNS Enumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u25cb 1.2 Service enumeration\n\u25cb 2 DNS Enumeration\n  \u25cb 2.1 Subdomain discovery",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:DevVortex:r1_s2_3",
+      "label": "Search: 3\nWeb Application Analysis",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3: Web Application Analysis\n\nMCP tool calls:\nInteractive CLI: Add devvortex.htb to /etc/hosts; Dirbuster: Perform subdomain enumeration with ffuf using 20000-entry wordlist against devvortex.htb; Interactive CLI: Test discovered subdomains for accessibility",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:DevVortex:r1_s2_3",
+      "label": "Track: Web Application Analysis",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3 Web Application Analysis:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:DevVortex:r1_s2_3",
+      "label": "Agent: 3\nWeb Application Analy\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u2713 1.2 Service enumeration\n\u2713 2 DNS Enumeration\n  \u2713 2.1 Subdomain discovery\n\u25cb 3 Web Application Analysis\n  \u25cb 3.1 Explore main and dev sites",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:DevVortex:r1_s2_3.1",
+      "label": "Search: 3.1\nExplore main and dev sites",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: Explore main and dev sites\n\nMCP tool calls:\nInteractive CLI: Add devvortex.htb to /etc/hosts; Dirbuster: Perform subdomain enumeration with ffuf using 20000-entry wordlist against devvortex.htb; Interactive CLI: Test discovered subdomains for accessibility",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:DevVortex:r1_s2_3.1",
+      "label": "Track: Explore main and dev sites",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 Explore main and dev sites:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:DevVortex:r1_s2_3.1",
+      "label": "Agent: 3.1\nWeb Application Analy\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u2713 1.2 Service enumeration\n\u2713 2 DNS Enumeration\n  \u2713 2.1 Subdomain discovery\n\u25cb 3 Web Application Analysis\n  \u25cb 3.1 Explore main and dev sites",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:DevVortex:r1_s3_4",
+      "label": "Search: 4\nVulnerability Research",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4: Vulnerability Research\n\nMCP tool calls:\nWeb page interaction: Browse devvortex.htb to explore main site; Web page interaction: Browse dev.devvortex.htb to explore development site; Interactive CLI: Check for CMS indicators like robots.txt, meta tags, manifest files; Dirbuster: Enumerate directories on both domains; Interactive CLI: Identify technology stack from error pages and HTTP headers",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:DevVortex:r1_s3_4",
+      "label": "Track: Vulnerability Research",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4 Vulnerability Research:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:DevVortex:r1_s3_4",
+      "label": "Agent: 4\nVulnerability Research",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 DNS Enumeration\n  \u2713 2.1 Subdomain discovery\n\u2713 3 Web Application Analysis\n  \u2713 3.1 Explore sites\n\u25cb 4 Vulnerability Research\n  \u25cb 4.1 Research Joomla 4.2.6 vulnerabilities",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:DevVortex:r1_s3_4.1",
+      "label": "Search: 4.1\nResearch Joomla 4.2.6 vul\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Research Joomla 4.2.6 vulnerabilities\n\nMCP tool calls:\nWeb page interaction: Browse devvortex.htb to explore main site; Web page interaction: Browse dev.devvortex.htb to explore development site; Interactive CLI: Check for CMS indicators like robots.txt, meta tags, manifest files; Dirbuster: Enumerate directories on both domains; Interactive CLI: Identify technology stack from error pages and HTTP headers",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:DevVortex:r1_s3_4.1",
+      "label": "Track: Research Joomla 4.2.6 vulnera\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Research Joomla 4.2.6 vulnerabilities:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:DevVortex:r1_s3_4.1",
+      "label": "Agent: 4.1\nVulnerability Research",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 DNS Enumeration\n  \u2713 2.1 Subdomain discovery\n\u2713 3 Web Application Analysis\n  \u2713 3.1 Explore sites\n\u25cb 4 Vulnerability Research\n  \u25cb 4.1 Research Joomla 4.2.6 vulnerabilities",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:DevVortex:r1_s4_5",
+      "label": "Search: 5\nExploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5: Exploitation\n\nMCP tool calls:\nGoogle search: Search for 'Joomla 4.2.6 vulnerabilities CVE exploits' and 'Joomla 4.2.6 information disclosure authentication bypass' and 'CVE-2023-23752 Joomla mass assignment'",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:DevVortex:r1_s4_5",
+      "label": "Track: Exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5 Exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:DevVortex:r1_s4_5",
+      "label": "Agent: 5\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 DNS Enumeration\n  \u2713 2.1 Subdomain discovery\n\u2713 3 Web Application Analysis\n  \u2713 3.1 Explore sites\n\u2713 4 Vulnerability Research\n  \u2713 4.1 Research Joomla 4.2.6\n\u25cb 5 Exploitation\n  \u25cb 5.1 Extract credentials via CVE-2023-23752",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:DevVortex:r1_s4_5.1",
+      "label": "Search: 5.1\nExtract credentials via C\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5.1: Extract credentials via CVE-2023-23752\n\nMCP tool calls:\nGoogle search: Search for 'Joomla 4.2.6 vulnerabilities CVE exploits' and 'Joomla 4.2.6 information disclosure authentication bypass' and 'CVE-2023-23752 Joomla mass assignment'",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:DevVortex:r1_s4_5.1",
+      "label": "Track: Extract credentials via CVE-2\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5.1 Extract credentials via CVE-2023-23752:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:DevVortex:r1_s4_5.1",
+      "label": "Agent: 5.1\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 DNS Enumeration\n  \u2713 2.1 Subdomain discovery\n\u2713 3 Web Application Analysis\n  \u2713 3.1 Explore sites\n\u2713 4 Vulnerability Research\n  \u2713 4.1 Research Joomla 4.2.6\n\u25cb 5 Exploitation\n  \u25cb 5.1 Extract credentials via CVE-2023-23752",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:DevVortex:r1_s5_6",
+      "label": "Search: 6\nRemote Code Execution",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6: Remote Code Execution\n\nMCP tool calls:\nInteractive CLI: Query /api/index.php/v1/users?public=1 on dev.devvortex.htb; Interactive CLI: Extract admin username and password hash from response; Interactive CLI: Query /api/index.php/v1/config/application?public=1; Interactive CLI: Extract database name, MySQL username lewis, password P4ntherg0t1n5r3c0n##; Interactive CLI: Test if MySQL password works for Joomla admin account",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:DevVortex:r1_s5_6",
+      "label": "Track: Remote Code Execution",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6 Remote Code Execution:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:DevVortex:r1_s5_6",
+      "label": "Agent: 6\nRemote Code Execution",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 DNS Enumeration\n  \u2713 2.1 Subdomain discovery\n\u2713 3 Web Application Analysis\n  \u2713 3.1 Explore sites\n\u2713 4 Vulnerability Research\n  \u2713 4.1 Research Joomla\n\u2713 5 Exploitation\n  \u2713 5.1 Extract credentials\n\u25cb 6 Remote Code Execution\n  \u25cb 6.1 Inject webshell via Joomla admin",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:DevVortex:r1_s5_6.1",
+      "label": "Search: 6.1\nInject webshell via Jooml\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6.1: Inject webshell via Joomla admin\n\nMCP tool calls:\nInteractive CLI: Query /api/index.php/v1/users?public=1 on dev.devvortex.htb; Interactive CLI: Extract admin username and password hash from response; Interactive CLI: Query /api/index.php/v1/config/application?public=1; Interactive CLI: Extract database name, MySQL username lewis, password P4ntherg0t1n5r3c0n##; Interactive CLI: Test if MySQL password works for Joomla admin account",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:DevVortex:r1_s5_6.1",
+      "label": "Track: Inject webshell via Joomla ad\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6.1 Inject webshell via Joomla admin:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:DevVortex:r1_s5_6.1",
+      "label": "Agent: 6.1\nRemote Code Execution",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 DNS Enumeration\n  \u2713 2.1 Subdomain discovery\n\u2713 3 Web Application Analysis\n  \u2713 3.1 Explore sites\n\u2713 4 Vulnerability Research\n  \u2713 4.1 Research Joomla\n\u2713 5 Exploitation\n  \u2713 5.1 Extract credentials\n\u25cb 6 Remote Code Execution\n  \u25cb 6.1 Inject webshell via Joomla admin",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:DevVortex:r1_s6_7",
+      "label": "Search: 7\nPrivilege Escalation to U\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 7: Privilege Escalation to User\n\nMCP tool calls:\nInteractive CLI: Access Joomla admin panel as lewis; Web page interaction: Navigate to System templates or error.php template; Interactive CLI: Inject PHP webshell code into writable template file; Web page interaction: Create custom Joomla plugin with PHP execution; Interactive CLI: Upload plugin or save template modifications; Web page interaction: Trigger webshell with command parameters",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:DevVortex:r1_s6_7",
+      "label": "Track: Privilege Escalation to User",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "7 Privilege Escalation to User:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:DevVortex:r1_s6_7",
+      "label": "Agent: 7\nPrivilege Escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 7:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 DNS Enumeration\n  \u2713 2.1 Subdomain discovery\n\u2713 3 Web Application Analysis\n  \u2713 3.1 Explore sites\n\u2713 4 Vulnerability Research\n  \u2713 4.1 Research Joomla\n\u2713 5 Exploitation\n  \u2713 5.1 Extract credentials\n\u2713 6 Remote Code Execution\n  \u2713 6.1 Inject webshell\n\u25cb 7 Privilege Escalation to User\n  \u25cb 7.1 Exploit database for credentials",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:DevVortex:r1_s6_7.1",
+      "label": "Search: 7.1\nExploit database for cred\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 7.1: Exploit database for credentials\n\nMCP tool calls:\nInteractive CLI: Access Joomla admin panel as lewis; Web page interaction: Navigate to System templates or error.php template; Interactive CLI: Inject PHP webshell code into writable template file; Web page interaction: Create custom Joomla plugin with PHP execution; Interactive CLI: Upload plugin or save template modifications; Web page interaction: Trigger webshell with command parameters",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:DevVortex:r1_s6_7.1",
+      "label": "Track: Exploit database for credenti\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "7.1 Exploit database for credentials:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:DevVortex:r1_s6_7.1",
+      "label": "Agent: 7.1\nPrivilege Escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 7.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 DNS Enumeration\n  \u2713 2.1 Subdomain discovery\n\u2713 3 Web Application Analysis\n  \u2713 3.1 Explore sites\n\u2713 4 Vulnerability Research\n  \u2713 4.1 Research Joomla\n\u2713 5 Exploitation\n  \u2713 5.1 Extract credentials\n\u2713 6 Remote Code Execution\n  \u2713 6.1 Inject webshell\n\u25cb 7 Privilege Escalation to User\n  \u25cb 7.1 Exploit database for credentials",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:DevVortex:r1_s7_8",
+      "label": "Search: 8\nPrivilege Escalation to R\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 8: Privilege Escalation to Root\n\nMCP tool calls:\nInteractive CLI: Connect to MySQL with credentials lewis:P4ntherg0t1n5r3c0n##; Interactive CLI: Query Joomla database sd4fg_users table for usernames and password hashes; Interactive CLI: Extract bcrypt hashes for lewis and logan users; John-the-ripper: Crack logan bcrypt hash using hashcat with rockyou wordlist; Interactive CLI: Test cracked password for SSH or su access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:DevVortex:r1_s7_8",
+      "label": "Track: Privilege Escalation to Root",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "8 Privilege Escalation to Root:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:DevVortex:r1_s7_8",
+      "label": "Agent: 8\nPrivilege Escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 8:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 DNS Enumeration\n  \u2713 2.1 Subdomain discovery\n\u2713 3 Web Application Analysis\n  \u2713 3.1 Explore sites\n\u2713 4 Vulnerability Research\n  \u2713 4.1 Research Joomla\n\u2713 5 Exploitation\n  \u2713 5.1 Extract credentials\n\u2713 6 Remote Code Execution\n  \u2713 6.1 Inject webshell\n\u2713 7 Privilege Escalation to User\n  \u2713 7.1 Exploit database\n\u25cb 8 Privilege Escalation to Root\n  \u25cb 8.1 Enumerate logan sudo privileges",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:DevVortex:r1_s7_8.1",
+      "label": "Search: 8.1\nEnumerate logan sudo priv\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 8.1: Enumerate logan sudo privileges\n\nMCP tool calls:\nInteractive CLI: Connect to MySQL with credentials lewis:P4ntherg0t1n5r3c0n##; Interactive CLI: Query Joomla database sd4fg_users table for usernames and password hashes; Interactive CLI: Extract bcrypt hashes for lewis and logan users; John-the-ripper: Crack logan bcrypt hash using hashcat with rockyou wordlist; Interactive CLI: Test cracked password for SSH or su access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:DevVortex:r1_s7_8.1",
+      "label": "Track: Enumerate logan sudo privileg\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "8.1 Enumerate logan sudo privileges:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:DevVortex:r1_s7_8.1",
+      "label": "Agent: 8.1\nPrivilege Escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 8.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 DNS Enumeration\n  \u2713 2.1 Subdomain discovery\n\u2713 3 Web Application Analysis\n  \u2713 3.1 Explore sites\n\u2713 4 Vulnerability Research\n  \u2713 4.1 Research Joomla\n\u2713 5 Exploitation\n  \u2713 5.1 Extract credentials\n\u2713 6 Remote Code Execution\n  \u2713 6.1 Inject webshell\n\u2713 7 Privilege Escalation to User\n  \u2713 7.1 Exploit database\n\u25cb 8 Privilege Escalation to Root\n  \u25cb 8.1 Enumerate logan sudo privileges",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:DevVortex:r1_s8_9",
+      "label": "Search: 9\nRoot Exploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 9: Root Exploitation\n\nMCP tool calls:\nInteractive CLI: Execute sudo -l as logan user; Interactive CLI: Identify binaries logan can run as root; Interactive CLI: Research exploit techniques for discovered sudo binaries; Interactive CLI: Check versions of sudo-enabled programs for known CVEs",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:DevVortex:r1_s8_9",
+      "label": "Track: Root Exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "9 Root Exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:DevVortex:r1_s8_9",
+      "label": "Agent: 9\nRoot Exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 9:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 DNS Enumeration\n  \u2713 2.1 Subdomain discovery\n\u2713 3 Web Application Analysis\n  \u2713 3.1 Explore sites\n\u2713 4 Vulnerability Research\n  \u2713 4.1 Research Joomla\n\u2713 5 Exploitation\n  \u2713 5.1 Extract credentials\n\u2713 6 Remote Code Execution\n  \u2713 6.1 Inject webshell\n\u2713 7 Privilege Escalation to User\n  \u2713 7.1 Exploit database\n\u2713 8 Privilege Escalation to Root\n  \u2713 8.1 Enumerate sudo\n\u25cb 9 Root Exploitation\n  \u25cb 9.1 Exploit CVE-2023-1326 apport-cli",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:DevVortex:r1_s8_9.1",
+      "label": "Search: 9.1\nExploit CVE-2023-1326 app\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 9.1: Exploit CVE-2023-1326 apport-cli\n\nMCP tool calls:\nInteractive CLI: Execute sudo -l as logan user; Interactive CLI: Identify binaries logan can run as root; Interactive CLI: Research exploit techniques for discovered sudo binaries; Interactive CLI: Check versions of sudo-enabled programs for known CVEs",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:DevVortex:r1_s8_9.1",
+      "label": "Track: Exploit CVE-2023-1326 apport-\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "9.1 Exploit CVE-2023-1326 apport-cli:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:DevVortex:r1_s8_9.1",
+      "label": "Agent: 9.1\nRoot Exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 9.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 DNS Enumeration\n  \u2713 2.1 Subdomain discovery\n\u2713 3 Web Application Analysis\n  \u2713 3.1 Explore sites\n\u2713 4 Vulnerability Research\n  \u2713 4.1 Research Joomla\n\u2713 5 Exploitation\n  \u2713 5.1 Extract credentials\n\u2713 6 Remote Code Execution\n  \u2713 6.1 Inject webshell\n\u2713 7 Privilege Escalation to User\n  \u2713 7.1 Exploit database\n\u2713 8 Privilege Escalation to Root\n  \u2713 8.1 Enumerate sudo\n\u25cb 9 Root Exploitation\n  \u25cb 9.1 Exploit CVE-2023-1326 apport-cli",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:DevVortex:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 DNS Enumeration\n  \u2713 2.1 Subdomain discovery\n\u2713 3 Web Application Analysis\n  \u2713 3.1 Explore sites\n\u2713 4 Vulnerability Research\n  \u2713 4.1 Research Joomla\n\u2713 5 Exploitation\n  \u2713 5.1 Extract credentials\n\u2713 6 Remote Code Execution\n  \u2713 6.1 Inject webshell\n\u2713 7 Privilege Escalation to User\n  \u2713 7.1 Exploit database\n\u2713 8 Privilege Escalation to Root\n  \u2713 8.1 Enumerate sudo\n\u2713 9 Root Exploitation\n  \u2713 9.1 Exploit apport-cli",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:DevVortex:START",
+      "to": "agent:DevVortex:r1_s1_2",
+      "label": "\u2192 2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:START",
+      "to": "search:DevVortex:r1_s1_2",
+      "label": "2 DNS Enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:DevVortex:r1_s1_2",
+      "to": "track:DevVortex:r1_s1_2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:DevVortex:r1_s1_2",
+      "to": "agent:DevVortex:r1_s1_2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s1_2",
+      "to": "agent:DevVortex:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s1_2",
+      "to": "search:DevVortex:r1_s1_2.1",
+      "label": "2.1 Subdomain discovery",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:DevVortex:r1_s1_2.1",
+      "to": "track:DevVortex:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:DevVortex:r1_s1_2.1",
+      "to": "agent:DevVortex:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s1_2.1",
+      "to": "agent:DevVortex:r1_s2_3",
+      "label": "\u2192 3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s1_2.1",
+      "to": "search:DevVortex:r1_s2_3",
+      "label": "3 Web Application Ana\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:DevVortex:r1_s2_3",
+      "to": "track:DevVortex:r1_s2_3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:DevVortex:r1_s2_3",
+      "to": "agent:DevVortex:r1_s2_3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s2_3",
+      "to": "agent:DevVortex:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s2_3",
+      "to": "search:DevVortex:r1_s2_3.1",
+      "label": "3.1 Explore main and de\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:DevVortex:r1_s2_3.1",
+      "to": "track:DevVortex:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:DevVortex:r1_s2_3.1",
+      "to": "agent:DevVortex:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s2_3.1",
+      "to": "agent:DevVortex:r1_s3_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s2_3.1",
+      "to": "search:DevVortex:r1_s3_4",
+      "label": "4 Vulnerability Resea\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:DevVortex:r1_s3_4",
+      "to": "track:DevVortex:r1_s3_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:DevVortex:r1_s3_4",
+      "to": "agent:DevVortex:r1_s3_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s3_4",
+      "to": "agent:DevVortex:r1_s3_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s3_4",
+      "to": "search:DevVortex:r1_s3_4.1",
+      "label": "4.1 Research Joomla 4.2\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:DevVortex:r1_s3_4.1",
+      "to": "track:DevVortex:r1_s3_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:DevVortex:r1_s3_4.1",
+      "to": "agent:DevVortex:r1_s3_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s3_4.1",
+      "to": "agent:DevVortex:r1_s4_5",
+      "label": "\u2192 5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s3_4.1",
+      "to": "search:DevVortex:r1_s4_5",
+      "label": "5 Exploitation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:DevVortex:r1_s4_5",
+      "to": "track:DevVortex:r1_s4_5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:DevVortex:r1_s4_5",
+      "to": "agent:DevVortex:r1_s4_5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s4_5",
+      "to": "agent:DevVortex:r1_s4_5.1",
+      "label": "\u2192 5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s4_5",
+      "to": "search:DevVortex:r1_s4_5.1",
+      "label": "5.1 Extract credentials\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:DevVortex:r1_s4_5.1",
+      "to": "track:DevVortex:r1_s4_5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:DevVortex:r1_s4_5.1",
+      "to": "agent:DevVortex:r1_s4_5.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s4_5.1",
+      "to": "agent:DevVortex:r1_s5_6",
+      "label": "\u2192 6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s4_5.1",
+      "to": "search:DevVortex:r1_s5_6",
+      "label": "6 Remote Code Executi\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:DevVortex:r1_s5_6",
+      "to": "track:DevVortex:r1_s5_6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:DevVortex:r1_s5_6",
+      "to": "agent:DevVortex:r1_s5_6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s5_6",
+      "to": "agent:DevVortex:r1_s5_6.1",
+      "label": "\u2192 6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s5_6",
+      "to": "search:DevVortex:r1_s5_6.1",
+      "label": "6.1 Inject webshell via\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:DevVortex:r1_s5_6.1",
+      "to": "track:DevVortex:r1_s5_6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:DevVortex:r1_s5_6.1",
+      "to": "agent:DevVortex:r1_s5_6.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s5_6.1",
+      "to": "agent:DevVortex:r1_s6_7",
+      "label": "\u2192 7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s5_6.1",
+      "to": "search:DevVortex:r1_s6_7",
+      "label": "7 Privilege Escalatio\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:DevVortex:r1_s6_7",
+      "to": "track:DevVortex:r1_s6_7",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:DevVortex:r1_s6_7",
+      "to": "agent:DevVortex:r1_s6_7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s6_7",
+      "to": "agent:DevVortex:r1_s6_7.1",
+      "label": "\u2192 7.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s6_7",
+      "to": "search:DevVortex:r1_s6_7.1",
+      "label": "7.1 Exploit database fo\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:DevVortex:r1_s6_7.1",
+      "to": "track:DevVortex:r1_s6_7.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:DevVortex:r1_s6_7.1",
+      "to": "agent:DevVortex:r1_s6_7.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s6_7.1",
+      "to": "agent:DevVortex:r1_s7_8",
+      "label": "\u2192 8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s6_7.1",
+      "to": "search:DevVortex:r1_s7_8",
+      "label": "8 Privilege Escalatio\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:DevVortex:r1_s7_8",
+      "to": "track:DevVortex:r1_s7_8",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:DevVortex:r1_s7_8",
+      "to": "agent:DevVortex:r1_s7_8",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s7_8",
+      "to": "agent:DevVortex:r1_s7_8.1",
+      "label": "\u2192 8.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s7_8",
+      "to": "search:DevVortex:r1_s7_8.1",
+      "label": "8.1 Enumerate logan sud\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:DevVortex:r1_s7_8.1",
+      "to": "track:DevVortex:r1_s7_8.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:DevVortex:r1_s7_8.1",
+      "to": "agent:DevVortex:r1_s7_8.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s7_8.1",
+      "to": "agent:DevVortex:r1_s8_9",
+      "label": "\u2192 9",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s7_8.1",
+      "to": "search:DevVortex:r1_s8_9",
+      "label": "9 Root Exploitation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:DevVortex:r1_s8_9",
+      "to": "track:DevVortex:r1_s8_9",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:DevVortex:r1_s8_9",
+      "to": "agent:DevVortex:r1_s8_9",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s8_9",
+      "to": "agent:DevVortex:r1_s8_9.1",
+      "label": "\u2192 9.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s8_9",
+      "to": "search:DevVortex:r1_s8_9.1",
+      "label": "9.1 Exploit CVE-2023-13\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:DevVortex:r1_s8_9.1",
+      "to": "track:DevVortex:r1_s8_9.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:DevVortex:r1_s8_9.1",
+      "to": "agent:DevVortex:r1_s8_9.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:DevVortex:r1_s8_9.1",
+      "to": "agent:DevVortex:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 50,
+    "total_edges": 65,
+    "agent_nodes": 18,
+    "search_nodes": 16,
+    "track_nodes": 16,
+    "runs_detected": 1,
+    "rows_captured": 10
+  }
+}

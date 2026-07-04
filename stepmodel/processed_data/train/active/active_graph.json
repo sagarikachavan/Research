@@ -1,0 +1,1066 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "active",
+  "source": "training_data.csv, Machine == 'active', 11 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:active:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'active'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:active:r1_base",
+      "label": "Search: Baseline\n(1 item(s))",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "Baseline recon already completed before this run's first tracked step:\n1.3 Identify Open Ports, Services running on the open ports and their versions",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:active:r1_base",
+      "label": "Track: Identify Open Ports, Serv\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.3 Identify Open Ports, Services running on the open ports and their versions: 1.3.1 Perform a port scan - {Findings: IP Address: 10.129.237.21, Host Status: Up, Latency: 0.71s, Open TCP Ports: 53, 88, 135, 139, 389, 445, 464, 593, 636, 3268, 3269, 49152 to 49158}\n       1.3.2 Determine the services and versions on each open port - {Findings: 53: Domain (Microsoft DNS 6.1.7601 - Windows Server 2008 R2 SP1), 88: Kerberos-sec (Microsoft Windows Kerberos), 135: msrpc (Microsoft Windows RPC), 139: netbios-ssn (Microsoft Windows netbios-ssn), 389: ldap (Microsoft Windows Active Directory LDAP - Domain: active.htb), 445: microsoft-ds?, 464: kpasswd5?, 593: ncacn_http (Microsoft Windows RPC over HTTP 1.0), 636: tcpwrapped, 3268: ldap (Microsoft Windows Active Directory LDAP - Domain: active.htb), 3269: tcpwrapped, 49152 to 49158: msrpc (Microsoft Windows RPC), ncacn_http (Microsoft Windows RPC over HTTP 1.0)}\n   1.4 Target IP: {Findings:10.129.237.21}\n   1.5 Host Info: {Findings: DC; OS: Windows; CPE: cpe:/o:microsoft:windows_server_2008:r2:sp1, cpe:/o:microsoft:windows, SMB2 Security Mode: Message signing enabled and required, Clock Skew: 2s, SMB2 Time: 2025-08-07T05:34:36, Start Date: 2025-08-07T04:12:32, Scan Duration: 183.65 seconds",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:active:r1_base",
+      "label": "Agent: Baseline\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT so far:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:active:r1_s1_1.6",
+      "label": "Search: 1.6\nSMB Enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.6: SMB Enumeration\n\nMCP tool calls:\n- Smb client: Enumerate SMB service to find software versions, hidden directories, and files.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:active:r1_s1_1.6",
+      "label": "Track: 1.6.1 Anonymous Login - {Find\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.6 SMB Enumeration:\n1.6.1 Anonymous Login - {Findings: Anonymous login successful}\n       1.6.2 Shared Resources - {Findings: ADMIN$: Disk, Remote Admin, No Access, C$: Disk, Default share, No Access, IPC$: IPC, Remote IPC, No Access, NETLOGON: Disk, Logon server share, No Access, Replication: Disk, Read Only, SYSVOL: Disk, Logon server share, No Access, Users: Disk, No Access}\n       1.6.3 SMB1 Status - {Findings: SMB1: Disabled}\n       1.6.4 SMB Sessions - {Findings: SMB Sessions: 1 established}\n       1.6.5 Authentication Status - {Findings: Status: Authenticated}\n       1.6.6 SMBMap - {Findings: SMBMap: Samba Share Enumerator used for testing.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:active:r1_s1_1.6",
+      "label": "Agent: 1.6\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.6:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n  \u2713 1.6 SMB Enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:active:r1_s2_1.7",
+      "label": "Search: 1.7\nReplication Share Enumera\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.7: Replication Share Enumeration\n\nMCP tool calls:\n- Smb client: Enumerate and explore the Replication share files to gather information.\n- Interactive CLI: Create a summary of the findings from the explored files.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:active:r1_s2_1.7",
+      "label": "Track: 1.7.1 Directory Structure and\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.7 Replication Share Enumeration:\n1.7.1 Directory Structure and Files - {Findings: active.htb, DfsrPrivate, ConflictAndDeleted, Deleted, Installing, Policies, {31B2F340-016D-11D2-945F-00C04FB984F9}, GPT.INI, Group Policy, MACHINE, Microsoft, Windows NT, SecEdit, GptTmpl.inf, Preferences, Groups, Groups.xml, USER, {6AC1786C-016F-11D2-945F-00C04fB984F9}, GPT.INI, MACHINE, Microsoft, Windows NT, USER, scripts}\n       1.7.2 Notable Files - {Findings: GptTmpl.inf (Size: 1098 bytes), Groups.xml (Size: 533 bytes), GPE.INI (Size: 119 bytes), Registry.pol (Size: 2788 bytes), GPT.INI (Size: 23 bytes and 22 bytes), GptTmpl.inf (Size: 3722 bytes)}\n       1.7.3 File Retrieved - {Findings: Groups.xml}\n       1.7.4 Content of Retrieved File - {Findings: Contains group information for \"active.htb\\SVC_TGS\", Properties: Action: \"U\", cpassword: \"edBSHOwhZLTjt/QS9FeIcJ83mjWA98gw9guKOhJOdcqh+ZGMeXOsQbCpZ3xUjTLfCuNH8pG5aSVYdYw/NglVmQ\", ChangeLogon: \"0\", NoChange: \"1\", NeverExpires: \"1\", AcctDisabled: \"0\", UserName: \"active.htb\\SVC_TGS\"",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:active:r1_s2_1.7",
+      "label": "Agent: 1.7\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.7:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n  \u2713 1.6 SMB Enumeration\n  \u2713 1.7 Replication Share Enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:active:r1_s3_1.8",
+      "label": "Search: 1.8\nHash Decryption",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.8: Hash Decryption\n\nMCP tool calls:\n- John-the-ripper: Decrypt the hashed password from Groups.xml for the user 'active.htb\\SVC_TGS'.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:active:r1_s3_1.8",
+      "label": "Track: 1.8.1 Tool Used - {Findings: \u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.8 Hash Decryption:\n1.8.1 Tool Used - {Findings: gpp-decrypt}\n       1.8.2 Decrypted Password - {Findings: GPPstillStandingStrong2k18",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:active:r1_s3_1.8",
+      "label": "Agent: 1.8\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.8:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n  \u2713 1.6 SMB Enumeration\n  \u2713 1.7 Replication Share Enumeration\n  \u2713 1.8 Hash Decryption",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:active:r1_s4_1.9",
+      "label": "Search: 1.9\nSMB Login and Enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.9: SMB Login and Enumeration\n\nMCP tool calls:\n- Smb client: Log into the SMB service using the decrypted password and perform further enumeration.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:active:r1_s4_1.9",
+      "label": "Track: 1.9.1 IP Address - {Findings:\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.9 SMB Login and Enumeration:\n1.9.1 IP Address - {Findings: 10.129.237.21}\n       1.9.2 Domain - {Findings: active.htb}\n       1.9.3 User - {Findings: SVC_TGS}\n       1.9.4 Password - {Findings: GPPstillStandingStrong2k18}\n       1.9.5 SMB Sessions - {Findings: 1 established}\n       1.9.6 Status - {Findings: Authenticated}\n       1.9.7 Shares and Permissions - {Findings: ADMIN$: No Access, C$: No Access, IPC$: No Access, NETLOGON: Read Only, Replication: Read Only, SYSVOL: Read Only, Users: Read Only}\n       1.9.8 Tool Used - {Findings: SMBMap - Samba Share Enumerator",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:active:r1_s4_1.9",
+      "label": "Agent: 1.9\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.9:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n  \u2713 1.6 SMB Enumeration\n  \u2713 1.7 Replication Share Enumeration\n  \u2713 1.8 Hash Decryption\n  \u2713 1.9 SMB Login and Enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:active:r1_s5_1.10",
+      "label": "Search: 1.10\nSMB Share Enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.10: SMB Share Enumeration\n\nMCP tool calls:\n- Smb client: Enumerate and explore files in the SMB shares to gather information.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:active:r1_s5_1.10",
+      "label": "Track: 1.10.1 IP Address - {Findings\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.10 SMB Share Enumeration:\n1.10.1 IP Address - {Findings: 10.129.237.21}\n       1.10.2 User - {Findings: SVC_TGS}\n       1.10.3 Password - {Findings: GPPstillStandingStrong2k18}\n       1.10.4 Directory Structure and Files - {Findings: Users, Administrator: Access Denied, All Users: Access Denied, Default, Default User, Public, SVC_TGS, Desktop, user.txt (Size: 34 bytes)}\n       1.10.5 File Retrieved - {Findings: user.txt}\n       1.10.6 Notable Errors - {Findings: NT_STATUS_OBJECT_NAME_NOT_FOUND while trying to access \"All Users\" and \"Administrator\" directories, NT_STATUS_ACCESS_DENIED while trying to list contents of \"Administrator\" directory}\n       1.10.7 Tool Used - {Findings: smbclient",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:active:r1_s5_1.10",
+      "label": "Agent: 1.10\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.10:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n  \u2713 1.6 SMB Enumeration\n  \u2713 1.7 Replication Share Enumeration\n  \u2713 1.8 Hash Decryption\n  \u2713 1.9 SMB Login and Enumeration\n  \u2713 1.10 SMB Share Enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:active:r1_s6_1.11",
+      "label": "Search: 1.11\nActive Directory Enumerat\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.11: Active Directory Enumeration\n\nMCP tool calls:\n- Smb client: Enumerate the domain to find Active Directory accounts.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:active:r1_s6_1.11",
+      "label": "Track: 1.11.1 Tool Used - {Findings:\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.11 Active Directory Enumeration:\n1.11.1 Tool Used - {Findings: ldapsearch}\n       1.11.2 IP Address - {Findings: 10.129.237.21}\n       1.11.3 User - {Findings: SVC_TGS}\n       1.11.4 Password - {Findings: GPPstillStandingStrong2k18}\n       1.11.5 Domain - {Findings: active.htb}\n       1.11.6 Query - {Findings: Searching for active users in the domain}\n       1.11.7 Results - {Findings: Administrator, SVC_TGS}\n       1.11.8 Notable Flags - {Findings: UserAccountControl flags, value of 2 corresponds to a disabled account status. The query excludes these accounts, returning only active users.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:active:r1_s6_1.11",
+      "label": "Agent: 1.11\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.11:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n  \u2713 1.6 SMB Enumeration\n  \u2713 1.7 Replication Share Enumeration\n  \u2713 1.8 Hash Decryption\n  \u2713 1.9 SMB Login and Enumeration\n  \u2713 1.10 SMB Share Enumeration\n  \u2713 1.11 Active Directory Enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:active:r1_s8_1.10",
+      "label": "Search: 1.10\nActive Directory Enumerat\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.10: Active Directory Enumeration\n\nMCP tool calls:\n- Metasploit: Use Metasploit to exploit the identified accounts using the Kerberoasting technique.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:active:r1_s8_1.10",
+      "label": "Track: 1.10.1 Tool Used - {Findings:\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.10 Active Directory Enumeration:\n1.10.1 Tool Used - {Findings: ldapsearch}\n       1.10.2 IP Address - {Findings: 10.129.237.21}\n       1.10.3 User - {Findings: SVC_TGS}\n       1.10.4 Password - {Findings: GPPstillStandingStrong2k18}\n       1.10.5 Domain - {Findings: active.htb}\n       1.10.6 Query - {Findings: Searching for active users in the domain with Service Principal Names (SPNs)}\n       1.10.7 Results - {Findings: Administrator account with SPN: active/CIFS:445",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:active:r1_s8_1.10",
+      "label": "Agent: 1.10\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.10:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n  \u2713 1.6 SMB Enumeration\n  \u2713 1.7 Replication Share Enumeration\n  \u2713 1.8 Hash Decryption\n  \u2713 1.9 SMB Login and Enumeration\n  \u2713 1.10 Active Directory Enumeration\n\u2026 2 Exploitation\n  \u2026 2.1 Selected Exploitations",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:active:r1_s8_2.1",
+      "label": "Search: 2.1\nSelected Exploitations",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: Selected Exploitations\n\nMCP tool calls:\n- Metasploit: Use Metasploit to exploit the identified accounts using the Kerberoasting technique.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:active:r1_s8_2.1",
+      "label": "Track: 2.1.1 Tool Used - {Findings: \u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 Selected Exploitations:\n2.1.1 Tool Used - {Findings: GetUserSPNs.py}\n       2.1.2 Outcome - {Findings: Successfully obtained the hash of the kerberos ticket for the administrator account.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:active:r1_s8_2.1",
+      "label": "Agent: 2.1\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n  \u2713 1.6 SMB Enumeration\n  \u2713 1.7 Replication Share Enumeration\n  \u2713 1.8 Hash Decryption\n  \u2713 1.9 SMB Login and Enumeration\n  \u2713 1.10 Active Directory Enumeration\n\u2026 2 Exploitation\n  \u2026 2.1 Selected Exploitations",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:active:r1_s9_2.2",
+      "label": "Search: 2.2\nHash Decryption",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.2: Hash Decryption\n\nMCP tool calls:\n- John-the-ripper: Decrypt the kerberos ticket hash to obtain the administrator password.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:active:r1_s9_2.2",
+      "label": "Track: 2.2.1 Decrypted Password - {F\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.2 Hash Decryption:\n2.2.1 Decrypted Password - {Findings: The retrieved password is \"Ticketmaster1968\".",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:active:r1_s9_2.2",
+      "label": "Agent: 2.2\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n  \u2713 1.6 SMB Enumeration\n  \u2713 1.7 Replication Share Enumeration\n  \u2713 1.8 Hash Decryption\n  \u2713 1.9 SMB Login and Enumeration\n  \u2713 1.10 Active Directory Enumeration\n\u2026 2 Exploitation\n  \u2026 2.1 Selected Exploitations\n  \u2713 2.2 Hash Decryption",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:active:r1_s10_2.3",
+      "label": "Search: 2.3\nAdministrator Login",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.3: Administrator Login\n\nMCP tool calls:\n- Metasploit: Use the revealed administrator credentials to attempt a login and gain access to the system.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:active:r1_s10_2.3",
+      "label": "Track: 2.3.1 Tool Used - {Findings: \u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.3 Administrator Login:\n2.3.1 Tool Used - {Findings: wmiexec.py}\n       2.3.2 IP Address - {Findings: 10.129.237.21}\n       2.3.3 User - {Findings: Administrator}\n       2.3.4 Password - {Findings: Ticketmaster1968}\n       2.3.5 Domain - {Findings: active.htb}\n       2.3.6 Result - {Findings: Successful login as the administrator}\n       2.3.7 Additional Information - {Findings: The tool used SMBv2.1 dialect, A semi-interactive shell was launched, The command 'whoami' confirmed that the user is the active\\administrator, Warning about the deprecation of pkg_resources package by 2025-11-30 was given.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:active:r1_s10_2.3",
+      "label": "Agent: 2.3\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.3:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n  \u2713 1.6 SMB Enumeration\n  \u2713 1.7 Replication Share Enumeration\n  \u2713 1.8 Hash Decryption\n  \u2713 1.9 SMB Login and Enumeration\n  \u2713 1.10 Active Directory Enumeration\n\u2026 2 Exploitation\n  \u2713 2.1 Selected Exploitations\n  \u2713 2.2 Hash Decryption\n  \u2713 2.3 Administrator Login",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:active:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n  \u2713 1.6 SMB Enumeration\n  \u2713 1.7 Replication Share Enumeration\n  \u2713 1.8 Hash Decryption\n  \u2713 1.9 SMB Login and Enumeration\n  \u2713 1.10 Active Directory Enumeration\n\u2026 2 Exploitation\n  \u2713 2.1 Selected Exploitations\n  \u2713 2.2 Hash Decryption\n  \u2713 2.3 Administrator Login",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:active:START",
+      "to": "agent:active:r1_base",
+      "label": "baseline",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:START",
+      "to": "search:active:r1_base",
+      "label": "Baseline Recon",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:active:r1_base",
+      "to": "track:active:r1_base",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:active:r1_base",
+      "to": "agent:active:r1_base",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_base",
+      "to": "agent:active:r1_s1_1.6",
+      "label": "\u2192 1.6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_base",
+      "to": "search:active:r1_s1_1.6",
+      "label": "1.6 SMB Enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:active:r1_s1_1.6",
+      "to": "track:active:r1_s1_1.6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:active:r1_s1_1.6",
+      "to": "agent:active:r1_s1_1.6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s1_1.6",
+      "to": "agent:active:r1_s2_1.7",
+      "label": "\u2192 1.7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s1_1.6",
+      "to": "search:active:r1_s2_1.7",
+      "label": "1.7 Replication Share E\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:active:r1_s2_1.7",
+      "to": "track:active:r1_s2_1.7",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:active:r1_s2_1.7",
+      "to": "agent:active:r1_s2_1.7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s2_1.7",
+      "to": "agent:active:r1_s3_1.8",
+      "label": "\u2192 1.8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s2_1.7",
+      "to": "search:active:r1_s3_1.8",
+      "label": "1.8 Hash Decryption",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:active:r1_s3_1.8",
+      "to": "track:active:r1_s3_1.8",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:active:r1_s3_1.8",
+      "to": "agent:active:r1_s3_1.8",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s3_1.8",
+      "to": "agent:active:r1_s4_1.9",
+      "label": "\u2192 1.9",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s3_1.8",
+      "to": "search:active:r1_s4_1.9",
+      "label": "1.9 SMB Login and Enume\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:active:r1_s4_1.9",
+      "to": "track:active:r1_s4_1.9",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:active:r1_s4_1.9",
+      "to": "agent:active:r1_s4_1.9",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s4_1.9",
+      "to": "agent:active:r1_s5_1.10",
+      "label": "\u2192 1.10",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s4_1.9",
+      "to": "search:active:r1_s5_1.10",
+      "label": "1.10 SMB Share Enumerati\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:active:r1_s5_1.10",
+      "to": "track:active:r1_s5_1.10",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:active:r1_s5_1.10",
+      "to": "agent:active:r1_s5_1.10",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s5_1.10",
+      "to": "agent:active:r1_s6_1.11",
+      "label": "\u2192 1.11",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s5_1.10",
+      "to": "search:active:r1_s6_1.11",
+      "label": "1.11 Active Directory En\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:active:r1_s6_1.11",
+      "to": "track:active:r1_s6_1.11",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:active:r1_s6_1.11",
+      "to": "agent:active:r1_s6_1.11",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s6_1.11",
+      "to": "agent:active:r1_s8_1.10",
+      "label": "\u2192 1.10",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s6_1.11",
+      "to": "search:active:r1_s8_1.10",
+      "label": "1.10 Active Directory En\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:active:r1_s8_1.10",
+      "to": "track:active:r1_s8_1.10",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:active:r1_s8_1.10",
+      "to": "agent:active:r1_s8_1.10",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s8_1.10",
+      "to": "agent:active:r1_s8_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s8_1.10",
+      "to": "search:active:r1_s8_2.1",
+      "label": "2.1 Selected Exploitati\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:active:r1_s8_2.1",
+      "to": "track:active:r1_s8_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:active:r1_s8_2.1",
+      "to": "agent:active:r1_s8_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s8_2.1",
+      "to": "agent:active:r1_s9_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s8_2.1",
+      "to": "search:active:r1_s9_2.2",
+      "label": "2.2 Hash Decryption",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:active:r1_s9_2.2",
+      "to": "track:active:r1_s9_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:active:r1_s9_2.2",
+      "to": "agent:active:r1_s9_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s9_2.2",
+      "to": "agent:active:r1_s10_2.3",
+      "label": "\u2192 2.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s9_2.2",
+      "to": "search:active:r1_s10_2.3",
+      "label": "2.3 Administrator Login",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:active:r1_s10_2.3",
+      "to": "track:active:r1_s10_2.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:active:r1_s10_2.3",
+      "to": "agent:active:r1_s10_2.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:active:r1_s10_2.3",
+      "to": "agent:active:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 35,
+    "total_edges": 45,
+    "agent_nodes": 13,
+    "search_nodes": 11,
+    "track_nodes": 11,
+    "runs_detected": 1,
+    "rows_captured": 11
+  }
+}

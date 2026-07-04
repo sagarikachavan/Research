@@ -1,0 +1,346 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Legacy",
+  "source": "training_data.csv, Machine == 'Legacy', 5 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Legacy:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Legacy'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Legacy:r1_s1_2.1",
+      "label": "Search: 2.1\nSMB vulnerability scanning",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: SMB vulnerability scanning\n\nMCP tool calls:\nNmap: Execute full TCP port scan with --min-rate 10000; Nmap: Execute UDP port scan with -sU -p-; Nmap: Run service enumeration with -sC -sV on discovered ports",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Legacy:r1_s1_2.1",
+      "label": "Track: SMB vulnerability scanning",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 SMB vulnerability scanning:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Legacy:r1_s1_2.1",
+      "label": "Agent: 2.1\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u25cb 2.1 SMB vulnerability scanning\n\u25cb 3 Initial Access\n\u25cb 4 Post-Exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Legacy:r1_s2_3.1",
+      "label": "Search: 3.1\nMS08-067 exploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: MS08-067 exploitation\n\nMCP tool calls:\nNmap: Execute nmap --script smb-vuln* -p 445 to test for multiple SMB vulnerability patterns including MS08-067 and MS17-010",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Legacy:r1_s2_3.1",
+      "label": "Track: MS08-067 exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 MS08-067 exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Legacy:r1_s2_3.1",
+      "label": "Agent: 3.1\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Initial Access\n  \u25cb 3.1 MS08-067 exploitation\n\u25cb 4 Post-Exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Legacy:r1_s3_3.2",
+      "label": "Search: 3.2\nAlternative exploitation \u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.2: Alternative exploitation validation\n\nMCP tool calls:\nInteractive CLI: Generate shellcode with msfvenom -p windows/shell_reverse_tcp LHOST LPORT EXITFUNC=thread -b bad_chars -f py; Interactive CLI: Modify jivoi ms08-067.py exploit with generated shellcode, identify target as Windows XP SP3 English (NX) variant 6, execute exploit against target",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Legacy:r1_s3_3.2",
+      "label": "Track: Alternative exploitation vali\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.2 Alternative exploitation validation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Legacy:r1_s3_3.2",
+      "label": "Agent: 3.2\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.2:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Initial Access\n  \u2713 3.1 MS08-067 exploitation\n  \u25cb 3.2 Alternative exploitation validation\n\u25cb 4 Post-Exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Legacy:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2713 4 Post-Exploitation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Legacy:START",
+      "to": "agent:Legacy:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Legacy:START",
+      "to": "search:Legacy:r1_s1_2.1",
+      "label": "2.1 SMB vulnerability s\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Legacy:r1_s1_2.1",
+      "to": "track:Legacy:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Legacy:r1_s1_2.1",
+      "to": "agent:Legacy:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Legacy:r1_s1_2.1",
+      "to": "agent:Legacy:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Legacy:r1_s1_2.1",
+      "to": "search:Legacy:r1_s2_3.1",
+      "label": "3.1 MS08-067 exploitati\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Legacy:r1_s2_3.1",
+      "to": "track:Legacy:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Legacy:r1_s2_3.1",
+      "to": "agent:Legacy:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Legacy:r1_s2_3.1",
+      "to": "agent:Legacy:r1_s3_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Legacy:r1_s2_3.1",
+      "to": "search:Legacy:r1_s3_3.2",
+      "label": "3.2 Alternative exploit\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Legacy:r1_s3_3.2",
+      "to": "track:Legacy:r1_s3_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Legacy:r1_s3_3.2",
+      "to": "agent:Legacy:r1_s3_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Legacy:r1_s3_3.2",
+      "to": "agent:Legacy:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 11,
+    "total_edges": 13,
+    "agent_nodes": 5,
+    "search_nodes": 3,
+    "track_nodes": 3,
+    "runs_detected": 1,
+    "rows_captured": 5
+  }
+}

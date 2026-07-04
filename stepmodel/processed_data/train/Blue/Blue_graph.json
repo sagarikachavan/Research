@@ -1,0 +1,346 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Blue",
+  "source": "training_data.csv, Machine == 'Blue', 4 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Blue:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Blue'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Blue:r1_s1_2.1",
+      "label": "Search: 2.1\nSMB enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: SMB enumeration\n\nMCP tool calls:\nNmap: Execute full TCP port scan with --min-rate 10000 followed by service version detection on discovered ports for target",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Blue:r1_s1_2.1",
+      "label": "Track: SMB enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 SMB enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Blue:r1_s1_2.1",
+      "label": "Agent: 2.1\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u25cb 2.1 SMB enumeration\n  \u25cb 2.2 Vulnerability scanning\n\u25cb 3 Initial Access\n\u25cb 4 Post-Exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Blue:r1_s1_2.2",
+      "label": "Search: 2.2\nVulnerability scanning",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.2: Vulnerability scanning\n\nMCP tool calls:\nNmap: Execute full TCP port scan with --min-rate 10000 followed by service version detection on discovered ports for target",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Blue:r1_s1_2.2",
+      "label": "Track: Vulnerability scanning",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.2 Vulnerability scanning:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Blue:r1_s1_2.2",
+      "label": "Agent: 2.2\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u25cb 2.1 SMB enumeration\n  \u25cb 2.2 Vulnerability scanning\n\u25cb 3 Initial Access\n\u25cb 4 Post-Exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Blue:r1_s2_3.1",
+      "label": "Search: 3.1\nMS17-010 exploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: MS17-010 exploitation\n\nMCP tool calls:\nSMB client: Execute smbmap with guest credentials to enumerate shares; Nmap: Run nmap -p 445 --script vuln to scan for SMB vulnerabilities including MS17-010",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Blue:r1_s2_3.1",
+      "label": "Track: MS17-010 exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 MS17-010 exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Blue:r1_s2_3.1",
+      "label": "Agent: 3.1\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Initial Access\n  \u25cb 3.1 MS17-010 exploitation\n\u25cb 4 Post-Exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Blue:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2713 4 Post-Exploitation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Blue:START",
+      "to": "agent:Blue:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Blue:START",
+      "to": "search:Blue:r1_s1_2.1",
+      "label": "2.1 SMB enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Blue:r1_s1_2.1",
+      "to": "track:Blue:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Blue:r1_s1_2.1",
+      "to": "agent:Blue:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Blue:r1_s1_2.1",
+      "to": "agent:Blue:r1_s1_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Blue:r1_s1_2.1",
+      "to": "search:Blue:r1_s1_2.2",
+      "label": "2.2 Vulnerability scann\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Blue:r1_s1_2.2",
+      "to": "track:Blue:r1_s1_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Blue:r1_s1_2.2",
+      "to": "agent:Blue:r1_s1_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Blue:r1_s1_2.2",
+      "to": "agent:Blue:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Blue:r1_s1_2.2",
+      "to": "search:Blue:r1_s2_3.1",
+      "label": "3.1 MS17-010 exploitati\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Blue:r1_s2_3.1",
+      "to": "track:Blue:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Blue:r1_s2_3.1",
+      "to": "agent:Blue:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Blue:r1_s2_3.1",
+      "to": "agent:Blue:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 11,
+    "total_edges": 13,
+    "agent_nodes": 5,
+    "search_nodes": 3,
+    "track_nodes": 3,
+    "runs_detected": 1,
+    "rows_captured": 4
+  }
+}

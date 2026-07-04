@@ -1,0 +1,822 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Visual",
+  "source": "training_data.csv, Machine == 'Visual', 4 row(s), 2 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Visual:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Visual'. 2 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Visual:r1_s1_2",
+      "label": "Search: 2\nExploit Git-based RCE via\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 2: Exploit Git-based RCE via Visual Studio build\n\nMCP tool calls:\nNmap: Scan target for open port 80/TCP; Nmap: Identify Apache httpd 2.4.56 Win64 with PHP/8.1.17; Dirbuster: Enumerate web directories discovering XAMPP default installations; Web page interaction: Analyze main application accepting Git repository URLs",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Visual:r1_s1_2",
+      "label": "Track: Exploit Git-based RCE via Vis\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 2 Exploit Git-based RCE via Visual Studio build:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Visual:r1_s1_2",
+      "label": "Agent: 2\nExploit Git-based RCE\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 2:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Identify web application functionality\n\u25cb 2 Exploit Git-based RCE via Visual Studio build\n  \u25cb 2.1 Understand application build process\n  \u25cb 2.2 Create malicious Visual Studio project\n  \u25cb 2.3 Deploy Git hosting infrastructure",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Visual:r1_s1_2.1",
+      "label": "Search: 2.1\nUnderstand application bu\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 2.1: Understand application build process\n\nMCP tool calls:\nNmap: Scan target for open port 80/TCP; Nmap: Identify Apache httpd 2.4.56 Win64 with PHP/8.1.17; Dirbuster: Enumerate web directories discovering XAMPP default installations; Web page interaction: Analyze main application accepting Git repository URLs",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Visual:r1_s1_2.1",
+      "label": "Track: Understand application build \u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 2.1 Understand application build process:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Visual:r1_s1_2.1",
+      "label": "Agent: 2.1\nExploit Git-based RCE\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 2.1:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Identify web application functionality\n\u25cb 2 Exploit Git-based RCE via Visual Studio build\n  \u25cb 2.1 Understand application build process\n  \u25cb 2.2 Create malicious Visual Studio project\n  \u25cb 2.3 Deploy Git hosting infrastructure",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Visual:r1_s1_2.2",
+      "label": "Search: 2.2\nCreate malicious Visual S\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 2.2: Create malicious Visual Studio project\n\nMCP tool calls:\nNmap: Scan target for open port 80/TCP; Nmap: Identify Apache httpd 2.4.56 Win64 with PHP/8.1.17; Dirbuster: Enumerate web directories discovering XAMPP default installations; Web page interaction: Analyze main application accepting Git repository URLs",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Visual:r1_s1_2.2",
+      "label": "Track: Create malicious Visual Studi\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 2.2 Create malicious Visual Studio project:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Visual:r1_s1_2.2",
+      "label": "Agent: 2.2\nExploit Git-based RCE\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 2.2:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Identify web application functionality\n\u25cb 2 Exploit Git-based RCE via Visual Studio build\n  \u25cb 2.1 Understand application build process\n  \u25cb 2.2 Create malicious Visual Studio project\n  \u25cb 2.3 Deploy Git hosting infrastructure",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Visual:r1_s1_2.3",
+      "label": "Search: 2.3\nDeploy Git hosting infras\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 2.3: Deploy Git hosting infrastructure\n\nMCP tool calls:\nNmap: Scan target for open port 80/TCP; Nmap: Identify Apache httpd 2.4.56 Win64 with PHP/8.1.17; Dirbuster: Enumerate web directories discovering XAMPP default installations; Web page interaction: Analyze main application accepting Git repository URLs",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Visual:r1_s1_2.3",
+      "label": "Track: Deploy Git hosting infrastruc\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 2.3 Deploy Git hosting infrastructure:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Visual:r1_s1_2.3",
+      "label": "Agent: 2.3\nExploit Git-based RCE\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 2.3:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Identify web application functionality\n\u25cb 2 Exploit Git-based RCE via Visual Studio build\n  \u25cb 2.1 Understand application build process\n  \u25cb 2.2 Create malicious Visual Studio project\n  \u25cb 2.3 Deploy Git hosting infrastructure",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Visual:r1_close",
+      "label": "Agent: Run End\n(no further PTT growth)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Final cumulative PTT for this run:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Identify web application functionality\n\u25cb 2 Exploit Git-based RCE via Visual Studio build\n  \u25cb 2.1 Understand application build process\n  \u25cb 2.2 Create malicious Visual Studio project\n  \u25cb 2.3 Deploy Git hosting infrastructure",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Visual:r2_base",
+      "label": "Search: Baseline\n(4 item(s))",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] Baseline recon already completed before this run's first tracked step:\n1.1 Scan for open ports and services\n1.2 Identify web application functionality\n2.1 Deploy Git hosting infrastructure\n2.2 Create malicious Visual Studio project",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Visual:r2_base",
+      "label": "Track: Create malicious Visual S\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 1.1 Scan for open ports and services: Port 80/TCP open; Apache httpd 2.4.56 Win64 with PHP/8.1.17; XAMPP installation on Windows\n\n1.2 Identify web application functionality: PHP application accepts Git repository URLs and compiles Visual Studio projects; Submission endpoint /submit.php; Upload directory /uploads/\n\n2.1 Deploy Git hosting infrastructure: Deployed Gitea server via Docker on port 3000; Created test repository with Visual Studio project\n\n2.2 Create malicious Visual Studio project: Modified .csproj file adding <Target Name=PreBuild\" BeforeTargets=\"PreBuildEvent\"><Exec Command=\"powershell -e [BASE64_SHELL]\" /></Target>; Base64 encoded PowerShell reverse shell payload; Committed and pushed to Gitea",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Visual:r2_base",
+      "label": "Agent: Baseline\nExploit Git-based RCE\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT so far:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Identify web application functionality\n\u2713 2 Exploit Git-based RCE via Visual Studio build\n  \u2713 2.1 Deploy Git hosting infrastructure\n  \u2713 2.2 Create malicious Visual Studio project",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Visual:r2_s1_2.3",
+      "label": "Search: 2.3\nTrigger compilation and o\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 2.3: Trigger compilation and obtain shell\n\nMCP tool calls:\n",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Visual:r2_s1_2.3",
+      "label": "Track: Submitted malicious URL; MSBu\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 2.3 Trigger compilation and obtain shell:\nSubmitted malicious URL; MSBuild executed pre-build event; Reverse shell as visual\\enox; Retrieved user.txt",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Visual:r2_s1_2.3",
+      "label": "Agent: 2.3\nExploit Git-based RCE\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 2.3:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Identify web application functionality\n\u2713 2 Exploit Git-based RCE via Visual Studio build\n  \u2713 2.1 Deploy Git hosting infrastructure\n  \u2713 2.2 Create malicious Visual Studio project\n  \u2713 2.3 Trigger compilation and obtain shell\n\u2713 3 Escalate privileges to system\n  \u2713 3.1 Deploy web shell for service account access\n  \u2713 3.2 Recover SeImpersonate privilege",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Visual:r2_s1_3.1",
+      "label": "Search: 3.1\nDeploy web shell for serv\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 3.1: Deploy web shell for service account access\n\nMCP tool calls:\n",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Visual:r2_s1_3.1",
+      "label": "Track: Wrote PHP webshell to C:\\\\xam\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 3.1 Deploy web shell for service account access:\nWrote PHP webshell to C:\\\\xampp\\\\htdocs\\\\0xdf.php; Executed commands as nt authority\\\\local service via webshell",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Visual:r2_s1_3.1",
+      "label": "Agent: 3.1\nEscalate privileges t\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 3.1:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Identify web application functionality\n\u2713 2 Exploit Git-based RCE via Visual Studio build\n  \u2713 2.1 Deploy Git hosting infrastructure\n  \u2713 2.2 Create malicious Visual Studio project\n  \u2713 2.3 Trigger compilation and obtain shell\n\u2713 3 Escalate privileges to system\n  \u2713 3.1 Deploy web shell for service account access\n  \u2713 3.2 Recover SeImpersonate privilege",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Visual:r2_s1_3.2",
+      "label": "Search: 3.2\nRecover SeImpersonate pri\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 3.2: Recover SeImpersonate privilege\n\nMCP tool calls:\n",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Visual:r2_s1_3.2",
+      "label": "Track: Local service account had pri\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 3.2 Recover SeImpersonate privilege:\nLocal service account had privileges stripped; Uploaded FullPowers.exe; Executed FullPowers.exe -c powershell [REVERSE_SHELL]\" recovering SeImpersonate via scheduled task",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Visual:r2_s1_3.2",
+      "label": "Agent: 3.2\nEscalate privileges t\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 3.2:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Identify web application functionality\n\u2713 2 Exploit Git-based RCE via Visual Studio build\n  \u2713 2.1 Deploy Git hosting infrastructure\n  \u2713 2.2 Create malicious Visual Studio project\n  \u2713 2.3 Trigger compilation and obtain shell\n\u2713 3 Escalate privileges to system\n  \u2713 3.1 Deploy web shell for service account access\n  \u2713 3.2 Recover SeImpersonate privilege",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Visual:r2_close",
+      "label": "Agent: Run End\n(no further PTT growth)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Final cumulative PTT for this run:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Identify web application functionality\n\u2713 2 Exploit Git-based RCE via Visual Studio build\n  \u2713 2.1 Deploy Git hosting infrastructure\n  \u2713 2.2 Create malicious Visual Studio project\n  \u2713 2.3 Trigger compilation and obtain shell\n\u2713 3 Escalate privileges to system\n  \u2713 3.1 Deploy web shell for service account access\n  \u2713 3.2 Recover SeImpersonate privilege",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Visual:START",
+      "to": "agent:Visual:r1_s1_2",
+      "label": "\u2192 2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Visual:START",
+      "to": "search:Visual:r1_s1_2",
+      "label": "2 Exploit Git-based R\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Visual:r1_s1_2",
+      "to": "track:Visual:r1_s1_2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Visual:r1_s1_2",
+      "to": "agent:Visual:r1_s1_2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Visual:r1_s1_2",
+      "to": "agent:Visual:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Visual:r1_s1_2",
+      "to": "search:Visual:r1_s1_2.1",
+      "label": "2.1 Understand applicat\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Visual:r1_s1_2.1",
+      "to": "track:Visual:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Visual:r1_s1_2.1",
+      "to": "agent:Visual:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Visual:r1_s1_2.1",
+      "to": "agent:Visual:r1_s1_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Visual:r1_s1_2.1",
+      "to": "search:Visual:r1_s1_2.2",
+      "label": "2.2 Create malicious Vi\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Visual:r1_s1_2.2",
+      "to": "track:Visual:r1_s1_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Visual:r1_s1_2.2",
+      "to": "agent:Visual:r1_s1_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Visual:r1_s1_2.2",
+      "to": "agent:Visual:r1_s1_2.3",
+      "label": "\u2192 2.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Visual:r1_s1_2.2",
+      "to": "search:Visual:r1_s1_2.3",
+      "label": "2.3 Deploy Git hosting \u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Visual:r1_s1_2.3",
+      "to": "track:Visual:r1_s1_2.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Visual:r1_s1_2.3",
+      "to": "agent:Visual:r1_s1_2.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Visual:r1_s1_2.3",
+      "to": "agent:Visual:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Visual:START",
+      "to": "agent:Visual:r2_base",
+      "label": "baseline",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Visual:START",
+      "to": "search:Visual:r2_base",
+      "label": "Baseline Recon",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Visual:r2_base",
+      "to": "track:Visual:r2_base",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Visual:r2_base",
+      "to": "agent:Visual:r2_base",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Visual:r2_base",
+      "to": "agent:Visual:r2_s1_2.3",
+      "label": "\u2192 2.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Visual:r2_base",
+      "to": "search:Visual:r2_s1_2.3",
+      "label": "2.3 Trigger compilation\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Visual:r2_s1_2.3",
+      "to": "track:Visual:r2_s1_2.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Visual:r2_s1_2.3",
+      "to": "agent:Visual:r2_s1_2.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Visual:r2_s1_2.3",
+      "to": "agent:Visual:r2_s1_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Visual:r2_s1_2.3",
+      "to": "search:Visual:r2_s1_3.1",
+      "label": "3.1 Deploy web shell fo\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Visual:r2_s1_3.1",
+      "to": "track:Visual:r2_s1_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Visual:r2_s1_3.1",
+      "to": "agent:Visual:r2_s1_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Visual:r2_s1_3.1",
+      "to": "agent:Visual:r2_s1_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Visual:r2_s1_3.1",
+      "to": "search:Visual:r2_s1_3.2",
+      "label": "3.2 Recover SeImpersona\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Visual:r2_s1_3.2",
+      "to": "track:Visual:r2_s1_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Visual:r2_s1_3.2",
+      "to": "agent:Visual:r2_s1_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Visual:r2_s1_3.2",
+      "to": "agent:Visual:r2_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 27,
+    "total_edges": 34,
+    "agent_nodes": 11,
+    "search_nodes": 8,
+    "track_nodes": 8,
+    "runs_detected": 2,
+    "rows_captured": 4
+  }
+}

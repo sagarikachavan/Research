@@ -1,0 +1,796 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Fluffy",
+  "source": "training_data.csv, Machine == 'Fluffy', 7 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Fluffy:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Fluffy'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Fluffy:r1_s2_2",
+      "label": "Search: 2\nActive Directory enumerat\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2: Active Directory enumeration\n\nMCP tool calls:\nSMB client (share enumeration and file download with credentials j.fleischman)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Fluffy:r1_s2_2",
+      "label": "Track: Active Directory enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2 Active Directory enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Fluffy:r1_s2_2",
+      "label": "Agent: 2\nActive Directory enum\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2:\n\u2026 1 Reconnaissance\n  \u2713 1.1 Network discovery and port scanning\n  \u2713 1.2 Service enumeration\n\u25cb 2 Active Directory enumeration\n  \u25cb 2.1 LDAP and BloodHound analysis",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Fluffy:r1_s2_2.1",
+      "label": "Search: 2.1\nLDAP and BloodHound analy\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: LDAP and BloodHound analysis\n\nMCP tool calls:\nSMB client (share enumeration and file download with credentials j.fleischman)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Fluffy:r1_s2_2.1",
+      "label": "Track: LDAP and BloodHound analysis",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 LDAP and BloodHound analysis:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Fluffy:r1_s2_2.1",
+      "label": "Agent: 2.1\nActive Directory enum\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2026 1 Reconnaissance\n  \u2713 1.1 Network discovery and port scanning\n  \u2713 1.2 Service enumeration\n\u25cb 2 Active Directory enumeration\n  \u25cb 2.1 LDAP and BloodHound analysis",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Fluffy:r1_s3_3",
+      "label": "Search: 3\nInitial access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3: Initial access\n\nMCP tool calls:\nInteractive CLI (ldapdomaindump and BloodHound data collection)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Fluffy:r1_s3_3",
+      "label": "Track: Initial access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3 Initial access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Fluffy:r1_s3_3",
+      "label": "Agent: 3\nInitial access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3:\n\u2713 1 Reconnaissance\n  \u2713 1.2 Service enumeration\n\u2713 2 Active Directory enumeration\n\u25cb 3 Initial access\n  \u25cb 3.1 CVE-2025-24071 exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Fluffy:r1_s3_3.1",
+      "label": "Search: 3.1\nCVE-2025-24071 exploitati\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: CVE-2025-24071 exploitation\n\nMCP tool calls:\nInteractive CLI (ldapdomaindump and BloodHound data collection)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Fluffy:r1_s3_3.1",
+      "label": "Track: CVE-2025-24071 exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 CVE-2025-24071 exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Fluffy:r1_s3_3.1",
+      "label": "Agent: 3.1\nInitial access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n  \u2713 1.2 Service enumeration\n\u2713 2 Active Directory enumeration\n\u25cb 3 Initial access\n  \u25cb 3.1 CVE-2025-24071 exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Fluffy:r1_s4_4",
+      "label": "Search: 4\nLateral movement",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4: Lateral movement\n\nMCP tool calls:\nInteractive CLI (clone CVE-2025-24071 exploit and generate ZIP); SMB client (upload to IT share); Interactive CLI (setup Responder)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Fluffy:r1_s4_4",
+      "label": "Track: Lateral movement",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4 Lateral movement:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Fluffy:r1_s4_4",
+      "label": "Agent: 4\nLateral movement",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4:\n\u2713 1 Reconnaissance\n\u2713 2 Active Directory enumeration\n\u2713 3 Initial access\n\u25cb 4 Lateral movement\n  \u25cb 4.1 Service account compromise",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Fluffy:r1_s4_4.1",
+      "label": "Search: 4.1\nService account compromise",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Service account compromise\n\nMCP tool calls:\nInteractive CLI (clone CVE-2025-24071 exploit and generate ZIP); SMB client (upload to IT share); Interactive CLI (setup Responder)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Fluffy:r1_s4_4.1",
+      "label": "Track: Service account compromise",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Service account compromise:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Fluffy:r1_s4_4.1",
+      "label": "Agent: 4.1\nLateral movement",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n\u2713 2 Active Directory enumeration\n\u2713 3 Initial access\n\u25cb 4 Lateral movement\n  \u25cb 4.1 Service account compromise",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Fluffy:r1_s5_4.2",
+      "label": "Search: 4.2\nCertificate authority exp\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2: Certificate authority exploitation\n\nMCP tool calls:\nInteractive CLI (add p.agila to Service Accounts group); Interactive CLI (pywhisker shadow credential manipulation)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Fluffy:r1_s5_4.2",
+      "label": "Track: Certificate authority exploit\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2 Certificate authority exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Fluffy:r1_s5_4.2",
+      "label": "Agent: 4.2\nLateral movement",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2:\n\u2713 1 Reconnaissance\n\u2713 2 Active Directory enumeration\n\u2713 3 Initial access\n\u2026 4 Lateral movement\n  \u2713 4.1 Service account compromise\n  \u25cb 4.2 Certificate authority exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Fluffy:r1_s6_5",
+      "label": "Search: 5\nPrivilege escalation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5: Privilege escalation\n\nMCP tool calls:\nInteractive CLI (shadow credential for ca_svc); Interactive CLI (certipy-ad AD CS enumeration and ESC16 exploitation)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Fluffy:r1_s6_5",
+      "label": "Track: Added shadow credential to ca\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5 Privilege escalation:\nAdded shadow credential to ca_svc using GenericAll; Enumerated AD CS with certipy-ad; ESC16 vulnerability identified; Modified ca_svc UPN to administrator using certipy-ad account; Set up Chisel port forwarding for RPC (TCP/135 firewalled); Requested user authentication certificate from CA; Restored original ca_svc UPN; Authenticated with administrator certificate; Obtained domain admin NT hash: 8da83a3fa618b6e3a00e93f676c92a6e; Executed evil-winrm as administrator; Domain admin shell achieved; User flag: 734513c276d18d75d9c53522e9738b27; Root flag: 8337ea2c05a8417635fe25dfc8057cbe",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Fluffy:r1_s6_5",
+      "label": "Agent: 5\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5:\n\u2713 1 Reconnaissance\n\u2713 2 Active Directory enumeration\n\u2713 3 Initial access\n\u2713 4 Lateral movement\n\u2713 5 Privilege escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Fluffy:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Active Directory enumeration\n\u2713 3 Initial access\n\u2713 4 Lateral movement\n\u2713 5 Privilege escalation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Fluffy:START",
+      "to": "agent:Fluffy:r1_s2_2",
+      "label": "\u2192 2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Fluffy:START",
+      "to": "search:Fluffy:r1_s2_2",
+      "label": "2 Active Directory en\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Fluffy:r1_s2_2",
+      "to": "track:Fluffy:r1_s2_2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Fluffy:r1_s2_2",
+      "to": "agent:Fluffy:r1_s2_2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Fluffy:r1_s2_2",
+      "to": "agent:Fluffy:r1_s2_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Fluffy:r1_s2_2",
+      "to": "search:Fluffy:r1_s2_2.1",
+      "label": "2.1 LDAP and BloodHound\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Fluffy:r1_s2_2.1",
+      "to": "track:Fluffy:r1_s2_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Fluffy:r1_s2_2.1",
+      "to": "agent:Fluffy:r1_s2_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Fluffy:r1_s2_2.1",
+      "to": "agent:Fluffy:r1_s3_3",
+      "label": "\u2192 3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Fluffy:r1_s2_2.1",
+      "to": "search:Fluffy:r1_s3_3",
+      "label": "3 Initial access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Fluffy:r1_s3_3",
+      "to": "track:Fluffy:r1_s3_3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Fluffy:r1_s3_3",
+      "to": "agent:Fluffy:r1_s3_3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Fluffy:r1_s3_3",
+      "to": "agent:Fluffy:r1_s3_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Fluffy:r1_s3_3",
+      "to": "search:Fluffy:r1_s3_3.1",
+      "label": "3.1 CVE-2025-24071 expl\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Fluffy:r1_s3_3.1",
+      "to": "track:Fluffy:r1_s3_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Fluffy:r1_s3_3.1",
+      "to": "agent:Fluffy:r1_s3_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Fluffy:r1_s3_3.1",
+      "to": "agent:Fluffy:r1_s4_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Fluffy:r1_s3_3.1",
+      "to": "search:Fluffy:r1_s4_4",
+      "label": "4 Lateral movement",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Fluffy:r1_s4_4",
+      "to": "track:Fluffy:r1_s4_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Fluffy:r1_s4_4",
+      "to": "agent:Fluffy:r1_s4_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Fluffy:r1_s4_4",
+      "to": "agent:Fluffy:r1_s4_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Fluffy:r1_s4_4",
+      "to": "search:Fluffy:r1_s4_4.1",
+      "label": "4.1 Service account com\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Fluffy:r1_s4_4.1",
+      "to": "track:Fluffy:r1_s4_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Fluffy:r1_s4_4.1",
+      "to": "agent:Fluffy:r1_s4_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Fluffy:r1_s4_4.1",
+      "to": "agent:Fluffy:r1_s5_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Fluffy:r1_s4_4.1",
+      "to": "search:Fluffy:r1_s5_4.2",
+      "label": "4.2 Certificate authori\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Fluffy:r1_s5_4.2",
+      "to": "track:Fluffy:r1_s5_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Fluffy:r1_s5_4.2",
+      "to": "agent:Fluffy:r1_s5_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Fluffy:r1_s5_4.2",
+      "to": "agent:Fluffy:r1_s6_5",
+      "label": "\u2192 5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Fluffy:r1_s5_4.2",
+      "to": "search:Fluffy:r1_s6_5",
+      "label": "5 Privilege escalation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Fluffy:r1_s6_5",
+      "to": "track:Fluffy:r1_s6_5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Fluffy:r1_s6_5",
+      "to": "agent:Fluffy:r1_s6_5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Fluffy:r1_s6_5",
+      "to": "agent:Fluffy:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 26,
+    "total_edges": 33,
+    "agent_nodes": 10,
+    "search_nodes": 8,
+    "track_nodes": 8,
+    "runs_detected": 1,
+    "rows_captured": 7
+  }
+}

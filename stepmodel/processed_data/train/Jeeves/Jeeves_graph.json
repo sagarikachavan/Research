@@ -1,0 +1,616 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Jeeves",
+  "source": "training_data.csv, Machine == 'Jeeves', 8 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Jeeves:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Jeeves'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Jeeves:r1_s1_1.1",
+      "label": "Search: 1.1\nEnumerate HTTP port 80",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.1: Enumerate HTTP port 80\n\nMCP tool calls:\nNmap: Full port scan; Nmap: Service version detection on ports 80, 135, 445, 50000",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Jeeves:r1_s1_1.1",
+      "label": "Track: Enumerate HTTP port 80",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.1 Enumerate HTTP port 80:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Jeeves:r1_s1_1.1",
+      "label": "Agent: 1.1\nPerform network recon\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.1:\n\u2713 1 Perform network reconnaissance\n  \u25cb 1.1 Enumerate HTTP port 80\n  \u25cb 1.2 Enumerate HTTP port 50000\n\u25cb 2 Discover Jenkins instance\n\u25cb 3 Exploit Jenkins for initial access\n\u25cb 4 Escalate to administrator privileges",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Jeeves:r1_s1_1.2",
+      "label": "Search: 1.2\nEnumerate HTTP port 50000",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.2: Enumerate HTTP port 50000\n\nMCP tool calls:\nNmap: Full port scan; Nmap: Service version detection on ports 80, 135, 445, 50000",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Jeeves:r1_s1_1.2",
+      "label": "Track: Enumerate HTTP port 50000",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.2 Enumerate HTTP port 50000:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Jeeves:r1_s1_1.2",
+      "label": "Agent: 1.2\nPerform network recon\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.2:\n\u2713 1 Perform network reconnaissance\n  \u25cb 1.1 Enumerate HTTP port 80\n  \u25cb 1.2 Enumerate HTTP port 50000\n\u25cb 2 Discover Jenkins instance\n\u25cb 3 Exploit Jenkins for initial access\n\u25cb 4 Escalate to administrator privileges",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Jeeves:r1_s3_4.1",
+      "label": "Search: 4.1\nSearch for credential sto\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Search for credential stores\n\nMCP tool calls:\nWeb page interaction: Access Jenkins dashboard; Web page interaction: Create freestyle project; Interactive CLI: Add batch command 'whoami' to test execution; Interactive CLI: Execute base64-encoded PowerShell reverse shell",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Jeeves:r1_s3_4.1",
+      "label": "Track: Search for credential stores",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Search for credential stores:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Jeeves:r1_s3_4.1",
+      "label": "Agent: 4.1\nEscalate to administr\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Perform network reconnaissance\n  \u25cb 1.1 Enumerate HTTP port 80\n  \u2713 1.2 Enumerate HTTP port 50000\n\u2713 2 Discover Jenkins instance\n\u2713 3 Exploit Jenkins for initial access\n\u2026 4 Escalate to administrator privileges\n  \u25cb 4.1 Search for credential stores",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Jeeves:r1_s4_4.2",
+      "label": "Search: 4.2\nCrack KeePass master pass\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2: Crack KeePass master password\n\nMCP tool calls:\nInteractive CLI: Search kohsuke's Documents folder; Interactive CLI: Locate and download CEH.kdbx KeePass database",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Jeeves:r1_s4_4.2",
+      "label": "Track: Crack KeePass master password",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2 Crack KeePass master password:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Jeeves:r1_s4_4.2",
+      "label": "Agent: 4.2\nEscalate to administr\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2:\n\u2713 1 Perform network reconnaissance\n  \u25cb 1.1 Enumerate HTTP port 80\n  \u2713 1.2 Enumerate HTTP port 50000\n\u2713 2 Discover Jenkins instance\n\u2713 3 Exploit Jenkins for initial access\n\u2026 4 Escalate to administrator privileges\n  \u2713 4.1 Search for credential stores\n  \u25cb 4.2 Crack KeePass master password",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Jeeves:r1_s5_4.3",
+      "label": "Search: 4.3\nAuthenticate with adminis\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.3: Authenticate with administrator hash\n\nMCP tool calls:\nInteractive CLI: Convert CEH.kdbx to hash with keepass2john; Interactive CLI: Crack hash with hashcat using rockyou.txt wordlist",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Jeeves:r1_s5_4.3",
+      "label": "Track: Authenticate with administrat\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.3 Authenticate with administrator hash:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Jeeves:r1_s5_4.3",
+      "label": "Agent: 4.3\nEscalate to administr\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.3:\n\u2713 1 Perform network reconnaissance\n  \u25cb 1.1 Enumerate HTTP port 80\n  \u2713 1.2 Enumerate HTTP port 50000\n\u2713 2 Discover Jenkins instance\n\u2713 3 Exploit Jenkins for initial access\n\u2026 4 Escalate to administrator privileges\n  \u2713 4.1 Search for credential stores\n  \u2713 4.2 Crack KeePass master password\n  \u25cb 4.3 Authenticate with administrator hash",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Jeeves:r1_s6_4.4",
+      "label": "Search: 4.4\nRetrieve root flag from a\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.4: Retrieve root flag from alternate data stream\n\nMCP tool calls:\nSMB client: Validate hash with crackmapexec; Interactive CLI: Execute psexec.py with administrator hash to obtain SYSTEM shell",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Jeeves:r1_s6_4.4",
+      "label": "Track: Retrieve root flag from alter\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.4 Retrieve root flag from alternate data stream:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Jeeves:r1_s6_4.4",
+      "label": "Agent: 4.4\nEscalate to administr\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.4:\n\u2713 1 Perform network reconnaissance\n  \u25cb 1.1 Enumerate HTTP port 80\n  \u2713 1.2 Enumerate HTTP port 50000\n\u2713 2 Discover Jenkins instance\n\u2713 3 Exploit Jenkins for initial access\n\u2713 4 Escalate to administrator privileges\n  \u2713 4.1 Search for credential stores\n  \u2713 4.2 Crack KeePass master password\n  \u2713 4.3 Authenticate with administrator hash\n  \u25cb 4.4 Retrieve root flag from alternate data stream",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Jeeves:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Perform network reconnaissance\n  \u25cb 1.1 Enumerate HTTP port 80\n  \u2713 1.2 Enumerate HTTP port 50000\n\u2713 2 Discover Jenkins instance\n\u2713 3 Exploit Jenkins for initial access\n\u2713 4 Escalate to administrator privileges\n  \u2713 4.1 Search for credential stores\n  \u2713 4.2 Crack KeePass master password\n  \u2713 4.3 Authenticate with administrator hash\n  \u2713 4.4 Retrieve root flag from alternate data stream",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Jeeves:START",
+      "to": "agent:Jeeves:r1_s1_1.1",
+      "label": "\u2192 1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Jeeves:START",
+      "to": "search:Jeeves:r1_s1_1.1",
+      "label": "1.1 Enumerate HTTP port\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Jeeves:r1_s1_1.1",
+      "to": "track:Jeeves:r1_s1_1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Jeeves:r1_s1_1.1",
+      "to": "agent:Jeeves:r1_s1_1.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Jeeves:r1_s1_1.1",
+      "to": "agent:Jeeves:r1_s1_1.2",
+      "label": "\u2192 1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Jeeves:r1_s1_1.1",
+      "to": "search:Jeeves:r1_s1_1.2",
+      "label": "1.2 Enumerate HTTP port\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Jeeves:r1_s1_1.2",
+      "to": "track:Jeeves:r1_s1_1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Jeeves:r1_s1_1.2",
+      "to": "agent:Jeeves:r1_s1_1.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Jeeves:r1_s1_1.2",
+      "to": "agent:Jeeves:r1_s3_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Jeeves:r1_s1_1.2",
+      "to": "search:Jeeves:r1_s3_4.1",
+      "label": "4.1 Search for credenti\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Jeeves:r1_s3_4.1",
+      "to": "track:Jeeves:r1_s3_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Jeeves:r1_s3_4.1",
+      "to": "agent:Jeeves:r1_s3_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Jeeves:r1_s3_4.1",
+      "to": "agent:Jeeves:r1_s4_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Jeeves:r1_s3_4.1",
+      "to": "search:Jeeves:r1_s4_4.2",
+      "label": "4.2 Crack KeePass maste\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Jeeves:r1_s4_4.2",
+      "to": "track:Jeeves:r1_s4_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Jeeves:r1_s4_4.2",
+      "to": "agent:Jeeves:r1_s4_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Jeeves:r1_s4_4.2",
+      "to": "agent:Jeeves:r1_s5_4.3",
+      "label": "\u2192 4.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Jeeves:r1_s4_4.2",
+      "to": "search:Jeeves:r1_s5_4.3",
+      "label": "4.3 Authenticate with a\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Jeeves:r1_s5_4.3",
+      "to": "track:Jeeves:r1_s5_4.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Jeeves:r1_s5_4.3",
+      "to": "agent:Jeeves:r1_s5_4.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Jeeves:r1_s5_4.3",
+      "to": "agent:Jeeves:r1_s6_4.4",
+      "label": "\u2192 4.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Jeeves:r1_s5_4.3",
+      "to": "search:Jeeves:r1_s6_4.4",
+      "label": "4.4 Retrieve root flag \u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Jeeves:r1_s6_4.4",
+      "to": "track:Jeeves:r1_s6_4.4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Jeeves:r1_s6_4.4",
+      "to": "agent:Jeeves:r1_s6_4.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Jeeves:r1_s6_4.4",
+      "to": "agent:Jeeves:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 20,
+    "total_edges": 25,
+    "agent_nodes": 8,
+    "search_nodes": 6,
+    "track_nodes": 6,
+    "runs_detected": 1,
+    "rows_captured": 8
+  }
+}

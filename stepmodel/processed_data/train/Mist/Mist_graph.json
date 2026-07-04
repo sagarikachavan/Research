@@ -1,0 +1,1426 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Mist",
+  "source": "training_data.csv, Machine == 'Mist', 11 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Mist:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Mist'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Mist:r1_s1_2",
+      "label": "Search: 2\nVulnerability research",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2: Vulnerability research\n\nMCP tool calls:\nNmap for port scanning; Web page interaction to identify CMS platform",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Mist:r1_s1_2",
+      "label": "Track: Vulnerability research",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2 Vulnerability research:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Mist:r1_s1_2",
+      "label": "Agent: 2\nVulnerability research",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u2713 1.2 Web application identification\n\u25cb 2 Vulnerability research",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Mist:r1_s2_3",
+      "label": "Search: 3\nFile disclosure exploitat\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3: File disclosure exploitation\n\nMCP tool calls:\nGoogle search for 'Pluck CMS 4.7.18 CVE-2024-9405 file disclosure vulnerability'",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Mist:r1_s2_3",
+      "label": "Track: File disclosure exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3 File disclosure exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Mist:r1_s2_3",
+      "label": "Agent: 3\nFile disclosure explo\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3:\n\u2713 1 Reconnaissance\n  \u2713 1.2 Web application identification\n\u2713 2 Vulnerability research\n\u25cb 3 File disclosure exploitation\n  \u25cb 3.1 Extract admin credentials",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Mist:r1_s2_3.1",
+      "label": "Search: 3.1\nExtract admin credentials",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: Extract admin credentials\n\nMCP tool calls:\nGoogle search for 'Pluck CMS 4.7.18 CVE-2024-9405 file disclosure vulnerability'",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Mist:r1_s2_3.1",
+      "label": "Track: Extract admin credentials",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 Extract admin credentials:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Mist:r1_s2_3.1",
+      "label": "Agent: 3.1\nFile disclosure explo\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n  \u2713 1.2 Web application identification\n\u2713 2 Vulnerability research\n\u25cb 3 File disclosure exploitation\n  \u25cb 3.1 Extract admin credentials",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Mist:r1_s3_4",
+      "label": "Search: 4\nWebshell deployment",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4: Webshell deployment\n\nMCP tool calls:\nWeb page interaction to access /data/modules/albums/albums_getimage.php with file parameter pointing to admin_backup.php; CrackStation for hash cracking",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Mist:r1_s3_4",
+      "label": "Track: Webshell deployment",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4 Webshell deployment:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Mist:r1_s3_4",
+      "label": "Agent: 4\nWebshell deployment",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4:\n\u2713 1 Reconnaissance\n\u2713 2 Vulnerability research\n\u2713 3 File disclosure exploitation\n\u25cb 4 Webshell deployment\n  \u25cb 4.1 Create malicious module",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Mist:r1_s3_4.1",
+      "label": "Search: 4.1\nCreate malicious module",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Create malicious module\n\nMCP tool calls:\nWeb page interaction to access /data/modules/albums/albums_getimage.php with file parameter pointing to admin_backup.php; CrackStation for hash cracking",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Mist:r1_s3_4.1",
+      "label": "Track: Create malicious module",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Create malicious module:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Mist:r1_s3_4.1",
+      "label": "Agent: 4.1\nWebshell deployment",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n\u2713 2 Vulnerability research\n\u2713 3 File disclosure exploitation\n\u25cb 4 Webshell deployment\n  \u25cb 4.1 Create malicious module",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Mist:r1_s4_5",
+      "label": "Search: 5\nAMSI bypass",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5: AMSI bypass\n\nMCP tool calls:\nInteractive CLI to create module ZIP structure with webshell at /data/modules/notevil/mod0xdf/0xdf.php; Web page interaction for admin login and module upload",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Mist:r1_s4_5",
+      "label": "Track: AMSI bypass",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5 AMSI bypass:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Mist:r1_s4_5",
+      "label": "Agent: 5\nAMSI bypass",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5:\n\u2713 1 Reconnaissance\n\u2713 2 Vulnerability research\n\u2713 3 File disclosure exploitation\n\u2713 4 Webshell deployment\n\u25cb 5 AMSI bypass\n  \u25cb 5.1 Craft obfuscated payload",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Mist:r1_s4_5.1",
+      "label": "Search: 5.1\nCraft obfuscated payload",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5.1: Craft obfuscated payload\n\nMCP tool calls:\nInteractive CLI to create module ZIP structure with webshell at /data/modules/notevil/mod0xdf/0xdf.php; Web page interaction for admin login and module upload",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Mist:r1_s4_5.1",
+      "label": "Track: Craft obfuscated payload",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5.1 Craft obfuscated payload:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Mist:r1_s4_5.1",
+      "label": "Agent: 5.1\nAMSI bypass",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5.1:\n\u2713 1 Reconnaissance\n\u2713 2 Vulnerability research\n\u2713 3 File disclosure exploitation\n\u2713 4 Webshell deployment\n\u25cb 5 AMSI bypass\n  \u25cb 5.1 Craft obfuscated payload",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Mist:r1_s5_6",
+      "label": "Search: 6\nLateral movement",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6: Lateral movement\n\nMCP tool calls:\nInteractive CLI to generate obfuscated PowerShell payload with randomized variables; executing via webshell to establish reverse shell as svc_web",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Mist:r1_s5_6",
+      "label": "Track: Lateral movement",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6 Lateral movement:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Mist:r1_s5_6",
+      "label": "Agent: 6\nLateral movement",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6:\n\u2713 1 Reconnaissance\n\u2713 2 Vulnerability research\n\u2713 3 File disclosure exploitation\n\u2713 4 Webshell deployment\n\u2713 5 AMSI bypass\n\u25cb 6 Lateral movement\n  \u25cb 6.1 Identify writable directories",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Mist:r1_s5_6.1",
+      "label": "Search: 6.1\nIdentify writable directo\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6.1: Identify writable directories\n\nMCP tool calls:\nInteractive CLI to generate obfuscated PowerShell payload with randomized variables; executing via webshell to establish reverse shell as svc_web",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Mist:r1_s5_6.1",
+      "label": "Track: Identify writable directories",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6.1 Identify writable directories:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Mist:r1_s5_6.1",
+      "label": "Agent: 6.1\nLateral movement",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6.1:\n\u2713 1 Reconnaissance\n\u2713 2 Vulnerability research\n\u2713 3 File disclosure exploitation\n\u2713 4 Webshell deployment\n\u2713 5 AMSI bypass\n\u25cb 6 Lateral movement\n  \u25cb 6.1 Identify writable directories",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Mist:r1_s6_7",
+      "label": "Search: 7\nDomain enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 7: Domain enumeration\n\nMCP tool calls:\nInteractive CLI to enumerate writable directories; examining shortcut files in C:\\Common Applications",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Mist:r1_s6_7",
+      "label": "Track: Domain enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "7 Domain enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Mist:r1_s6_7",
+      "label": "Agent: 7\nDomain enumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 7:\n\u2713 1 Reconnaissance\n\u2713 2 Vulnerability research\n\u2713 3 File disclosure exploitation\n\u2713 4 Webshell deployment\n\u2713 5 AMSI bypass\n\u2026 6 Lateral movement\n\u25cb 7 Domain enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Mist:r1_s7_8",
+      "label": "Search: 8\nCertificate-based authent\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 8: Certificate-based authentication\n\nMCP tool calls:\nInteractive CLI with SharpHound.exe for BloodHound data collection; examining certificate authority and ADCS templates",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Mist:r1_s7_8",
+      "label": "Track: Certificate-based authenticat\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "8 Certificate-based authentication:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Mist:r1_s7_8",
+      "label": "Agent: 8\nCertificate-based aut\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 8:\n\u2713 1 Reconnaissance\n\u2713 2 Vulnerability research\n\u2713 3 File disclosure exploitation\n\u2713 4 Webshell deployment\n\u2713 5 AMSI bypass\n\u2713 6 Lateral movement\n\u2713 7 Domain enumeration\n\u25cb 8 Certificate-based authentication\n  \u25cb 8.1 Enroll certificate and extract hash",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Mist:r1_s7_8.1",
+      "label": "Search: 8.1\nEnroll certificate and ex\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 8.1: Enroll certificate and extract hash\n\nMCP tool calls:\nInteractive CLI with SharpHound.exe for BloodHound data collection; examining certificate authority and ADCS templates",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Mist:r1_s7_8.1",
+      "label": "Track: Enroll certificate and extrac\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "8.1 Enroll certificate and extract hash:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Mist:r1_s7_8.1",
+      "label": "Agent: 8.1\nCertificate-based aut\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 8.1:\n\u2713 1 Reconnaissance\n\u2713 2 Vulnerability research\n\u2713 3 File disclosure exploitation\n\u2713 4 Webshell deployment\n\u2713 5 AMSI bypass\n\u2713 6 Lateral movement\n\u2713 7 Domain enumeration\n\u25cb 8 Certificate-based authentication\n  \u25cb 8.1 Enroll certificate and extract hash",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Mist:r1_s8_9",
+      "label": "Search: 9\nMachine account compromise",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 9: Machine account compromise\n\nMCP tool calls:\nInteractive CLI with Certify.exe to enroll certificate; converting to PFX format; Rubeus.exe to request TGT and extract NTLM hash",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Mist:r1_s8_9",
+      "label": "Track: Machine account compromise",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "9 Machine account compromise:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Mist:r1_s8_9",
+      "label": "Agent: 9\nMachine account compr\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 9:\n\u2713 1 Reconnaissance\n\u2713 2 Vulnerability research\n\u2713 3 File disclosure exploitation\n\u2713 4 Webshell deployment\n\u2713 5 AMSI bypass\n\u2713 6 Lateral movement\n\u2713 7 Domain enumeration\n\u2713 8 Certificate-based authentication\n\u25cb 9 Machine account compromise\n  \u25cb 9.1 Enable WebClient service",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Mist:r1_s8_9.1",
+      "label": "Search: 9.1\nEnable WebClient service",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 9.1: Enable WebClient service\n\nMCP tool calls:\nInteractive CLI with Certify.exe to enroll certificate; converting to PFX format; Rubeus.exe to request TGT and extract NTLM hash",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Mist:r1_s8_9.1",
+      "label": "Track: Enable WebClient service",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "9.1 Enable WebClient service:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Mist:r1_s8_9.1",
+      "label": "Agent: 9.1\nMachine account compr\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 9.1:\n\u2713 1 Reconnaissance\n\u2713 2 Vulnerability research\n\u2713 3 File disclosure exploitation\n\u2713 4 Webshell deployment\n\u2713 5 AMSI bypass\n\u2713 6 Lateral movement\n\u2713 7 Domain enumeration\n\u2713 8 Certificate-based authentication\n\u25cb 9 Machine account compromise\n  \u25cb 9.1 Enable WebClient service",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Mist:r1_s9_10",
+      "label": "Search: 10\nAdministrator access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 10: Administrator access\n\nMCP tool calls:\nInteractive CLI to enable WebClient service; Chisel for tunneling; PetitPotam.exe to coerce authentication; ntlmrelayx.py with LDAP target for shadow credential addition",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Mist:r1_s9_10",
+      "label": "Track: Administrator access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "10 Administrator access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Mist:r1_s9_10",
+      "label": "Agent: 10\nAdministrator access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 10:\n\u2713 1 Reconnaissance\n\u2713 2 Vulnerability research\n\u2713 3 File disclosure exploitation\n\u2713 4 Webshell deployment\n\u2713 5 AMSI bypass\n\u2713 6 Lateral movement\n\u2713 7 Domain enumeration\n\u2713 8 Certificate-based authentication\n\u2713 9 Machine account compromise\n\u25cb 10 Administrator access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Mist:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Vulnerability research\n\u2713 3 File disclosure exploitation\n\u2713 4 Webshell deployment\n\u2713 5 AMSI bypass\n\u2713 6 Lateral movement\n\u2713 7 Domain enumeration\n\u2713 8 Certificate-based authentication\n\u2713 9 Machine account compromise\n\u2713 10 Administrator access",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Mist:START",
+      "to": "agent:Mist:r1_s1_2",
+      "label": "\u2192 2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:START",
+      "to": "search:Mist:r1_s1_2",
+      "label": "2 Vulnerability resea\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Mist:r1_s1_2",
+      "to": "track:Mist:r1_s1_2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Mist:r1_s1_2",
+      "to": "agent:Mist:r1_s1_2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s1_2",
+      "to": "agent:Mist:r1_s2_3",
+      "label": "\u2192 3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s1_2",
+      "to": "search:Mist:r1_s2_3",
+      "label": "3 File disclosure exp\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Mist:r1_s2_3",
+      "to": "track:Mist:r1_s2_3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Mist:r1_s2_3",
+      "to": "agent:Mist:r1_s2_3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s2_3",
+      "to": "agent:Mist:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s2_3",
+      "to": "search:Mist:r1_s2_3.1",
+      "label": "3.1 Extract admin crede\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Mist:r1_s2_3.1",
+      "to": "track:Mist:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Mist:r1_s2_3.1",
+      "to": "agent:Mist:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s2_3.1",
+      "to": "agent:Mist:r1_s3_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s2_3.1",
+      "to": "search:Mist:r1_s3_4",
+      "label": "4 Webshell deployment",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Mist:r1_s3_4",
+      "to": "track:Mist:r1_s3_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Mist:r1_s3_4",
+      "to": "agent:Mist:r1_s3_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s3_4",
+      "to": "agent:Mist:r1_s3_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s3_4",
+      "to": "search:Mist:r1_s3_4.1",
+      "label": "4.1 Create malicious mo\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Mist:r1_s3_4.1",
+      "to": "track:Mist:r1_s3_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Mist:r1_s3_4.1",
+      "to": "agent:Mist:r1_s3_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s3_4.1",
+      "to": "agent:Mist:r1_s4_5",
+      "label": "\u2192 5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s3_4.1",
+      "to": "search:Mist:r1_s4_5",
+      "label": "5 AMSI bypass",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Mist:r1_s4_5",
+      "to": "track:Mist:r1_s4_5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Mist:r1_s4_5",
+      "to": "agent:Mist:r1_s4_5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s4_5",
+      "to": "agent:Mist:r1_s4_5.1",
+      "label": "\u2192 5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s4_5",
+      "to": "search:Mist:r1_s4_5.1",
+      "label": "5.1 Craft obfuscated pa\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Mist:r1_s4_5.1",
+      "to": "track:Mist:r1_s4_5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Mist:r1_s4_5.1",
+      "to": "agent:Mist:r1_s4_5.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s4_5.1",
+      "to": "agent:Mist:r1_s5_6",
+      "label": "\u2192 6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s4_5.1",
+      "to": "search:Mist:r1_s5_6",
+      "label": "6 Lateral movement",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Mist:r1_s5_6",
+      "to": "track:Mist:r1_s5_6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Mist:r1_s5_6",
+      "to": "agent:Mist:r1_s5_6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s5_6",
+      "to": "agent:Mist:r1_s5_6.1",
+      "label": "\u2192 6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s5_6",
+      "to": "search:Mist:r1_s5_6.1",
+      "label": "6.1 Identify writable d\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Mist:r1_s5_6.1",
+      "to": "track:Mist:r1_s5_6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Mist:r1_s5_6.1",
+      "to": "agent:Mist:r1_s5_6.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s5_6.1",
+      "to": "agent:Mist:r1_s6_7",
+      "label": "\u2192 7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s5_6.1",
+      "to": "search:Mist:r1_s6_7",
+      "label": "7 Domain enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Mist:r1_s6_7",
+      "to": "track:Mist:r1_s6_7",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Mist:r1_s6_7",
+      "to": "agent:Mist:r1_s6_7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s6_7",
+      "to": "agent:Mist:r1_s7_8",
+      "label": "\u2192 8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s6_7",
+      "to": "search:Mist:r1_s7_8",
+      "label": "8 Certificate-based a\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Mist:r1_s7_8",
+      "to": "track:Mist:r1_s7_8",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Mist:r1_s7_8",
+      "to": "agent:Mist:r1_s7_8",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s7_8",
+      "to": "agent:Mist:r1_s7_8.1",
+      "label": "\u2192 8.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s7_8",
+      "to": "search:Mist:r1_s7_8.1",
+      "label": "8.1 Enroll certificate \u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Mist:r1_s7_8.1",
+      "to": "track:Mist:r1_s7_8.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Mist:r1_s7_8.1",
+      "to": "agent:Mist:r1_s7_8.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s7_8.1",
+      "to": "agent:Mist:r1_s8_9",
+      "label": "\u2192 9",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s7_8.1",
+      "to": "search:Mist:r1_s8_9",
+      "label": "9 Machine account com\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Mist:r1_s8_9",
+      "to": "track:Mist:r1_s8_9",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Mist:r1_s8_9",
+      "to": "agent:Mist:r1_s8_9",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s8_9",
+      "to": "agent:Mist:r1_s8_9.1",
+      "label": "\u2192 9.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s8_9",
+      "to": "search:Mist:r1_s8_9.1",
+      "label": "9.1 Enable WebClient se\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Mist:r1_s8_9.1",
+      "to": "track:Mist:r1_s8_9.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Mist:r1_s8_9.1",
+      "to": "agent:Mist:r1_s8_9.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s8_9.1",
+      "to": "agent:Mist:r1_s9_10",
+      "label": "\u2192 10",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s8_9.1",
+      "to": "search:Mist:r1_s9_10",
+      "label": "10 Administrator access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Mist:r1_s9_10",
+      "to": "track:Mist:r1_s9_10",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Mist:r1_s9_10",
+      "to": "agent:Mist:r1_s9_10",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Mist:r1_s9_10",
+      "to": "agent:Mist:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 47,
+    "total_edges": 61,
+    "agent_nodes": 17,
+    "search_nodes": 15,
+    "track_nodes": 15,
+    "runs_detected": 1,
+    "rows_captured": 11
+  }
+}

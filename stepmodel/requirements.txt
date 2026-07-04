@@ -1,0 +1,9 @@
+pandas
+numpy
+sentence-transformers
+torch
+torch-geometric
+transformers
+trl
+accelerate
+bitsandbytes

@@ -1,0 +1,436 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Granny",
+  "source": "training_data.csv, Machine == 'Granny', 7 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Granny:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Granny'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Granny:r1_s1_1.1",
+      "label": "Search: 1.1\nTest WebDAV upload restri\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.1: Test WebDAV upload restrictions\n\nMCP tool calls:\nNmap: Port scan; Nmap: Service version detection with -sC -sV identifying WebDAV methods",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Granny:r1_s1_1.1",
+      "label": "Track: Test WebDAV upload restrictio\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.1 Test WebDAV upload restrictions:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Granny:r1_s1_1.1",
+      "label": "Agent: 1.1\nPerform network recon\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.1:\n\u2713 1 Perform network reconnaissance\n  \u25cb 1.1 Test WebDAV upload restrictions\n\u25cb 2 Exploit WebDAV for file upload\n\u25cb 3 Escalate to SYSTEM privileges",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Granny:r1_s3_2.1",
+      "label": "Search: 2.1\nDeploy meterpreter payload",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: Deploy meterpreter payload\n\nMCP tool calls:\nInteractive CLI: Upload ASPX webshell content as shell.txt using curl PUT; Interactive CLI: Rename to shell.aspx using curl MOVE command",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Granny:r1_s3_2.1",
+      "label": "Track: Deploy meterpreter payload",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 Deploy meterpreter payload:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Granny:r1_s3_2.1",
+      "label": "Agent: 2.1\nExploit WebDAV for fi\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Perform network reconnaissance\n  \u2713 1.1 Test WebDAV upload restrictions\n\u2713 2 Exploit WebDAV for file upload\n  \u25cb 2.1 Deploy meterpreter payload\n\u25cb 3 Escalate to SYSTEM privileges",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Granny:r1_s4_3.1",
+      "label": "Search: 3.1\nIdentify privilege escala\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: Identify privilege escalation vulnerabilities\n\nMCP tool calls:\nMetasploit: Generate ASPX meterpreter payload with msfvenom; Interactive CLI: Upload payload using curl PUT with --data-binary flag; Interactive CLI: Rename to .aspx with MOVE; Metasploit: Start handler to catch meterpreter session",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Granny:r1_s4_3.1",
+      "label": "Track: Identify privilege escalation\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 Identify privilege escalation vulnerabilities:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Granny:r1_s4_3.1",
+      "label": "Agent: 3.1\nEscalate to SYSTEM pr\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Perform network reconnaissance\n  \u2713 1.1 Test WebDAV upload restrictions\n\u2713 2 Exploit WebDAV for file upload\n  \u2713 2.1 Deploy meterpreter payload\n\u2026 3 Escalate to SYSTEM privileges\n  \u25cb 3.1 Identify privilege escalation vulnerabilities",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Granny:r1_s5_3.2",
+      "label": "Search: 3.2\nExecute privilege escalat\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.2: Execute privilege escalation exploit\n\nMCP tool calls:\nMetasploit: Background meterpreter session; Metasploit: Load post/multi/recon/local_exploit_suggester module; Metasploit: Execute against meterpreter session",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Granny:r1_s5_3.2",
+      "label": "Track: Execute privilege escalation \u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.2 Execute privilege escalation exploit:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Granny:r1_s5_3.2",
+      "label": "Agent: 3.2\nEscalate to SYSTEM pr\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.2:\n\u2713 1 Perform network reconnaissance\n  \u2713 1.1 Test WebDAV upload restrictions\n\u2713 2 Exploit WebDAV for file upload\n  \u2713 2.1 Deploy meterpreter payload\n\u2026 3 Escalate to SYSTEM privileges\n  \u2713 3.1 Identify privilege escalation vulnerabilities\n  \u25cb 3.2 Execute privilege escalation exploit",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Granny:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Perform network reconnaissance\n  \u2713 1.1 Test WebDAV upload restrictions\n\u2713 2 Exploit WebDAV for file upload\n  \u2713 2.1 Deploy meterpreter payload\n\u2713 3 Escalate to SYSTEM privileges\n  \u2713 3.1 Identify privilege escalation vulnerabilities\n  \u2713 3.2 Execute privilege escalation exploit",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Granny:START",
+      "to": "agent:Granny:r1_s1_1.1",
+      "label": "\u2192 1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Granny:START",
+      "to": "search:Granny:r1_s1_1.1",
+      "label": "1.1 Test WebDAV upload \u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Granny:r1_s1_1.1",
+      "to": "track:Granny:r1_s1_1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Granny:r1_s1_1.1",
+      "to": "agent:Granny:r1_s1_1.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Granny:r1_s1_1.1",
+      "to": "agent:Granny:r1_s3_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Granny:r1_s1_1.1",
+      "to": "search:Granny:r1_s3_2.1",
+      "label": "2.1 Deploy meterpreter \u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Granny:r1_s3_2.1",
+      "to": "track:Granny:r1_s3_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Granny:r1_s3_2.1",
+      "to": "agent:Granny:r1_s3_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Granny:r1_s3_2.1",
+      "to": "agent:Granny:r1_s4_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Granny:r1_s3_2.1",
+      "to": "search:Granny:r1_s4_3.1",
+      "label": "3.1 Identify privilege \u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Granny:r1_s4_3.1",
+      "to": "track:Granny:r1_s4_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Granny:r1_s4_3.1",
+      "to": "agent:Granny:r1_s4_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Granny:r1_s4_3.1",
+      "to": "agent:Granny:r1_s5_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Granny:r1_s4_3.1",
+      "to": "search:Granny:r1_s5_3.2",
+      "label": "3.2 Execute privilege e\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Granny:r1_s5_3.2",
+      "to": "track:Granny:r1_s5_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Granny:r1_s5_3.2",
+      "to": "agent:Granny:r1_s5_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Granny:r1_s5_3.2",
+      "to": "agent:Granny:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 14,
+    "total_edges": 17,
+    "agent_nodes": 6,
+    "search_nodes": 4,
+    "track_nodes": 4,
+    "runs_detected": 1,
+    "rows_captured": 7
+  }
+}

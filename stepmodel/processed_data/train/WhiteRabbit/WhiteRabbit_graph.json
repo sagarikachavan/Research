@@ -1,0 +1,2622 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "WhiteRabbit",
+  "source": "training_data.csv, Machine == 'WhiteRabbit', 24 row(s), 2 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:WhiteRabbit:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'WhiteRabbit'. 2 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s1_2",
+      "label": "Search: 2\nWeb application enumerati\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 2: Web application enumeration\n\nMCP tool calls:\nNmap: Perform comprehensive port scan with service version detection and OS fingerprinting on target 10.10.11.63",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s1_2",
+      "label": "Track: Web application enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 2 Web application enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s1_2",
+      "label": "Agent: 2\nWeb application enume\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u2713 1.2 Service enumeration\n\u25cb 2 Web application enumeration\n  \u25cb 2.1 Subdomain discovery",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s1_2.1",
+      "label": "Search: 2.1\nSubdomain discovery",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 2.1: Subdomain discovery\n\nMCP tool calls:\nNmap: Perform comprehensive port scan with service version detection and OS fingerprinting on target 10.10.11.63",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s1_2.1",
+      "label": "Track: Subdomain discovery",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 2.1 Subdomain discovery:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s1_2.1",
+      "label": "Agent: 2.1\nWeb application enume\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u2713 1.2 Service enumeration\n\u25cb 2 Web application enumeration\n  \u25cb 2.1 Subdomain discovery",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s2_2.2",
+      "label": "Search: 2.2\nService identification",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 2.2: Service identification\n\nMCP tool calls:\nDirbuster: Enumerate subdomains using FFUF against Caddy webserver. Web page interaction: Browse discovered subdomains to identify applications and functionality.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s2_2.2",
+      "label": "Track: Service identification",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 2.2 Service identification:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s2_2.2",
+      "label": "Agent: 2.2\nWeb application enume\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n  \u2713 2.1 Subdomain discovery\n  \u2713 2.2 Service identification\n\u25cb 3 Uptime Kuma exploitation\n  \u25cb 3.1 Authentication bypass",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s2_3",
+      "label": "Search: 3\nUptime Kuma exploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 3: Uptime Kuma exploitation\n\nMCP tool calls:\nDirbuster: Enumerate subdomains using FFUF against Caddy webserver. Web page interaction: Browse discovered subdomains to identify applications and functionality.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s2_3",
+      "label": "Track: Uptime Kuma exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 3 Uptime Kuma exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s2_3",
+      "label": "Agent: 3\nUptime Kuma exploitat\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 3:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n  \u2713 2.1 Subdomain discovery\n  \u2713 2.2 Service identification\n\u25cb 3 Uptime Kuma exploitation\n  \u25cb 3.1 Authentication bypass",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s2_3.1",
+      "label": "Search: 3.1\nAuthentication bypass",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 3.1: Authentication bypass\n\nMCP tool calls:\nDirbuster: Enumerate subdomains using FFUF against Caddy webserver. Web page interaction: Browse discovered subdomains to identify applications and functionality.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s2_3.1",
+      "label": "Track: Authentication bypass",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 3.1 Authentication bypass:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s2_3.1",
+      "label": "Agent: 3.1\nUptime Kuma exploitat\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n  \u2713 2.1 Subdomain discovery\n  \u2713 2.2 Service identification\n\u25cb 3 Uptime Kuma exploitation\n  \u25cb 3.1 Authentication bypass",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s3_4",
+      "label": "Search: 4\nWikiJS intelligence gathe\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 4: WikiJS intelligence gathering\n\nMCP tool calls:\nGoogle search: Search for 'Uptime Kuma 1.23.13 authentication bypass WebSocket vulnerability'. Research if WebSocket responses can be modified to bypass login requirements.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s3_4",
+      "label": "Track: WikiJS intelligence gathering",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 4 WikiJS intelligence gathering:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s3_4",
+      "label": "Agent: 4\nWikiJS intelligence g\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 4:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n  \u2713 3.1 Authentication bypass\n\u25cb 4 WikiJS intelligence gathering\n  \u25cb 4.1 Documentation review",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s3_4.1",
+      "label": "Search: 4.1\nDocumentation review",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 4.1: Documentation review\n\nMCP tool calls:\nGoogle search: Search for 'Uptime Kuma 1.23.13 authentication bypass WebSocket vulnerability'. Research if WebSocket responses can be modified to bypass login requirements.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s3_4.1",
+      "label": "Track: Documentation review",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 4.1 Documentation review:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s3_4.1",
+      "label": "Agent: 4.1\nWikiJS intelligence g\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n  \u2713 3.1 Authentication bypass\n\u25cb 4 WikiJS intelligence gathering\n  \u25cb 4.1 Documentation review",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s4_4.2",
+      "label": "Search: 4.2\nSQL injection discovery",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 4.2: SQL injection discovery\n\nMCP tool calls:\nWeb page interaction: Browse WikiJS at a668910b5514e.whiterabbit.htb. Search for documentation about workflows, APIs, database information, or phishing campaigns. Document any technical details about n8n workflows, database queries, or API endpoints.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s4_4.2",
+      "label": "Track: SQL injection discovery",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 4.2 SQL injection discovery:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s4_4.2",
+      "label": "Agent: 4.2\nWikiJS intelligence g\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 4.2:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n  \u2713 4.1 Documentation review\n  \u2713 4.2 SQL injection discovery\n\u25cb 5 Signature bypass and SQLI\n  \u25cb 5.1 HMAC signature generation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s4_5",
+      "label": "Search: 5\nSignature bypass and SQLI",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 5: Signature bypass and SQLI\n\nMCP tool calls:\nWeb page interaction: Browse WikiJS at a668910b5514e.whiterabbit.htb. Search for documentation about workflows, APIs, database information, or phishing campaigns. Document any technical details about n8n workflows, database queries, or API endpoints.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s4_5",
+      "label": "Track: Signature bypass and SQLI",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 5 Signature bypass and SQLI:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s4_5",
+      "label": "Agent: 5\nSignature bypass and \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 5:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n  \u2713 4.1 Documentation review\n  \u2713 4.2 SQL injection discovery\n\u25cb 5 Signature bypass and SQLI\n  \u25cb 5.1 HMAC signature generation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s4_5.1",
+      "label": "Search: 5.1\nHMAC signature generation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 5.1: HMAC signature generation\n\nMCP tool calls:\nWeb page interaction: Browse WikiJS at a668910b5514e.whiterabbit.htb. Search for documentation about workflows, APIs, database information, or phishing campaigns. Document any technical details about n8n workflows, database queries, or API endpoints.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s4_5.1",
+      "label": "Track: HMAC signature generation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 5.1 HMAC signature generation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s4_5.1",
+      "label": "Agent: 5.1\nSignature bypass and \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 5.1:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n  \u2713 4.1 Documentation review\n  \u2713 4.2 SQL injection discovery\n\u25cb 5 Signature bypass and SQLI\n  \u25cb 5.1 HMAC signature generation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s5_5.2",
+      "label": "Search: 5.2\nSQL injection exploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 5.2: SQL injection exploitation\n\nMCP tool calls:\nInteractive CLI: Create Python script or mitmproxy addon to generate HMAC signatures using json.dumps with separators=(',',':') and hmac.new with secret. SQLmap: Configure sqlmap to exploit SQL injection in email parameter with automatic signature generation for each request.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s5_5.2",
+      "label": "Track: SQL injection exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 5.2 SQL injection exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s5_5.2",
+      "label": "Agent: 5.2\nSignature bypass and \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 5.2:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n  \u2713 5.1 HMAC signature generation\n  \u2713 5.2 SQL injection exploitation\n\u25cb 6 Database intelligence\n  \u25cb 6.1 Credential extraction",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s5_6",
+      "label": "Search: 6\nDatabase intelligence",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 6: Database intelligence\n\nMCP tool calls:\nInteractive CLI: Create Python script or mitmproxy addon to generate HMAC signatures using json.dumps with separators=(',',':') and hmac.new with secret. SQLmap: Configure sqlmap to exploit SQL injection in email parameter with automatic signature generation for each request.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s5_6",
+      "label": "Track: Database intelligence",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 6 Database intelligence:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s5_6",
+      "label": "Agent: 6\nDatabase intelligence",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 6:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n  \u2713 5.1 HMAC signature generation\n  \u2713 5.2 SQL injection exploitation\n\u25cb 6 Database intelligence\n  \u25cb 6.1 Credential extraction",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s5_6.1",
+      "label": "Search: 6.1\nCredential extraction",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 6.1: Credential extraction\n\nMCP tool calls:\nInteractive CLI: Create Python script or mitmproxy addon to generate HMAC signatures using json.dumps with separators=(',',':') and hmac.new with secret. SQLmap: Configure sqlmap to exploit SQL injection in email parameter with automatic signature generation for each request.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s5_6.1",
+      "label": "Track: Credential extraction",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 6.1 Credential extraction:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s5_6.1",
+      "label": "Agent: 6.1\nDatabase intelligence",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 6.1:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n  \u2713 5.1 HMAC signature generation\n  \u2713 5.2 SQL injection exploitation\n\u25cb 6 Database intelligence\n  \u25cb 6.1 Credential extraction",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s6_7",
+      "label": "Search: 7\nBackup recovery",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 7: Backup recovery\n\nMCP tool calls:\nSQLmap: Dump contents of command_log table and other sensitive tables from temp and phishing databases. Interactive CLI: Analyze extracted data for credentials, restic backup configurations, or infrastructure details.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s6_7",
+      "label": "Track: Backup recovery",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 7 Backup recovery:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s6_7",
+      "label": "Agent: 7\nBackup recovery",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 7:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n\u2713 6 Database intelligence\n  \u2713 6.1 Credential extraction\n\u25cb 7 Backup recovery\n  \u25cb 7.1 Restic access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s6_7.1",
+      "label": "Search: 7.1\nRestic access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 7.1: Restic access\n\nMCP tool calls:\nSQLmap: Dump contents of command_log table and other sensitive tables from temp and phishing databases. Interactive CLI: Analyze extracted data for credentials, restic backup configurations, or infrastructure details.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s6_7.1",
+      "label": "Track: Restic access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 7.1 Restic access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s6_7.1",
+      "label": "Agent: 7.1\nBackup recovery",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 7.1:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n\u2713 6 Database intelligence\n  \u2713 6.1 Credential extraction\n\u25cb 7 Backup recovery\n  \u25cb 7.1 Restic access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s7_7.2",
+      "label": "Search: 7.2\nArchive cracking",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 7.2: Archive cracking\n\nMCP tool calls:\nInteractive CLI: Use restic client with password ygcsvCuMdfZ89yaRLlTKhe5jAmth7vxw to connect to repository at 75951e6ff.whiterabbit.htb. List snapshots, extract snapshot contents looking for SSH keys or credential files.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s7_7.2",
+      "label": "Track: Archive cracking",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 7.2 Archive cracking:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s7_7.2",
+      "label": "Agent: 7.2\nBackup recovery",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 7.2:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n\u2713 6 Database intelligence\n\u2713 7 Backup recovery\n  \u2713 7.1 Restic access\n  \u2713 7.2 Archive cracking\n  \u2713 7.3 Container SSH access\n\u25cb 8 Container privilege escalation\n  \u25cb 8.1 Sudo enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s7_7.3",
+      "label": "Search: 7.3\nContainer SSH access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 7.3: Container SSH access\n\nMCP tool calls:\nInteractive CLI: Use restic client with password ygcsvCuMdfZ89yaRLlTKhe5jAmth7vxw to connect to repository at 75951e6ff.whiterabbit.htb. List snapshots, extract snapshot contents looking for SSH keys or credential files.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s7_7.3",
+      "label": "Track: Container SSH access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 7.3 Container SSH access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s7_7.3",
+      "label": "Agent: 7.3\nBackup recovery",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 7.3:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n\u2713 6 Database intelligence\n\u2713 7 Backup recovery\n  \u2713 7.1 Restic access\n  \u2713 7.2 Archive cracking\n  \u2713 7.3 Container SSH access\n\u25cb 8 Container privilege escalation\n  \u25cb 8.1 Sudo enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s7_8",
+      "label": "Search: 8\nContainer privilege escal\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 8: Container privilege escalation\n\nMCP tool calls:\nInteractive CLI: Use restic client with password ygcsvCuMdfZ89yaRLlTKhe5jAmth7vxw to connect to repository at 75951e6ff.whiterabbit.htb. List snapshots, extract snapshot contents looking for SSH keys or credential files.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s7_8",
+      "label": "Track: Container privilege escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 8 Container privilege escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s7_8",
+      "label": "Agent: 8\nContainer privilege e\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 8:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n\u2713 6 Database intelligence\n\u2713 7 Backup recovery\n  \u2713 7.1 Restic access\n  \u2713 7.2 Archive cracking\n  \u2713 7.3 Container SSH access\n\u25cb 8 Container privilege escalation\n  \u25cb 8.1 Sudo enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s7_8.1",
+      "label": "Search: 8.1\nSudo enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 8.1: Sudo enumeration\n\nMCP tool calls:\nInteractive CLI: Use restic client with password ygcsvCuMdfZ89yaRLlTKhe5jAmth7vxw to connect to repository at 75951e6ff.whiterabbit.htb. List snapshots, extract snapshot contents looking for SSH keys or credential files.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s7_8.1",
+      "label": "Track: Sudo enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 8.1 Sudo enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s7_8.1",
+      "label": "Agent: 8.1\nContainer privilege e\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 8.1:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n\u2713 6 Database intelligence\n\u2713 7 Backup recovery\n  \u2713 7.1 Restic access\n  \u2713 7.2 Archive cracking\n  \u2713 7.3 Container SSH access\n\u25cb 8 Container privilege escalation\n  \u25cb 8.1 Sudo enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s8_8.2",
+      "label": "Search: 8.2\nRestic privilege escalati\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 8.2: Restic privilege escalation\n\nMCP tool calls:\nInteractive CLI: Execute sudo -l to check bob's sudo privileges. Run find / -perm -4000 2>/dev/null for SUID binaries. Check for writable files in privileged locations. Examine running processes with ps aux.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s8_8.2",
+      "label": "Track: Restic privilege escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 8.2 Restic privilege escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s8_8.2",
+      "label": "Agent: 8.2\nContainer privilege e\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 8.2:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n\u2713 6 Database intelligence\n\u2713 7 Backup recovery\n\u2713 8 Container privilege escalation\n  \u2713 8.1 Sudo enumeration\n  \u2713 8.2 Restic privilege escalation\n\u25cb 9 Container to host escape\n  \u25cb 9.1 Root container enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s8_9",
+      "label": "Search: 9\nContainer to host escape",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 9: Container to host escape\n\nMCP tool calls:\nInteractive CLI: Execute sudo -l to check bob's sudo privileges. Run find / -perm -4000 2>/dev/null for SUID binaries. Check for writable files in privileged locations. Examine running processes with ps aux.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s8_9",
+      "label": "Track: Container to host escape",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 9 Container to host escape:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s8_9",
+      "label": "Agent: 9\nContainer to host esc\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 9:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n\u2713 6 Database intelligence\n\u2713 7 Backup recovery\n\u2713 8 Container privilege escalation\n  \u2713 8.1 Sudo enumeration\n  \u2713 8.2 Restic privilege escalation\n\u25cb 9 Container to host escape\n  \u25cb 9.1 Root container enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s8_9.1",
+      "label": "Search: 9.1\nRoot container enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 9.1: Root container enumeration\n\nMCP tool calls:\nInteractive CLI: Execute sudo -l to check bob's sudo privileges. Run find / -perm -4000 2>/dev/null for SUID binaries. Check for writable files in privileged locations. Examine running processes with ps aux.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s8_9.1",
+      "label": "Track: Root container enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 9.1 Root container enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s8_9.1",
+      "label": "Agent: 9.1\nContainer to host esc\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 9.1:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n\u2713 6 Database intelligence\n\u2713 7 Backup recovery\n\u2713 8 Container privilege escalation\n  \u2713 8.1 Sudo enumeration\n  \u2713 8.2 Restic privilege escalation\n\u25cb 9 Container to host escape\n  \u25cb 9.1 Root container enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s9_9.2",
+      "label": "Search: 9.2\nHost SSH access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 9.2: Host SSH access\n\nMCP tool calls:\nInteractive CLI: Execute ls -la /root to examine root's home directory. Check for .ssh directory with private keys. Look for configuration files or notes that might contain credentials for the host system or user morpheus.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s9_9.2",
+      "label": "Track: Host SSH access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 9.2 Host SSH access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s9_9.2",
+      "label": "Agent: 9.2\nContainer to host esc\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 9.2:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n\u2713 6 Database intelligence\n\u2713 7 Backup recovery\n\u2713 8 Container privilege escalation\n\u2713 9 Container to host escape\n  \u2713 9.1 Root container enumeration\n  \u2713 9.2 Host SSH access\n\u25cb 10 Host privilege escalation\n  \u25cb 10.1 Password recovery",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s9_10",
+      "label": "Search: 10\nHost privilege escalation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 10: Host privilege escalation\n\nMCP tool calls:\nInteractive CLI: Execute ls -la /root to examine root's home directory. Check for .ssh directory with private keys. Look for configuration files or notes that might contain credentials for the host system or user morpheus.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s9_10",
+      "label": "Track: Host privilege escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 10 Host privilege escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s9_10",
+      "label": "Agent: 10\nHost privilege escala\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 10:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n\u2713 6 Database intelligence\n\u2713 7 Backup recovery\n\u2713 8 Container privilege escalation\n\u2713 9 Container to host escape\n  \u2713 9.1 Root container enumeration\n  \u2713 9.2 Host SSH access\n\u25cb 10 Host privilege escalation\n  \u25cb 10.1 Password recovery",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s9_10.1",
+      "label": "Search: 10.1\nPassword recovery",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 10.1: Password recovery\n\nMCP tool calls:\nInteractive CLI: Execute ls -la /root to examine root's home directory. Check for .ssh directory with private keys. Look for configuration files or notes that might contain credentials for the host system or user morpheus.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s9_10.1",
+      "label": "Track: Password recovery",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 10.1 Password recovery:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s9_10.1",
+      "label": "Agent: 10.1\nHost privilege escala\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 10.1:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n\u2713 6 Database intelligence\n\u2713 7 Backup recovery\n\u2713 8 Container privilege escalation\n\u2713 9 Container to host escape\n  \u2713 9.1 Root container enumeration\n  \u2713 9.2 Host SSH access\n\u25cb 10 Host privilege escalation\n  \u25cb 10.1 Password recovery",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s10_10.2",
+      "label": "Search: 10.2\nNeo authentication",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 10.2: Neo authentication\n\nMCP tool calls:\nInteractive CLI: Locate neo-password-generator binary. Reverse engineer to understand algorithm (C rand() seeded with millisecond timestamps generating 20-char passwords from 62-char charset). Generate password list for timestamp 2024-08-30 14:40:42. Hydra: Test generated passwords against user neo for SSH or su authentication.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s10_10.2",
+      "label": "Track: Neo authentication",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 10.2 Neo authentication:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s10_10.2",
+      "label": "Agent: 10.2\nHost privilege escala\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 10.2:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n\u2713 6 Database intelligence\n\u2713 7 Backup recovery\n\u2713 8 Container privilege escalation\n\u2713 9 Container to host escape\n\u2713 10 Host privilege escalation\n  \u2713 10.1 Password recovery\n  \u2713 10.2 Neo authentication\n\u25cb 11 Root access\n  \u25cb 11.1 Sudo privilege escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s10_11",
+      "label": "Search: 11\nRoot access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 11: Root access\n\nMCP tool calls:\nInteractive CLI: Locate neo-password-generator binary. Reverse engineer to understand algorithm (C rand() seeded with millisecond timestamps generating 20-char passwords from 62-char charset). Generate password list for timestamp 2024-08-30 14:40:42. Hydra: Test generated passwords against user neo for SSH or su authentication.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s10_11",
+      "label": "Track: Root access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 11 Root access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s10_11",
+      "label": "Agent: 11\nRoot access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 11:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n\u2713 6 Database intelligence\n\u2713 7 Backup recovery\n\u2713 8 Container privilege escalation\n\u2713 9 Container to host escape\n\u2713 10 Host privilege escalation\n  \u2713 10.1 Password recovery\n  \u2713 10.2 Neo authentication\n\u25cb 11 Root access\n  \u25cb 11.1 Sudo privilege escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:WhiteRabbit:r1_s10_11.1",
+      "label": "Search: 11.1\nSudo privilege escalation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 11.1: Sudo privilege escalation\n\nMCP tool calls:\nInteractive CLI: Locate neo-password-generator binary. Reverse engineer to understand algorithm (C rand() seeded with millisecond timestamps generating 20-char passwords from 62-char charset). Generate password list for timestamp 2024-08-30 14:40:42. Hydra: Test generated passwords against user neo for SSH or su authentication.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:WhiteRabbit:r1_s10_11.1",
+      "label": "Track: Sudo privilege escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 11.1 Sudo privilege escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_s10_11.1",
+      "label": "Agent: 11.1\nRoot access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 11.1:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n\u2713 6 Database intelligence\n\u2713 7 Backup recovery\n\u2713 8 Container privilege escalation\n\u2713 9 Container to host escape\n\u2713 10 Host privilege escalation\n  \u2713 10.1 Password recovery\n  \u2713 10.2 Neo authentication\n\u25cb 11 Root access\n  \u25cb 11.1 Sudo privilege escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "[Run 1/2] Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Web application enumeration\n\u2713 3 Uptime Kuma exploitation\n\u2713 4 WikiJS intelligence gathering\n\u2713 5 Signature bypass and SQLI\n\u2713 6 Database intelligence\n\u2713 7 Backup recovery\n\u2713 8 Container privilege escalation\n\u2713 9 Container to host escape\n\u2713 10 Host privilege escalation\n\u2713 11 Root access\n  \u2713 11.1 Sudo privilege escalation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:WhiteRabbit:r2_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "[Run 2/2] Final cumulative PTT for this run:\n\u2713 1 Perform reconnaissance\n\u2713 2 Enumerate services\n\u2713 3 Exploit web vulnerabilities\n\u2713 4 Container escape and privilege escalation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:WhiteRabbit:START",
+      "to": "agent:WhiteRabbit:r1_s1_2",
+      "label": "\u2192 2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:START",
+      "to": "search:WhiteRabbit:r1_s1_2",
+      "label": "2 Web application enu\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s1_2",
+      "to": "track:WhiteRabbit:r1_s1_2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s1_2",
+      "to": "agent:WhiteRabbit:r1_s1_2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s1_2",
+      "to": "agent:WhiteRabbit:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s1_2",
+      "to": "search:WhiteRabbit:r1_s1_2.1",
+      "label": "2.1 Subdomain discovery",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s1_2.1",
+      "to": "track:WhiteRabbit:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s1_2.1",
+      "to": "agent:WhiteRabbit:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s1_2.1",
+      "to": "agent:WhiteRabbit:r1_s2_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s1_2.1",
+      "to": "search:WhiteRabbit:r1_s2_2.2",
+      "label": "2.2 Service identificat\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s2_2.2",
+      "to": "track:WhiteRabbit:r1_s2_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s2_2.2",
+      "to": "agent:WhiteRabbit:r1_s2_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s2_2.2",
+      "to": "agent:WhiteRabbit:r1_s2_3",
+      "label": "\u2192 3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s2_2.2",
+      "to": "search:WhiteRabbit:r1_s2_3",
+      "label": "3 Uptime Kuma exploit\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s2_3",
+      "to": "track:WhiteRabbit:r1_s2_3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s2_3",
+      "to": "agent:WhiteRabbit:r1_s2_3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s2_3",
+      "to": "agent:WhiteRabbit:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s2_3",
+      "to": "search:WhiteRabbit:r1_s2_3.1",
+      "label": "3.1 Authentication bypa\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s2_3.1",
+      "to": "track:WhiteRabbit:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s2_3.1",
+      "to": "agent:WhiteRabbit:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s2_3.1",
+      "to": "agent:WhiteRabbit:r1_s3_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s2_3.1",
+      "to": "search:WhiteRabbit:r1_s3_4",
+      "label": "4 WikiJS intelligence\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s3_4",
+      "to": "track:WhiteRabbit:r1_s3_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s3_4",
+      "to": "agent:WhiteRabbit:r1_s3_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s3_4",
+      "to": "agent:WhiteRabbit:r1_s3_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s3_4",
+      "to": "search:WhiteRabbit:r1_s3_4.1",
+      "label": "4.1 Documentation review",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s3_4.1",
+      "to": "track:WhiteRabbit:r1_s3_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s3_4.1",
+      "to": "agent:WhiteRabbit:r1_s3_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s3_4.1",
+      "to": "agent:WhiteRabbit:r1_s4_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s3_4.1",
+      "to": "search:WhiteRabbit:r1_s4_4.2",
+      "label": "4.2 SQL injection disco\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s4_4.2",
+      "to": "track:WhiteRabbit:r1_s4_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s4_4.2",
+      "to": "agent:WhiteRabbit:r1_s4_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s4_4.2",
+      "to": "agent:WhiteRabbit:r1_s4_5",
+      "label": "\u2192 5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s4_4.2",
+      "to": "search:WhiteRabbit:r1_s4_5",
+      "label": "5 Signature bypass an\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s4_5",
+      "to": "track:WhiteRabbit:r1_s4_5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s4_5",
+      "to": "agent:WhiteRabbit:r1_s4_5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s4_5",
+      "to": "agent:WhiteRabbit:r1_s4_5.1",
+      "label": "\u2192 5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s4_5",
+      "to": "search:WhiteRabbit:r1_s4_5.1",
+      "label": "5.1 HMAC signature gene\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s4_5.1",
+      "to": "track:WhiteRabbit:r1_s4_5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s4_5.1",
+      "to": "agent:WhiteRabbit:r1_s4_5.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s4_5.1",
+      "to": "agent:WhiteRabbit:r1_s5_5.2",
+      "label": "\u2192 5.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s4_5.1",
+      "to": "search:WhiteRabbit:r1_s5_5.2",
+      "label": "5.2 SQL injection explo\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s5_5.2",
+      "to": "track:WhiteRabbit:r1_s5_5.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s5_5.2",
+      "to": "agent:WhiteRabbit:r1_s5_5.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s5_5.2",
+      "to": "agent:WhiteRabbit:r1_s5_6",
+      "label": "\u2192 6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s5_5.2",
+      "to": "search:WhiteRabbit:r1_s5_6",
+      "label": "6 Database intelligen\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s5_6",
+      "to": "track:WhiteRabbit:r1_s5_6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s5_6",
+      "to": "agent:WhiteRabbit:r1_s5_6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s5_6",
+      "to": "agent:WhiteRabbit:r1_s5_6.1",
+      "label": "\u2192 6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s5_6",
+      "to": "search:WhiteRabbit:r1_s5_6.1",
+      "label": "6.1 Credential extracti\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s5_6.1",
+      "to": "track:WhiteRabbit:r1_s5_6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s5_6.1",
+      "to": "agent:WhiteRabbit:r1_s5_6.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s5_6.1",
+      "to": "agent:WhiteRabbit:r1_s6_7",
+      "label": "\u2192 7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s5_6.1",
+      "to": "search:WhiteRabbit:r1_s6_7",
+      "label": "7 Backup recovery",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s6_7",
+      "to": "track:WhiteRabbit:r1_s6_7",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s6_7",
+      "to": "agent:WhiteRabbit:r1_s6_7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s6_7",
+      "to": "agent:WhiteRabbit:r1_s6_7.1",
+      "label": "\u2192 7.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s6_7",
+      "to": "search:WhiteRabbit:r1_s6_7.1",
+      "label": "7.1 Restic access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s6_7.1",
+      "to": "track:WhiteRabbit:r1_s6_7.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s6_7.1",
+      "to": "agent:WhiteRabbit:r1_s6_7.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s6_7.1",
+      "to": "agent:WhiteRabbit:r1_s7_7.2",
+      "label": "\u2192 7.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s6_7.1",
+      "to": "search:WhiteRabbit:r1_s7_7.2",
+      "label": "7.2 Archive cracking",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s7_7.2",
+      "to": "track:WhiteRabbit:r1_s7_7.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s7_7.2",
+      "to": "agent:WhiteRabbit:r1_s7_7.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s7_7.2",
+      "to": "agent:WhiteRabbit:r1_s7_7.3",
+      "label": "\u2192 7.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s7_7.2",
+      "to": "search:WhiteRabbit:r1_s7_7.3",
+      "label": "7.3 Container SSH access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s7_7.3",
+      "to": "track:WhiteRabbit:r1_s7_7.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s7_7.3",
+      "to": "agent:WhiteRabbit:r1_s7_7.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s7_7.3",
+      "to": "agent:WhiteRabbit:r1_s7_8",
+      "label": "\u2192 8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s7_7.3",
+      "to": "search:WhiteRabbit:r1_s7_8",
+      "label": "8 Container privilege\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s7_8",
+      "to": "track:WhiteRabbit:r1_s7_8",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s7_8",
+      "to": "agent:WhiteRabbit:r1_s7_8",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s7_8",
+      "to": "agent:WhiteRabbit:r1_s7_8.1",
+      "label": "\u2192 8.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s7_8",
+      "to": "search:WhiteRabbit:r1_s7_8.1",
+      "label": "8.1 Sudo enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s7_8.1",
+      "to": "track:WhiteRabbit:r1_s7_8.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s7_8.1",
+      "to": "agent:WhiteRabbit:r1_s7_8.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s7_8.1",
+      "to": "agent:WhiteRabbit:r1_s8_8.2",
+      "label": "\u2192 8.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s7_8.1",
+      "to": "search:WhiteRabbit:r1_s8_8.2",
+      "label": "8.2 Restic privilege es\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s8_8.2",
+      "to": "track:WhiteRabbit:r1_s8_8.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s8_8.2",
+      "to": "agent:WhiteRabbit:r1_s8_8.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s8_8.2",
+      "to": "agent:WhiteRabbit:r1_s8_9",
+      "label": "\u2192 9",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s8_8.2",
+      "to": "search:WhiteRabbit:r1_s8_9",
+      "label": "9 Container to host e\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s8_9",
+      "to": "track:WhiteRabbit:r1_s8_9",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s8_9",
+      "to": "agent:WhiteRabbit:r1_s8_9",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s8_9",
+      "to": "agent:WhiteRabbit:r1_s8_9.1",
+      "label": "\u2192 9.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s8_9",
+      "to": "search:WhiteRabbit:r1_s8_9.1",
+      "label": "9.1 Root container enum\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s8_9.1",
+      "to": "track:WhiteRabbit:r1_s8_9.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s8_9.1",
+      "to": "agent:WhiteRabbit:r1_s8_9.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s8_9.1",
+      "to": "agent:WhiteRabbit:r1_s9_9.2",
+      "label": "\u2192 9.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s8_9.1",
+      "to": "search:WhiteRabbit:r1_s9_9.2",
+      "label": "9.2 Host SSH access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s9_9.2",
+      "to": "track:WhiteRabbit:r1_s9_9.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s9_9.2",
+      "to": "agent:WhiteRabbit:r1_s9_9.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s9_9.2",
+      "to": "agent:WhiteRabbit:r1_s9_10",
+      "label": "\u2192 10",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s9_9.2",
+      "to": "search:WhiteRabbit:r1_s9_10",
+      "label": "10 Host privilege esca\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s9_10",
+      "to": "track:WhiteRabbit:r1_s9_10",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s9_10",
+      "to": "agent:WhiteRabbit:r1_s9_10",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s9_10",
+      "to": "agent:WhiteRabbit:r1_s9_10.1",
+      "label": "\u2192 10.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s9_10",
+      "to": "search:WhiteRabbit:r1_s9_10.1",
+      "label": "10.1 Password recovery",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s9_10.1",
+      "to": "track:WhiteRabbit:r1_s9_10.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s9_10.1",
+      "to": "agent:WhiteRabbit:r1_s9_10.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s9_10.1",
+      "to": "agent:WhiteRabbit:r1_s10_10.2",
+      "label": "\u2192 10.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s9_10.1",
+      "to": "search:WhiteRabbit:r1_s10_10.2",
+      "label": "10.2 Neo authentication",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s10_10.2",
+      "to": "track:WhiteRabbit:r1_s10_10.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s10_10.2",
+      "to": "agent:WhiteRabbit:r1_s10_10.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s10_10.2",
+      "to": "agent:WhiteRabbit:r1_s10_11",
+      "label": "\u2192 11",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s10_10.2",
+      "to": "search:WhiteRabbit:r1_s10_11",
+      "label": "11 Root access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s10_11",
+      "to": "track:WhiteRabbit:r1_s10_11",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s10_11",
+      "to": "agent:WhiteRabbit:r1_s10_11",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s10_11",
+      "to": "agent:WhiteRabbit:r1_s10_11.1",
+      "label": "\u2192 11.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s10_11",
+      "to": "search:WhiteRabbit:r1_s10_11.1",
+      "label": "11.1 Sudo privilege esca\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:WhiteRabbit:r1_s10_11.1",
+      "to": "track:WhiteRabbit:r1_s10_11.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:WhiteRabbit:r1_s10_11.1",
+      "to": "agent:WhiteRabbit:r1_s10_11.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:r1_s10_11.1",
+      "to": "agent:WhiteRabbit:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:WhiteRabbit:START",
+      "to": "agent:WhiteRabbit:r2_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 87,
+    "total_edges": 114,
+    "agent_nodes": 31,
+    "search_nodes": 28,
+    "track_nodes": 28,
+    "runs_detected": 2,
+    "rows_captured": 24
+  }
+}

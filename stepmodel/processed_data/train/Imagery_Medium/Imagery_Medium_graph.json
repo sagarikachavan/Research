@@ -1,0 +1,886 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Imagery_Medium",
+  "source": "training_data.csv, Machine == 'Imagery_Medium', 10 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Imagery_Medium:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Imagery_Medium'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Imagery_Medium:r1_s2_2",
+      "label": "Search: 2\nExploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2: Exploitation\n\nMCP tool calls:\nWeb page interaction (application feature enumeration); Dirbuster (directory discovery)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Imagery_Medium:r1_s2_2",
+      "label": "Track: Exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2 Exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Imagery_Medium:r1_s2_2",
+      "label": "Agent: 2\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2:\n\u2026 1 Reconnaissance\n  \u2713 1.1 Network discovery and port scanning\n  \u2713 1.2 Service enumeration\n\u25cb 2 Exploitation\n  \u25cb 2.1 XSS exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Imagery_Medium:r1_s2_2.1",
+      "label": "Search: 2.1\nXSS exploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: XSS exploitation\n\nMCP tool calls:\nWeb page interaction (application feature enumeration); Dirbuster (directory discovery)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Imagery_Medium:r1_s2_2.1",
+      "label": "Track: XSS exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 XSS exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Imagery_Medium:r1_s2_2.1",
+      "label": "Agent: 2.1\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2026 1 Reconnaissance\n  \u2713 1.1 Network discovery and port scanning\n  \u2713 1.2 Service enumeration\n\u25cb 2 Exploitation\n  \u25cb 2.1 XSS exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Imagery_Medium:r1_s3_2.2",
+      "label": "Search: 2.2\nPath traversal exploitati\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.2: Path traversal exploitation\n\nMCP tool calls:\nInteractive CLI (XSS payload injection to steal session cookie)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Imagery_Medium:r1_s3_2.2",
+      "label": "Track: Path traversal exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.2 Path traversal exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Imagery_Medium:r1_s3_2.2",
+      "label": "Agent: 2.2\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance\n  \u2713 1.2 Service enumeration\n\u2026 2 Exploitation\n  \u2713 2.1 XSS exploitation\n  \u25cb 2.2 Path traversal exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Imagery_Medium:r1_s4_2.3",
+      "label": "Search: 2.3\nCommand injection",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.3: Command injection\n\nMCP tool calls:\nInteractive CLI (path traversal via /admin/get_system_log endpoint)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Imagery_Medium:r1_s4_2.3",
+      "label": "Track: Command injection",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.3 Command injection:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Imagery_Medium:r1_s4_2.3",
+      "label": "Agent: 2.3\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.3:\n\u2713 1 Reconnaissance\n\u2026 2 Exploitation\n  \u2713 2.1 XSS exploitation\n  \u2713 2.2 Path traversal exploitation\n  \u25cb 2.3 Command injection",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Imagery_Medium:r1_s5_3",
+      "label": "Search: 3\nPrivilege escalation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3: Privilege escalation\n\nMCP tool calls:\nInteractive CLI (authenticate as testuser); Metasploit (command injection payload in width parameter)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Imagery_Medium:r1_s5_3",
+      "label": "Track: Privilege escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3 Privilege escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Imagery_Medium:r1_s5_3",
+      "label": "Agent: 3\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3:\n\u2713 1 Reconnaissance\n\u2713 2 Exploitation\n\u25cb 3 Privilege escalation\n  \u25cb 3.1 Enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Imagery_Medium:r1_s5_3.1",
+      "label": "Search: 3.1\nEnumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: Enumeration\n\nMCP tool calls:\nInteractive CLI (authenticate as testuser); Metasploit (command injection payload in width parameter)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Imagery_Medium:r1_s5_3.1",
+      "label": "Track: Enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 Enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Imagery_Medium:r1_s5_3.1",
+      "label": "Agent: 3.1\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n\u2713 2 Exploitation\n\u25cb 3 Privilege escalation\n  \u25cb 3.1 Enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Imagery_Medium:r1_s6_3.2",
+      "label": "Search: 3.2\nBackup decryption",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.2: Backup decryption\n\nMCP tool calls:\nInteractive CLI (cron job enumeration; file permission analysis; backup discovery)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Imagery_Medium:r1_s6_3.2",
+      "label": "Track: Backup decryption",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.2 Backup decryption:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Imagery_Medium:r1_s6_3.2",
+      "label": "Agent: 3.2\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.2:\n\u2713 1 Reconnaissance\n\u2713 2 Exploitation\n\u2026 3 Privilege escalation\n  \u2713 3.1 Enumeration\n  \u25cb 3.2 Backup decryption",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Imagery_Medium:r1_s7_3.3",
+      "label": "Search: 3.3\nLateral movement to mark",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.3: Lateral movement to mark\n\nMCP tool calls:\nInteractive CLI (transfer encrypted backup); Interactive CLI (pyAesCrypt password cracking against rockyou.txt)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Imagery_Medium:r1_s7_3.3",
+      "label": "Track: Lateral movement to mark",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.3 Lateral movement to mark:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Imagery_Medium:r1_s7_3.3",
+      "label": "Agent: 3.3\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.3:\n\u2713 1 Reconnaissance\n\u2713 2 Exploitation\n\u2026 3 Privilege escalation\n  \u2713 3.1 Enumeration\n  \u2713 3.2 Backup decryption\n  \u25cb 3.3 Lateral movement to mark",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Imagery_Medium:r1_s8_3.4",
+      "label": "Search: 3.4\nCron job abuse",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.4: Cron job abuse\n\nMCP tool calls:\nInteractive CLI (su mark with password megatron)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Imagery_Medium:r1_s8_3.4",
+      "label": "Track: Cron job abuse",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.4 Cron job abuse:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Imagery_Medium:r1_s8_3.4",
+      "label": "Agent: 3.4\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.4:\n\u2713 1 Reconnaissance\n\u2713 2 Exploitation\n\u2026 3 Privilege escalation\n  \u2713 3.1 Enumeration\n  \u2713 3.2 Backup decryption\n  \u2713 3.3 Lateral movement to mark\n  \u25cb 3.4 Cron job abuse",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Imagery_Medium:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Exploitation\n\u2713 3 Privilege escalation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Imagery_Medium:START",
+      "to": "agent:Imagery_Medium:r1_s2_2",
+      "label": "\u2192 2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:START",
+      "to": "search:Imagery_Medium:r1_s2_2",
+      "label": "2 Exploitation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Imagery_Medium:r1_s2_2",
+      "to": "track:Imagery_Medium:r1_s2_2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Imagery_Medium:r1_s2_2",
+      "to": "agent:Imagery_Medium:r1_s2_2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:r1_s2_2",
+      "to": "agent:Imagery_Medium:r1_s2_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:r1_s2_2",
+      "to": "search:Imagery_Medium:r1_s2_2.1",
+      "label": "2.1 XSS exploitation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Imagery_Medium:r1_s2_2.1",
+      "to": "track:Imagery_Medium:r1_s2_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Imagery_Medium:r1_s2_2.1",
+      "to": "agent:Imagery_Medium:r1_s2_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:r1_s2_2.1",
+      "to": "agent:Imagery_Medium:r1_s3_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:r1_s2_2.1",
+      "to": "search:Imagery_Medium:r1_s3_2.2",
+      "label": "2.2 Path traversal expl\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Imagery_Medium:r1_s3_2.2",
+      "to": "track:Imagery_Medium:r1_s3_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Imagery_Medium:r1_s3_2.2",
+      "to": "agent:Imagery_Medium:r1_s3_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:r1_s3_2.2",
+      "to": "agent:Imagery_Medium:r1_s4_2.3",
+      "label": "\u2192 2.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:r1_s3_2.2",
+      "to": "search:Imagery_Medium:r1_s4_2.3",
+      "label": "2.3 Command injection",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Imagery_Medium:r1_s4_2.3",
+      "to": "track:Imagery_Medium:r1_s4_2.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Imagery_Medium:r1_s4_2.3",
+      "to": "agent:Imagery_Medium:r1_s4_2.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:r1_s4_2.3",
+      "to": "agent:Imagery_Medium:r1_s5_3",
+      "label": "\u2192 3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:r1_s4_2.3",
+      "to": "search:Imagery_Medium:r1_s5_3",
+      "label": "3 Privilege escalation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Imagery_Medium:r1_s5_3",
+      "to": "track:Imagery_Medium:r1_s5_3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Imagery_Medium:r1_s5_3",
+      "to": "agent:Imagery_Medium:r1_s5_3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:r1_s5_3",
+      "to": "agent:Imagery_Medium:r1_s5_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:r1_s5_3",
+      "to": "search:Imagery_Medium:r1_s5_3.1",
+      "label": "3.1 Enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Imagery_Medium:r1_s5_3.1",
+      "to": "track:Imagery_Medium:r1_s5_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Imagery_Medium:r1_s5_3.1",
+      "to": "agent:Imagery_Medium:r1_s5_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:r1_s5_3.1",
+      "to": "agent:Imagery_Medium:r1_s6_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:r1_s5_3.1",
+      "to": "search:Imagery_Medium:r1_s6_3.2",
+      "label": "3.2 Backup decryption",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Imagery_Medium:r1_s6_3.2",
+      "to": "track:Imagery_Medium:r1_s6_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Imagery_Medium:r1_s6_3.2",
+      "to": "agent:Imagery_Medium:r1_s6_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:r1_s6_3.2",
+      "to": "agent:Imagery_Medium:r1_s7_3.3",
+      "label": "\u2192 3.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:r1_s6_3.2",
+      "to": "search:Imagery_Medium:r1_s7_3.3",
+      "label": "3.3 Lateral movement to\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Imagery_Medium:r1_s7_3.3",
+      "to": "track:Imagery_Medium:r1_s7_3.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Imagery_Medium:r1_s7_3.3",
+      "to": "agent:Imagery_Medium:r1_s7_3.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:r1_s7_3.3",
+      "to": "agent:Imagery_Medium:r1_s8_3.4",
+      "label": "\u2192 3.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:r1_s7_3.3",
+      "to": "search:Imagery_Medium:r1_s8_3.4",
+      "label": "3.4 Cron job abuse",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Imagery_Medium:r1_s8_3.4",
+      "to": "track:Imagery_Medium:r1_s8_3.4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Imagery_Medium:r1_s8_3.4",
+      "to": "agent:Imagery_Medium:r1_s8_3.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Imagery_Medium:r1_s8_3.4",
+      "to": "agent:Imagery_Medium:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 29,
+    "total_edges": 37,
+    "agent_nodes": 11,
+    "search_nodes": 9,
+    "track_nodes": 9,
+    "runs_detected": 1,
+    "rows_captured": 10
+  }
+}
