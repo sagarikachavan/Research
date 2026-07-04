@@ -1,15 +1,15 @@
 # Research Step Model - Detailed Documentation
 
-This document provides a comprehensive overview of the implementation in the `Research/stepmodel` directory, including step-by-step explanations, data flow diagrams, and examples using the `active_graph.json` dataset.
+This document provides a comprehensive overview of the implementation in the `Research/stepmodel` directory, including step-by-step explanations, data flow diagrams, and examples.
 
 ## Table of Contents
 - [Overview](#overview)
+- [Recent Changes (2026-07-04)](#recent-changes-2026-07-04)
 - [Directory Structure](#directory-structure)
 - [Step 1: Graph Generation](#step-1-graph-generation)
 - [Step 2: Graph Embedding](#step-2-graph-embedding)
 - [Step 3: Model Training](#step-3-model-training)
 - [Step 4: Evaluation](#step-4-evaluation)
-- [Example: active_graph.json Walkthrough](#example-active_graphjson-walkthrough)
 - [Flow Diagrams](#flow-diagrams)
 
 ---
@@ -20,9 +20,37 @@ The research step model pipeline consists of four main stages:
 
 1. **Graph Generation**: Converts CSV penetration testing data into structured graphs following the same format as `stepmodel/graph_dataset/pentest-dataset`.
 2. **Graph Embedding**: Transforms graph nodes and edges into numerical embeddings using sentence-transformers.
-3. **Model Training**: Skeleton for a GNN (Graph Neural Network) + RL (Reinforcement Learning, using GRPO) + LLM (Large Language Model) pipeline.
-4. **Evaluation**: Skeleton for evaluating the trained model on test data.
+3. **Model Training**: Trains a GNN (Graph Neural Network using PyTorch Geometric) + LLM (Large Language Model) pipeline using teacher-forcing training.
+4. **Evaluation**: Evaluates the trained model on test data, computing rewards based on prediction similarity to ground truth.
 
+---
+
+## Recent Changes (2026-07-04)
+
+### Key Improvements Made:
+
+#### 1. Updated GNN Implementation (`train_gnn_rl.py`)
+- Replaced the simple custom GNN with a more robust GNN using **PyTorch Geometric's GCNConv layers**
+- Added `GNNModel` class that uses GCNConv and global_mean_pool for graph-level embeddings
+- Updated `GNNRLPolicy` with proper forward pass, taking `device` as an argument
+- Implemented `PenTestDataset` class that loads and prepares step-pair data with clear prompt/target format
+- Added actual training loop with teacher-forcing, AdamW optimizer, and gradient clipping
+- Saves `final_checkpoint.pt` instead of `initial_checkpoint.pt`
+- Updated deprecated Sentence-Transformers method from `get_sentence_embedding_dimension()` to `get_embedding_dimension()`
+
+#### 2. Updated Evaluation Script (`evaluate.py`)
+- Added actual model inference logic that uses trained checkpoints
+- Uses the same prompt format as training for consistency
+- Uses `compute_reward` function to evaluate prediction quality
+- Added `parse_prediction` function to extract strategy/step/MCP from generated text
+- Shows sample-by-sample results
+- Loads from `final_checkpoint.pt` by default
+- Properly sets `llm.eval()` and `policy.eval()` for evaluation
+
+#### 3. Consistency Improvements
+- Aligned input/output formats between training and evaluation
+- Prepends policy's graph/text combined embedding as a prefix to LLM inputs
+- Updated all code to use proper device handling
 ---
 
 ## Directory Structure
@@ -43,11 +71,17 @@ Research/stepmodel/
 │           └── [machine_name]_graph.html
 ├── embeddings_data/
 │   ├── train/
-│   │   └── [machine_name]_processed.json
+│   │   ├── [machine_name]_processed.json
+│   │   └── all_processed.json
 │   └── test/
-│       └── [machine_name]_processed.json
+│       ├── [machine_name]_processed.json
+│       └── all_processed.json
 ├── checkpoints/
-│   └── initial_checkpoint.pt
+│   ├── final_checkpoint.pt
+│   ├── config.json
+│   ├── generation_config.json
+│   ├── tokenizer.json
+│   └── tokenizer_config.json
 ├── generate_graphs.py
 ├── graph_to_embeddings.py
 ├── train_gnn_rl.py
@@ -68,10 +102,11 @@ Converts raw CSV data (`training_data.csv` and `test_data.csv`) into structured 
 The CSV files must contain the following columns:
 - `Machine`: Name of the penetration testing target machine
 - `PTT`: Penetration Testing Tree (step-by-step process)
-- `Step_Label`: Label for the current step
-- `MCP_Label`: Label for the MCP (Model Context Protocol) task
+- `Step Label`: Label for the current step
+- `MCP Label`: Label for the MCP (Model Context Protocol) task
 - `Findings`: Findings from the current step
-- `Next_Step_Label`: Label for the next step (for training pairs)
+- `Next Step Label`: Label for the next step (for training pairs)
+- And more (previous strategy, new strategy, explanations, etc.)
 
 ### Graph Structure
 The generated graphs follow the same structure as `stepmodel/graph_dataset/pentest-dataset`:
@@ -91,7 +126,7 @@ The generated graphs follow the same structure as `stepmodel/graph_dataset/pente
 | TrackUpdate     | Blue    | Connects Search → Track, represents discovering findings from a Search     |
 | Prediction      | Purple  | Connects Track → Agent, represents findings leading to the next state      |
 
-### Code: generate_graphs.py
+### Code: `generate_graphs.py`
 Key functions in [generate_graphs.py](file:///Users/sagarikachavan/Documents/Research/stepmodel/generate_graphs.py):
 
 - `parse_ptt()`: Parses the PTT field into a hierarchical tree structure
@@ -133,7 +168,7 @@ Each processed machine JSON file contains:
 - `edges`: List of edges with "from", "to", labels, types, and embeddings
 - `step_pairs`: List of step pairs (previous state → next state) for training
 
-### Code: graph_to_embeddings.py
+### Code: `graph_to_embeddings.py`
 Key functions in [graph_to_embeddings.py](file:///Users/sagarikachavan/Documents/Research/stepmodel/graph_to_embeddings.py):
 
 - `parse_ptt()`: Parses PTT strings (same as in generate_graphs.py)
@@ -155,26 +190,35 @@ python graph_to_embeddings.py
 ## Step 3: Model Training
 
 ### Purpose
-Skeleton for training a GNN + RL (GRPO) + LLM model to predict next steps and MCP tasks with explanations.
+Trains a GNN + LLM model to predict next steps and MCP tasks with explanations.
 
 ### Model Architecture
-- **GNN**: Simple Graph Neural Network that processes node and edge embeddings
-- **Policy Network**: Takes graph embeddings and combines them with step text embeddings
-- **LLM**: Uses distilgpt2 to generate predictions (full GRPO integration is a placeholder for future work)
 
-### Reward Function
-Based on similarity between predicted and true steps/MCP tasks:
-- Step similarity: token overlap score
-- MCP similarity: token overlap score
-- Total reward = step_reward * 0.5 + mcp_reward * 0.5
+#### 1. GNN Model (`GNNModel`)
+Uses PyTorch Geometric's `GCNConv` layers (two layers) with ReLU activations, and `global_mean_pool` to get a graph-level embedding.
 
-### Code: train_gnn_rl.py
+#### 2. Policy Network (`GNNRLPolicy`)
+Combines graph embeddings (from GNN) + previous step text embeddings (from SentenceTransformer), projects both to same size, then concatenates and projects to LLM hidden size.
+
+#### 3. LLM
+Uses `distilgpt2` from HuggingFace Transformers for text generation. The policy output is prepended as an additional embedding to the beginning of the LLM input embeddings to condition generation on the graph context.
+
+### Training Details
+- **Teacher Forcing**: Uses teacher forcing for training (feeds ground truth tokens as next inputs)
+- **Loss**: Standard language modeling loss on target tokens (ignores loss on prepended policy embedding)
+- **Optimizer**: AdamW
+- **Gradient Clipping**: Max norm 1.0
+- **Checkpoints**: Saves `final_checkpoint.pt`, along with tokenizer and LLM configs
+
+### Code: `train_gnn_rl.py`
 Key components in [train_gnn_rl.py](file:///Users/sagarikachavan/Documents/Research/stepmodel/train_gnn_rl.py):
 
-- `SimpleGNN`: Simple GNN model class
-- `GNNRLPolicy`: Policy network that combines GNN output with step text embeddings
-- `compute_reward()`: Computes reward for a prediction
-- `main()`: Main entry point that initializes the model and saves a checkpoint
+- `set_seed()`: For reproducibility
+- `GNNModel`: GCN-based graph neural network using PyTorch Geometric
+- `GNNRLPolicy`: Policy network combining graph and text embeddings
+- `PenTestDataset`: PyTorch Dataset class that loads step pairs and formats prompts/targets
+- `compute_reward()`: Compute reward for a prediction (used in evaluation)
+- `main()`: Complete training loop with teacher-forcing
 
 ### Usage
 ```bash
@@ -186,57 +230,25 @@ python train_gnn_rl.py
 ## Step 4: Evaluation
 
 ### Purpose
-Skeleton for evaluating the trained model on test data.
+Evaluates the trained model on test data, computing average reward and showing sample predictions.
 
 ### Evaluation Metrics
-- Average reward across all test step pairs (placeholder)
-- Individual step and MCP task accuracy (placeholder)
+- **Average reward**: Over all test step pairs, computed using token overlap similarity (0-1)
+- **Sample-by-sample results**: Shows true vs predicted step and MCP tasks, along with reward for each sample
 
-### Code: evaluate.py
+### Code: `evaluate.py`
 Key components in [evaluate.py](file:///Users/sagarikachavan/Documents/Research/stepmodel/evaluate.py):
 
-- Loads the trained model checkpoint
-- Processes test data
-- Computes and prints average reward (placeholder)
+- `parse_prediction()`: Extracts strategy, step, MCP tasks from generated text using regex
+- Loads trained model checkpoint (`final_checkpoint.pt`)
+- Processes test data samples
+- Generates predictions using policy and LLM
+- Computes and prints individual and average reward
 
 ### Usage
 ```bash
 python evaluate.py
 ```
-
----
-
-## Example: active_graph.json Walkthrough
-
-Let's walk through the graph structure using [active_graph.json](file:///Users/sagarikachavan/Documents/Research/stepmodel/processed_data/train/active/active_graph.json):
-
-### Graph Statistics
-- Total nodes: 35
-- Total edges: 45
-- Agent nodes: 13
-- Search nodes: 11
-- Track nodes: 11
-- Runs detected: 1
-- Rows captured: 11
-
-### Key Nodes
-1. **Initial Agent Node**: `agent:active:START` - Blue, start of the pentest
-2. **Baseline Recon**: `agent:active:r1_base` - Blue, cumulative PTT after baseline recon
-3. **Goal Node**: `agent:active:r1_close` - Pink, task complete (admin access obtained)
-
-### Step-by-Step Example (Step 1.6: SMB Enumeration)
-Let's look at the flow for step 1.6:
-
-1. **Agent State**: `agent:active:r1_base` (cumulative PTT up to baseline)
-2. **Search Node**: `search:active:r1_s1_1.6` (PTT item 1.6: SMB Enumeration, includes MCP task: "Smb client: Enumerate SMB service to find software versions, hidden directories, and files.")
-3. **Track Node**: `track:active:r1_s1_1.6` (Findings: Anonymous login successful, shared resources, etc.)
-4. **Next Agent State**: `agent:active:r1_s1_1.6` (cumulative PTT including 1.6)
-
-### Edges for Step 1.6
-- `agent:active:r1_base` → `agent:active:r1_s1_1.6`: StateTransition (black)
-- `agent:active:r1_base` → `search:active:r1_s1_1.6`: SearchUpdate (green)
-- `search:active:r1_s1_1.6` → `track:active:r1_s1_1.6`: TrackUpdate (blue)
-- `track:active:r1_s1_1.6` → `agent:active:r1_s1_1.6`: Prediction (purple)
 
 ---
 
@@ -246,38 +258,28 @@ Let's look at the flow for step 1.6:
 ```mermaid
 graph TD
     A[training_data.csv<br>test_data.csv] -->|generate_graphs.py| B[processed_data/<br>train/test/<br>*.json & *.html]
-    B -->|graph_to_embeddings.py| C[embeddings_data/<br>train/test/<br>*_processed.json]
-    C -->|train_gnn_rl.py| D[checkpoints/<br>*.pt]
+    B -->|graph_to_embeddings.py| C[embeddings_data/<br>train/test/<br>*_processed.json & all_processed.json]
+    C -->|train_gnn_rl.py| D[checkpoints/<br>final_checkpoint.pt + tokenizer/LLM configs]
     C --> E[evaluate.py]
     D --> E
     E --> F[Evaluation Results]
 ```
 
-### Graph Generation Flow
+### Training Flow (`train_gnn_rl.py`)
 ```mermaid
 graph TD
-    A[Load CSV Data] --> B[Validate Machines]
-    B --> C[Detect Runs]
-    C --> D[For Each Machine]
-    D --> E[Parse PTT]
-    E --> F[Build Agent Nodes]
-    F --> G[Build Search Nodes]
-    G --> H[Build Track Nodes]
-    H --> I[Add StateTransition Edges]
-    I --> J[Add SearchUpdate Edges]
-    J --> K[Add TrackUpdate Edges]
-    K --> L[Add Prediction Edges]
-    L --> M[Save JSON]
-    M --> N[Save HTML]
-```
-
-### Single Step Flow in Graph
-```mermaid
-graph TD
-    A[Agent (Previous State)] -->|StateTransition| B[Agent (Next State)]
-    A -->|SearchUpdate| C[Search (PTT Item)]
-    C -->|TrackUpdate| D[Track (Findings)]
-    D -->|Prediction| B
+    A[Step Pair<br>(Previous Context + Next Target)] --> B[GNN]
+    A --> C[Sentence Transformer]
+    B --> D[GNNRLPolicy]
+    C --> D
+    D --> E[Policy Embedding]
+    F[Prompt Text] --> G[Tokenizer]
+    G --> H[LLM Input Embeddings]
+    E --> H
+    H --> I[LLM]
+    I --> J[Generate Target Text<br>(Teacher Forcing)]
+    J --> K[Loss Computation]
+    K --> L[Update Weights]
 ```
 
 ---
@@ -287,3 +289,5 @@ All dependencies are listed in [requirements.txt](file:///Users/sagarikachavan/D
 ```bash
 python -m pip install -r requirements.txt
 ```
+
+---

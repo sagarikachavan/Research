@@ -1,12 +1,12 @@
-# Research Step Model - GNN + RL + LLM
+# Research Step Model - GNN + LLM (Teacher-Forcing Training
 
-This directory contains the implementation for generating PTT (Penetration Testing Tree) graph datasets and training a GNN + RL (GRPO) + LLM model.
+This directory contains the implementation for generating PTT (Penetration Testing Tree) graph datasets and training a GNN + LLM model to predict next steps and MCP tasks with explanations.
 
 ## Files
 1. `generate_graphs.py`: Converts CSV data (training_data.csv and test_data.csv) into graph files (JSON + HTML) using the same structure as `stepmodel/graph_dataset/pentest-dataset`.
-2. `graph_to_embeddings.py`: Takes the generated graphs and converts them into node/edge embeddings using sentence-transformers. Also extracts step pairs from the CSV data.
-3. `train_gnn_rl.py`: Training script skeleton for GNN + RL (GRPO) + LLM.
-4. `evaluate.py`: Evaluation script skeleton.
+2. `graph_to_embeddings.py`: Takes generated graphs, converts them into node/edge embeddings using sentence-transformers, and extracts step pairs from the CSV data.
+3. `train_gnn_rl.py`: Training script using PyTorch Geometric for GNN, with teacher-forcing training for LLM, combining graph and text embeddings.
+4. `evaluate.py`: Evaluation script for trained model, computes rewards based on prediction similarity.
 5. `requirements.txt`: List of dependencies.
 
 ## Step-by-Step Usage Guide
@@ -35,13 +35,13 @@ python graph_to_embeddings.py
 ```
 
 ### 5. Train the Model
-This step runs the training script and saves an initial checkpoint to `checkpoints/`.
+This step runs the training script and saves final checkpoint to `checkpoints/`.
 ```bash
 python train_gnn_rl.py
 ```
 
 ### 6. Evaluate the Model (Optional)
-Runs the evaluation script on test data.
+Runs the evaluation script on test data, shows sample predictions and computes average reward.
 ```bash
 python evaluate.py
 ```
