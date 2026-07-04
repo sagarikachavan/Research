@@ -1,0 +1,11 @@
+# Model checkpoints
+stepmodel/checkpoints/
+
+# Processed embeddings
+stepmodel/embeddings_data/train/all_processed.json
+
+# PyTorch models
+*.pt
+*.pth
+*.ckpt
+*.safetensors
