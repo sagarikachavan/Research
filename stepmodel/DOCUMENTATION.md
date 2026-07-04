@@ -92,7 +92,7 @@ The generated graphs follow the same structure as `stepmodel/graph_dataset/pente
 | Prediction      | Purple  | Connects Track → Agent, represents findings leading to the next state      |
 
 ### Code: generate_graphs.py
-Key functions in [generate_graphs.py](file:///Users/sagarikachavan/Documents/USYD/sem3/ResearchProjectB/ptttograph/Research/stepmodel/generate_graphs.py):
+Key functions in [generate_graphs.py](file:///Users/sagarikachavan/Documents/Research/stepmodel/generate_graphs.py):
 
 - `parse_ptt()`: Parses the PTT field into a hierarchical tree structure
 - `phase_title()`: Determines the phase title for a given step number
@@ -109,7 +109,7 @@ Key functions in [generate_graphs.py](file:///Users/sagarikachavan/Documents/USY
 
 ### Usage
 ```bash
-cd Research/stepmodel
+cd /path/to/Research/stepmodel
 python generate_graphs.py
 ```
 
@@ -127,12 +127,14 @@ Uses `all-MiniLM-L6-v2` from sentence-transformers to embed:
 
 ### Output Structure
 Each processed machine JSON file contains:
-- `node_embeddings`: Dictionary mapping node IDs to their embeddings
-- `edge_embeddings`: Dictionary mapping edge IDs (from-to) to their embeddings
-- `step_pairs`: List of tuples `(prev_state_node_id, next_step_label, next_mcp_label)` for training
+- `machine`: Machine name
+- `graph_statistics`: Graph statistics (total nodes, edges, etc.)
+- `nodes`: List of nodes with IDs, labels, types, titles, and embeddings
+- `edges`: List of edges with "from", "to", labels, types, and embeddings
+- `step_pairs`: List of step pairs (previous state → next state) for training
 
 ### Code: graph_to_embeddings.py
-Key functions in [graph_to_embeddings.py](file:///Users/sagarikachavan/Documents/USYD/sem3/ResearchProjectB/ptttograph/Research/stepmodel/graph_to_embeddings.py):
+Key functions in [graph_to_embeddings.py](file:///Users/sagarikachavan/Documents/Research/stepmodel/graph_to_embeddings.py):
 
 - `parse_ptt()`: Parses PTT strings (same as in generate_graphs.py)
 - `load_graph_json()`: Loads a graph JSON file
@@ -156,24 +158,23 @@ python graph_to_embeddings.py
 Skeleton for training a GNN + RL (GRPO) + LLM model to predict next steps and MCP tasks with explanations.
 
 ### Model Architecture
-- **GNN**: Simple Graph Convolutional Network (GCN) that processes node and edge embeddings
-- **Policy Network**: Takes graph embeddings and outputs probabilities for next step and MCP task
-- **LLM**: Uses TinyLLaMA-1.1B-Chat-v1.0 to generate explanations for predictions
-- **GRPO**: Group Relative Policy Optimization for reinforcement learning (placeholder)
+- **GNN**: Simple Graph Neural Network that processes node and edge embeddings
+- **Policy Network**: Takes graph embeddings and combines them with step text embeddings
+- **LLM**: Uses distilgpt2 to generate predictions (full GRPO integration is a placeholder for future work)
 
 ### Reward Function
-Based on PenStrategist paper reward function:
-- +1.0 for correct next step
-- +1.0 for correct MCP task
-- Total reward = sum of correct predictions
+Based on similarity between predicted and true steps/MCP tasks:
+- Step similarity: token overlap score
+- MCP similarity: token overlap score
+- Total reward = step_reward * 0.5 + mcp_reward * 0.5
 
 ### Code: train_gnn_rl.py
-Key components in [train_gnn_rl.py](file:///Users/sagarikachavan/Documents/USYD/sem3/ResearchProjectB/ptttograph/Research/stepmodel/train_gnn_rl.py):
+Key components in [train_gnn_rl.py](file:///Users/sagarikachavan/Documents/Research/stepmodel/train_gnn_rl.py):
 
 - `SimpleGNN`: Simple GNN model class
-- `GNNRLPolicy`: Policy network that combines GNN output with LLM
+- `GNNRLPolicy`: Policy network that combines GNN output with step text embeddings
 - `compute_reward()`: Computes reward for a prediction
-- `main()`: Main training loop (loads data, initializes model, saves checkpoint)
+- `main()`: Main entry point that initializes the model and saves a checkpoint
 
 ### Usage
 ```bash
@@ -188,15 +189,15 @@ python train_gnn_rl.py
 Skeleton for evaluating the trained model on test data.
 
 ### Evaluation Metrics
-- Average reward across all test step pairs
+- Average reward across all test step pairs (placeholder)
 - Individual step and MCP task accuracy (placeholder)
 
 ### Code: evaluate.py
-Key components in [evaluate.py](file:///Users/sagarikachavan/Documents/USYD/sem3/ResearchProjectB/ptttograph/Research/stepmodel/evaluate.py):
+Key components in [evaluate.py](file:///Users/sagarikachavan/Documents/Research/stepmodel/evaluate.py):
 
 - Loads the trained model checkpoint
 - Processes test data
-- Computes and prints average reward
+- Computes and prints average reward (placeholder)
 
 ### Usage
 ```bash
@@ -207,7 +208,7 @@ python evaluate.py
 
 ## Example: active_graph.json Walkthrough
 
-Let's walk through the graph structure using [active_graph.json](file:///Users/sagarikachavan/Documents/USYD/sem3/ResearchProjectB/ptttograph/Research/stepmodel/processed_data/train/active/active_graph.json):
+Let's walk through the graph structure using [active_graph.json](file:///Users/sagarikachavan/Documents/Research/stepmodel/processed_data/train/active/active_graph.json):
 
 ### Graph Statistics
 - Total nodes: 35
@@ -282,7 +283,7 @@ graph TD
 ---
 
 ## Dependencies
-All dependencies are listed in [requirements.txt](file:///Users/sagarikachavan/Documents/USYD/sem3/ResearchProjectB/ptttograph/Research/stepmodel/requirements.txt). Install them with:
+All dependencies are listed in [requirements.txt](file:///Users/sagarikachavan/Documents/Research/stepmodel/requirements.txt). Install them with:
 ```bash
-pip install -r requirements.txt
+python -m pip install -r requirements.txt
 ```
