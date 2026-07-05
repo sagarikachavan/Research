@@ -1,0 +1,31 @@
+{
+  "model": {
+    "llm_name": "distilgpt2",
+    "text_embedding_model": "all-MiniLM-L6-v2",
+    "gnn_hidden_dim": 256,
+    "gnn_out_dim": 128,
+    "use_gat": false
+  },
+  "training": {
+    "num_supervised_epochs": 3,
+    "num_grpo_epochs": 7,
+    "batch_size": 2,
+    "learning_rate": 5e-5,
+    "weight_decay": 0.01,
+    "max_grad_norm": 1.0,
+    "num_warmup_steps": 100,
+    "num_generations_per_sample": 4,
+    "clip_eps": 0.2,
+    "generate_max_new_tokens": 256,
+    "generate_temperature": 0.9,
+    "generate_top_p": 0.95,
+    "validation_split": 0.1,
+    "patience": 5
+  },
+  "paths": {
+    "data_dir": "data",
+    "embeddings_dir": "embeddings_data",
+    "output_dir": "checkpoints",
+    "log_dir": "logs"
+  }
+}
