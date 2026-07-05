@@ -745,7 +745,7 @@ def main():
             avg_reward = np.mean([r['reward'] for r in all_rollouts])
             total_reward += avg_reward
 
-            print(f"GRPO Epoch {epoch+1}/{num_grpo_epochs}, Update {batch_start//batch_size + 1}, Avg Reward: {avg_reward:.4f}")
+            print(f"GRPO Epoch {epoch+1}/{num_grpo_epochs}, Update {num_updates + 1}, Avg Reward: {avg_reward:.4f}")
 
             optimizer.zero_grad()
             loss = compute_grpo_loss(policy, llm, tokenizer, text_model, all_rollouts, device, clip_eps=clip_eps)

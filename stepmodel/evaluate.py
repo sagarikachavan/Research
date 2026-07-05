@@ -8,7 +8,9 @@ import os
 import json
 import torch
 from sentence_transformers import SentenceTransformer
-from transformers import AutoTokenizer, AutoModelForCausalLM
+from tokenizers import Tokenizer
+from tokenizers.models import Model as TokenizersModel
+from transformers import AutoTokenizer, AutoModelForCausalLM, GPT2Tokenizer
 from train_gnn_rl import GNNLLMPolicy, compute_reward, parse_prediction
 
 
@@ -33,11 +35,15 @@ def main():
     with open(os.path.join(embeddings_dir, "test", "all_processed.json"), "r") as f:
         test_data = json.load(f)
 
-    # Load tokenizer and LLM
-    tokenizer = AutoTokenizer.from_pretrained(checkpoints_dir)
+    # Load base tokenizer and add the training-time [GRAPH] token, then restore weights from checkpoint
+    llm_name = config['model']['llm_name']
+    tokenizer = AutoTokenizer.from_pretrained(llm_name)
+    if '[GRAPH]' not in tokenizer.get_vocab():
+        tokenizer.add_special_tokens({'additional_special_tokens': ['[GRAPH]']})
     tokenizer.pad_token = tokenizer.eos_token
 
-    llm = AutoModelForCausalLM.from_pretrained(checkpoints_dir)
+    llm = AutoModelForCausalLM.from_pretrained(llm_name)
+    llm.resize_token_embeddings(len(tokenizer))
     llm.to(device)
     llm.eval()
 
@@ -51,7 +57,8 @@ def main():
 
     checkpoint_path = os.path.join(checkpoints_dir, "best_checkpoint.pt")
     if os.path.exists(checkpoint_path):
-        checkpoint = torch.load(checkpoint_path, map_location=device)
+        with torch.serialization.safe_globals([GPT2Tokenizer, Tokenizer, TokenizersModel]):
+            checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
         policy.load_state_dict(checkpoint["policy"])
         llm.load_state_dict(checkpoint["llm"])
         print("Loaded best checkpoint successfully!")
@@ -104,7 +111,16 @@ def main():
                 f"Result: {step_pair['previous_step_result']}\n\n"
                 f"Next:\n"
             )
-            tokenized_prompt = tokenizer([prompt_text], return_tensors='pt').to(device)
+            max_prompt_tokens = llm.config.n_positions - 256
+            if max_prompt_tokens <= 0:
+                max_prompt_tokens = llm.config.n_positions - 1
+
+            tokenized_prompt = tokenizer(
+                [prompt_text],
+                return_tensors='pt',
+                truncation=True,
+                max_length=max_prompt_tokens
+            ).to(device)
             inputs_embeds = llm.get_input_embeddings()(tokenized_prompt['input_ids'])
             inputs_embeds[:, 0, :] = policy_out
 
