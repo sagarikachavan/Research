@@ -81,6 +81,9 @@ def main():
 
     total_reward = 0.0
     num_samples = 0
+    total_step_correct = 0
+    total_mcp_correct = 0
+    total_both_correct = 0
 
     print("Evaluating on full test dataset...")
 
@@ -136,6 +139,31 @@ def main():
             pred_text = tokenizer.decode(output_ids[0], skip_special_tokens=True)
 
             reward = compute_reward(pred_text, true_step, true_mcp, text_model, step_pair)
+            # Parse predicted structured fields for accuracy metrics
+            _, pred_step, pred_mcp = parse_prediction(pred_text)
+            if not pred_step:
+                pred_step = pred_text
+            if not pred_mcp:
+                pred_mcp = pred_text
+
+            # Compute Jaccard overlaps and treat >=0.5 as correct (following token-overlap component)
+            pred_step_tokens = set(pred_step.lower().split())
+            true_step_tokens = set(true_step.lower().split())
+            step_jaccard = 0.0
+            if len(pred_step_tokens) > 0 and len(true_step_tokens) > 0:
+                step_jaccard = len(pred_step_tokens & true_step_tokens) / max(len(pred_step_tokens), len(true_step_tokens))
+
+            pred_mcp_tokens = set(pred_mcp.lower().split())
+            true_mcp_tokens = set(true_mcp.lower().split())
+            mcp_jaccard = 0.0
+            if len(pred_mcp_tokens) > 0 and len(true_mcp_tokens) > 0:
+                mcp_jaccard = len(pred_mcp_tokens & true_mcp_tokens) / max(len(pred_mcp_tokens), len(true_mcp_tokens))
+
+            step_correct = step_jaccard >= 0.5
+            mcp_correct = mcp_jaccard >= 0.5
+            total_step_correct += int(step_correct)
+            total_mcp_correct += int(mcp_correct)
+            total_both_correct += int(step_correct and mcp_correct)
             total_reward += reward
             num_samples += 1
 
@@ -146,6 +174,12 @@ def main():
     print("\n" + "="*60)
     print(f"FINAL TEST EVALUATION ON FULL DATASET ({num_samples} samples):")
     print(f"Average Reward: {avg_reward:.4f}")
+    step_acc = total_step_correct / num_samples if num_samples > 0 else 0.0
+    mcp_acc = total_mcp_correct / num_samples if num_samples > 0 else 0.0
+    both_acc = total_both_correct / num_samples if num_samples > 0 else 0.0
+    print(f"Step Accuracy (Jaccard>=0.5): {step_acc:.4f}")
+    print(f"MCP Accuracy (Jaccard>=0.5): {mcp_acc:.4f}")
+    print(f"Both Step+MCP Accuracy: {both_acc:.4f}")
     print("="*60 + "\n")
 
 

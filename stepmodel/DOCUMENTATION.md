@@ -224,14 +224,16 @@ Standalone evaluation is done via [evaluate.py](file:///Users/sagarikachavan/Doc
 
 #### Evaluation Steps:
 1. Load config, Sentence‑BERT model, test data from `embeddings_data/test/all_processed.json`
-2. Load tokenizer + LLM from `config.paths.output_dir`
-3. Load policy from `best_checkpoint.pt`
-4. For each test sample:
+2. Load tokenizer and base LLM from `config.model.llm_name` (default `distilgpt2`)
+3. Add the `[GRAPH]` special token and resize the LLM embedding layer to match the tokenizer
+4. Load policy and LLM weights from `best_checkpoint.pt`
+5. For each test sample:
    a. Compute policy output from graph + previous step
-   b. Inject into `[GRAPH]` token's embedding
-   c. Generate text from LLM
-   d. Compute reward with `compute_reward()`
-5. Log average test reward!
+   b. Inject the policy output into the `[GRAPH]` token's embedding
+   c. Tokenize and truncate the prompt to the model's maximum context length
+   d. Generate text from the LLM
+   e. Compute reward with `compute_reward()`
+6. Log average test reward!
 
 ---
 
