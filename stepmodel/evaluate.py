@@ -7,6 +7,9 @@ Uses [GRAPH] token approach to condition LLM on graph info.
 import os
 import json
 import re
+import ast
+import difflib
+import string
 import torch
 from sentence_transformers import SentenceTransformer
 from tokenizers import Tokenizer
@@ -49,6 +52,103 @@ def infer_policy_hidden_size(policy_state_dict):
     if weight is None:
         return None
     return weight.shape[0]
+
+
+_WORD_RE = re.compile(r"[a-z0-9]+")
+
+
+def _normalize_text(text: str) -> str:
+    if text is None:
+        return ""
+    if not isinstance(text, str):
+        text = str(text)
+    text = text.strip().lower()
+    text = text.translate(str.maketrans({c: " " for c in string.punctuation}))
+    text = " ".join(text.split())
+    return text
+
+
+def _token_set(text: str):
+    norm = _normalize_text(text)
+    return set(_WORD_RE.findall(norm))
+
+
+def _f1_from_sets(pred_set, true_set) -> float:
+    if not pred_set and not true_set:
+        return 1.0
+    if not pred_set or not true_set:
+        return 0.0
+    inter = len(pred_set & true_set)
+    precision = inter / max(len(pred_set), 1)
+    recall = inter / max(len(true_set), 1)
+    denom = precision + recall
+    if denom == 0:
+        return 0.0
+    return 2 * precision * recall / denom
+
+
+def _split_mcp_candidates(text: str):
+    if text is None:
+        return []
+    if not isinstance(text, str):
+        text = str(text)
+    parts = re.split(r"[\n,;|]+", text)
+    out = []
+    for p in parts:
+        s = p.strip()
+        if not s:
+            continue
+        if s.startswith("-"):
+            s = s[1:].strip()
+        if ":" in s:
+            s = s.split(":", 1)[0].strip()
+        s = re.sub(r"^\d+\)?\.?\s*", "", s).strip()
+        if s:
+            out.append(s)
+    return out
+
+
+def _extract_mcp_tools(raw) -> set:
+    if raw is None:
+        return set()
+    value = raw
+    if isinstance(raw, str):
+        s = raw.strip()
+        try:
+            value = ast.literal_eval(s)
+        except Exception:
+            value = raw
+
+    tools = set()
+    if isinstance(value, dict):
+        for k in value.keys():
+            nk = _normalize_text(k)
+            if nk:
+                tools.add(nk)
+        return tools
+
+    if isinstance(value, (list, tuple, set)):
+        for it in value:
+            nk = _normalize_text(it)
+            if nk:
+                tools.add(nk)
+        return tools
+
+    for cand in _split_mcp_candidates(str(value)):
+        nk = _normalize_text(cand)
+        if nk:
+            tools.add(nk)
+    return tools
+
+
+def _normalize_to_canonical(tool: str, canonical_tools: set) -> str:
+    t = _normalize_text(tool)
+    if not t:
+        return ""
+    if t in canonical_tools:
+        return t
+    matches = difflib.get_close_matches(t, list(canonical_tools), n=1, cutoff=0.84)
+    return matches[0] if matches else t
 
 
 def main():
@@ -150,6 +250,17 @@ def main():
     total_step_correct = 0
     total_mcp_correct = 0
     total_both_correct = 0
+    total_step_exact = 0
+    total_mcp_exact = 0
+    total_both_exact = 0
+    total_step_f1 = 0.0
+    total_mcp_f1 = 0.0
+    total_parse_ok = 0
+
+    canonical_tools = set()
+    for s in test_samples:
+        sp = s["step_pair"]
+        canonical_tools |= _extract_mcp_tools(sp.get("next_mcp_tasks", ""))
 
     print("Evaluating on full test dataset...")
 
@@ -204,9 +315,7 @@ def main():
                 inputs_embeds=inputs_embeds,
                 attention_mask=tokenized_prompt['attention_mask'],
                 max_new_tokens=max(1, min(max_new_tokens, 256)),
-                temperature=0.7,
-                top_p=0.95,
-                do_sample=True,
+                do_sample=False,
                 pad_token_id=tokenizer.eos_token_id
             )
             pred_text = tokenizer.decode(output_ids[0], skip_special_tokens=True)
@@ -214,29 +323,34 @@ def main():
             reward = compute_reward(pred_text, true_step, true_mcp, text_model, step_pair)
             # Parse predicted structured fields for accuracy metrics
             _, pred_step, pred_mcp = parse_prediction(pred_text)
-            if not pred_step:
-                pred_step = pred_text
-            if not pred_mcp:
-                pred_mcp = pred_text
 
-            # Compute Jaccard overlaps and treat >=0.5 as correct (following token-overlap component)
-            pred_step_tokens = set(pred_step.lower().split())
-            true_step_tokens = set(true_step.lower().split())
-            step_jaccard = 0.0
-            if len(pred_step_tokens) > 0 and len(true_step_tokens) > 0:
-                step_jaccard = len(pred_step_tokens & true_step_tokens) / max(len(pred_step_tokens), len(true_step_tokens))
+            parse_ok = bool(pred_step) and bool(pred_mcp)
+            total_parse_ok += int(parse_ok)
 
-            pred_mcp_tokens = set(pred_mcp.lower().split())
-            true_mcp_tokens = set(true_mcp.lower().split())
-            mcp_jaccard = 0.0
-            if len(pred_mcp_tokens) > 0 and len(true_mcp_tokens) > 0:
-                mcp_jaccard = len(pred_mcp_tokens & true_mcp_tokens) / max(len(pred_mcp_tokens), len(true_mcp_tokens))
+            pred_step_norm = _normalize_text(pred_step)
+            true_step_norm = _normalize_text(true_step)
+            step_exact = int(bool(pred_step_norm) and pred_step_norm == true_step_norm)
+            pred_step_tokens = _token_set(pred_step)
+            true_step_tokens = _token_set(true_step)
+            step_f1 = _f1_from_sets(pred_step_tokens, true_step_tokens)
+            step_correct = step_f1 >= 0.5
 
-            step_correct = step_jaccard >= 0.5
-            mcp_correct = mcp_jaccard >= 0.5
+            true_tools = _extract_mcp_tools(true_mcp)
+            pred_tools_raw = _extract_mcp_tools(pred_mcp)
+            pred_tools = {_normalize_to_canonical(t, canonical_tools) for t in pred_tools_raw}
+            pred_tools = {t for t in pred_tools if t}
+            mcp_exact = int(bool(pred_tools) and pred_tools == true_tools)
+            mcp_f1 = _f1_from_sets(pred_tools, true_tools)
+            mcp_correct = mcp_f1 >= 0.5
+
+            total_step_f1 += step_f1
+            total_mcp_f1 += mcp_f1
             total_step_correct += int(step_correct)
             total_mcp_correct += int(mcp_correct)
             total_both_correct += int(step_correct and mcp_correct)
+            total_step_exact += step_exact
+            total_mcp_exact += mcp_exact
+            total_both_exact += int(step_exact and mcp_exact)
             total_reward += reward
             num_samples += 1
 
@@ -250,9 +364,21 @@ def main():
     step_acc = total_step_correct / num_samples if num_samples > 0 else 0.0
     mcp_acc = total_mcp_correct / num_samples if num_samples > 0 else 0.0
     both_acc = total_both_correct / num_samples if num_samples > 0 else 0.0
-    print(f"Step Accuracy (Jaccard>=0.5): {step_acc:.4f}")
-    print(f"MCP Accuracy (Jaccard>=0.5): {mcp_acc:.4f}")
-    print(f"Both Step+MCP Accuracy: {both_acc:.4f}")
+    step_exact_acc = total_step_exact / num_samples if num_samples > 0 else 0.0
+    mcp_exact_acc = total_mcp_exact / num_samples if num_samples > 0 else 0.0
+    both_exact_acc = total_both_exact / num_samples if num_samples > 0 else 0.0
+    avg_step_f1 = total_step_f1 / num_samples if num_samples > 0 else 0.0
+    avg_mcp_f1 = total_mcp_f1 / num_samples if num_samples > 0 else 0.0
+    parse_rate = total_parse_ok / num_samples if num_samples > 0 else 0.0
+    print(f"Step F1 (token): {avg_step_f1:.4f}")
+    print(f"MCP F1 (set): {avg_mcp_f1:.4f}")
+    print(f"Step Accuracy (F1>=0.5): {step_acc:.4f}")
+    print(f"MCP Accuracy (F1>=0.5): {mcp_acc:.4f}")
+    print(f"Both Step+MCP Accuracy (F1>=0.5): {both_acc:.4f}")
+    print(f"Step Exact Match: {step_exact_acc:.4f}")
+    print(f"MCP Exact Set Match: {mcp_exact_acc:.4f}")
+    print(f"Both Exact Match: {both_exact_acc:.4f}")
+    print(f"Parse Success Rate: {parse_rate:.4f}")
     print("="*60 + "\n")
 
 
