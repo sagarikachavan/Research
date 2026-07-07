@@ -1,0 +1,432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StepModel Pipeline</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 40px 20px;
+            background: #f5f7fa;
+        }
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .section {
+            background: white;
+            border-radius: 12px;
+            padding: 30px;
+            margin-bottom: 30px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+        }
+        .section h2 {
+            color: #3498db;
+            margin-top: 0;
+            margin-bottom: 20px;
+        }
+        h3 {
+            color: #2c3e50;
+            margin-top: 24px;
+            margin-bottom: 12px;
+        }
+        p, li {
+            color: #34495e;
+            line-height: 1.6;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+            gap: 20px;
+        }
+        .card {
+            background: #f8fafc;
+            border: 1px solid #e5e7eb;
+            border-radius: 10px;
+            padding: 18px;
+        }
+        .card h3 {
+            margin-top: 0;
+        }
+        pre {
+            white-space: pre-wrap;
+            word-break: break-word;
+            background: #111827;
+            color: #e5e7eb;
+            border-radius: 10px;
+            padding: 16px;
+            overflow-x: auto;
+            font-size: 13px;
+            line-height: 1.5;
+        }
+        code {
+            font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+        }
+        .mermaid {
+            display: flex;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>StepModel Pipeline Overview</h1>
+
+    <div class="section">
+        <h2>Presentation-Style Overview Image</h2>
+        <p>This is a single pictorial summary image in the same spirit as your reference experiment diagram.</p>
+        <div style="text-align:center;">
+            <img src="ACTIVE_SYSTEM_PICTORIAL.svg" alt="StepModel active machine pictorial overview" style="max-width:100%; border:1px solid #d1d5db; border-radius:12px; background:#fff;" />
+        </div>
+        <p style="margin-top:12px;">Direct file: <code>ACTIVE_SYSTEM_PICTORIAL.svg</code></p>
+    </div>
+
+    <div class="section">
+        <h2>Complete Pipeline</h2>
+        <div class="mermaid">
+graph LR
+    A[Input CSVs<br>data/] --> B[Graph Generation<br>generate_graphs.py]
+    B --> C[processed_data/<br>JSON + HTML]
+    C --> D[Embedding Generation<br>graph_to_embeddings.py]
+    D --> E[embeddings_data/<br>Node + Edge Embeddings]
+    E --> F[Training<br>train_gnn_rl.py<br>Tag-Constrained]
+    F --> G[Trained Model<br>best_checkpoint.pt]
+    G --> H[Evaluation<br>evaluate.py<br>Normalized Tags]
+    
+    style A fill:#e1f5ff
+    style B fill:#fff3cd
+    style C fill:#d4edda
+    style D fill:#fff3cd
+    style E fill:#cce5ff
+    style F fill:#f8d7da
+    style G fill:#d4edda
+    style H fill:#d1ecf1
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Graph Generation Module</h2>
+        <div class="mermaid">
+graph TD
+    A[Input CSV Files<br>training_data.csv<br>test_data.csv] --> B[Load Valid Machines]
+    B --> C[Detect Runs per Machine]
+    C --> D[Parse PTT Hierarchy]
+    D --> E[Build Graph Nodes]
+    E --> F[Connect Nodes with Edges]
+    F --> G[Save Graph Files]
+    G --> H[Output: processed_data/]
+    
+    style A fill:#e1f5ff
+    style H fill:#d4edda
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Graph to Embedding Module</h2>
+        <div class="mermaid">
+graph TD
+    A[processed_data/] --> B[Load Graph JSON]
+    B --> C[Extract Node Text]
+    C --> D[Extract Edge Text]
+    D --> E[Load Sentence-BERT Model<br>all-MiniLM-L6-v2]
+    E --> F[Generate Node Embeddings]
+    F --> G[Generate Edge Embeddings]
+    G --> H[Build Step Pairs From CSV]
+    H --> I[Save Nodes + Edges + Step Pairs]
+    I --> J[Output: embeddings_data/]
+    
+    style A fill:#d4edda
+    style J fill:#cce5ff
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Training Module</h2>
+        <div class="mermaid">
+graph TD
+    A[embeddings_data/] --> B[Load Processed Data]
+    B --> C[Normalize Step + MCP Labels]
+    C --> D[Build Prompt<br>Graph + Previous Strategy/Step + Explanations]
+    D --> E[Encode Graph Nodes]
+    D --> F[Project Edge Embeddings]
+    D --> G[Embed Previous Context]
+    E --> H[Combine Graph + Edge + Context]
+    F --> H
+    G --> H
+    H --> I[Inject Into GRAPH Token]
+    I --> J[LLM Generates<br>Next Step + MCP Tools + Explanation]
+    H --> K[Auxiliary Tag Heads<br>Step Classifier + MCP Multi-Label]
+    J --> L[Explanation LM Loss]
+    K --> M[Tag Loss]
+    L --> N[Combined Supervised Loss]
+    M --> N
+    N --> O[GRPO Fine-Tuning<br>Tag-Based Reward]
+    O --> P[Best Checkpoint]
+    
+    style A fill:#cce5ff
+    style N fill:#fff3cd
+    style O fill:#f8d7da
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Evaluation Module</h2>
+        <div class="mermaid">
+graph TD
+    A[Load Best Checkpoint] --> B[Prepare Test Samples]
+    B --> C[Build Prompt]
+    C --> D[Deterministic Generation]
+    D --> E[Parse Next Step / MCP Tools / Explanation]
+    E --> F[Normalize Labels]
+    F --> G[Score Step Tag]
+    F --> H[Score MCP Tool Set]
+    G --> I[Report Final Metrics]
+    H --> I
+    
+    style I fill:#d4edda
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Active Machine Example</h2>
+        <p>This section uses the real files <code>processed_data/train/active/active_graph.json</code> and <code>embeddings_data/train/active_processed.json</code> to show what goes in and what comes out at each stage.</p>
+        <div class="grid">
+            <div class="card">
+                <h3>Artifacts Used</h3>
+                <ul>
+                    <li><code>data/training_data.csv</code></li>
+                    <li><code>processed_data/train/active/active_graph.json</code></li>
+                    <li><code>embeddings_data/train/active_processed.json</code></li>
+                </ul>
+            </div>
+            <div class="card">
+                <h3>Active Graph Statistics</h3>
+                <ul>
+                    <li>Total nodes: 35</li>
+                    <li>Total edges: 45</li>
+                    <li>Agent nodes: 13</li>
+                    <li>Search nodes: 11</li>
+                    <li>Track nodes: 11</li>
+                    <li>Rows captured: 11</li>
+                </ul>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Stage 1: CSV To Graph</h2>
+        <div class="mermaid">
+graph LR
+    A[training_data.csv<br>Machine = active] --> B[generate_graphs.py]
+    B --> C[Detect run boundaries]
+    C --> D[Parse PTT tree growth]
+    D --> E[Build Agent / Search / Track nodes]
+    E --> F[Add 4 edge types]
+    F --> G[active_graph.json + active_graph.html]
+        </div>
+        <div class="grid">
+            <div class="card">
+                <h3>Stage 1 Input</h3>
+                <pre><code>Machine: active
+PTT grows from:
+1 Reconnaissance
+1.3 Identify Open Ports, Services running on the open ports and their versions
+1.6 SMB Enumeration
+1.7 Replication Share Enumeration
+1.8 Hash Decryption
+...</code></pre>
+            </div>
+            <div class="card">
+                <h3>Stage 1 Output</h3>
+                <pre><code>Example nodes:
+- agent:active:START
+- search:active:r1_s1_1.6  -> SMB Enumeration
+- track:active:r1_s1_1.6   -> anonymous login, shares, SMB status
+
+Example edges:
+- StateTransition
+- SearchUpdate
+- TrackUpdate
+- Prediction</code></pre>
+            </div>
+        </div>
+        <h3>Implementation Detail</h3>
+        <p><code>generate_graphs.py</code> turns PTT growth into a state graph. Agent nodes store the cumulative pentest state, Search nodes store the tree item being worked on plus MCP calls, and Track nodes store the findings discovered from that step.</p>
+    </div>
+
+    <div class="section">
+        <h2>Stage 2: Graph To Embeddings</h2>
+        <div class="mermaid">
+graph LR
+    A[active_graph.json] --> B[graph_to_embeddings.py]
+    B --> C[Node text]
+    B --> D[Edge text]
+    C --> E[Sentence-BERT]
+    D --> E
+    E --> F[Node embeddings]
+    E --> G[Edge embeddings]
+    B --> H[Consecutive CSV rows]
+    H --> I[step_pairs]
+    F --> J[active_processed.json]
+    G --> J
+    I --> J
+        </div>
+        <div class="grid">
+            <div class="card">
+                <h3>Stage 2 Input</h3>
+                <pre><code>Node example:
+id: agent:active:START
+label: Agent: Initial (Start)
+title: Start of pentest against 'active'
+
+Edge example:
+type: SearchUpdate / TrackUpdate / Prediction
+label: relationship between state and finding</code></pre>
+            </div>
+            <div class="card">
+                <h3>Stage 2 Output</h3>
+                <pre><code>active_processed.json
+
+nodes[0]:
+- id: agent:active:START
+- type: Agent
+- embedding: [-0.0192, -0.0155, -0.1091, 0.0358, ...]
+
+graph_statistics:
+- total_nodes: 35
+- total_edges: 45
+- runs_detected: 1</code></pre>
+            </div>
+        </div>
+        <h3>Implementation Detail</h3>
+        <p><code>graph_to_embeddings.py</code> embeds node text and edge text with <code>all-MiniLM-L6-v2</code>. The resulting JSON stores both graph embeddings and step-pair supervision in one place, which is what the trainer consumes later.</p>
+    </div>
+
+    <div class="section">
+        <h2>Stage 2 Example Step Pair</h2>
+        <div class="mermaid">
+graph TD
+    A[Previous Strategy<br>Enumerate the SMB service in port 445] --> D[One training sample]
+    B[Previous Step<br>Enumerate further on the X service...] --> D
+    C[Previous Step Explanation] --> D
+    D --> E[Next Step<br>Explore the suspicious files and create a summary of the findings.]
+    D --> F[MCP Tools<br>Smb client, Interactive CLI]
+    D --> G[Next Step Explanation]
+        </div>
+        <div class="grid">
+            <div class="card">
+                <h3>Step Pair Input</h3>
+                <pre><code>previous_strategy:
+Enumerate the SMB service in port 445
+
+previous_step:
+Enumerate further on the X service to find software versions, hidden directories and file.</code></pre>
+            </div>
+            <div class="card">
+                <h3>Step Pair Output</h3>
+                <pre><code>next_step:
+Explore the suspicious files and create a summary of the findings.
+
+next_mcp_tasks:
+{'Smb client': 'Enumerate and explore the Replication share files...',
+ 'Interactive CLI': 'Create a summary of the findings...'}</code></pre>
+            </div>
+        </div>
+    </div>
+
+    <div class="section">
+        <h2>Stage 3: Training Sample Construction</h2>
+        <div class="mermaid">
+graph LR
+    A[active_processed.json] --> B[PenTestDataset]
+    B --> C[Build context text]
+    B --> D[Normalize Next Step label]
+    B --> E[Normalize MCP tool set]
+    C --> F[Prompt with GRAPH token]
+    D --> G[Target tags]
+    E --> G
+    F --> H[train_gnn_rl.py]
+    G --> H
+        </div>
+        <div class="grid">
+            <div class="card">
+                <h3>Trainer Input</h3>
+                <pre><code>[GRAPH]
+Previous Strategy: Enumerate the SMB service in port 445
+Previous Strategy Explanation: ...
+Previous Step: Enumerate further on the X service...
+Previous Step Explanation: ...</code></pre>
+            </div>
+            <div class="card">
+                <h3>Trainer Target</h3>
+                <pre><code>Next Step: Explore the suspicious files, commands and create a summary of the findings.
+MCP Tools: Smb client, Interactive CLI
+Next Step Explanation: ...</code></pre>
+            </div>
+        </div>
+        <h3>Implementation Detail</h3>
+        <p>The current trainer constrains <code>Next Step</code> and <code>MCP Tools</code> to fixed label sets, while still generating an explanation. It also uses edge embeddings now, not just node embeddings and graph connectivity.</p>
+    </div>
+
+    <div class="section">
+        <h2>Stage 4: Model Internals</h2>
+        <div class="mermaid">
+graph TD
+    A[Node embeddings] --> D[GNN]
+    B[Edge embeddings] --> E[Edge projection + pooling]
+    C[Previous context text] --> F[Sentence-BERT + projection]
+    D --> G[Combined state]
+    E --> G
+    F --> G
+    G --> H[Replace GRAPH token embedding]
+    H --> I[LLM output]
+    G --> J[Step classifier]
+    G --> K[MCP multi-label classifier]
+        </div>
+        <h3>Implementation Detail</h3>
+        <p>The policy combines three signals: graph state from the GNN, pooled edge-embedding state, and previous context embedding. That combined state is used for both LLM generation and auxiliary tag prediction heads.</p>
+    </div>
+
+    <div class="section">
+        <h2>Stage 5: Evaluation</h2>
+        <div class="mermaid">
+graph LR
+    A[Prompt for active sample] --> B[Deterministic generation]
+    B --> C[Parse Next Step / MCP Tools / Explanation]
+    C --> D[Normalize labels]
+    D --> E[Step exact match]
+    D --> F[MCP exact set + micro F1]
+        </div>
+        <div class="grid">
+            <div class="card">
+                <h3>Evaluation Input</h3>
+                <pre><code>Uses the same active sample prompt built from:
+- graph embeddings
+- previous strategy
+- previous strategy explanation
+- previous step
+- previous step explanation</code></pre>
+            </div>
+            <div class="card">
+                <h3>Evaluation Output</h3>
+                <pre><code>Reported metrics:
+- Average Reward
+- Step Accuracy (Exact Normalized Tag)
+- MCP Exact-Set Accuracy
+- MCP Micro Precision / Recall / F1
+- Both Step+MCP Exact Accuracy</code></pre>
+            </div>
+        </div>
+        <h3>Implementation Detail</h3>
+        <p><code>evaluate.py</code> now ignores the explanation for scoring. It compares only normalized step tags and normalized MCP tool sets, which is a better match to the actual task.</p>
+    </div>
+
+    <script>
+        mermaid.initialize({ startOnLoad: true, theme: 'default' });
+    </script>
+</body>
+</html>

@@ -6,12 +6,49 @@ Uses [GRAPH] token approach to condition LLM on graph info.
 
 import os
 import json
+import re
 import torch
 from sentence_transformers import SentenceTransformer
 from tokenizers import Tokenizer
 from tokenizers.models import Model as TokenizersModel
 from transformers import AutoTokenizer, AutoModelForCausalLM, GPT2Tokenizer
 from train_gnn_rl import GNNLLMPolicy, compute_reward, parse_prediction
+
+
+def infer_llm_name_from_state_dict(llm_state_dict):
+    if not llm_state_dict:
+        return None
+
+    layer_ids = set()
+    pattern = re.compile(r"transformer\.h\.(\d+)\.")
+    for key in llm_state_dict.keys():
+        match = pattern.match(key)
+        if match:
+            layer_ids.add(int(match.group(1)))
+
+    num_layers = (max(layer_ids) + 1) if layer_ids else None
+    hidden_size = None
+    if "transformer.wte.weight" in llm_state_dict:
+        hidden_size = llm_state_dict["transformer.wte.weight"].shape[1]
+
+    if num_layers == 6 and hidden_size == 768:
+        return "distilgpt2"
+    if num_layers == 12 and hidden_size == 768:
+        return "gpt2"
+    if num_layers == 24 and hidden_size == 1024:
+        return "gpt2-medium"
+    if num_layers == 36 and hidden_size == 1280:
+        return "gpt2-large"
+    if num_layers == 48 and hidden_size == 1600:
+        return "gpt2-xl"
+    return None
+
+
+def infer_policy_hidden_size(policy_state_dict):
+    weight = policy_state_dict.get("combine.0.weight")
+    if weight is None:
+        return None
+    return weight.shape[0]
 
 
 def main():
@@ -35,35 +72,64 @@ def main():
     with open(os.path.join(embeddings_dir, "test", "all_processed.json"), "r") as f:
         test_data = json.load(f)
 
-    # Load base tokenizer and add the training-time [GRAPH] token, then restore weights from checkpoint
-    llm_name = config['model']['llm_name']
-    tokenizer = AutoTokenizer.from_pretrained(llm_name)
-    if '[GRAPH]' not in tokenizer.get_vocab():
-        tokenizer.add_special_tokens({'additional_special_tokens': ['[GRAPH]']})
+    checkpoint_path = os.path.join(checkpoints_dir, "best_checkpoint.pt")
+    checkpoint = None
+    if os.path.exists(checkpoint_path):
+        with torch.serialization.safe_globals([GPT2Tokenizer, Tokenizer, TokenizersModel]):
+            checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    else:
+        print("Warning: No best checkpoint found, using initial weights.")
+
+    checkpoint_llm_name = config['model']['llm_name']
+    if checkpoint is not None:
+        checkpoint_llm_name = (
+            checkpoint.get("llm_name")
+            or infer_llm_name_from_state_dict(checkpoint.get("llm", {}))
+            or checkpoint_llm_name
+        )
+        if checkpoint_llm_name != config['model']['llm_name']:
+            print(
+                f"Checkpoint was trained with '{checkpoint_llm_name}', "
+                f"overriding config model '{config['model']['llm_name']}' for evaluation."
+            )
+
+    checkpoint_tokenizer = checkpoint.get("tokenizer") if checkpoint is not None else None
+    if checkpoint_tokenizer is not None:
+        tokenizer = checkpoint_tokenizer
+    else:
+        tokenizer = AutoTokenizer.from_pretrained(checkpoint_llm_name)
+        if '[GRAPH]' not in tokenizer.get_vocab():
+            tokenizer.add_special_tokens({'additional_special_tokens': ['[GRAPH]']})
     tokenizer.pad_token = tokenizer.eos_token
 
-    llm = AutoModelForCausalLM.from_pretrained(llm_name)
+    llm = AutoModelForCausalLM.from_pretrained(checkpoint_llm_name)
     llm.resize_token_embeddings(len(tokenizer))
     llm.to(device)
     llm.eval()
+
+    policy_hidden_size = llm.config.hidden_size
+    if checkpoint is not None:
+        inferred_policy_hidden_size = infer_policy_hidden_size(checkpoint.get("policy", {}))
+        if inferred_policy_hidden_size is not None:
+            policy_hidden_size = inferred_policy_hidden_size
 
     # Initialize policy
     policy = GNNLLMPolicy(
         gnn_out_dim=config['model']['gnn_out_dim'],
         text_emb_dim=text_emb_dim,
-        llm_hidden_size=llm.config.hidden_size,
+        llm_hidden_size=policy_hidden_size,
         use_gat=config['model']['use_gat']
     ).to(device)
 
-    checkpoint_path = os.path.join(checkpoints_dir, "best_checkpoint.pt")
-    if os.path.exists(checkpoint_path):
-        with torch.serialization.safe_globals([GPT2Tokenizer, Tokenizer, TokenizersModel]):
-            checkpoint = torch.load(checkpoint_path, map_location=device, weights_only=False)
+    if checkpoint is not None:
+        if llm.config.hidden_size != policy_hidden_size:
+            raise RuntimeError(
+                f"Checkpoint mismatch: policy expects hidden size {policy_hidden_size}, "
+                f"but loaded LLM '{checkpoint_llm_name}' has hidden size {llm.config.hidden_size}."
+            )
         policy.load_state_dict(checkpoint["policy"])
         llm.load_state_dict(checkpoint["llm"])
         print("Loaded best checkpoint successfully!")
-    else:
-        print("Warning: No best checkpoint found, using initial weights.")
 
     policy.eval()
 
@@ -107,14 +173,21 @@ def main():
 
             # Prepare prompt and generate
             prompt_text = (
-                "[GRAPH] "
-                f"Previous penetration testing context:\n"
+                "[GRAPH]\n"
+                "### Previous Penetration Testing Context ###\n"
                 f"Strategy: {step_pair['previous_strategy']}\n"
                 f"Step: {step_pair['previous_step']}\n"
                 f"Result: {step_pair['previous_step_result']}\n\n"
-                f"Next:\n"
+                "### Generate Next Step ###\n"
+                "Respond with exactly these five labeled lines and do not repeat the prompt:\n"
+                "Strategy:\n"
+                "Strategy Explanation:\n"
+                "Step:\n"
+                "Step Explanation:\n"
+                "MCP Tasks:"
             )
-            max_prompt_tokens = llm.config.n_positions - 256
+            max_new_tokens = config['training'].get('generate_max_new_tokens', 256)
+            max_prompt_tokens = llm.config.n_positions - max_new_tokens
             if max_prompt_tokens <= 0:
                 max_prompt_tokens = llm.config.n_positions - 1
 
@@ -130,7 +203,7 @@ def main():
             output_ids = llm.generate(
                 inputs_embeds=inputs_embeds,
                 attention_mask=tokenized_prompt['attention_mask'],
-                max_new_tokens=256,
+                max_new_tokens=max(1, min(max_new_tokens, 256)),
                 temperature=0.7,
                 top_p=0.95,
                 do_sample=True,

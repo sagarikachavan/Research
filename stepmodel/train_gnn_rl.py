@@ -9,6 +9,8 @@ import os
 import json
 import random
 import numpy as np
+import time
+import urllib.request
 from typing import List, Dict, Any, Optional
 from collections import defaultdict
 
@@ -16,6 +18,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
+from torch.cuda.amp import autocast, GradScaler
 try:
     # First try importing tensorboard directly to catch errors
     import tensorboard
@@ -158,9 +161,10 @@ class GNNLLMPolicy(nn.Module):
 
 
 class PenTestDataset(Dataset):
-    def __init__(self, data: List[Dict[str, Any]], text_model: SentenceTransformer):
+    def __init__(self, data: List[Dict[str, Any]], text_model: SentenceTransformer, max_seq_length=1024):
         self.data = data
         self.text_model = text_model
+        self.max_seq_length = max_seq_length
         self.samples = []
         self._prepare_samples()
 
@@ -182,15 +186,21 @@ class PenTestDataset(Dataset):
         sample = self.samples[idx]
         step_pair = sample['step_pair']
         prompt_text = (
-            "[GRAPH] "
-            f"Previous penetration testing context:\n"
+            "[GRAPH]\n"
+            "### Previous Penetration Testing Context ###\n"
             f"Strategy: {step_pair['previous_strategy']}\n"
             f"Step: {step_pair['previous_step']}\n"
             f"Result: {step_pair['previous_step_result']}\n\n"
-            f"Next:\n"
+            "### Generate Next Step ###\n"
+            "Respond with exactly these five labeled lines and do not repeat the prompt:\n"
+            "Strategy:\n"
+            "Strategy Explanation:\n"
+            "Step:\n"
+            "Step Explanation:\n"
+            "MCP Tasks:"
         )
         target_text = (
-            "Strategy: " + step_pair['next_strategy'] + "\n"
+            "\nStrategy: " + step_pair['next_strategy'] + "\n"
             "Strategy Explanation: " + step_pair['next_strategy_explanation'] + "\n"
             "Step: " + step_pair['next_step'] + "\n"
             "Step Explanation: " + step_pair['next_step_explanation'] + "\n"
@@ -226,6 +236,42 @@ def split_train_val(train_data: List[Dict], val_split: float = 0.1, seed: int = 
     return train_data[val_size:], train_data[:val_size]
 
 
+def _debug_report(hypothesis_id: str, location: str, msg: str, data: Dict[str, Any], run_id: str = "pre-fix"):
+    # #region debug-point shared:report
+    env_path = '.dbg/avg-reward-zero.env'
+    server_url = 'http://127.0.0.1:7777/event'
+    session_id = 'avg-reward-zero'
+    if os.path.exists(env_path):
+        try:
+            with open(env_path, 'r') as env_file:
+                for line in env_file:
+                    if line.startswith('DEBUG_SERVER_URL='):
+                        server_url = line.split('=', 1)[1].strip()
+                    elif line.startswith('DEBUG_SESSION_ID='):
+                        session_id = line.split('=', 1)[1].strip()
+        except Exception:
+            pass
+    payload = {
+        "sessionId": session_id,
+        "runId": run_id,
+        "hypothesisId": hypothesis_id,
+        "location": location,
+        "msg": msg,
+        "data": data,
+        "ts": int(time.time() * 1000),
+    }
+    try:
+        req = urllib.request.Request(
+            server_url,
+            data=json.dumps(payload).encode(),
+            headers={"Content-Type": "application/json"},
+        )
+        urllib.request.urlopen(req, timeout=1).read()
+    except Exception:
+        pass
+    # #endregion
+
+
 def compute_reward(pred_text: str, true_step: str, true_mcp: str, text_model: SentenceTransformer, step_pair: Dict) -> float:
     """
     Improved reward function inspired by PenStrategist:
@@ -239,6 +285,22 @@ def compute_reward(pred_text: str, true_step: str, true_mcp: str, text_model: Se
         pred_step = pred_text
     if not pred_mcp:
         pred_mcp = pred_text
+    # #region debug-point A:parsed-reward-inputs
+    _debug_report(
+        "A",
+        "train_gnn_rl.py:278",
+        "[DEBUG] Parsed reward inputs",
+        {
+            "pred_step_empty": not bool(pred_step.strip()),
+            "pred_mcp_empty": not bool(pred_mcp.strip()),
+            "pred_text_prefix": pred_text[:180],
+            "pred_step_prefix": pred_step[:180],
+            "pred_mcp_prefix": pred_mcp[:180],
+            "true_step_prefix": true_step[:180],
+            "true_mcp_prefix": true_mcp[:180],
+        },
+    )
+    # #endregion
 
     # 1. Token overlap for step and MCP (weighted 0.2 each)
     pred_step_tokens = set(pred_step.lower().split())
@@ -264,9 +326,31 @@ def compute_reward(pred_text: str, true_step: str, true_mcp: str, text_model: Se
         mcp_emb_true = text_model.encode(true_mcp, convert_to_tensor=False)
         mcp_sem_sim = np.dot(mcp_emb_pred, mcp_emb_true) / (np.linalg.norm(mcp_emb_pred) * np.linalg.norm(mcp_emb_true) + 1e-8)
         reward += max(0, mcp_sem_sim) * 0.3
-    except:
+    except Exception as exc:
+        # #region debug-point C:semantic-similarity-failure
+        _debug_report(
+            "C",
+            "train_gnn_rl.py:311",
+            "[DEBUG] Semantic similarity failed",
+            {"error": repr(exc), "pred_step_prefix": pred_step[:180], "pred_mcp_prefix": pred_mcp[:180]},
+        )
+        # #endregion
         pass
 
+    # #region debug-point B:reward-summary
+    _debug_report(
+        "B",
+        "train_gnn_rl.py:317",
+        "[DEBUG] Reward computed",
+        {
+            "reward": float(reward),
+            "step_token_overlap": len(pred_step_tokens & true_step_tokens) / max(len(pred_step_tokens), len(true_step_tokens)) if pred_step_tokens and true_step_tokens else 0.0,
+            "mcp_token_overlap": len(pred_mcp_tokens & true_mcp_tokens) / max(len(pred_mcp_tokens), len(true_mcp_tokens)) if pred_mcp_tokens and true_mcp_tokens else 0.0,
+            "pred_step_token_count": len(pred_step_tokens),
+            "pred_mcp_token_count": len(pred_mcp_tokens),
+        },
+    )
+    # #endregion
     return reward
 
 
@@ -276,24 +360,32 @@ def parse_prediction(pred_text: str):
     step = ""
     mcp_tasks = ""
 
-    strategy_match = re.search(r"Strategy:(.*?)(?=Strategy Explanation:|Step:|Step Explanation:|MCP Tasks:|$)", pred_text, re.DOTALL)
-    if strategy_match:
-        strategy = strategy_match.group(1).strip()
+    strategy_matches = re.findall(r"Strategy:\s*(.*?)(?=\n(?:Strategy Explanation:|Step:|Step Explanation:|MCP Tasks:)|$)", pred_text, re.DOTALL)
+    if strategy_matches:
+        strategy = " ".join(strategy_matches[-1].split())
 
-    step_match = re.search(r"Step:(.*?)(?=Step Explanation:|MCP Tasks:|$)", pred_text, re.DOTALL)
-    if step_match:
-        step = step_match.group(1).strip()
+    step_matches = re.findall(r"Step:\s*(.*?)(?=\n(?:Step Explanation:|MCP Tasks:)|$)", pred_text, re.DOTALL)
+    if step_matches:
+        step = " ".join(step_matches[-1].split())
 
-    mcp_match = re.search(r"MCP Tasks:(.*?)$", pred_text, re.DOTALL)
-    if mcp_match:
-        mcp_tasks = mcp_match.group(1).strip()
+    mcp_matches = re.findall(r"MCP Tasks:\s*(.*?)(?=\nMCP Tasks:|$)", pred_text, re.DOTALL)
+    if mcp_matches:
+        mcp_tasks = " ".join(mcp_matches[-1].split())
+
+    placeholder_values = {"<your strategy>", "<why this strategy>", "<what to do>", "<why this step>", "<tools/tasks to use>"}
+    if strategy.lower() in placeholder_values:
+        strategy = ""
+    if step.lower() in placeholder_values:
+        step = ""
+    if mcp_tasks.lower() in placeholder_values:
+        mcp_tasks = ""
 
     return strategy, step, mcp_tasks
 
 
 def generate_samples_with_policy(
     policy, llm, tokenizer, text_model, sample, device, num_generations_per_sample=4,
-    max_new_tokens=256, temperature=0.9, top_p=0.95
+    max_new_tokens=1024, temperature=0.9, top_p=0.95
 ):
     """
     Generate multiple completions per sample using current policy, with consistent log prob calculation.
@@ -319,17 +411,18 @@ def generate_samples_with_policy(
         previous_emb = torch.tensor(text_model.encode([previous_text], convert_to_numpy=True), dtype=torch.float32).to(device)
         policy_out = policy(nodes, edges, previous_emb, device)
 
-        tokenized_prompt = tokenizer([prompt_text], return_tensors='pt').to(device)
+        tokenized_prompt = tokenizer([prompt_text], return_tensors='pt', truncation=True, max_length=1024).to(device)
         inputs_embeds = llm.get_input_embeddings()(tokenized_prompt['input_ids'])
         inputs_embeds[:, 0, :] = policy_out
         attention_mask = tokenized_prompt['attention_mask']
         prompt_len = tokenized_prompt['input_ids'].shape[1]
 
+        effective_max_new_tokens = min(max_new_tokens, 256)
         for _ in range(num_generations_per_sample):
             outputs = llm.generate(
                 inputs_embeds=inputs_embeds,
                 attention_mask=attention_mask,
-                max_new_tokens=max_new_tokens,
+                max_new_tokens=effective_max_new_tokens,
                 temperature=temperature,
                 top_p=top_p,
                 do_sample=True,
@@ -340,25 +433,39 @@ def generate_samples_with_policy(
 
             gen_text = tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
             
-            # Calculate log probabilities ONLY for the generated part
+            # When generate() is driven by inputs_embeds, sequences contains only
+            # the generated continuation, so transition_scores already aligns to it.
             transition_scores = llm.compute_transition_scores(
                 outputs.sequences,
                 outputs.scores,
                 normalize_logits=True
             )
-            # Take only scores for tokens after the prompt (transition_scores matches shift_logits)
-            gen_log_probs = transition_scores[0, prompt_len - 1:]
+            gen_log_probs = transition_scores[0]
             log_prob = gen_log_probs.sum().item()
 
             reward = compute_reward(gen_text, true_step, true_mcp, text_model, step_pair)
+            # #region debug-point E:generation-preview
+            _debug_report(
+                "E",
+                "train_gnn_rl.py:407",
+                "[DEBUG] Generated rollout sample",
+                {
+                    "prompt_len": int(prompt_len),
+                    "generated_length": int(outputs.sequences.shape[1]),
+                    "generated_text_prefix": gen_text[:200],
+                    "reward": float(reward),
+                },
+            )
+            # #endregion
 
             rollouts.append({
                 'nodes': nodes,
                 'edges': edges,
                 'prompt_text': prompt_text,
+                'prompt_input_ids': tokenized_prompt['input_ids'],
                 'previous_text': previous_text,
                 'generated_text': gen_text,
-                'input_ids': outputs.sequences,
+                'generated_ids': outputs.sequences,
                 'prompt_len': prompt_len,
                 'old_log_prob': log_prob,
                 'reward': reward,
@@ -388,7 +495,9 @@ def compute_grpo_loss(
         nodes = rollout['nodes']
         edges = rollout['edges']
         previous_text = rollout['previous_text']
-        gen_seq = rollout['input_ids']
+        prompt_input_ids = rollout['prompt_input_ids']
+        generated_ids = rollout['generated_ids']
+        gen_seq = torch.cat([prompt_input_ids, generated_ids], dim=1)
         prompt_len = rollout['prompt_len']
         old_log_prob = rollout['old_log_prob']
         advantage = advantages[i].item()
@@ -400,24 +509,26 @@ def compute_grpo_loss(
         inputs_embeds[:, 0, :] = policy_out
 
         # Forward pass to get logits
-        outputs = llm(inputs_embeds=inputs_embeds)
-        logits = outputs.logits
+        with autocast():
+            attention_mask = torch.ones_like(gen_seq, device=gen_seq.device)
+            outputs = llm(inputs_embeds=inputs_embeds, attention_mask=attention_mask)
+            logits = outputs.logits
 
-        # Shift logits and labels (shift_logits[i] predicts shift_labels[i])
-        shift_logits = logits[:, :-1, :].contiguous()
-        shift_labels = gen_seq[:, 1:].contiguous()
+            # Shift logits and labels (shift_logits[i] predicts shift_labels[i])
+            shift_logits = logits[:, :-1, :].contiguous()
+            shift_labels = gen_seq[:, 1:].contiguous()
 
-        # Calculate log probs ONLY for generated part (after prompt)
-        log_probs = F.log_softmax(shift_logits, dim=-1)
-        token_log_probs = log_probs.gather(-1, shift_labels.unsqueeze(-1)).squeeze(-1)
-        
-        # Mask everything before prompt_len - 1 (since shift_labels starts at pos 1)
-        mask = torch.ones_like(token_log_probs, dtype=torch.bool)
-        mask[:, :prompt_len - 1] = False
-        
-        # Compute new log prob as sum of masked log probs
-        masked_log_probs = token_log_probs * mask.float()
-        new_log_prob = masked_log_probs.sum()
+            # Calculate log probs ONLY for generated part (after prompt)
+            log_probs = F.log_softmax(shift_logits, dim=-1)
+            token_log_probs = log_probs.gather(-1, shift_labels.unsqueeze(-1)).squeeze(-1)
+            
+            # Mask everything before prompt_len - 1 (since shift_labels starts at pos 1)
+            mask = torch.ones_like(token_log_probs, dtype=torch.bool)
+            mask[:, :prompt_len - 1] = False
+            
+            # Compute new log prob as sum of masked log probs
+            masked_log_probs = token_log_probs * mask.float()
+            new_log_prob = masked_log_probs.sum()
         
         # Compute policy ratio
         ratio = torch.exp(new_log_prob - old_log_prob)
@@ -473,7 +584,7 @@ def evaluate_on_dataset(
             output_ids = llm.generate(
                 inputs_embeds=inputs_embeds,
                 attention_mask=tokenized_prompt['attention_mask'],
-                max_new_tokens=256,
+                max_new_tokens=min(256, llm.config.n_positions - tokenized_prompt['input_ids'].shape[1]),
                 temperature=0.7,
                 top_p=0.95,
                 do_sample=True,
@@ -536,6 +647,7 @@ def main():
 
     llm = AutoModelForCausalLM.from_pretrained(llm_name)
     llm.resize_token_embeddings(len(tokenizer))
+    llm.gradient_checkpointing_enable()
     llm_hidden_size = llm.config.hidden_size
     llm.to(device)
 
@@ -553,9 +665,10 @@ def main():
     batch_size = config['training']['batch_size']
     
     # Create datasets and dataloaders
-    train_dataset = PenTestDataset(train_data, text_model)
-    val_dataset = PenTestDataset(val_data, text_model)
-    test_dataset = PenTestDataset(test_data, text_model)
+    max_seq_length = config.get('training', {}).get('max_seq_length', 1024)
+    train_dataset = PenTestDataset(train_data, text_model, max_seq_length=max_seq_length)
+    val_dataset = PenTestDataset(val_data, text_model, max_seq_length=max_seq_length)
+    test_dataset = PenTestDataset(test_data, text_model, max_seq_length=max_seq_length)
     
     train_loader = DataLoader(
         train_dataset, 
@@ -597,6 +710,7 @@ def main():
     scheduler = get_linear_schedule_with_warmup(
         optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=total_steps
     )
+    scaler = GradScaler()
 
     # Training
     global_step = 0
@@ -655,24 +769,27 @@ def main():
                 # Mask ALL prompt tokens (including [GRAPH])
                 labels[:, :prompt_token_len] = -100
 
-                outputs = llm(
-                    inputs_embeds=inputs_embeds,
-                    attention_mask=tokenized_full['attention_mask'],
-                    labels=labels
-                )
-
-                loss = outputs.loss
-                total_loss += loss.item()
-                num_samples += 1
-
                 optimizer.zero_grad()
-                loss.backward()
+                
+                with autocast():
+                    outputs = llm(
+                        inputs_embeds=inputs_embeds,
+                        attention_mask=tokenized_full['attention_mask'],
+                        labels=labels
+                    )
+                    loss = outputs.loss
+                
+                scaler.scale(loss).backward()
                 torch.nn.utils.clip_grad_norm_(
                     list(policy.parameters()) + list(llm.parameters()), max_norm=max_grad_norm
                 )
-                optimizer.step()
+                scaler.step(optimizer)
+                scaler.update()
                 scheduler.step()
                 global_step += 1
+
+                total_loss += loss.item()
+                num_samples += 1
 
                 if writer is not None:
                     writer.add_scalar("Supervised/loss", loss.item(), global_step)
@@ -699,6 +816,8 @@ def main():
                 "optimizer": optimizer.state_dict(),
                 "scheduler": scheduler.state_dict(),
                 "tokenizer": tokenizer,
+                "llm_name": llm_name,
+                "llm_hidden_size": llm_hidden_size,
                 "epoch": epoch+1,
                 "val_reward": val_reward,
                 "phase": "supervised"
@@ -711,7 +830,9 @@ def main():
             "llm": llm.state_dict(),
             "optimizer": optimizer.state_dict(),
             "scheduler": scheduler.state_dict(),
-            "tokenizer": tokenizer
+            "tokenizer": tokenizer,
+            "llm_name": llm_name,
+            "llm_hidden_size": llm_hidden_size
         }, os.path.join(output_dir, f"supervised_checkpoint_epoch_{epoch+1}.pt"))
 
     # --------------------------
@@ -744,16 +865,37 @@ def main():
 
             avg_reward = np.mean([r['reward'] for r in all_rollouts])
             total_reward += avg_reward
+            # #region debug-point D:grpo-update-summary
+            reward_values = [float(r['reward']) for r in all_rollouts]
+            _debug_report(
+                "D",
+                "train_gnn_rl.py:822",
+                "[DEBUG] GRPO update reward summary",
+                {
+                    "epoch": epoch + 1,
+                    "update": num_updates + 1,
+                    "num_rollouts": len(all_rollouts),
+                    "avg_reward": float(avg_reward),
+                    "min_reward": min(reward_values) if reward_values else None,
+                    "max_reward": max(reward_values) if reward_values else None,
+                    "sample_rewards": reward_values[:4],
+                },
+            )
+            # #endregion
 
             print(f"GRPO Epoch {epoch+1}/{num_grpo_epochs}, Update {num_updates + 1}, Avg Reward: {avg_reward:.4f}")
 
             optimizer.zero_grad()
-            loss = compute_grpo_loss(policy, llm, tokenizer, text_model, all_rollouts, device, clip_eps=clip_eps)
-            loss.backward()
+            
+            with autocast():
+                loss = compute_grpo_loss(policy, llm, tokenizer, text_model, all_rollouts, device, clip_eps=clip_eps)
+            
+            scaler.scale(loss).backward()
             torch.nn.utils.clip_grad_norm_(
                 list(policy.parameters()) + list(llm.parameters()), max_norm=max_grad_norm
             )
-            optimizer.step()
+            scaler.step(optimizer)
+            scaler.update()
             scheduler.step()
             global_step += 1
 
@@ -784,6 +926,8 @@ def main():
                 "optimizer": optimizer.state_dict(),
                 "scheduler": scheduler.state_dict(),
                 "tokenizer": tokenizer,
+                "llm_name": llm_name,
+                "llm_hidden_size": llm_hidden_size,
                 "epoch": epoch+1,
                 "val_reward": val_reward,
                 "phase": "grpo"
@@ -799,7 +943,9 @@ def main():
             "llm": llm.state_dict(),
             "optimizer": optimizer.state_dict(),
             "scheduler": scheduler.state_dict(),
-            "tokenizer": tokenizer
+            "tokenizer": tokenizer,
+            "llm_name": llm_name,
+            "llm_hidden_size": llm_hidden_size
         }, os.path.join(output_dir, f"grpo_checkpoint_epoch_{epoch+1}.pt"))
 
     # Final test evaluation with best checkpoint
@@ -821,6 +967,8 @@ def main():
         "optimizer": optimizer.state_dict(),
         "scheduler": scheduler.state_dict(),
         "tokenizer": tokenizer,
+        "llm_name": llm_name,
+        "llm_hidden_size": llm_hidden_size,
         "test_reward": test_reward
     }, os.path.join(output_dir, "final_checkpoint.pt"))
     llm.save_pretrained(output_dir)
