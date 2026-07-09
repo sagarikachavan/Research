@@ -1,0 +1,215 @@
+<svg width="1600" height="860" viewBox="0 0 1600 860" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Phase 2 RL GRPO Corrected Diagram</title>
+  <desc id="desc">Corrected Phase 2 RL GRPO flow matching the current train_gnn_rl.py implementation with minimal layout changes.</desc>
+
+  <rect width="1600" height="860" fill="#f3f4f6"/>
+
+  <style>
+    .title { font: 700 28px Arial, sans-serif; fill: #111827; }
+    .smalltitle { font: 700 20px Arial, sans-serif; fill: #111827; }
+    .tinytitle { font: 700 16px Arial, sans-serif; fill: #111827; }
+    .body { font: 400 14px Arial, sans-serif; fill: #111827; }
+    .small { font: 400 13px Arial, sans-serif; fill: #374151; }
+    .mini { font: 400 12px Arial, sans-serif; fill: #4b5563; }
+    .formula { font: 400 16px 'Courier New', monospace; fill: #111827; }
+    .sidebar { font: 700 14px Arial, sans-serif; fill: #111827; }
+  </style>
+
+  <rect x="130" y="25" width="1360" height="790" rx="14" fill="#efefef" stroke="#5b5b5b" stroke-width="3"/>
+  <rect x="690" y="8" width="220" height="44" rx="10" fill="#f3f4f6" stroke="#5b5b5b" stroke-width="3"/>
+  <text x="800" y="37" text-anchor="middle" class="title">RL GRPO FLOW</text>
+  <text x="800" y="75" text-anchor="middle" class="smalltitle">MODEL TRAINING PIPELINE</text>
+
+  <rect x="20" y="90" width="95" height="645" rx="10" fill="#fafafa" stroke="#808080" stroke-width="2"/>
+  <text x="67" y="125" text-anchor="middle" class="sidebar">SUMMARY</text>
+  <text x="35" y="165" class="sidebar">TRAINING</text>
+  <text x="30" y="187" class="sidebar">SAMPLE</text>
+  <text x="28" y="235" class="sidebar">1. DATA</text>
+  <text x="28" y="257" class="sidebar">INPUT</text>
+  <text x="28" y="305" class="sidebar">2. CONTEXT</text>
+  <text x="28" y="327" class="sidebar">BUILDING</text>
+  <text x="28" y="375" class="sidebar">3. CONTEXT</text>
+  <text x="28" y="397" class="sidebar">INJECTION</text>
+  <text x="28" y="445" class="sidebar">4. PROMPT</text>
+  <text x="28" y="467" class="sidebar">GENERATION</text>
+  <text x="28" y="515" class="sidebar">5. STORE</text>
+  <text x="28" y="537" class="sidebar">OLD LOG-PROB</text>
+  <text x="28" y="585" class="sidebar">6. PARSE +</text>
+  <text x="28" y="607" class="sidebar">REWARD</text>
+  <text x="28" y="655" class="sidebar">7. BATCH</text>
+  <text x="28" y="677" class="sidebar">ADVANTAGE</text>
+
+  <rect x="145" y="105" width="560" height="650" rx="10" fill="#f7f7f7" stroke="#8a8a8a" stroke-width="2"/>
+  <rect x="160" y="120" width="530" height="84" rx="8" fill="#eef6ff" stroke="#93a9c8" stroke-width="2"/>
+  <text x="178" y="147" class="tinytitle">1. DATA INPUT</text>
+  <text x="205" y="179" class="body">Training sample: graph nodes + edges + previous strategy/step/result/MCP + gold next step/MCP</text>
+  <rect x="200" y="157" width="430" height="32" rx="6" fill="#d9e5f3" stroke="#8aa0ba"/>
+  <text x="415" y="178" text-anchor="middle" class="small">Graph | Previous Text Context | Gold Target Answer</text>
+
+  <line x1="425" y1="204" x2="425" y2="225" stroke="#111827" stroke-width="2.5"/>
+  <polygon points="425,233 419,221 431,221" fill="#111827"/>
+
+  <rect x="160" y="225" width="530" height="78" rx="8" fill="#f8fafc" stroke="#c7cdd6" stroke-width="2"/>
+  <text x="178" y="250" class="tinytitle">2. CONTEXT BUILDING</text>
+  <rect x="255" y="252" width="330" height="34" rx="6" fill="#e8eef5" stroke="#a8b1bb"/>
+  <text x="420" y="274" text-anchor="middle" class="small">Previous strategy + explanation + step + result + MCP</text>
+
+  <line x1="425" y1="303" x2="425" y2="324" stroke="#111827" stroke-width="2.5"/>
+  <polygon points="425,332 419,320 431,320" fill="#111827"/>
+
+  <rect x="160" y="324" width="530" height="110" rx="8" fill="#f8fafc" stroke="#c7cdd6" stroke-width="2"/>
+  <text x="178" y="350" class="tinytitle">3. ENCODING</text>
+  <rect x="190" y="364" width="210" height="44" rx="6" fill="#dbeafe" stroke="#8fb3d9"/>
+  <text x="295" y="391" text-anchor="middle" class="body">GNN encoder -> graph vector g</text>
+  <rect x="450" y="364" width="210" height="44" rx="6" fill="#e7f5e8" stroke="#9db79f"/>
+  <text x="555" y="391" text-anchor="middle" class="body">SBERT + projection -> text vector t</text>
+  <line x1="295" y1="409" x2="295" y2="430" stroke="#111827" stroke-width="2.5"/>
+  <line x1="555" y1="409" x2="555" y2="430" stroke="#111827" stroke-width="2.5"/>
+  <line x1="295" y1="430" x2="425" y2="430" stroke="#111827" stroke-width="2.5"/>
+  <line x1="555" y1="430" x2="425" y2="430" stroke="#111827" stroke-width="2.5"/>
+  <line x1="425" y1="430" x2="425" y2="450" stroke="#111827" stroke-width="2.5"/>
+  <polygon points="425,458 419,446 431,446" fill="#111827"/>
+
+  <rect x="300" y="458" width="250" height="48" rx="8" fill="#f4e7d8" stroke="#b99a74"/>
+  <text x="425" y="487" text-anchor="middle" class="body">Combine + project -> policy vector h</text>
+
+  <line x1="425" y1="506" x2="425" y2="527" stroke="#111827" stroke-width="2.5"/>
+  <polygon points="425,535 419,523 431,523" fill="#111827"/>
+
+  <rect x="160" y="535" width="530" height="74" rx="8" fill="#f8fafc" stroke="#c7cdd6" stroke-width="2"/>
+  <text x="178" y="560" class="tinytitle">4. PROMPT INJECTION</text>
+  <rect x="180" y="570" width="460" height="26" rx="6" fill="#ffffff" stroke="#a7a7a7"/>
+  <text x="410" y="588" text-anchor="middle" class="body">[GRAPH] prompt embedding is replaced by h</text>
+
+  <line x1="425" y1="609" x2="425" y2="630" stroke="#111827" stroke-width="2.5"/>
+  <polygon points="425,638 419,626 431,626" fill="#111827"/>
+
+  <rect x="160" y="638" width="530" height="98" rx="8" fill="#f8fafc" stroke="#c7cdd6" stroke-width="2"/>
+  <text x="178" y="664" class="tinytitle">5. STOCHASTIC GENERATION (LLM)</text>
+  <rect x="190" y="678" width="120" height="38" rx="6" fill="#dbeafe" stroke="#8fb3d9"/>
+  <text x="250" y="701" text-anchor="middle" class="body">LLM policy</text>
+  <rect x="350" y="670" width="300" height="54" rx="6" fill="#f5f5f5" stroke="#a7a7a7"/>
+  <text x="500" y="692" text-anchor="middle" class="body">Generate 4 full-text rollouts</text>
+  <text x="500" y="711" text-anchor="middle" class="mini">do_sample=True, T=0.8, p=0.95</text>
+
+  <rect x="730" y="90" width="735" height="665" rx="10" fill="#f7f7f7" stroke="#8a8a8a" stroke-width="2"/>
+  <rect x="755" y="110" width="160" height="64" rx="8" fill="#f5dfcb" stroke="#b9997f" stroke-width="2"/>
+  <text x="835" y="135" text-anchor="middle" class="tinytitle">6. STORE OLD LOG-PROB</text>
+  <text x="835" y="160" text-anchor="middle" class="formula">log p_old(y_j)</text>
+
+  <line x1="915" y1="142" x2="950" y2="142" stroke="#111827" stroke-width="2.5"/>
+  <polygon points="958,142 946,136 946,148" fill="#111827"/>
+
+  <rect x="960" y="110" width="150" height="64" rx="8" fill="#f5dfcb" stroke="#b9997f" stroke-width="2"/>
+  <text x="1035" y="135" text-anchor="middle" class="tinytitle">7. PARSE ANSWERS</text>
+  <text x="1035" y="160" text-anchor="middle" class="body">parse each rollout text</text>
+
+  <line x1="1035" y1="174" x2="1035" y2="210" stroke="#111827" stroke-width="2.5"/>
+  <polygon points="1035,218 1029,206 1041,206" fill="#111827"/>
+
+  <rect x="970" y="218" width="75" height="34" rx="6" fill="#efe4b1" stroke="#aa9f70"/>
+  <text x="1007" y="240" text-anchor="middle" class="small">Strategy</text>
+  <rect x="1055" y="218" width="55" height="34" rx="6" fill="#efe4b1" stroke="#aa9f70"/>
+  <text x="1082" y="240" text-anchor="middle" class="small">Step</text>
+  <rect x="995" y="262" width="95" height="34" rx="6" fill="#efe4b1" stroke="#aa9f70"/>
+  <text x="1042" y="284" text-anchor="middle" class="small">MCP Tasks</text>
+
+  <line x1="1110" y1="142" x2="1140" y2="142" stroke="#111827" stroke-width="2.5"/>
+  <polygon points="1148,142 1136,136 1136,148" fill="#111827"/>
+
+  <rect x="1150" y="105" width="295" height="150" rx="8" fill="#f8fafc" stroke="#a7a7a7" stroke-width="2"/>
+  <text x="1168" y="129" class="tinytitle">8. COMPUTE REWARD</text>
+  <text x="1170" y="153" class="formula">R = 0.2 word_match(step)</text>
+  <text x="1170" y="176" class="formula">  + 0.2 word_match(mcp)</text>
+  <text x="1170" y="199" class="formula">  + 0.3 meaning_match(step)</text>
+  <text x="1170" y="222" class="formula">  + 0.3 meaning_match(mcp)</text>
+  <rect x="1310" y="138" width="120" height="42" rx="6" fill="#ffffff" stroke="#b6b6b6"/>
+  <text x="1370" y="155" text-anchor="middle" class="mini">word match</text>
+  <text x="1370" y="171" text-anchor="middle" class="mini">shared words / max words</text>
+  <rect x="1310" y="186" width="120" height="52" rx="6" fill="#ffffff" stroke="#b6b6b6"/>
+  <text x="1370" y="203" text-anchor="middle" class="mini">meaning match</text>
+  <text x="1370" y="219" text-anchor="middle" class="mini">cosine(SBERT(pred),</text>
+  <text x="1370" y="233" text-anchor="middle" class="mini">SBERT(gold))</text>
+
+  <line x1="835" y1="174" x2="835" y2="225" stroke="#111827" stroke-width="2.5"/>
+  <line x1="835" y1="225" x2="905" y2="225" stroke="#111827" stroke-width="2.5"/>
+  <line x1="1042" y1="296" x2="1042" y2="330" stroke="#111827" stroke-width="2.5"/>
+  <line x1="1042" y1="330" x2="905" y2="330" stroke="#111827" stroke-width="2.5"/>
+  <line x1="1298" y1="255" x2="1298" y2="330" stroke="#111827" stroke-width="2.5"/>
+  <line x1="1298" y1="330" x2="905" y2="330" stroke="#111827" stroke-width="2.5"/>
+  <line x1="905" y1="225" x2="905" y2="330" stroke="#111827" stroke-width="2.5"/>
+  <line x1="905" y1="330" x2="905" y2="352" stroke="#111827" stroke-width="2.5"/>
+  <polygon points="905,360 899,348 911,348" fill="#111827"/>
+
+  <rect x="805" y="360" width="200" height="66" rx="8" fill="#f5dfcb" stroke="#b9997f" stroke-width="2"/>
+  <text x="905" y="388" text-anchor="middle" class="tinytitle">GOLD ANSWER + avgR</text>
+  <text x="905" y="410" text-anchor="middle" class="small">Gold next step / MCP and batch reward stats</text>
+
+  <line x1="1005" y1="393" x2="1070" y2="393" stroke="#111827" stroke-width="2.5"/>
+  <polygon points="1078,393 1066,387 1066,399" fill="#111827"/>
+
+  <rect x="1080" y="335" width="250" height="128" rx="8" fill="#e7f1fb" stroke="#92a9c6" stroke-width="2"/>
+  <text x="1100" y="360" class="tinytitle">9. COMPARE ROLLOUTS / BATCH AVERAGE REWARD</text>
+  <text x="1120" y="388" class="formula">avgR = mean(R_1 ... R_M)</text>
+  <rect x="1125" y="398" width="160" height="48" rx="6" fill="#ffffff" stroke="#a7a7a7"/>
+  <text x="1205" y="418" text-anchor="middle" class="small">ADVANTAGE</text>
+  <text x="1205" y="437" text-anchor="middle" class="formula">A_j = (R_j - avgR) / stdR</text>
+  <text x="1340" y="395" class="small">Positive A_j = better than average</text>
+  <text x="1340" y="423" class="small">Negative A_j = worse</text>
+
+  <rect x="760" y="500" width="690" height="230" rx="10" fill="#f5f5f5" stroke="#c7cdd6" stroke-width="2" stroke-dasharray="6,4"/>
+  <text x="785" y="535" class="smalltitle">UPDATE PHASE</text>
+
+  <rect x="800" y="548" width="205" height="64" rx="8" fill="#efe9c5" stroke="#b6aa74" stroke-width="2"/>
+  <text x="902" y="573" text-anchor="middle" class="tinytitle">10. RECOMPUTE LOG-PROB</text>
+  <text x="902" y="597" text-anchor="middle" class="formula">log p_new(y_j)</text>
+
+  <rect x="820" y="622" width="170" height="46" rx="8" fill="#e6f2dd" stroke="#96af8f" stroke-width="2"/>
+  <text x="905" y="651" text-anchor="middle" class="body">Same generated tokens y_j</text>
+
+  <line x1="1005" y1="580" x2="1060" y2="580" stroke="#111827" stroke-width="2.5"/>
+  <polygon points="1068,580 1056,574 1056,586" fill="#111827"/>
+
+  <rect x="1070" y="548" width="250" height="64" rx="8" fill="#e5f1d7" stroke="#96af8f" stroke-width="2"/>
+  <text x="1195" y="573" text-anchor="middle" class="tinytitle">11. COMPUTE GRPO RATIO</text>
+  <text x="1195" y="598" text-anchor="middle" class="formula">r_j = exp(log p_new - log p_old)</text>
+
+  <line x1="1195" y1="612" x2="1195" y2="636" stroke="#111827" stroke-width="2.5"/>
+  <polygon points="1195,644 1189,632 1201,632" fill="#111827"/>
+
+  <rect x="1035" y="644" width="320" height="72" rx="8" fill="#e5f1d7" stroke="#96af8f" stroke-width="2"/>
+  <text x="1195" y="669" text-anchor="middle" class="tinytitle">12. COMPUTE CLIPPED GRPO LOSS</text>
+  <text x="1195" y="692" text-anchor="middle" class="formula">L = -avg(min(r_j*A_j, clip(r_j)*A_j))</text>
+
+  <text x="1160" y="738" text-anchor="middle" class="smalltitle">Phase 2 strictly uses L_GRPO,</text>
+  <text x="1160" y="762" text-anchor="middle" class="smalltitle">NO EXTRA SUPERVISED LOSS.</text>
+
+  <line x1="1035" y1="680" x2="945" y2="680" stroke="#111827" stroke-width="2.5"/>
+  <polygon points="937,680 949,674 949,686" fill="#111827"/>
+
+  <rect x="770" y="690" width="235" height="46" rx="8" fill="#f5d8d8" stroke="#c89b9b" stroke-width="2"/>
+  <text x="887" y="719" text-anchor="middle" class="body">13. Backpropagation: grad of L_GRPO</text>
+
+  <line x1="1005" y1="713" x2="1070" y2="713" stroke="#111827" stroke-width="2.5"/>
+  <polygon points="1078,713 1066,707 1066,719" fill="#111827"/>
+
+  <rect x="1080" y="690" width="180" height="46" rx="8" fill="#ece7f8" stroke="#aa9fc9" stroke-width="2"/>
+  <text x="1170" y="719" text-anchor="middle" class="body">14. Gradient clip: 1.0</text>
+
+  <line x1="1260" y1="713" x2="1325" y2="713" stroke="#111827" stroke-width="2.5"/>
+  <polygon points="1333,713 1321,707 1321,719" fill="#111827"/>
+
+  <rect x="1335" y="690" width="110" height="46" rx="8" fill="#dff0d8" stroke="#93b18e" stroke-width="2"/>
+  <text x="1390" y="709" text-anchor="middle" class="body">15. Update</text>
+  <text x="1390" y="726" text-anchor="middle" class="mini">AdamW + scheduler</text>
+
+  <line x1="690" y1="687" x2="755" y2="687" stroke="#111827" stroke-width="2.5"/>
+  <polygon points="763,687 751,681 751,693" fill="#111827"/>
+  <text x="560" y="668" class="small">Each rollout y_j is full generated answer text,</text>
+  <text x="560" y="686" class="small">not a separate Step/MCP classifier action.</text>
+
+  <rect x="145" y="770" width="1320" height="45" rx="10" fill="#111827"/>
+  <text x="805" y="799" text-anchor="middle" style="font:700 18px Arial,sans-serif; fill:#ffffff;">
+    Current Phase 2 = graph-conditioned full-text generation -> reward -> normalized advantage -> clipped GRPO loss -> AdamW update
+  </text>
+</svg>

@@ -12,13 +12,11 @@ import numpy as np
 import time
 import urllib.request
 from typing import List, Dict, Any, Optional
-from collections import defaultdict
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
-from torch.cuda.amp import autocast, GradScaler
 try:
     # First try importing tensorboard directly to catch errors
     import tensorboard
@@ -34,6 +32,17 @@ from transformers import (
     get_linear_schedule_with_warmup
 )
 from torch_geometric.nn import GCNConv, GATConv, global_mean_pool
+
+from label_space import (
+    STEP_LABELS,
+    MCP_LABELS,
+    step_label_to_id,
+    raw_mcp_to_multihot,
+    step_id_to_label,
+    multihot_to_mcp_tools,
+    set_f1,
+    classification_reward,
+)
 
 
 def set_seed(seed: int = 42):
@@ -80,6 +89,9 @@ class GNNLLMPolicy(nn.Module):
             nn.Linear(gnn_out_dim * 2, llm_hidden_size),
             nn.ReLU()
         )
+        self.classifier_dropout = nn.Dropout(0.1)
+        self.step_head = nn.Linear(llm_hidden_size, len(STEP_LABELS))
+        self.mcp_head = nn.Linear(llm_hidden_size, len(MCP_LABELS))
 
     def get_graph_embedding(self, nodes, edges, device):
         """
@@ -159,6 +171,10 @@ class GNNLLMPolicy(nn.Module):
         combined = self.combine(torch.cat([graph_emb, step_proj], dim=-1))
         return combined
 
+    def classify(self, pooled_hidden: torch.Tensor):
+        hidden = self.classifier_dropout(pooled_hidden)
+        return self.step_head(hidden), self.mcp_head(hidden)
+
 
 class PenTestDataset(Dataset):
     def __init__(self, data: List[Dict[str, Any]], text_model: SentenceTransformer, max_seq_length=1024):
@@ -166,6 +182,7 @@ class PenTestDataset(Dataset):
         self.text_model = text_model
         self.max_seq_length = max_seq_length
         self.samples = []
+        self.skipped_unknown_step = 0
         self._prepare_samples()
 
     def _prepare_samples(self):
@@ -173,6 +190,9 @@ class PenTestDataset(Dataset):
             nodes = machine['nodes']
             edges = machine['edges']
             for step_pair in machine['step_pairs']:
+                if step_label_to_id(step_pair.get('next_step')) is None:
+                    self.skipped_unknown_step += 1
+                    continue
                 self.samples.append({
                     'nodes': nodes,
                     'edges': edges,
@@ -185,35 +205,17 @@ class PenTestDataset(Dataset):
     def __getitem__(self, idx):
         sample = self.samples[idx]
         step_pair = sample['step_pair']
-        prompt_text = (
-            "[GRAPH]\n"
-            "### Previous Penetration Testing Context ###\n"
-            f"Strategy: {step_pair['previous_strategy']}\n"
-            f"Step: {step_pair['previous_step']}\n"
-            f"Result: {step_pair['previous_step_result']}\n\n"
-            "### Generate Next Step ###\n"
-            "Respond with exactly these five labeled lines and do not repeat the prompt:\n"
-            "Strategy:\n"
-            "Strategy Explanation:\n"
-            "Step:\n"
-            "Step Explanation:\n"
-            "MCP Tasks:"
-        )
-        target_text = (
-            "\nStrategy: " + step_pair['next_strategy'] + "\n"
-            "Strategy Explanation: " + step_pair['next_strategy_explanation'] + "\n"
-            "Step: " + step_pair['next_step'] + "\n"
-            "Step Explanation: " + step_pair['next_step_explanation'] + "\n"
-            "MCP Tasks: " + step_pair['next_mcp_tasks']
-        )
-        full_text = prompt_text + target_text
+        step_id = step_label_to_id(step_pair['next_step'])
+        if step_id is None:
+            raise ValueError(f"Filtered dataset still contains unknown next_step label: {step_pair['next_step']}")
         return {
             'nodes': sample['nodes'],
             'edges': sample['edges'],
-            'prompt_text': prompt_text,
-            'target_text': target_text,
-            'full_text': full_text,
-            'step_pair': step_pair
+            'prompt_text': build_prompt_text(step_pair),
+            'previous_text': build_previous_text(step_pair),
+            'step_pair': step_pair,
+            'step_label': step_id,
+            'mcp_multihot': raw_mcp_to_multihot(step_pair['next_mcp_tasks']),
         }
 
 
@@ -222,6 +224,33 @@ def collate_fn(batch):
     Collate function for PenTestDataset (each sample is variable-length, keep as list)
     """
     return batch
+
+
+def build_previous_text(step_pair: Dict[str, Any]) -> str:
+    parts = [
+        step_pair.get('previous_strategy', ''),
+        step_pair.get('previous_strategy_explanation', ''),
+        step_pair.get('previous_step', ''),
+        step_pair.get('previous_step_explanation', ''),
+        step_pair.get('previous_step_result', ''),
+        step_pair.get('previous_mcp_tasks', ''),
+    ]
+    return " ".join(str(part).strip() for part in parts if str(part).strip())
+
+
+def build_prompt_text(step_pair: Dict[str, Any]) -> str:
+    return (
+        "[GRAPH]\n"
+        "### Previous Penetration Testing Context ###\n"
+        f"Strategy: {step_pair.get('previous_strategy', '')}\n"
+        f"Strategy Explanation: {step_pair.get('previous_strategy_explanation', '')}\n"
+        f"Step: {step_pair.get('previous_step', '')}\n"
+        f"Step Explanation: {step_pair.get('previous_step_explanation', '')}\n"
+        f"Result: {step_pair.get('previous_step_result', '')}\n"
+        f"MCP Tasks: {step_pair.get('previous_mcp_tasks', '')}\n\n"
+        "### Prediction Task ###\n"
+        "Predict the next Step label and the MCP tool labels from the fixed ontology."
+    )
 
 
 def load_processed_data(embeddings_path: str):
@@ -272,205 +301,130 @@ def _debug_report(hypothesis_id: str, location: str, msg: str, data: Dict[str, A
     # #endregion
 
 
-def compute_reward(pred_text: str, true_step: str, true_mcp: str, text_model: SentenceTransformer, step_pair: Dict) -> float:
-    """
-    Improved reward function inspired by PenStrategist:
-    Combines token overlap, semantic similarity, and structured output validity.
-    """
-    reward = 0.0
-    
-    # Parse predicted components
-    _, pred_step, pred_mcp = parse_prediction(pred_text)
-    if not pred_step:
-        pred_step = pred_text
-    if not pred_mcp:
-        pred_mcp = pred_text
-    # #region debug-point A:parsed-reward-inputs
-    _debug_report(
-        "A",
-        "train_gnn_rl.py:278",
-        "[DEBUG] Parsed reward inputs",
-        {
-            "pred_step_empty": not bool(pred_step.strip()),
-            "pred_mcp_empty": not bool(pred_mcp.strip()),
-            "pred_text_prefix": pred_text[:180],
-            "pred_step_prefix": pred_step[:180],
-            "pred_mcp_prefix": pred_mcp[:180],
-            "true_step_prefix": true_step[:180],
-            "true_mcp_prefix": true_mcp[:180],
-        },
+def compute_reward(
+    pred_step_id: int,
+    true_step_id: int,
+    pred_mcp_multihot,
+    true_mcp_multihot,
+    threshold: float = 0.5,
+) -> float:
+    return classification_reward(
+        pred_step_id,
+        true_step_id,
+        pred_mcp_multihot,
+        true_mcp_multihot,
+        threshold=threshold,
     )
-    # #endregion
 
-    # 1. Token overlap for step and MCP (weighted 0.2 each)
-    pred_step_tokens = set(pred_step.lower().split())
-    true_step_tokens = set(true_step.lower().split())
-    if len(pred_step_tokens) > 0 and len(true_step_tokens) > 0:
-        step_overlap = len(pred_step_tokens & true_step_tokens) / max(len(pred_step_tokens), len(true_step_tokens))
-        reward += step_overlap * 0.2
 
-    pred_mcp_tokens = set(pred_mcp.lower().split())
-    true_mcp_tokens = set(true_mcp.lower().split())
-    if len(pred_mcp_tokens) > 0 and len(true_mcp_tokens) > 0:
-        mcp_overlap = len(pred_mcp_tokens & true_mcp_tokens) / max(len(pred_mcp_tokens), len(true_mcp_tokens))
-        reward += mcp_overlap * 0.2
+def predict_mcp_multihot(mcp_logits: torch.Tensor, threshold: float = 0.5) -> np.ndarray:
+    probs = torch.sigmoid(mcp_logits).detach().cpu().numpy()
+    return (probs >= threshold).astype(np.float32)
 
-    # 2. Semantic similarity using Sentence-BERT (weighted 0.3 each)
-    try:
-        step_emb_pred = text_model.encode(pred_step, convert_to_tensor=False)
-        step_emb_true = text_model.encode(true_step, convert_to_tensor=False)
-        step_sem_sim = np.dot(step_emb_pred, step_emb_true) / (np.linalg.norm(step_emb_pred) * np.linalg.norm(step_emb_true) + 1e-8)
-        reward += max(0, step_sem_sim) * 0.3
 
-        mcp_emb_pred = text_model.encode(pred_mcp, convert_to_tensor=False)
-        mcp_emb_true = text_model.encode(true_mcp, convert_to_tensor=False)
-        mcp_sem_sim = np.dot(mcp_emb_pred, mcp_emb_true) / (np.linalg.norm(mcp_emb_pred) * np.linalg.norm(mcp_emb_true) + 1e-8)
-        reward += max(0, mcp_sem_sim) * 0.3
-    except Exception as exc:
-        # #region debug-point C:semantic-similarity-failure
-        _debug_report(
-            "C",
-            "train_gnn_rl.py:311",
-            "[DEBUG] Semantic similarity failed",
-            {"error": repr(exc), "pred_step_prefix": pred_step[:180], "pred_mcp_prefix": pred_mcp[:180]},
-        )
-        # #endregion
-        pass
-
-    # #region debug-point B:reward-summary
-    _debug_report(
-        "B",
-        "train_gnn_rl.py:317",
-        "[DEBUG] Reward computed",
-        {
-            "reward": float(reward),
-            "step_token_overlap": len(pred_step_tokens & true_step_tokens) / max(len(pred_step_tokens), len(true_step_tokens)) if pred_step_tokens and true_step_tokens else 0.0,
-            "mcp_token_overlap": len(pred_mcp_tokens & true_mcp_tokens) / max(len(pred_mcp_tokens), len(true_mcp_tokens)) if pred_mcp_tokens and true_mcp_tokens else 0.0,
-            "pred_step_token_count": len(pred_step_tokens),
-            "pred_mcp_token_count": len(pred_mcp_tokens),
-        },
+def classify_sample(
+    policy,
+    llm,
+    tokenizer,
+    text_model,
+    sample,
+    device,
+    max_seq_length: int = 1024,
+):
+    previous_emb = torch.tensor(
+        text_model.encode([sample['previous_text']], convert_to_numpy=True),
+        dtype=torch.float32,
+        device=device,
     )
-    # #endregion
-    return reward
+    policy_out = policy(sample['nodes'], sample['edges'], previous_emb, device)
+    tokenized_prompt = tokenizer(
+        [sample['prompt_text']],
+        return_tensors='pt',
+        truncation=True,
+        max_length=max_seq_length,
+    ).to(device)
+    inputs_embeds = llm.get_input_embeddings()(tokenized_prompt['input_ids'])
+    inputs_embeds[:, 0, :] = policy_out
+
+    outputs = llm(
+        inputs_embeds=inputs_embeds,
+        attention_mask=tokenized_prompt['attention_mask'],
+        output_hidden_states=True,
+        use_cache=False,
+    )
+    hidden = outputs.hidden_states[-1]
+    mask = tokenized_prompt['attention_mask'].unsqueeze(-1).float()
+    pooled_hidden = (hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp_min(1.0)
+    step_logits, mcp_logits = policy.classify(pooled_hidden)
+    return step_logits, mcp_logits
 
 
-def parse_prediction(pred_text: str):
-    import re
-    strategy = ""
-    step = ""
-    mcp_tasks = ""
-
-    strategy_matches = re.findall(r"Strategy:\s*(.*?)(?=\n(?:Strategy Explanation:|Step:|Step Explanation:|MCP Tasks:)|$)", pred_text, re.DOTALL)
-    if strategy_matches:
-        strategy = " ".join(strategy_matches[-1].split())
-
-    step_matches = re.findall(r"Step:\s*(.*?)(?=\n(?:Step Explanation:|MCP Tasks:)|$)", pred_text, re.DOTALL)
-    if step_matches:
-        step = " ".join(step_matches[-1].split())
-
-    mcp_matches = re.findall(r"MCP Tasks:\s*(.*?)(?=\nMCP Tasks:|$)", pred_text, re.DOTALL)
-    if mcp_matches:
-        mcp_tasks = " ".join(mcp_matches[-1].split())
-
-    placeholder_values = {"<your strategy>", "<why this strategy>", "<what to do>", "<why this step>", "<tools/tasks to use>"}
-    if strategy.lower() in placeholder_values:
-        strategy = ""
-    if step.lower() in placeholder_values:
-        step = ""
-    if mcp_tasks.lower() in placeholder_values:
-        mcp_tasks = ""
-
-    return strategy, step, mcp_tasks
+def compute_supervised_loss_for_sample(
+    policy,
+    llm,
+    tokenizer,
+    text_model,
+    sample,
+    device,
+):
+    step_logits, mcp_logits = classify_sample(
+        policy, llm, tokenizer, text_model, sample, device
+    )
+    step_target = torch.tensor([sample['step_label']], dtype=torch.long, device=device)
+    mcp_target = torch.tensor(sample['mcp_multihot'], dtype=torch.float32, device=device).unsqueeze(0)
+    step_loss = F.cross_entropy(step_logits, step_target)
+    mcp_loss = F.binary_cross_entropy_with_logits(mcp_logits, mcp_target)
+    total_loss = step_loss + mcp_loss
+    return total_loss, step_loss.detach(), mcp_loss.detach()
 
 
 def generate_samples_with_policy(
     policy, llm, tokenizer, text_model, sample, device, num_generations_per_sample=4,
     max_new_tokens=1024, temperature=0.9, top_p=0.95
 ):
-    """
-    Generate multiple completions per sample using current policy, with consistent log prob calculation.
-    """
-    nodes = sample['nodes']
-    edges = sample['edges']
-    step_pair = sample['step_pair']
-    prompt_text = sample['prompt_text']
-    previous_text = (
-        step_pair['previous_strategy'] + " " +
-        step_pair['previous_strategy_explanation'] + " " +
-        step_pair['previous_step'] + " " +
-        step_pair['previous_step_explanation'] + " " +
-        step_pair['previous_step_result'] + " " +
-        step_pair['previous_mcp_tasks']
-    )
-    true_step = step_pair['next_step']
-    true_mcp = step_pair['next_mcp_tasks']
-
+    del max_new_tokens, top_p
     rollouts = []
 
     with torch.no_grad():
-        previous_emb = torch.tensor(text_model.encode([previous_text], convert_to_numpy=True), dtype=torch.float32).to(device)
-        policy_out = policy(nodes, edges, previous_emb, device)
+        step_logits, mcp_logits = classify_sample(
+            policy, llm, tokenizer, text_model, sample, device
+        )
+        step_dist = torch.distributions.Categorical(logits=step_logits.squeeze(0) / max(temperature, 1e-6))
+        mcp_probs = torch.sigmoid(mcp_logits.squeeze(0) / max(temperature, 1e-6)).clamp(1e-6, 1 - 1e-6)
+        true_step_id = int(sample['step_label'])
+        true_mcp_multihot = np.asarray(sample['mcp_multihot'], dtype=np.float32)
 
-        tokenized_prompt = tokenizer([prompt_text], return_tensors='pt', truncation=True, max_length=1024).to(device)
-        inputs_embeds = llm.get_input_embeddings()(tokenized_prompt['input_ids'])
-        inputs_embeds[:, 0, :] = policy_out
-        attention_mask = tokenized_prompt['attention_mask']
-        prompt_len = tokenized_prompt['input_ids'].shape[1]
-
-        effective_max_new_tokens = min(max_new_tokens, 256)
         for _ in range(num_generations_per_sample):
-            outputs = llm.generate(
-                inputs_embeds=inputs_embeds,
-                attention_mask=attention_mask,
-                max_new_tokens=effective_max_new_tokens,
-                temperature=temperature,
-                top_p=top_p,
-                do_sample=True,
-                pad_token_id=tokenizer.eos_token_id,
-                return_dict_in_generate=True,
-                output_scores=True
+            step_action = step_dist.sample()
+            mcp_action = torch.bernoulli(mcp_probs)
+            bernoulli_log_prob = (
+                mcp_action * torch.log(mcp_probs) + (1 - mcp_action) * torch.log(1 - mcp_probs)
+            ).sum()
+            old_log_prob = step_dist.log_prob(step_action) + bernoulli_log_prob
+            reward = compute_reward(
+                int(step_action.item()),
+                true_step_id,
+                mcp_action.cpu().numpy(),
+                true_mcp_multihot,
             )
 
-            gen_text = tokenizer.decode(outputs.sequences[0], skip_special_tokens=True)
-            
-            # When generate() is driven by inputs_embeds, sequences contains only
-            # the generated continuation, so transition_scores already aligns to it.
-            transition_scores = llm.compute_transition_scores(
-                outputs.sequences,
-                outputs.scores,
-                normalize_logits=True
-            )
-            gen_log_probs = transition_scores[0]
-            log_prob = gen_log_probs.sum().item()
-
-            reward = compute_reward(gen_text, true_step, true_mcp, text_model, step_pair)
-            # #region debug-point E:generation-preview
             _debug_report(
                 "E",
-                "train_gnn_rl.py:407",
-                "[DEBUG] Generated rollout sample",
+                "train_gnn_rl.py:classification-rollout",
+                "[DEBUG] Sampled classification rollout",
                 {
-                    "prompt_len": int(prompt_len),
-                    "generated_length": int(outputs.sequences.shape[1]),
-                    "generated_text_prefix": gen_text[:200],
+                    "step_action": step_id_to_label(int(step_action.item())),
+                    "mcp_action": sorted(multihot_to_mcp_tools(mcp_action.cpu().numpy())),
                     "reward": float(reward),
                 },
             )
-            # #endregion
 
             rollouts.append({
-                'nodes': nodes,
-                'edges': edges,
-                'prompt_text': prompt_text,
-                'prompt_input_ids': tokenized_prompt['input_ids'],
-                'previous_text': previous_text,
-                'generated_text': gen_text,
-                'generated_ids': outputs.sequences,
-                'prompt_len': prompt_len,
-                'old_log_prob': log_prob,
-                'reward': reward,
-                'true_step': true_step,
-                'true_mcp': true_mcp
+                'sample': sample,
+                'step_action': int(step_action.item()),
+                'mcp_action': mcp_action.detach().cpu().numpy().astype(np.float32),
+                'old_log_prob': float(old_log_prob.item()),
+                'reward': float(reward),
             })
 
     return rollouts
@@ -479,76 +433,39 @@ def generate_samples_with_policy(
 def compute_grpo_loss(
     policy, llm, tokenizer, text_model, rollouts, device, clip_eps=0.2
 ):
-    """
-    Compute GRPO loss with consistent log probability calculation.
-    """
-    total_loss = 0.0
-    num_valid = 0
-
-    # Compute group statistics for all rollouts in batch
-    rewards = torch.tensor([r['reward'] for r in rollouts], dtype=torch.float32)
+    rewards = torch.tensor([r['reward'] for r in rollouts], dtype=torch.float32, device=device)
     mean_r = rewards.mean()
-    std_r = rewards.std() + 1e-8
+    std_r = rewards.std(unbiased=False) + 1e-8
     advantages = (rewards - mean_r) / std_r
 
+    total_loss = 0.0
     for i, rollout in enumerate(rollouts):
-        nodes = rollout['nodes']
-        edges = rollout['edges']
-        previous_text = rollout['previous_text']
-        prompt_input_ids = rollout['prompt_input_ids']
-        generated_ids = rollout['generated_ids']
-        gen_seq = torch.cat([prompt_input_ids, generated_ids], dim=1)
-        prompt_len = rollout['prompt_len']
-        old_log_prob = rollout['old_log_prob']
-        advantage = advantages[i].item()
+        sample = rollout['sample']
+        step_logits, mcp_logits = classify_sample(
+            policy, llm, tokenizer, text_model, sample, device
+        )
+        step_dist = torch.distributions.Categorical(logits=step_logits.squeeze(0))
+        mcp_probs = torch.sigmoid(mcp_logits.squeeze(0)).clamp(1e-6, 1 - 1e-6)
 
-        previous_emb = torch.tensor(text_model.encode([previous_text], convert_to_numpy=True), dtype=torch.float32).to(device)
-        policy_out = policy(nodes, edges, previous_emb, device)
+        step_action = torch.tensor(rollout['step_action'], dtype=torch.long, device=device)
+        mcp_action = torch.tensor(rollout['mcp_action'], dtype=torch.float32, device=device)
+        bernoulli_log_prob = (
+            mcp_action * torch.log(mcp_probs) + (1 - mcp_action) * torch.log(1 - mcp_probs)
+        ).sum()
+        new_log_prob = step_dist.log_prob(step_action) + bernoulli_log_prob
 
-        inputs_embeds = llm.get_input_embeddings()(gen_seq)
-        inputs_embeds[:, 0, :] = policy_out
-
-        # Forward pass to get logits
-        with autocast():
-            attention_mask = torch.ones_like(gen_seq, device=gen_seq.device)
-            outputs = llm(inputs_embeds=inputs_embeds, attention_mask=attention_mask)
-            logits = outputs.logits
-
-            # Shift logits and labels (shift_logits[i] predicts shift_labels[i])
-            shift_logits = logits[:, :-1, :].contiguous()
-            shift_labels = gen_seq[:, 1:].contiguous()
-
-            # Calculate log probs ONLY for generated part (after prompt)
-            log_probs = F.log_softmax(shift_logits, dim=-1)
-            token_log_probs = log_probs.gather(-1, shift_labels.unsqueeze(-1)).squeeze(-1)
-            
-            # Mask everything before prompt_len - 1 (since shift_labels starts at pos 1)
-            mask = torch.ones_like(token_log_probs, dtype=torch.bool)
-            mask[:, :prompt_len - 1] = False
-            
-            # Compute new log prob as sum of masked log probs
-            masked_log_probs = token_log_probs * mask.float()
-            new_log_prob = masked_log_probs.sum()
-        
-        # Compute policy ratio
-        ratio = torch.exp(new_log_prob - old_log_prob)
+        ratio = torch.exp(new_log_prob - rollout['old_log_prob'])
         clipped_ratio = torch.clamp(ratio, 1 - clip_eps, 1 + clip_eps)
-        surr1 = ratio * advantage
-        surr2 = clipped_ratio * advantage
-        policy_loss = -torch.min(surr1, surr2)
+        advantage = advantages[i]
+        total_loss = total_loss + (-torch.min(ratio * advantage, clipped_ratio * advantage))
 
-        total_loss += policy_loss
-        num_valid += 1
-
-    if num_valid == 0:
-        return torch.tensor(0.0, device=device, requires_grad=True)
-    return total_loss / num_valid
+    return total_loss / max(len(rollouts), 1)
 
 
 def evaluate_on_dataset(
     dataset, policy, llm, tokenizer, text_model, device, num_samples: Optional[int] = None
 ):
-    """Evaluate model on given dataset, compute average reward."""
+    """Evaluate label-only Step/MCP reward on a dataset."""
     policy.eval()
     llm.eval()
     total_reward = 0.0
@@ -561,37 +478,17 @@ def evaluate_on_dataset(
     with torch.no_grad():
         for idx in eval_indices:
             sample = dataset[idx]
-            step_pair = sample['step_pair']
-            previous_text = (
-                step_pair['previous_strategy'] + " " +
-                step_pair['previous_strategy_explanation'] + " " +
-                step_pair['previous_step'] + " " +
-                step_pair['previous_step_explanation'] + " " +
-                step_pair['previous_step_result'] + " " +
-                step_pair['previous_mcp_tasks']
+            step_logits, mcp_logits = classify_sample(
+                policy, llm, tokenizer, text_model, sample, device
             )
-            true_step = step_pair['next_step']
-            true_mcp = step_pair['next_mcp_tasks']
-
-            previous_emb = torch.tensor(text_model.encode([previous_text], convert_to_numpy=True), dtype=torch.float32).to(device)
-            policy_out = policy(sample['nodes'], sample['edges'], previous_emb, device)
-
-            prompt_text = sample['prompt_text']
-            tokenized_prompt = tokenizer([prompt_text], return_tensors='pt').to(device)
-            inputs_embeds = llm.get_input_embeddings()(tokenized_prompt['input_ids'])
-            inputs_embeds[:, 0, :] = policy_out
-
-            output_ids = llm.generate(
-                inputs_embeds=inputs_embeds,
-                attention_mask=tokenized_prompt['attention_mask'],
-                max_new_tokens=min(256, llm.config.n_positions - tokenized_prompt['input_ids'].shape[1]),
-                temperature=0.7,
-                top_p=0.95,
-                do_sample=True,
-                pad_token_id=tokenizer.eos_token_id
+            pred_step_id = int(step_logits.argmax(dim=-1).item())
+            pred_mcp = predict_mcp_multihot(mcp_logits.squeeze(0))
+            reward = compute_reward(
+                pred_step_id,
+                int(sample['step_label']),
+                pred_mcp,
+                sample['mcp_multihot'],
             )
-            pred_text = tokenizer.decode(output_ids[0], skip_special_tokens=True)
-            reward = compute_reward(pred_text, true_step, true_mcp, text_model, step_pair)
             total_reward += reward
             num_evals += 1
 
@@ -669,6 +566,13 @@ def main():
     train_dataset = PenTestDataset(train_data, text_model, max_seq_length=max_seq_length)
     val_dataset = PenTestDataset(val_data, text_model, max_seq_length=max_seq_length)
     test_dataset = PenTestDataset(test_data, text_model, max_seq_length=max_seq_length)
+    if train_dataset.skipped_unknown_step or val_dataset.skipped_unknown_step or test_dataset.skipped_unknown_step:
+        print(
+            "Skipped samples with unknown Step labels: "
+            f"train={train_dataset.skipped_unknown_step}, "
+            f"val={val_dataset.skipped_unknown_step}, "
+            f"test={test_dataset.skipped_unknown_step}"
+        )
     
     train_loader = DataLoader(
         train_dataset, 
@@ -676,13 +580,6 @@ def main():
         shuffle=True, 
         collate_fn=collate_fn
     )
-    val_loader = DataLoader(
-        val_dataset, 
-        batch_size=1, 
-        shuffle=False, 
-        collate_fn=collate_fn
-    )
-
     print(f"Train size: {len(train_dataset)}, Val size: {len(val_dataset)}, Test size: {len(test_dataset)}")
     learning_rate = config['training']['learning_rate']
     weight_decay = config['training']['weight_decay']
@@ -710,7 +607,8 @@ def main():
     scheduler = get_linear_schedule_with_warmup(
         optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=total_steps
     )
-    scaler = GradScaler()
+    amp_enabled = device.type == "cuda"
+    scaler = torch.amp.GradScaler(device.type, enabled=amp_enabled)
 
     # Training
     global_step = 0
@@ -728,57 +626,19 @@ def main():
 
     for epoch in range(num_supervised_epochs):
         total_loss = 0.0
+        total_step_loss = 0.0
+        total_mcp_loss = 0.0
         num_samples = 0
 
-        for batch_idx, batch_samples in enumerate(train_loader):
-            # Still process each sample individually since variable-length, but use loader for shuffle
+        for batch_samples in train_loader:
             for sample in batch_samples:
-                full_text = sample['full_text']
-                prompt_text = sample['prompt_text']
-                step_pair = sample['step_pair']
-                previous_text = (
-                    step_pair['previous_strategy'] + " " +
-                    step_pair['previous_strategy_explanation'] + " " +
-                    step_pair['previous_step'] + " " +
-                    step_pair['previous_step_explanation'] + " " +
-                    step_pair['previous_step_result'] + " " +
-                    step_pair['previous_mcp_tasks']
-                )
-
-                tokenized_full = tokenizer(
-                    [full_text],
-                    return_tensors='pt',
-                    padding=True,
-                    truncation=True,
-                    max_length=1024
-                ).to(device)
-
-                tokenized_prompt = tokenizer(
-                    [prompt_text],
-                    return_tensors='pt'
-                ).to(device)
-                prompt_token_len = tokenized_prompt['input_ids'].shape[1]
-
-                previous_emb = torch.tensor(text_model.encode([previous_text], convert_to_numpy=True), dtype=torch.float32).to(device)
-                policy_out = policy(sample['nodes'], sample['edges'], previous_emb, device)
-
-                inputs_embeds = llm.get_input_embeddings()(tokenized_full['input_ids'])
-                inputs_embeds[:, 0, :] = policy_out
-
-                labels = tokenized_full['input_ids'].clone()
-                # Mask ALL prompt tokens (including [GRAPH])
-                labels[:, :prompt_token_len] = -100
-
                 optimizer.zero_grad()
-                
-                with autocast():
-                    outputs = llm(
-                        inputs_embeds=inputs_embeds,
-                        attention_mask=tokenized_full['attention_mask'],
-                        labels=labels
+
+                with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
+                    loss, step_loss, mcp_loss = compute_supervised_loss_for_sample(
+                        policy, llm, tokenizer, text_model, sample, device
                     )
-                    loss = outputs.loss
-                
+
                 scaler.scale(loss).backward()
                 torch.nn.utils.clip_grad_norm_(
                     list(policy.parameters()) + list(llm.parameters()), max_norm=max_grad_norm
@@ -789,22 +649,42 @@ def main():
                 global_step += 1
 
                 total_loss += loss.item()
+                total_step_loss += step_loss.item()
+                total_mcp_loss += mcp_loss.item()
                 num_samples += 1
 
                 if writer is not None:
                     writer.add_scalar("Supervised/loss", loss.item(), global_step)
+                    writer.add_scalar("Supervised/step_loss", step_loss.item(), global_step)
+                    writer.add_scalar("Supervised/mcp_loss", mcp_loss.item(), global_step)
                 if num_samples % 100 == 0:
                     avg_loss = total_loss / num_samples
-                    print(f"Epoch {epoch+1}/{num_supervised_epochs}, Sample {num_samples}/{len(train_dataset)}, Avg Loss: {avg_loss:.4f}")
+                    print(
+                        f"Epoch {epoch+1}/{num_supervised_epochs}, "
+                        f"Sample {num_samples}/{len(train_dataset)}, "
+                        f"Avg Loss: {avg_loss:.4f}, "
+                        f"Step CE: {total_step_loss / num_samples:.4f}, "
+                        f"MCP BCE: {total_mcp_loss / num_samples:.4f}"
+                    )
 
         avg_epoch_loss = total_loss / num_samples
+        avg_epoch_step_loss = total_step_loss / num_samples
+        avg_epoch_mcp_loss = total_mcp_loss / num_samples
         val_reward = evaluate_on_dataset(val_dataset, policy, llm, tokenizer, text_model, device)
 
         if writer is not None:
             writer.add_scalar("Supervised/avg_loss", avg_epoch_loss, epoch+1)
+            writer.add_scalar("Supervised/avg_step_loss", avg_epoch_step_loss, epoch+1)
+            writer.add_scalar("Supervised/avg_mcp_loss", avg_epoch_mcp_loss, epoch+1)
             writer.add_scalar("Supervised/val_reward", val_reward, epoch+1)
 
-        print(f"\nSupervised Epoch {epoch+1} Complete! Avg Loss: {avg_epoch_loss:.4f}, Val Reward: {val_reward:.4f}\n")
+        print(
+            f"\nSupervised Epoch {epoch+1} Complete! "
+            f"Avg Loss: {avg_epoch_loss:.4f}, "
+            f"Step CE: {avg_epoch_step_loss:.4f}, "
+            f"MCP BCE: {avg_epoch_mcp_loss:.4f}, "
+            f"Val Reward: {val_reward:.4f}\n"
+        )
 
         # Early stopping check
         if val_reward > best_val_reward:
@@ -818,6 +698,8 @@ def main():
                 "tokenizer": tokenizer,
                 "llm_name": llm_name,
                 "llm_hidden_size": llm_hidden_size,
+                "step_labels": STEP_LABELS,
+                "mcp_labels": MCP_LABELS,
                 "epoch": epoch+1,
                 "val_reward": val_reward,
                 "phase": "supervised"
@@ -832,7 +714,9 @@ def main():
             "scheduler": scheduler.state_dict(),
             "tokenizer": tokenizer,
             "llm_name": llm_name,
-            "llm_hidden_size": llm_hidden_size
+            "llm_hidden_size": llm_hidden_size,
+            "step_labels": STEP_LABELS,
+            "mcp_labels": MCP_LABELS,
         }, os.path.join(output_dir, f"supervised_checkpoint_epoch_{epoch+1}.pt"))
 
     # --------------------------
@@ -886,10 +770,10 @@ def main():
             print(f"GRPO Epoch {epoch+1}/{num_grpo_epochs}, Update {num_updates + 1}, Avg Reward: {avg_reward:.4f}")
 
             optimizer.zero_grad()
-            
-            with autocast():
+
+            with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
                 loss = compute_grpo_loss(policy, llm, tokenizer, text_model, all_rollouts, device, clip_eps=clip_eps)
-            
+
             scaler.scale(loss).backward()
             torch.nn.utils.clip_grad_norm_(
                 list(policy.parameters()) + list(llm.parameters()), max_norm=max_grad_norm
@@ -928,6 +812,8 @@ def main():
                 "tokenizer": tokenizer,
                 "llm_name": llm_name,
                 "llm_hidden_size": llm_hidden_size,
+                "step_labels": STEP_LABELS,
+                "mcp_labels": MCP_LABELS,
                 "epoch": epoch+1,
                 "val_reward": val_reward,
                 "phase": "grpo"
@@ -945,7 +831,9 @@ def main():
             "scheduler": scheduler.state_dict(),
             "tokenizer": tokenizer,
             "llm_name": llm_name,
-            "llm_hidden_size": llm_hidden_size
+            "llm_hidden_size": llm_hidden_size,
+            "step_labels": STEP_LABELS,
+            "mcp_labels": MCP_LABELS,
         }, os.path.join(output_dir, f"grpo_checkpoint_epoch_{epoch+1}.pt"))
 
     # Final test evaluation with best checkpoint
@@ -969,6 +857,8 @@ def main():
         "tokenizer": tokenizer,
         "llm_name": llm_name,
         "llm_hidden_size": llm_hidden_size,
+        "step_labels": STEP_LABELS,
+        "mcp_labels": MCP_LABELS,
         "test_reward": test_reward
     }, os.path.join(output_dir, "final_checkpoint.pt"))
     llm.save_pretrained(output_dir)
