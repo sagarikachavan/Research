@@ -12,7 +12,9 @@ import torch
 from sentence_transformers import SentenceTransformer
 from tokenizers import Tokenizer
 from tokenizers.models import Model as TokenizersModel
-from transformers import AutoTokenizer, AutoModelForCausalLM, GPT2Tokenizer
+from transformers import AutoTokenizer, AutoModelForCausalLM, GPT2Tokenizer, BitsAndBytesConfig
+
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 
 from label_space import (
     STEP_LABELS,
@@ -72,6 +74,14 @@ def checkpoint_has_label_heads(policy_state_dict):
         "mcp_head.bias",
     }
     return required.issubset(set(policy_state_dict.keys()))
+
+
+def checkpoint_uses_lora(llm_state_dict):
+    return any("lora_" in key for key in llm_state_dict.keys())
+
+
+def llm_name_supports_qwen_kbit(llm_name: str) -> bool:
+    return "qwen" in str(llm_name or "").lower()
 
 
 def find_compatible_checkpoint(checkpoints_dir: str, device):
@@ -144,10 +154,68 @@ def main():
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"
 
-    llm = AutoModelForCausalLM.from_pretrained(checkpoint_llm_name, trust_remote_code=trust_remote_code)
+    torch_dtype_name = str(config.get('model', {}).get('torch_dtype', 'float16')).lower()
+    if torch_dtype_name in {"bf16", "bfloat16"}:
+        torch_dtype = torch.bfloat16
+    elif torch_dtype_name in {"fp16", "float16"}:
+        torch_dtype = torch.float16
+    else:
+        torch_dtype = torch.float32
+
+    llm_state_dict = checkpoint.get("llm", {}) if checkpoint is not None else {}
+    checkpoint_has_lora = checkpoint_uses_lora(llm_state_dict)
+    load_in_4bit = (
+        bool(config.get('model', {}).get('load_in_4bit', False))
+        and llm_name_supports_qwen_kbit(checkpoint_llm_name)
+    )
+    use_lora = (
+        bool(config.get('model', {}).get('use_lora', False))
+        and checkpoint_has_lora
+    )
+
+    if bool(config.get('model', {}).get('load_in_4bit', False)) and not load_in_4bit:
+        print(f"Disabling 4-bit loading for checkpoint backbone `{checkpoint_llm_name}`.")
+    if bool(config.get('model', {}).get('use_lora', False)) and not use_lora:
+        print("Disabling LoRA adapter injection because the checkpoint does not contain LoRA weights.")
+
+    quant_config = None
+    device_map = None
+    if load_in_4bit:
+        compute_dtype = torch.bfloat16 if (device.type == "cuda" and torch.cuda.is_bf16_supported()) else torch.float16
+        quant_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=compute_dtype,
+        )
+        device_map = "auto"
+
+    llm = AutoModelForCausalLM.from_pretrained(
+        checkpoint_llm_name,
+        trust_remote_code=trust_remote_code,
+        dtype=torch_dtype,
+        low_cpu_mem_usage=True,
+        device_map=device_map,
+        quantization_config=quant_config,
+    )
     llm.resize_token_embeddings(len(tokenizer))
-    llm.to(device)
+    if device_map is None:
+        llm.to(device)
     llm.eval()
+
+    if use_lora:
+        if load_in_4bit:
+            llm = prepare_model_for_kbit_training(llm, use_gradient_checkpointing=True)
+        lora_target_modules = list(config.get('model', {}).get('lora_target_modules', []))
+        lora_config = LoraConfig(
+            r=int(config.get('model', {}).get('lora_r', 16)),
+            lora_alpha=int(config.get('model', {}).get('lora_alpha', 32)),
+            lora_dropout=float(config.get('model', {}).get('lora_dropout', 0.05)),
+            target_modules=lora_target_modules if lora_target_modules else None,
+            bias="none",
+            task_type="CAUSAL_LM",
+        )
+        llm = get_peft_model(llm, lora_config)
 
     policy_hidden_size = llm.config.hidden_size
     if checkpoint is not None:

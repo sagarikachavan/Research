@@ -2,6 +2,21 @@
   "model": {
     "llm_name": "Qwen/Qwen3-14B",
     "trust_remote_code": true,
+    "load_in_4bit": true,
+    "use_lora": true,
+    "lora_r": 16,
+    "lora_alpha": 32,
+    "lora_dropout": 0.05,
+    "lora_target_modules": [
+      "q_proj",
+      "k_proj",
+      "v_proj",
+      "o_proj",
+      "gate_proj",
+      "up_proj",
+      "down_proj"
+    ],
+    "torch_dtype": "bfloat16",
     "text_embedding_model": "all-MiniLM-L6-v2",
     "gnn_hidden_dim": 256,
     "gnn_out_dim": 128,

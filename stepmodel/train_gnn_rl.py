@@ -29,9 +29,12 @@ from sentence_transformers import SentenceTransformer
 from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM,
+    BitsAndBytesConfig,
     get_linear_schedule_with_warmup
 )
 from torch_geometric.nn import GCNConv, GATConv, global_mean_pool
+
+from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
 
 from label_space import (
     STEP_LABELS,
@@ -365,7 +368,7 @@ def classify_sample(
         truncation=True,
         max_length=max_seq_length,
     ).to(device)
-    inputs_embeds = llm.get_input_embeddings()(tokenized_prompt['input_ids'])
+    inputs_embeds = llm.get_input_embeddings()(tokenized_prompt['input_ids']).clone()
     inputs_embeds[:, 0, :] = policy_out
 
     outputs = llm(
@@ -689,11 +692,57 @@ def main():
     num_added_toks = tokenizer.add_special_tokens(special_tokens_dict)
     print(f"Added {num_added_toks} special tokens")
 
-    llm = AutoModelForCausalLM.from_pretrained(llm_name, trust_remote_code=trust_remote_code)
+    torch_dtype_name = str(config.get('model', {}).get('torch_dtype', 'float16')).lower()
+    if torch_dtype_name in {"bf16", "bfloat16"}:
+        torch_dtype = torch.bfloat16
+    elif torch_dtype_name in {"fp16", "float16"}:
+        torch_dtype = torch.float16
+    else:
+        torch_dtype = torch.float32
+
+    load_in_4bit = bool(config.get('model', {}).get('load_in_4bit', False))
+    use_lora = bool(config.get('model', {}).get('use_lora', False))
+
+    quant_config = None
+    device_map = None
+    if load_in_4bit:
+        compute_dtype = torch.bfloat16 if (device.type == "cuda" and torch.cuda.is_bf16_supported()) else torch.float16
+        quant_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=compute_dtype,
+        )
+        device_map = "auto"
+
+    llm = AutoModelForCausalLM.from_pretrained(
+        llm_name,
+        trust_remote_code=trust_remote_code,
+        torch_dtype=torch_dtype,
+        low_cpu_mem_usage=True,
+        device_map=device_map,
+        quantization_config=quant_config,
+    )
     llm.resize_token_embeddings(len(tokenizer))
     llm.gradient_checkpointing_enable()
+    if device_map is None:
+        llm.to(device)
+
+    if use_lora:
+        if load_in_4bit:
+            llm = prepare_model_for_kbit_training(llm, use_gradient_checkpointing=True)
+        lora_target_modules = list(config.get('model', {}).get('lora_target_modules', []))
+        lora_config = LoraConfig(
+            r=int(config.get('model', {}).get('lora_r', 16)),
+            lora_alpha=int(config.get('model', {}).get('lora_alpha', 32)),
+            lora_dropout=float(config.get('model', {}).get('lora_dropout', 0.05)),
+            target_modules=lora_target_modules if lora_target_modules else None,
+            bias="none",
+            task_type="CAUSAL_LM",
+        )
+        llm = get_peft_model(llm, lora_config)
+
     llm_hidden_size = llm.config.hidden_size
-    llm.to(device)
 
     # Initialize policy
     policy = GNNLLMPolicy(
@@ -748,8 +797,9 @@ def main():
     total_steps = total_supervised_steps + total_grpo_steps
 
     # Optimizer and scheduler
+    llm_trainable_params = [p for p in llm.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(
-        list(policy.parameters()) + list(llm.parameters()),
+        list(policy.parameters()) + llm_trainable_params,
         lr=learning_rate,
         weight_decay=weight_decay
     )
@@ -804,7 +854,7 @@ def main():
                 scaler.scale(loss).backward()
                 scaler.unscale_(optimizer)
                 torch.nn.utils.clip_grad_norm_(
-                    list(policy.parameters()) + list(llm.parameters()), max_norm=max_grad_norm
+                    list(policy.parameters()) + llm_trainable_params, max_norm=max_grad_norm
                 )
                 scaler.step(optimizer)
                 scaler.update()
@@ -966,7 +1016,7 @@ def main():
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(
-                list(policy.parameters()) + list(llm.parameters()), max_norm=max_grad_norm
+                list(policy.parameters()) + llm_trainable_params, max_norm=max_grad_norm
             )
             scaler.step(optimizer)
             scaler.update()
