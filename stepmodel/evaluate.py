@@ -179,6 +179,16 @@ def main():
             or infer_llm_name_from_state_dict(checkpoint.get("llm", {}))
             or checkpoint_llm_name
         )
+    checkpoint_pooling_strategy = (
+        checkpoint.get("pooling_strategy")
+        if checkpoint is not None and checkpoint.get("pooling_strategy") is not None
+        else "mean"
+    )
+    checkpoint_prompt_style = (
+        checkpoint.get("prompt_style")
+        if checkpoint is not None and checkpoint.get("prompt_style") is not None
+        else "full"
+    )
 
     trust_remote_code = bool(config.get('model', {}).get('trust_remote_code', False))
 
@@ -278,7 +288,8 @@ def main():
         gnn_out_dim=config['model']['gnn_out_dim'],
         text_emb_dim=text_emb_dim,
         llm_hidden_size=policy_hidden_size,
-        use_gat=config['model']['use_gat']
+        use_gat=config['model']['use_gat'],
+        pooling_strategy=checkpoint_pooling_strategy,
     ).to(device)
 
     if checkpoint is not None:
@@ -295,6 +306,7 @@ def main():
         test_data,
         text_model,
         max_seq_length=config.get('training', {}).get('max_seq_length', 1024),
+        prompt_style=checkpoint_prompt_style,
     )
 
     mcp_threshold = float(checkpoint.get("mcp_threshold", 0.5)) if checkpoint is not None else 0.5

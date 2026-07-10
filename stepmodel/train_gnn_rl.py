@@ -173,8 +173,16 @@ class GNNModel(nn.Module):
 
 
 class GNNLLMPolicy(nn.Module):
-    def __init__(self, gnn_out_dim: int, text_emb_dim: int, llm_hidden_size: int, use_gat: bool = False):
+    def __init__(
+        self,
+        gnn_out_dim: int,
+        text_emb_dim: int,
+        llm_hidden_size: int,
+        use_gat: bool = False,
+        pooling_strategy: str = "mean",
+    ):
         super().__init__()
+        self.pooling_strategy = str(pooling_strategy or "mean").lower()
         self.gnn = GNNModel(node_dim=text_emb_dim, hidden_dim=256, output_dim=gnn_out_dim, use_gat=use_gat)
         self.project_step_text = nn.Sequential(
             nn.Linear(text_emb_dim, 256),
@@ -186,6 +194,16 @@ class GNNLLMPolicy(nn.Module):
             nn.ReLU()
         )
         self.classifier_dropout = nn.Dropout(0.1)
+        if self.pooling_strategy == "hybrid":
+            self.readout_projection = nn.Sequential(
+                nn.LayerNorm(llm_hidden_size * 2),
+                nn.Linear(llm_hidden_size * 2, llm_hidden_size),
+                nn.ReLU(),
+            )
+        elif self.pooling_strategy in {"mean", "first"}:
+            self.readout_projection = nn.Identity()
+        else:
+            raise ValueError(f"Unsupported pooling_strategy: {pooling_strategy}")
         self.step_head = nn.Linear(llm_hidden_size, len(STEP_LABELS))
         self.mcp_head = nn.Linear(llm_hidden_size, len(MCP_LABELS))
 
@@ -267,16 +285,36 @@ class GNNLLMPolicy(nn.Module):
         combined = self.combine(torch.cat([graph_emb, step_proj], dim=-1))
         return combined
 
+    def pool_hidden_states(self, hidden: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
+        mask = attention_mask.unsqueeze(-1).float()
+        mean_hidden = (hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp_min(1.0)
+        if self.pooling_strategy == "mean":
+            return mean_hidden
+
+        first_hidden = hidden[:, 0, :]
+        if self.pooling_strategy == "first":
+            return first_hidden
+        if self.pooling_strategy == "hybrid":
+            return self.readout_projection(torch.cat([first_hidden, mean_hidden], dim=-1))
+        raise ValueError(f"Unsupported pooling_strategy: {self.pooling_strategy}")
+
     def classify(self, pooled_hidden: torch.Tensor):
         hidden = self.classifier_dropout(pooled_hidden)
         return self.step_head(hidden), self.mcp_head(hidden)
 
 
 class PenTestDataset(Dataset):
-    def __init__(self, data: List[Dict[str, Any]], text_model: SentenceTransformer, max_seq_length=1024):
+    def __init__(
+        self,
+        data: List[Dict[str, Any]],
+        text_model: SentenceTransformer,
+        max_seq_length=1024,
+        prompt_style: str = "full",
+    ):
         self.data = data
         self.text_model = text_model
         self.max_seq_length = max_seq_length
+        self.prompt_style = str(prompt_style or "full").lower()
         self.samples = []
         self.skipped_unknown_step = 0
         self._prepare_samples()
@@ -307,8 +345,8 @@ class PenTestDataset(Dataset):
         return {
             'nodes': sample['nodes'],
             'edges': sample['edges'],
-            'prompt_text': build_prompt_text(step_pair),
-            'previous_text': build_previous_text(step_pair),
+            'prompt_text': build_prompt_text(step_pair, prompt_style=self.prompt_style),
+            'previous_text': build_previous_text(step_pair, prompt_style=self.prompt_style),
             'step_pair': step_pair,
             'step_label': step_id,
             'mcp_multihot': raw_mcp_to_multihot(step_pair['next_mcp_tasks']),
@@ -322,28 +360,40 @@ def collate_fn(batch):
     return batch
 
 
-def build_previous_text(step_pair: Dict[str, Any]) -> str:
-    parts = [
-        step_pair.get('previous_strategy', ''),
-        step_pair.get('previous_strategy_explanation', ''),
-        step_pair.get('previous_step', ''),
-        step_pair.get('previous_step_explanation', ''),
-        step_pair.get('previous_step_result', ''),
-        step_pair.get('previous_mcp_tasks', ''),
+def _prompt_fields(step_pair: Dict[str, Any], prompt_style: str = "full"):
+    prompt_style = str(prompt_style or "full").lower()
+    if prompt_style == "compact":
+        return [
+            ("Strategy", step_pair.get('previous_strategy', '')),
+            ("Step", step_pair.get('previous_step', '')),
+            ("Result", step_pair.get('previous_step_result', '')),
+            ("MCP Tasks", step_pair.get('previous_mcp_tasks', '')),
+        ]
+
+    return [
+        ("Strategy", step_pair.get('previous_strategy', '')),
+        ("Strategy Explanation", step_pair.get('previous_strategy_explanation', '')),
+        ("Step", step_pair.get('previous_step', '')),
+        ("Step Explanation", step_pair.get('previous_step_explanation', '')),
+        ("Result", step_pair.get('previous_step_result', '')),
+        ("MCP Tasks", step_pair.get('previous_mcp_tasks', '')),
     ]
+
+
+def build_previous_text(step_pair: Dict[str, Any], prompt_style: str = "full") -> str:
+    parts = [value for _, value in _prompt_fields(step_pair, prompt_style=prompt_style)]
     return " ".join(str(part).strip() for part in parts if str(part).strip())
 
 
-def build_prompt_text(step_pair: Dict[str, Any]) -> str:
+def build_prompt_text(step_pair: Dict[str, Any], prompt_style: str = "full") -> str:
+    context_lines = "\n".join(
+        f"{label}: {value}"
+        for label, value in _prompt_fields(step_pair, prompt_style=prompt_style)
+    )
     return (
         "[GRAPH]\n"
         "### Previous Penetration Testing Context ###\n"
-        f"Strategy: {step_pair.get('previous_strategy', '')}\n"
-        f"Strategy Explanation: {step_pair.get('previous_strategy_explanation', '')}\n"
-        f"Step: {step_pair.get('previous_step', '')}\n"
-        f"Step Explanation: {step_pair.get('previous_step_explanation', '')}\n"
-        f"Result: {step_pair.get('previous_step_result', '')}\n"
-        f"MCP Tasks: {step_pair.get('previous_mcp_tasks', '')}\n\n"
+        f"{context_lines}\n\n"
         "### Prediction Task ###\n"
         "Predict the next Step label and the MCP tool labels from the fixed ontology."
     )
@@ -438,6 +488,41 @@ def predict_mcp_multihot(mcp_logits: torch.Tensor, threshold: float = 0.5) -> np
     return (probs >= threshold).astype(np.float32)
 
 
+def compute_step_class_weights(
+    dataset,
+    power: float = 0.5,
+    max_weight: float = 4.0,
+) -> torch.Tensor:
+    counts = torch.zeros(len(STEP_LABELS), dtype=torch.float32)
+    for sample in dataset.samples:
+        step_id = step_label_to_id(sample['step_pair'].get('next_step'))
+        if step_id is not None:
+            counts[step_id] += 1.0
+
+    nonzero = counts > 0
+    weights = torch.ones_like(counts)
+    if nonzero.any():
+        reference = counts[nonzero].mean()
+        weights[nonzero] = torch.pow(reference / counts[nonzero], float(power))
+        weights[nonzero] = torch.clamp(weights[nonzero], min=1.0 / max_weight, max=max_weight)
+        weights[nonzero] = weights[nonzero] / weights[nonzero].mean().clamp_min(1e-8)
+    weights[~nonzero] = 0.0
+    return weights
+
+
+def compute_selection_score(
+    metrics: Dict[str, float],
+    step_weight: float = 0.75,
+    mcp_weight: float = 0.25,
+    both_exact_weight: float = 0.0,
+) -> float:
+    return (
+        float(step_weight) * float(metrics["step_acc"])
+        + float(mcp_weight) * float(metrics["mcp_f1"])
+        + float(both_exact_weight) * float(metrics["both_exact"])
+    )
+
+
 def classify_sample(
     policy,
     llm,
@@ -471,8 +556,7 @@ def classify_sample(
         use_cache=False,
     )
     hidden = _ensure_finite_tensor(outputs.hidden_states[-1], "llm_hidden")
-    mask = tokenized_prompt['attention_mask'].unsqueeze(-1).float()
-    pooled_hidden = (hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp_min(1.0)
+    pooled_hidden = policy.pool_hidden_states(hidden, tokenized_prompt['attention_mask'])
     pooled_hidden = _ensure_finite_tensor(pooled_hidden, "pooled_hidden")
     step_logits, mcp_logits = policy.classify(pooled_hidden)
     return _ensure_finite_tensor(step_logits, "step_logits"), _ensure_finite_tensor(mcp_logits, "mcp_logits")
@@ -487,13 +571,14 @@ def compute_supervised_loss_for_sample(
     device,
     step_loss_weight: float = 1.0,
     mcp_loss_weight: float = 1.5,
+    step_class_weights: Optional[torch.Tensor] = None,
 ):
     step_logits, mcp_logits = classify_sample(
         policy, llm, tokenizer, text_model, sample, device
     )
     step_target = torch.tensor([sample['step_label']], dtype=torch.long, device=device)
     mcp_target = torch.tensor(sample['mcp_multihot'], dtype=torch.float32, device=device).unsqueeze(0)
-    step_loss = F.cross_entropy(step_logits, step_target)
+    step_loss = F.cross_entropy(step_logits, step_target, weight=step_class_weights)
     mcp_loss = F.binary_cross_entropy_with_logits(mcp_logits, mcp_target)
     total_loss = step_loss_weight * step_loss + mcp_loss_weight * mcp_loss
     return total_loss, step_loss.detach(), mcp_loss.detach()
@@ -628,6 +713,9 @@ def evaluate_metrics_on_dataset(
     device,
     threshold: float = 0.5,
     num_samples: Optional[int] = None,
+    selection_step_weight: float = 0.75,
+    selection_mcp_weight: float = 0.25,
+    selection_both_exact_weight: float = 0.0,
 ):
     """CNN-style exact Step accuracy + multi-label MCP metrics."""
     policy.eval()
@@ -716,22 +804,56 @@ def evaluate_metrics_on_dataset(
         "both_exact": both_exact,
         "mcp_micro_f1": mcp_micro_f1,
         "combined_score": step_acc + mcp_f1,
+        "selection_score": compute_selection_score(
+            {
+                "step_acc": step_acc,
+                "mcp_f1": mcp_f1,
+                "both_exact": both_exact,
+            },
+            step_weight=selection_step_weight,
+            mcp_weight=selection_mcp_weight,
+            both_exact_weight=selection_both_exact_weight,
+        ),
         "threshold": threshold,
     }
 
 
-def find_best_mcp_threshold(dataset, policy, llm, tokenizer, text_model, device):
+def find_best_mcp_threshold(
+    dataset,
+    policy,
+    llm,
+    tokenizer,
+    text_model,
+    device,
+    selection_step_weight: float = 0.75,
+    selection_mcp_weight: float = 0.25,
+    selection_both_exact_weight: float = 0.0,
+):
     candidate_thresholds = [round(x, 2) for x in np.arange(0.10, 0.91, 0.05)]
     best_metrics = None
     for threshold in candidate_thresholds:
         metrics = evaluate_metrics_on_dataset(
-            dataset, policy, llm, tokenizer, text_model, device, threshold=threshold
+            dataset,
+            policy,
+            llm,
+            tokenizer,
+            text_model,
+            device,
+            threshold=threshold,
+            selection_step_weight=selection_step_weight,
+            selection_mcp_weight=selection_mcp_weight,
+            selection_both_exact_weight=selection_both_exact_weight,
         )
         if (
             best_metrics is None
-            or metrics["combined_score"] > best_metrics["combined_score"]
+            or metrics["selection_score"] > best_metrics["selection_score"]
             or (
-                metrics["combined_score"] == best_metrics["combined_score"]
+                metrics["selection_score"] == best_metrics["selection_score"]
+                and metrics["step_acc"] > best_metrics["step_acc"]
+            )
+            or (
+                metrics["selection_score"] == best_metrics["selection_score"]
+                and metrics["step_acc"] == best_metrics["step_acc"]
                 and metrics["mcp_exact"] > best_metrics["mcp_exact"]
             )
         ):
@@ -849,13 +971,16 @@ def main():
         llm = get_peft_model(llm, lora_config)
 
     llm_hidden_size = llm.config.hidden_size
+    pooling_strategy = str(config.get('model', {}).get('pooling_strategy', 'hybrid')).lower()
+    prompt_style = str(config.get('training', {}).get('prompt_style', 'compact')).lower()
 
     # Initialize policy
     policy = GNNLLMPolicy(
         gnn_out_dim=config['model']['gnn_out_dim'],
         text_emb_dim=text_emb_dim,
         llm_hidden_size=llm_hidden_size,
-        use_gat=config['model']['use_gat']
+        use_gat=config['model']['use_gat'],
+        pooling_strategy=pooling_strategy,
     ).to(device)
 
     # Training setup first (define batch_size before creating loader)
@@ -865,9 +990,9 @@ def main():
     
     # Create datasets and dataloaders
     max_seq_length = config.get('training', {}).get('max_seq_length', 1024)
-    train_dataset = PenTestDataset(train_data, text_model, max_seq_length=max_seq_length)
-    val_dataset = PenTestDataset(val_data, text_model, max_seq_length=max_seq_length)
-    test_dataset = PenTestDataset(test_data, text_model, max_seq_length=max_seq_length)
+    train_dataset = PenTestDataset(train_data, text_model, max_seq_length=max_seq_length, prompt_style=prompt_style)
+    val_dataset = PenTestDataset(val_data, text_model, max_seq_length=max_seq_length, prompt_style=prompt_style)
+    test_dataset = PenTestDataset(test_data, text_model, max_seq_length=max_seq_length, prompt_style=prompt_style)
     if train_dataset.skipped_unknown_step or val_dataset.skipped_unknown_step or test_dataset.skipped_unknown_step:
         print(
             "Skipped samples with unknown Step labels: "
@@ -893,8 +1018,22 @@ def main():
     generate_temperature = config['training']['generate_temperature']
     generate_top_p = config['training']['generate_top_p']
     patience = config['training']['patience']
-    step_loss_weight = config['training'].get('step_loss_weight', 1.0)
+    step_loss_weight = config['training'].get('step_loss_weight', 1.5)
     mcp_loss_weight = config['training'].get('mcp_loss_weight', 1.5)
+    step_class_weighting = bool(config['training'].get('step_class_weighting', True))
+    step_class_weight_power = float(config['training'].get('step_class_weight_power', 0.5))
+    max_step_class_weight = float(config['training'].get('max_step_class_weight', 4.0))
+    selection_step_weight = float(config['training'].get('selection_step_weight', 0.75))
+    selection_mcp_weight = float(config['training'].get('selection_mcp_weight', 0.25))
+    selection_both_exact_weight = float(config['training'].get('selection_both_exact_weight', 0.0))
+    step_class_weights = None
+    if step_class_weighting:
+        step_class_weights = compute_step_class_weights(
+            train_dataset,
+            power=step_class_weight_power,
+            max_weight=max_step_class_weight,
+        ).to(device)
+        print(f"Using Step class weights: {step_class_weights.detach().cpu().tolist()}")
 
     # Fix total steps calculation: both phases use batch steps (Phase1 uses batch_size=1 effectively for now)
     supervised_updates_per_epoch = len(train_loader)
@@ -946,6 +1085,7 @@ def main():
                         policy, llm, tokenizer, text_model, sample, device,
                         step_loss_weight=step_loss_weight,
                         mcp_loss_weight=mcp_loss_weight,
+                        step_class_weights=step_class_weights,
                     )
                 if not torch.isfinite(loss):
                     _debug_report(
@@ -989,7 +1129,17 @@ def main():
         avg_epoch_loss = total_loss / num_samples
         avg_epoch_step_loss = total_step_loss / num_samples
         avg_epoch_mcp_loss = total_mcp_loss / num_samples
-        val_metrics = find_best_mcp_threshold(val_dataset, policy, llm, tokenizer, text_model, device)
+        val_metrics = find_best_mcp_threshold(
+            val_dataset,
+            policy,
+            llm,
+            tokenizer,
+            text_model,
+            device,
+            selection_step_weight=selection_step_weight,
+            selection_mcp_weight=selection_mcp_weight,
+            selection_both_exact_weight=selection_both_exact_weight,
+        )
         val_reward = val_metrics["avg_reward"]
 
         if writer is not None:
@@ -1001,6 +1151,7 @@ def main():
             writer.add_scalar("Supervised/val_mcp_f1", val_metrics["mcp_f1"], epoch+1)
             writer.add_scalar("Supervised/val_mcp_exact", val_metrics["mcp_exact"], epoch+1)
             writer.add_scalar("Supervised/val_combined_score", val_metrics["combined_score"], epoch+1)
+            writer.add_scalar("Supervised/val_selection_score", val_metrics["selection_score"], epoch+1)
 
         print(
             f"\nSupervised Epoch {epoch+1} Complete! "
@@ -1012,12 +1163,13 @@ def main():
             f"Val Step Acc: {val_metrics['step_acc']:.4f}, "
             f"Val MCP F1: {val_metrics['mcp_f1']:.4f}, "
             f"Val MCP Exact: {val_metrics['mcp_exact']:.4f}, "
+            f"Selection Score: {val_metrics['selection_score']:.4f}, "
             f"Best Thr: {val_metrics['threshold']:.2f}\n"
         )
 
         # Early stopping check
-        if val_metrics["combined_score"] > best_val_combined:
-            best_val_combined = val_metrics["combined_score"]
+        if val_metrics["selection_score"] > best_val_combined:
+            best_val_combined = val_metrics["selection_score"]
             best_val_reward = val_reward
             best_mcp_threshold = val_metrics["threshold"]
             patience_counter = 0
@@ -1036,8 +1188,11 @@ def main():
                         "val_mcp_f1": val_metrics["mcp_f1"],
                         "val_mcp_exact": val_metrics["mcp_exact"],
                         "val_combined_score": val_metrics["combined_score"],
+                        "val_selection_score": val_metrics["selection_score"],
                         "mcp_threshold": val_metrics["threshold"],
                         "phase": "supervised",
+                        "pooling_strategy": pooling_strategy,
+                        "prompt_style": prompt_style,
                     },
                 ),
                 os.path.join(output_dir, "best_supervised_checkpoint.pt"),
@@ -1053,6 +1208,10 @@ def main():
                 llm_hidden_size,
                 optimizer=optimizer,
                 scheduler=scheduler,
+                extra={
+                    "pooling_strategy": pooling_strategy,
+                    "prompt_style": prompt_style,
+                },
             ),
             os.path.join(output_dir, f"supervised_checkpoint_epoch_{epoch+1}.pt"),
         )
@@ -1140,7 +1299,17 @@ def main():
 
         avg_epoch_loss = total_loss / max(num_updates, 1)
         avg_epoch_reward = total_reward / max(num_updates, 1)
-        val_metrics = find_best_mcp_threshold(val_dataset, policy, llm, tokenizer, text_model, device)
+        val_metrics = find_best_mcp_threshold(
+            val_dataset,
+            policy,
+            llm,
+            tokenizer,
+            text_model,
+            device,
+            selection_step_weight=selection_step_weight,
+            selection_mcp_weight=selection_mcp_weight,
+            selection_both_exact_weight=selection_both_exact_weight,
+        )
         val_reward = val_metrics["avg_reward"]
 
         if writer is not None:
@@ -1150,6 +1319,7 @@ def main():
             writer.add_scalar("GRPO/val_mcp_f1", val_metrics["mcp_f1"], epoch+1)
             writer.add_scalar("GRPO/val_mcp_exact", val_metrics["mcp_exact"], epoch+1)
             writer.add_scalar("GRPO/val_combined_score", val_metrics["combined_score"], epoch+1)
+            writer.add_scalar("GRPO/val_selection_score", val_metrics["selection_score"], epoch+1)
 
         print(f"\nGRPO Epoch {epoch+1} Complete!")
         print(
@@ -1159,11 +1329,12 @@ def main():
             f"Val Step Acc: {val_metrics['step_acc']:.4f}, "
             f"Val MCP F1: {val_metrics['mcp_f1']:.4f}, "
             f"Val MCP Exact: {val_metrics['mcp_exact']:.4f}, "
+            f"Selection Score: {val_metrics['selection_score']:.4f}, "
             f"Best Thr: {val_metrics['threshold']:.2f}\n"
         )
 
-        if val_metrics["combined_score"] > best_val_combined:
-            best_val_combined = val_metrics["combined_score"]
+        if val_metrics["selection_score"] > best_val_combined:
+            best_val_combined = val_metrics["selection_score"]
             best_val_reward = val_reward
             best_mcp_threshold = val_metrics["threshold"]
             patience_counter = 0
@@ -1182,8 +1353,11 @@ def main():
                         "val_mcp_f1": val_metrics["mcp_f1"],
                         "val_mcp_exact": val_metrics["mcp_exact"],
                         "val_combined_score": val_metrics["combined_score"],
+                        "val_selection_score": val_metrics["selection_score"],
                         "mcp_threshold": val_metrics["threshold"],
                         "phase": "grpo",
+                        "pooling_strategy": pooling_strategy,
+                        "prompt_style": prompt_style,
                     },
                 ),
                 os.path.join(output_dir, "best_checkpoint.pt"),
@@ -1202,6 +1376,10 @@ def main():
                 llm_hidden_size,
                 optimizer=optimizer,
                 scheduler=scheduler,
+                extra={
+                    "pooling_strategy": pooling_strategy,
+                    "prompt_style": prompt_style,
+                },
             ),
             os.path.join(output_dir, f"grpo_checkpoint_epoch_{epoch+1}.pt"),
         )
@@ -1245,6 +1423,8 @@ def main():
                 "test_mcp_f1": test_metrics["mcp_f1"],
                 "test_mcp_exact": test_metrics["mcp_exact"],
                 "mcp_threshold": best_mcp_threshold,
+                "pooling_strategy": pooling_strategy,
+                "prompt_style": prompt_style,
             },
         ),
         os.path.join(output_dir, "final_checkpoint.pt"),
