@@ -301,6 +301,26 @@ def _debug_report(hypothesis_id: str, location: str, msg: str, data: Dict[str, A
     # #endregion
 
 
+def _ensure_finite_tensor(tensor: torch.Tensor, name: str, clip_value: float = 50.0) -> torch.Tensor:
+    """Replace NaN/Inf values so training can continue instead of crashing."""
+    if torch.isfinite(tensor).all():
+        return tensor.clamp(min=-clip_value, max=clip_value)
+
+    non_finite = (~torch.isfinite(tensor)).sum().item()
+    _debug_report(
+        "F",
+        "train_gnn_rl.py:ensure-finite",
+        "[DEBUG] Non-finite tensor sanitized",
+        {
+            "name": name,
+            "shape": list(tensor.shape),
+            "non_finite_count": int(non_finite),
+        },
+    )
+    cleaned = torch.nan_to_num(tensor, nan=0.0, posinf=clip_value, neginf=-clip_value)
+    return cleaned.clamp(min=-clip_value, max=clip_value)
+
+
 def compute_reward(
     pred_step_id: int,
     true_step_id: int,
@@ -336,7 +356,9 @@ def classify_sample(
         dtype=torch.float32,
         device=device,
     )
+    previous_emb = _ensure_finite_tensor(previous_emb, "previous_emb")
     policy_out = policy(sample['nodes'], sample['edges'], previous_emb, device)
+    policy_out = _ensure_finite_tensor(policy_out, "policy_out")
     tokenized_prompt = tokenizer(
         [sample['prompt_text']],
         return_tensors='pt',
@@ -352,11 +374,12 @@ def classify_sample(
         output_hidden_states=True,
         use_cache=False,
     )
-    hidden = outputs.hidden_states[-1]
+    hidden = _ensure_finite_tensor(outputs.hidden_states[-1], "llm_hidden")
     mask = tokenized_prompt['attention_mask'].unsqueeze(-1).float()
     pooled_hidden = (hidden * mask).sum(dim=1) / mask.sum(dim=1).clamp_min(1.0)
+    pooled_hidden = _ensure_finite_tensor(pooled_hidden, "pooled_hidden")
     step_logits, mcp_logits = policy.classify(pooled_hidden)
-    return step_logits, mcp_logits
+    return _ensure_finite_tensor(step_logits, "step_logits"), _ensure_finite_tensor(mcp_logits, "mcp_logits")
 
 
 def compute_supervised_loss_for_sample(
@@ -366,6 +389,8 @@ def compute_supervised_loss_for_sample(
     text_model,
     sample,
     device,
+    step_loss_weight: float = 1.0,
+    mcp_loss_weight: float = 1.5,
 ):
     step_logits, mcp_logits = classify_sample(
         policy, llm, tokenizer, text_model, sample, device
@@ -374,7 +399,7 @@ def compute_supervised_loss_for_sample(
     mcp_target = torch.tensor(sample['mcp_multihot'], dtype=torch.float32, device=device).unsqueeze(0)
     step_loss = F.cross_entropy(step_logits, step_target)
     mcp_loss = F.binary_cross_entropy_with_logits(mcp_logits, mcp_target)
-    total_loss = step_loss + mcp_loss
+    total_loss = step_loss_weight * step_loss + mcp_loss_weight * mcp_loss
     return total_loss, step_loss.detach(), mcp_loss.detach()
 
 
@@ -498,6 +523,126 @@ def evaluate_on_dataset(
     return avg_reward
 
 
+def evaluate_metrics_on_dataset(
+    dataset,
+    policy,
+    llm,
+    tokenizer,
+    text_model,
+    device,
+    threshold: float = 0.5,
+    num_samples: Optional[int] = None,
+):
+    """CNN-style exact Step accuracy + multi-label MCP metrics."""
+    policy.eval()
+    llm.eval()
+
+    total_reward = 0.0
+    total_step_correct = 0
+    total_mcp_exact = 0
+    total_mcp_f1 = 0.0
+    total_mcp_prec = 0.0
+    total_mcp_rec = 0.0
+    total_both_exact = 0
+    mcp_tp = 0
+    mcp_fp = 0
+    mcp_fn = 0
+    num_evals = 0
+
+    eval_indices = list(range(len(dataset)))
+    if num_samples is not None:
+        eval_indices = eval_indices[:num_samples]
+
+    with torch.no_grad():
+        for idx in eval_indices:
+            sample = dataset[idx]
+            step_logits, mcp_logits = classify_sample(
+                policy, llm, tokenizer, text_model, sample, device
+            )
+            pred_step_id = int(step_logits.argmax(dim=-1).item())
+            pred_mcp = predict_mcp_multihot(mcp_logits.squeeze(0), threshold=threshold)
+            true_mcp = np.asarray(sample['mcp_multihot'], dtype=np.float32)
+
+            reward = compute_reward(
+                pred_step_id,
+                int(sample['step_label']),
+                pred_mcp,
+                true_mcp,
+                threshold=threshold,
+            )
+
+            pred_arr = pred_mcp.astype(np.float32)
+            true_arr = true_mcp.astype(np.float32)
+            tp = float((pred_arr * true_arr).sum())
+            fp = float((pred_arr * (1.0 - true_arr)).sum())
+            fn = float(((1.0 - pred_arr) * true_arr).sum())
+
+            precision = tp / (tp + fp + 1e-8)
+            recall = tp / (tp + fn + 1e-8)
+            f1 = 2.0 * precision * recall / (precision + recall + 1e-8)
+
+            step_correct = int(pred_step_id == int(sample['step_label']))
+            mcp_exact = int((pred_arr == true_arr).all())
+
+            total_reward += reward
+            total_step_correct += step_correct
+            total_mcp_exact += mcp_exact
+            total_mcp_f1 += f1
+            total_mcp_prec += precision
+            total_mcp_rec += recall
+            total_both_exact += int(step_correct and mcp_exact)
+            mcp_tp += int(tp)
+            mcp_fp += int(fp)
+            mcp_fn += int(fn)
+            num_evals += 1
+
+    avg_reward = total_reward / max(num_evals, 1)
+    step_acc = total_step_correct / max(num_evals, 1)
+    mcp_exact = total_mcp_exact / max(num_evals, 1)
+    mcp_f1 = total_mcp_f1 / max(num_evals, 1)
+    mcp_prec = total_mcp_prec / max(num_evals, 1)
+    mcp_rec = total_mcp_rec / max(num_evals, 1)
+    both_exact = total_both_exact / max(num_evals, 1)
+    micro_precision = mcp_tp / max(mcp_tp + mcp_fp, 1)
+    micro_recall = mcp_tp / max(mcp_tp + mcp_fn, 1)
+    micro_denom = micro_precision + micro_recall
+    mcp_micro_f1 = 0.0 if micro_denom == 0 else 2.0 * micro_precision * micro_recall / micro_denom
+
+    policy.train()
+    llm.train()
+    return {
+        "avg_reward": avg_reward,
+        "step_acc": step_acc,
+        "mcp_exact": mcp_exact,
+        "mcp_f1": mcp_f1,
+        "mcp_prec": mcp_prec,
+        "mcp_rec": mcp_rec,
+        "both_exact": both_exact,
+        "mcp_micro_f1": mcp_micro_f1,
+        "combined_score": step_acc + mcp_f1,
+        "threshold": threshold,
+    }
+
+
+def find_best_mcp_threshold(dataset, policy, llm, tokenizer, text_model, device):
+    candidate_thresholds = [round(x, 2) for x in np.arange(0.10, 0.91, 0.05)]
+    best_metrics = None
+    for threshold in candidate_thresholds:
+        metrics = evaluate_metrics_on_dataset(
+            dataset, policy, llm, tokenizer, text_model, device, threshold=threshold
+        )
+        if (
+            best_metrics is None
+            or metrics["combined_score"] > best_metrics["combined_score"]
+            or (
+                metrics["combined_score"] == best_metrics["combined_score"]
+                and metrics["mcp_exact"] > best_metrics["mcp_exact"]
+            )
+        ):
+            best_metrics = metrics
+    return best_metrics
+
+
 def main():
     # Load config
     with open('config.json', 'r') as f:
@@ -591,6 +736,8 @@ def main():
     generate_temperature = config['training']['generate_temperature']
     generate_top_p = config['training']['generate_top_p']
     patience = config['training']['patience']
+    step_loss_weight = config['training'].get('step_loss_weight', 1.0)
+    mcp_loss_weight = config['training'].get('mcp_loss_weight', 1.5)
 
     # Fix total steps calculation: both phases use batch steps (Phase1 uses batch_size=1 effectively for now)
     supervised_updates_per_epoch = len(train_loader)
@@ -612,7 +759,9 @@ def main():
 
     # Training
     global_step = 0
-    best_val_reward = 0.0
+    best_val_reward = float("-inf")
+    best_val_combined = float("-inf")
+    best_mcp_threshold = 0.5
     patience_counter = 0
 
     # --------------------------
@@ -636,10 +785,22 @@ def main():
 
                 with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
                     loss, step_loss, mcp_loss = compute_supervised_loss_for_sample(
-                        policy, llm, tokenizer, text_model, sample, device
+                        policy, llm, tokenizer, text_model, sample, device,
+                        step_loss_weight=step_loss_weight,
+                        mcp_loss_weight=mcp_loss_weight,
                     )
+                if not torch.isfinite(loss):
+                    _debug_report(
+                        "F",
+                        "train_gnn_rl.py:supervised-loss",
+                        "[DEBUG] Skipping non-finite supervised loss",
+                        {"epoch": epoch + 1, "sample_index": num_samples + 1},
+                    )
+                    optimizer.zero_grad(set_to_none=True)
+                    continue
 
                 scaler.scale(loss).backward()
+                scaler.unscale_(optimizer)
                 torch.nn.utils.clip_grad_norm_(
                     list(policy.parameters()) + list(llm.parameters()), max_norm=max_grad_norm
                 )
@@ -670,25 +831,37 @@ def main():
         avg_epoch_loss = total_loss / num_samples
         avg_epoch_step_loss = total_step_loss / num_samples
         avg_epoch_mcp_loss = total_mcp_loss / num_samples
-        val_reward = evaluate_on_dataset(val_dataset, policy, llm, tokenizer, text_model, device)
+        val_metrics = find_best_mcp_threshold(val_dataset, policy, llm, tokenizer, text_model, device)
+        val_reward = val_metrics["avg_reward"]
 
         if writer is not None:
             writer.add_scalar("Supervised/avg_loss", avg_epoch_loss, epoch+1)
             writer.add_scalar("Supervised/avg_step_loss", avg_epoch_step_loss, epoch+1)
             writer.add_scalar("Supervised/avg_mcp_loss", avg_epoch_mcp_loss, epoch+1)
             writer.add_scalar("Supervised/val_reward", val_reward, epoch+1)
+            writer.add_scalar("Supervised/val_step_acc", val_metrics["step_acc"], epoch+1)
+            writer.add_scalar("Supervised/val_mcp_f1", val_metrics["mcp_f1"], epoch+1)
+            writer.add_scalar("Supervised/val_mcp_exact", val_metrics["mcp_exact"], epoch+1)
+            writer.add_scalar("Supervised/val_combined_score", val_metrics["combined_score"], epoch+1)
 
         print(
             f"\nSupervised Epoch {epoch+1} Complete! "
             f"Avg Loss: {avg_epoch_loss:.4f}, "
             f"Step CE: {avg_epoch_step_loss:.4f}, "
             f"MCP BCE: {avg_epoch_mcp_loss:.4f}, "
-            f"Val Reward: {val_reward:.4f}\n"
+            f"Loss Weights (step={step_loss_weight:.2f}, mcp={mcp_loss_weight:.2f}), "
+            f"Val Reward: {val_reward:.4f}, "
+            f"Val Step Acc: {val_metrics['step_acc']:.4f}, "
+            f"Val MCP F1: {val_metrics['mcp_f1']:.4f}, "
+            f"Val MCP Exact: {val_metrics['mcp_exact']:.4f}, "
+            f"Best Thr: {val_metrics['threshold']:.2f}\n"
         )
 
         # Early stopping check
-        if val_reward > best_val_reward:
+        if val_metrics["combined_score"] > best_val_combined:
+            best_val_combined = val_metrics["combined_score"]
             best_val_reward = val_reward
+            best_mcp_threshold = val_metrics["threshold"]
             patience_counter = 0
             torch.save({
                 "policy": policy.state_dict(),
@@ -702,6 +875,11 @@ def main():
                 "mcp_labels": MCP_LABELS,
                 "epoch": epoch+1,
                 "val_reward": val_reward,
+                "val_step_acc": val_metrics["step_acc"],
+                "val_mcp_f1": val_metrics["mcp_f1"],
+                "val_mcp_exact": val_metrics["mcp_exact"],
+                "val_combined_score": val_metrics["combined_score"],
+                "mcp_threshold": val_metrics["threshold"],
                 "phase": "supervised"
             }, os.path.join(output_dir, "best_supervised_checkpoint.pt"))
         else:
@@ -773,8 +951,18 @@ def main():
 
             with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
                 loss = compute_grpo_loss(policy, llm, tokenizer, text_model, all_rollouts, device, clip_eps=clip_eps)
+            if not torch.isfinite(loss):
+                _debug_report(
+                    "F",
+                    "train_gnn_rl.py:grpo-loss",
+                    "[DEBUG] Skipping non-finite GRPO loss",
+                    {"epoch": epoch + 1, "update": num_updates + 1},
+                )
+                optimizer.zero_grad(set_to_none=True)
+                continue
 
             scaler.scale(loss).backward()
+            scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(
                 list(policy.parameters()) + list(llm.parameters()), max_norm=max_grad_norm
             )
@@ -792,17 +980,32 @@ def main():
 
         avg_epoch_loss = total_loss / max(num_updates, 1)
         avg_epoch_reward = total_reward / max(num_updates, 1)
-        val_reward = evaluate_on_dataset(val_dataset, policy, llm, tokenizer, text_model, device)
+        val_metrics = find_best_mcp_threshold(val_dataset, policy, llm, tokenizer, text_model, device)
+        val_reward = val_metrics["avg_reward"]
 
         if writer is not None:
             writer.add_scalar("GRPO/avg_loss", avg_epoch_loss, epoch+1)
             writer.add_scalar("GRPO/val_reward", val_reward, epoch+1)
+            writer.add_scalar("GRPO/val_step_acc", val_metrics["step_acc"], epoch+1)
+            writer.add_scalar("GRPO/val_mcp_f1", val_metrics["mcp_f1"], epoch+1)
+            writer.add_scalar("GRPO/val_mcp_exact", val_metrics["mcp_exact"], epoch+1)
+            writer.add_scalar("GRPO/val_combined_score", val_metrics["combined_score"], epoch+1)
 
         print(f"\nGRPO Epoch {epoch+1} Complete!")
-        print(f"Avg Loss: {avg_epoch_loss:.4f}, Avg Train Reward: {avg_epoch_reward:.4f}, Val Reward: {val_reward:.4f}\n")
+        print(
+            f"Avg Loss: {avg_epoch_loss:.4f}, "
+            f"Avg Train Reward: {avg_epoch_reward:.4f}, "
+            f"Val Reward: {val_reward:.4f}, "
+            f"Val Step Acc: {val_metrics['step_acc']:.4f}, "
+            f"Val MCP F1: {val_metrics['mcp_f1']:.4f}, "
+            f"Val MCP Exact: {val_metrics['mcp_exact']:.4f}, "
+            f"Best Thr: {val_metrics['threshold']:.2f}\n"
+        )
 
-        if val_reward > best_val_reward:
+        if val_metrics["combined_score"] > best_val_combined:
+            best_val_combined = val_metrics["combined_score"]
             best_val_reward = val_reward
+            best_mcp_threshold = val_metrics["threshold"]
             patience_counter = 0
             torch.save({
                 "policy": policy.state_dict(),
@@ -816,6 +1019,11 @@ def main():
                 "mcp_labels": MCP_LABELS,
                 "epoch": epoch+1,
                 "val_reward": val_reward,
+                "val_step_acc": val_metrics["step_acc"],
+                "val_mcp_f1": val_metrics["mcp_f1"],
+                "val_mcp_exact": val_metrics["mcp_exact"],
+                "val_combined_score": val_metrics["combined_score"],
+                "mcp_threshold": val_metrics["threshold"],
                 "phase": "grpo"
             }, os.path.join(output_dir, "best_checkpoint.pt"))
         else:
@@ -844,9 +1052,17 @@ def main():
     checkpoint = torch.load(os.path.join(output_dir, "best_checkpoint.pt"), map_location=device)
     policy.load_state_dict(checkpoint["policy"])
     llm.load_state_dict(checkpoint["llm"])
+    best_mcp_threshold = float(checkpoint.get("mcp_threshold", best_mcp_threshold))
 
-    test_reward = evaluate_on_dataset(test_dataset, policy, llm, tokenizer, text_model, device)
-    print(f"Test Average Reward: {test_reward:.4f}\n")
+    test_metrics = evaluate_metrics_on_dataset(
+        test_dataset, policy, llm, tokenizer, text_model, device, threshold=best_mcp_threshold
+    )
+    print(f"Test Average Reward: {test_metrics['avg_reward']:.4f}")
+    print(f"Test Step Accuracy: {test_metrics['step_acc']:.4f}")
+    print(f"Test MCP F1: {test_metrics['mcp_f1']:.4f}")
+    print(f"Test MCP Exact: {test_metrics['mcp_exact']:.4f}")
+    print(f"Test Both Exact: {test_metrics['both_exact']:.4f}")
+    print(f"Test MCP Threshold: {best_mcp_threshold:.2f}\n")
 
     # Save final
     torch.save({
@@ -859,7 +1075,11 @@ def main():
         "llm_hidden_size": llm_hidden_size,
         "step_labels": STEP_LABELS,
         "mcp_labels": MCP_LABELS,
-        "test_reward": test_reward
+        "test_reward": test_metrics["avg_reward"],
+        "test_step_acc": test_metrics["step_acc"],
+        "test_mcp_f1": test_metrics["mcp_f1"],
+        "test_mcp_exact": test_metrics["mcp_exact"],
+        "mcp_threshold": best_mcp_threshold,
     }, os.path.join(output_dir, "final_checkpoint.pt"))
     llm.save_pretrained(output_dir)
     tokenizer.save_pretrained(output_dir)

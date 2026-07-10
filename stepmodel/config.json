@@ -21,7 +21,9 @@
     "generate_top_p": 0.95,
     "validation_split": 0.1,
     "patience": 5,
-    "max_seq_length": 1024
+    "max_seq_length": 1024,
+    "step_loss_weight": 1.0,
+    "mcp_loss_weight": 1.5
   },
   "paths": {
     "data_dir": "data",

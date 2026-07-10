@@ -179,7 +179,31 @@ def classification_reward(
     pred_tools = multihot_to_mcp_tools(pred_mcp_multihot, threshold=threshold)
     true_tools = multihot_to_mcp_tools(true_mcp_multihot, threshold=0.5)
     mcp_score = set_f1(pred_tools, true_tools)
-    return 0.5 * step_score + 0.5 * mcp_score
+    mcp_exact = 1.0 if pred_tools == true_tools else 0.0
+    both_exact = step_score * mcp_exact
+    joint_score = step_score * mcp_score
+
+    if not pred_tools and not true_tools:
+        mcp_recall = 1.0
+    elif not true_tools:
+        mcp_recall = 0.0
+    else:
+        mcp_recall = len(pred_tools & true_tools) / len(true_tools)
+
+    # Denser task-aligned reward:
+    # - exact Step correctness remains primary
+    # - MCP F1 gives partial credit
+    # - MCP recall rewards finding the needed tools
+    # - Step+MCP joint term encourages tool quality only when Step is right
+    # - both_exact rewards the hardest target without harsh negative penalties
+    reward = (
+        0.30 * step_score
+        + 0.25 * mcp_score
+        + 0.20 * mcp_recall
+        + 0.15 * joint_score
+        + 0.10 * both_exact
+    )
+    return float(reward)
 
 
 def token_set(text: str):

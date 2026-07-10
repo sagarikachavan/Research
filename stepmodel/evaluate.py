@@ -24,8 +24,7 @@ from train_gnn_rl import (
     GNNLLMPolicy,
     PenTestDataset,
     classify_sample,
-    compute_reward,
-    predict_mcp_multihot,
+    evaluate_metrics_on_dataset,
 )
 
 
@@ -174,83 +173,25 @@ def main():
         max_seq_length=config.get('training', {}).get('max_seq_length', 1024),
     )
 
-    total_reward = 0.0
-    total_step_correct = 0
-    total_mcp_correct = 0
-    total_both_correct = 0
-    total_mcp_exact = 0
-    total_both_exact = 0
-    total_mcp_f1 = 0.0
-    mcp_tp = 0
-    mcp_fp = 0
-    mcp_fn = 0
+    mcp_threshold = float(checkpoint.get("mcp_threshold", 0.5)) if checkpoint is not None else 0.5
 
     print("Evaluating on full test dataset...")
-
-    with torch.no_grad():
-        for idx in range(len(test_dataset)):
-            sample = test_dataset[idx]
-            step_logits, mcp_logits = classify_sample(
-                policy, llm, tokenizer, text_model, sample, device
-            )
-            pred_step_id = int(step_logits.argmax(dim=-1).item())
-            pred_mcp_multihot = predict_mcp_multihot(mcp_logits.squeeze(0))
-            true_mcp_multihot = sample['mcp_multihot']
-
-            reward = compute_reward(
-                pred_step_id,
-                int(sample['step_label']),
-                pred_mcp_multihot,
-                true_mcp_multihot,
-            )
-
-            pred_tools = multihot_to_mcp_tools(pred_mcp_multihot)
-            true_tools = multihot_to_mcp_tools(true_mcp_multihot)
-            mcp_f1 = set_f1(pred_tools, true_tools)
-            step_correct = int(pred_step_id == int(sample['step_label']))
-            mcp_correct = int(mcp_f1 >= 0.5)
-            mcp_exact = int(pred_tools == true_tools)
-
-            total_reward += reward
-            total_step_correct += step_correct
-            total_mcp_correct += mcp_correct
-            total_both_correct += int(step_correct and mcp_correct)
-            total_mcp_exact += mcp_exact
-            total_both_exact += int(step_correct and mcp_exact)
-            total_mcp_f1 += mcp_f1
-
-            pred_arr = pred_mcp_multihot.astype(int)
-            true_arr = true_mcp_multihot.astype(int)
-            mcp_tp += int(((pred_arr == 1) & (true_arr == 1)).sum())
-            mcp_fp += int(((pred_arr == 1) & (true_arr == 0)).sum())
-            mcp_fn += int(((pred_arr == 0) & (true_arr == 1)).sum())
-
-            if (idx + 1) % 50 == 0:
-                print(f"Processed {idx + 1} samples, current average: {total_reward / (idx + 1):.4f}")
-
+    metrics = evaluate_metrics_on_dataset(
+        test_dataset, policy, llm, tokenizer, text_model, device, threshold=mcp_threshold
+    )
     num_samples = len(test_dataset)
-    avg_reward = total_reward / max(num_samples, 1)
-    step_acc = total_step_correct / max(num_samples, 1)
-    mcp_acc = total_mcp_correct / max(num_samples, 1)
-    both_acc = total_both_correct / max(num_samples, 1)
-    mcp_exact_acc = total_mcp_exact / max(num_samples, 1)
-    both_exact_acc = total_both_exact / max(num_samples, 1)
-    avg_mcp_f1 = total_mcp_f1 / max(num_samples, 1)
-    micro_precision = mcp_tp / max(mcp_tp + mcp_fp, 1)
-    micro_recall = mcp_tp / max(mcp_tp + mcp_fn, 1)
-    micro_denom = micro_precision + micro_recall
-    mcp_micro_f1 = 0.0 if micro_denom == 0 else 2 * micro_precision * micro_recall / micro_denom
 
     print("\n" + "=" * 60)
     print(f"FINAL TEST EVALUATION ON FULL DATASET ({num_samples} samples):")
-    print(f"Average Reward: {avg_reward:.4f}")
-    print(f"Step Accuracy: {step_acc:.4f}")
-    print(f"MCP F1 (set): {avg_mcp_f1:.4f}")
-    print(f"MCP Micro F1 (global): {mcp_micro_f1:.4f}")
-    print(f"MCP Accuracy (F1>=0.5): {mcp_acc:.4f}")
-    print(f"Both Step+MCP Accuracy: {both_acc:.4f}")
-    print(f"MCP Exact Set Match: {mcp_exact_acc:.4f}")
-    print(f"Both Exact Match: {both_exact_acc:.4f}")
+    print(f"Average Reward: {metrics['avg_reward']:.4f}")
+    print(f"Step Accuracy: {metrics['step_acc']:.4f}")
+    print(f"MCP F1 (set): {metrics['mcp_f1']:.4f}")
+    print(f"MCP Precision: {metrics['mcp_prec']:.4f}")
+    print(f"MCP Recall: {metrics['mcp_rec']:.4f}")
+    print(f"MCP Micro F1 (global): {metrics['mcp_micro_f1']:.4f}")
+    print(f"MCP Exact Set Match: {metrics['mcp_exact']:.4f}")
+    print(f"Both Exact Match: {metrics['both_exact']:.4f}")
+    print(f"Checkpoint MCP Threshold: {mcp_threshold:.2f}")
     print(f"Fixed Step Labels: {len(STEP_LABELS)}")
     print(f"Fixed MCP Labels: {len(MCP_LABELS)}")
     print("=" * 60 + "\n")
