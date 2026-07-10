@@ -132,17 +132,19 @@ def main():
             or checkpoint_llm_name
         )
 
+    trust_remote_code = bool(config.get('model', {}).get('trust_remote_code', False))
+
     checkpoint_tokenizer = checkpoint.get("tokenizer") if checkpoint is not None else None
     if checkpoint_tokenizer is not None:
         tokenizer = checkpoint_tokenizer
     else:
-        tokenizer = AutoTokenizer.from_pretrained(checkpoint_llm_name)
+        tokenizer = AutoTokenizer.from_pretrained(checkpoint_llm_name, trust_remote_code=trust_remote_code)
         if '[GRAPH]' not in tokenizer.get_vocab():
             tokenizer.add_special_tokens({'additional_special_tokens': ['[GRAPH]']})
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"
 
-    llm = AutoModelForCausalLM.from_pretrained(checkpoint_llm_name)
+    llm = AutoModelForCausalLM.from_pretrained(checkpoint_llm_name, trust_remote_code=trust_remote_code)
     llm.resize_token_embeddings(len(tokenizer))
     llm.to(device)
     llm.eval()

@@ -680,14 +680,16 @@ def main():
 
     # Load tokenizer and LLM
     llm_name = config['model']['llm_name']
-    tokenizer = AutoTokenizer.from_pretrained(llm_name)
+    trust_remote_code = bool(config.get('model', {}).get('trust_remote_code', False))
+
+    tokenizer = AutoTokenizer.from_pretrained(llm_name, trust_remote_code=trust_remote_code)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"
     special_tokens_dict = {'additional_special_tokens': ['[GRAPH]']}
     num_added_toks = tokenizer.add_special_tokens(special_tokens_dict)
     print(f"Added {num_added_toks} special tokens")
 
-    llm = AutoModelForCausalLM.from_pretrained(llm_name)
+    llm = AutoModelForCausalLM.from_pretrained(llm_name, trust_remote_code=trust_remote_code)
     llm.resize_token_embeddings(len(tokenizer))
     llm.gradient_checkpointing_enable()
     llm_hidden_size = llm.config.hidden_size

@@ -1,6 +1,7 @@
 {
   "model": {
-    "llm_name": "gpt2-large",
+    "llm_name": "Qwen/Qwen3-14B",
+    "trust_remote_code": true,
     "text_embedding_model": "all-MiniLM-L6-v2",
     "gnn_hidden_dim": 256,
     "gnn_out_dim": 128,
