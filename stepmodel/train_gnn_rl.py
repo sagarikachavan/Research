@@ -76,20 +76,23 @@ def _parse_version_tuple(version_str: str):
     return tuple(parts)
 
 
-def ensure_bitsandbytes_4bit_available():
+def get_bitsandbytes_4bit_status():
     try:
         version = importlib_metadata.version("bitsandbytes")
-    except importlib_metadata.PackageNotFoundError as exc:
-        raise ImportError(
+    except importlib_metadata.PackageNotFoundError:
+        return False, (
             "4-bit quantization is enabled in config.json, but `bitsandbytes` is not installed. "
-            "Install it with `pip install -U bitsandbytes>=0.46.1` or set `model.load_in_4bit` to false."
-        ) from exc
+            "Falling back to non-4bit loading. Install it with `pip install -U bitsandbytes>=0.46.1` "
+            "to re-enable 4-bit quantization."
+        )
 
     if _parse_version_tuple(version) < (0, 46, 1):
-        raise ImportError(
+        return False, (
             f"4-bit quantization requires `bitsandbytes>=0.46.1`, but found {version}. "
-            "Upgrade it with `pip install -U bitsandbytes>=0.46.1` or set `model.load_in_4bit` to false."
+            "Falling back to non-4bit loading. Upgrade it with `pip install -U bitsandbytes>=0.46.1` "
+            "to re-enable 4-bit quantization."
         )
+    return True, f"bitsandbytes {version} detected; using 4-bit quantization."
 
 
 class GNNModel(nn.Module):
@@ -747,7 +750,13 @@ def main():
     quant_config = None
     device_map = None
     if load_in_4bit:
-        ensure_bitsandbytes_4bit_available()
+        bnb_ok, bnb_msg = get_bitsandbytes_4bit_status()
+        if not bnb_ok:
+            print(f"Warning: {bnb_msg}")
+            load_in_4bit = False
+        else:
+            print(bnb_msg)
+    if load_in_4bit:
         compute_dtype = torch.bfloat16 if (device.type == "cuda" and torch.cuda.is_bf16_supported()) else torch.float16
         quant_config = BitsAndBytesConfig(
             load_in_4bit=True,
