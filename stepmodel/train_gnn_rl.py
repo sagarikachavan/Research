@@ -11,6 +11,7 @@ import random
 import numpy as np
 import time
 import urllib.request
+from importlib import metadata as importlib_metadata
 from typing import List, Dict, Any, Optional
 
 import torch
@@ -62,6 +63,33 @@ def set_seed(seed: int = 42):
     torch.cuda.manual_seed_all(seed)
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
+
+def _parse_version_tuple(version_str: str):
+    parts = []
+    for token in str(version_str).replace("-", ".").split("."):
+        digits = "".join(ch for ch in token if ch.isdigit())
+        if digits:
+            parts.append(int(digits))
+        else:
+            break
+    return tuple(parts)
+
+
+def ensure_bitsandbytes_4bit_available():
+    try:
+        version = importlib_metadata.version("bitsandbytes")
+    except importlib_metadata.PackageNotFoundError as exc:
+        raise ImportError(
+            "4-bit quantization is enabled in config.json, but `bitsandbytes` is not installed. "
+            "Install it with `pip install -U bitsandbytes>=0.46.1` or set `model.load_in_4bit` to false."
+        ) from exc
+
+    if _parse_version_tuple(version) < (0, 46, 1):
+        raise ImportError(
+            f"4-bit quantization requires `bitsandbytes>=0.46.1`, but found {version}. "
+            "Upgrade it with `pip install -U bitsandbytes>=0.46.1` or set `model.load_in_4bit` to false."
+        )
 
 
 class GNNModel(nn.Module):
@@ -719,6 +747,7 @@ def main():
     quant_config = None
     device_map = None
     if load_in_4bit:
+        ensure_bitsandbytes_4bit_available()
         compute_dtype = torch.bfloat16 if (device.type == "cuda" and torch.cuda.is_bf16_supported()) else torch.float16
         quant_config = BitsAndBytesConfig(
             load_in_4bit=True,
@@ -731,7 +760,7 @@ def main():
     llm = AutoModelForCausalLM.from_pretrained(
         llm_name,
         trust_remote_code=trust_remote_code,
-        torch_dtype=torch_dtype,
+        dtype=torch_dtype,
         low_cpu_mem_usage=True,
         device_map=device_map,
         quantization_config=quant_config,
