@@ -95,6 +95,61 @@ def get_bitsandbytes_4bit_status():
     return True, f"bitsandbytes {version} detected; using 4-bit quantization."
 
 
+def extract_llm_checkpoint_state(llm):
+    has_peft = bool(getattr(llm, "peft_config", None))
+    if has_peft:
+        llm_state = {}
+        for name, param in llm.named_parameters():
+            if param.requires_grad or "lora_" in name or "modules_to_save" in name:
+                llm_state[name] = param.detach().cpu()
+        return llm_state, "trainable_only"
+
+    llm_state = {name: tensor.detach().cpu() for name, tensor in llm.state_dict().items()}
+    return llm_state, "full"
+
+
+def build_checkpoint_payload(
+    policy,
+    llm,
+    llm_name: str,
+    llm_hidden_size: int,
+    optimizer=None,
+    scheduler=None,
+    extra: Optional[Dict[str, Any]] = None,
+):
+    llm_state, llm_checkpoint_mode = extract_llm_checkpoint_state(llm)
+    payload = {
+        "policy": {name: tensor.detach().cpu() for name, tensor in policy.state_dict().items()},
+        "llm": llm_state,
+        "llm_checkpoint_mode": llm_checkpoint_mode,
+        "llm_name": llm_name,
+        "llm_hidden_size": llm_hidden_size,
+        "step_labels": STEP_LABELS,
+        "mcp_labels": MCP_LABELS,
+    }
+    if optimizer is not None:
+        payload["optimizer"] = optimizer.state_dict()
+    if scheduler is not None:
+        payload["scheduler"] = scheduler.state_dict()
+    if extra:
+        payload.update(extra)
+    return payload
+
+
+def atomic_torch_save(obj, path: str):
+    tmp_path = f"{path}.tmp"
+    try:
+        torch.save(obj, tmp_path)
+        os.replace(tmp_path, path)
+    except Exception:
+        if os.path.exists(tmp_path):
+            try:
+                os.remove(tmp_path)
+            except OSError:
+                pass
+        raise
+
+
 class GNNModel(nn.Module):
     def __init__(self, node_dim: int, hidden_dim: int, output_dim: int, use_gat: bool = False):
         super().__init__()
@@ -966,39 +1021,41 @@ def main():
             best_val_reward = val_reward
             best_mcp_threshold = val_metrics["threshold"]
             patience_counter = 0
-            torch.save({
-                "policy": policy.state_dict(),
-                "llm": llm.state_dict(),
-                "optimizer": optimizer.state_dict(),
-                "scheduler": scheduler.state_dict(),
-                "tokenizer": tokenizer,
-                "llm_name": llm_name,
-                "llm_hidden_size": llm_hidden_size,
-                "step_labels": STEP_LABELS,
-                "mcp_labels": MCP_LABELS,
-                "epoch": epoch+1,
-                "val_reward": val_reward,
-                "val_step_acc": val_metrics["step_acc"],
-                "val_mcp_f1": val_metrics["mcp_f1"],
-                "val_mcp_exact": val_metrics["mcp_exact"],
-                "val_combined_score": val_metrics["combined_score"],
-                "mcp_threshold": val_metrics["threshold"],
-                "phase": "supervised"
-            }, os.path.join(output_dir, "best_supervised_checkpoint.pt"))
+            atomic_torch_save(
+                build_checkpoint_payload(
+                    policy,
+                    llm,
+                    llm_name,
+                    llm_hidden_size,
+                    optimizer=optimizer,
+                    scheduler=scheduler,
+                    extra={
+                        "epoch": epoch + 1,
+                        "val_reward": val_reward,
+                        "val_step_acc": val_metrics["step_acc"],
+                        "val_mcp_f1": val_metrics["mcp_f1"],
+                        "val_mcp_exact": val_metrics["mcp_exact"],
+                        "val_combined_score": val_metrics["combined_score"],
+                        "mcp_threshold": val_metrics["threshold"],
+                        "phase": "supervised",
+                    },
+                ),
+                os.path.join(output_dir, "best_supervised_checkpoint.pt"),
+            )
         else:
             patience_counter += 1
 
-        torch.save({
-            "policy": policy.state_dict(),
-            "llm": llm.state_dict(),
-            "optimizer": optimizer.state_dict(),
-            "scheduler": scheduler.state_dict(),
-            "tokenizer": tokenizer,
-            "llm_name": llm_name,
-            "llm_hidden_size": llm_hidden_size,
-            "step_labels": STEP_LABELS,
-            "mcp_labels": MCP_LABELS,
-        }, os.path.join(output_dir, f"supervised_checkpoint_epoch_{epoch+1}.pt"))
+        atomic_torch_save(
+            build_checkpoint_payload(
+                policy,
+                llm,
+                llm_name,
+                llm_hidden_size,
+                optimizer=optimizer,
+                scheduler=scheduler,
+            ),
+            os.path.join(output_dir, f"supervised_checkpoint_epoch_{epoch+1}.pt"),
+        )
 
     # --------------------------
     # Phase 2: GRPO Fine-tuning
@@ -1110,42 +1167,44 @@ def main():
             best_val_reward = val_reward
             best_mcp_threshold = val_metrics["threshold"]
             patience_counter = 0
-            torch.save({
-                "policy": policy.state_dict(),
-                "llm": llm.state_dict(),
-                "optimizer": optimizer.state_dict(),
-                "scheduler": scheduler.state_dict(),
-                "tokenizer": tokenizer,
-                "llm_name": llm_name,
-                "llm_hidden_size": llm_hidden_size,
-                "step_labels": STEP_LABELS,
-                "mcp_labels": MCP_LABELS,
-                "epoch": epoch+1,
-                "val_reward": val_reward,
-                "val_step_acc": val_metrics["step_acc"],
-                "val_mcp_f1": val_metrics["mcp_f1"],
-                "val_mcp_exact": val_metrics["mcp_exact"],
-                "val_combined_score": val_metrics["combined_score"],
-                "mcp_threshold": val_metrics["threshold"],
-                "phase": "grpo"
-            }, os.path.join(output_dir, "best_checkpoint.pt"))
+            atomic_torch_save(
+                build_checkpoint_payload(
+                    policy,
+                    llm,
+                    llm_name,
+                    llm_hidden_size,
+                    optimizer=optimizer,
+                    scheduler=scheduler,
+                    extra={
+                        "epoch": epoch + 1,
+                        "val_reward": val_reward,
+                        "val_step_acc": val_metrics["step_acc"],
+                        "val_mcp_f1": val_metrics["mcp_f1"],
+                        "val_mcp_exact": val_metrics["mcp_exact"],
+                        "val_combined_score": val_metrics["combined_score"],
+                        "mcp_threshold": val_metrics["threshold"],
+                        "phase": "grpo",
+                    },
+                ),
+                os.path.join(output_dir, "best_checkpoint.pt"),
+            )
         else:
             patience_counter += 1
             if patience_counter >= patience:
                 print(f"Early stopping triggered after {epoch+1} GRPO epochs!")
                 break
 
-        torch.save({
-            "policy": policy.state_dict(),
-            "llm": llm.state_dict(),
-            "optimizer": optimizer.state_dict(),
-            "scheduler": scheduler.state_dict(),
-            "tokenizer": tokenizer,
-            "llm_name": llm_name,
-            "llm_hidden_size": llm_hidden_size,
-            "step_labels": STEP_LABELS,
-            "mcp_labels": MCP_LABELS,
-        }, os.path.join(output_dir, f"grpo_checkpoint_epoch_{epoch+1}.pt"))
+        atomic_torch_save(
+            build_checkpoint_payload(
+                policy,
+                llm,
+                llm_name,
+                llm_hidden_size,
+                optimizer=optimizer,
+                scheduler=scheduler,
+            ),
+            os.path.join(output_dir, f"grpo_checkpoint_epoch_{epoch+1}.pt"),
+        )
 
     # Final test evaluation with best checkpoint
     print("\n" + "="*60)
@@ -1154,7 +1213,11 @@ def main():
 
     checkpoint = torch.load(os.path.join(output_dir, "best_checkpoint.pt"), map_location=device)
     policy.load_state_dict(checkpoint["policy"])
-    llm.load_state_dict(checkpoint["llm"])
+    llm_checkpoint_mode = checkpoint.get("llm_checkpoint_mode", "full")
+    if llm_checkpoint_mode == "full":
+        llm.load_state_dict(checkpoint["llm"])
+    else:
+        llm.load_state_dict(checkpoint["llm"], strict=False)
     best_mcp_threshold = float(checkpoint.get("mcp_threshold", best_mcp_threshold))
 
     test_metrics = evaluate_metrics_on_dataset(
@@ -1168,22 +1231,24 @@ def main():
     print(f"Test MCP Threshold: {best_mcp_threshold:.2f}\n")
 
     # Save final
-    torch.save({
-        "policy": policy.state_dict(),
-        "llm": llm.state_dict(),
-        "optimizer": optimizer.state_dict(),
-        "scheduler": scheduler.state_dict(),
-        "tokenizer": tokenizer,
-        "llm_name": llm_name,
-        "llm_hidden_size": llm_hidden_size,
-        "step_labels": STEP_LABELS,
-        "mcp_labels": MCP_LABELS,
-        "test_reward": test_metrics["avg_reward"],
-        "test_step_acc": test_metrics["step_acc"],
-        "test_mcp_f1": test_metrics["mcp_f1"],
-        "test_mcp_exact": test_metrics["mcp_exact"],
-        "mcp_threshold": best_mcp_threshold,
-    }, os.path.join(output_dir, "final_checkpoint.pt"))
+    atomic_torch_save(
+        build_checkpoint_payload(
+            policy,
+            llm,
+            llm_name,
+            llm_hidden_size,
+            optimizer=optimizer,
+            scheduler=scheduler,
+            extra={
+                "test_reward": test_metrics["avg_reward"],
+                "test_step_acc": test_metrics["step_acc"],
+                "test_mcp_f1": test_metrics["mcp_f1"],
+                "test_mcp_exact": test_metrics["mcp_exact"],
+                "mcp_threshold": best_mcp_threshold,
+            },
+        ),
+        os.path.join(output_dir, "final_checkpoint.pt"),
+    )
     llm.save_pretrained(output_dir)
     tokenizer.save_pretrained(output_dir)
 

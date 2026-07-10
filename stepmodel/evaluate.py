@@ -201,6 +201,7 @@ def main():
         torch_dtype = torch.float32
 
     llm_state_dict = checkpoint.get("llm", {}) if checkpoint is not None else {}
+    llm_checkpoint_mode = checkpoint.get("llm_checkpoint_mode", "full") if checkpoint is not None else "full"
     checkpoint_has_lora = checkpoint_uses_lora(llm_state_dict)
     load_in_4bit = (
         bool(config.get('model', {}).get('load_in_4bit', False))
@@ -283,7 +284,10 @@ def main():
     if checkpoint is not None:
         policy_state = checkpoint["policy"]
         policy.load_state_dict(policy_state)
-        llm.load_state_dict(checkpoint["llm"])
+        if llm_checkpoint_mode == "full":
+            llm.load_state_dict(checkpoint["llm"])
+        else:
+            llm.load_state_dict(checkpoint["llm"], strict=False)
         print(f"Loaded compatible checkpoint: {checkpoint_path}")
 
     policy.eval()
