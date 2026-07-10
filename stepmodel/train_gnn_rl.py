@@ -34,7 +34,14 @@ from transformers import (
 )
 from torch_geometric.nn import GCNConv, GATConv, global_mean_pool
 
-from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+try:
+    from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+    PEFT_AVAILABLE = True
+except ImportError:
+    LoraConfig = None
+    get_peft_model = None
+    prepare_model_for_kbit_training = None
+    PEFT_AVAILABLE = False
 
 from label_space import (
     STEP_LABELS,
@@ -702,6 +709,12 @@ def main():
 
     load_in_4bit = bool(config.get('model', {}).get('load_in_4bit', False))
     use_lora = bool(config.get('model', {}).get('use_lora', False))
+
+    if use_lora and not PEFT_AVAILABLE:
+        raise ImportError(
+            "LoRA is enabled in config.json, but the `peft` package is not installed. "
+            "Install it with `pip install peft` or set `model.use_lora` to false."
+        )
 
     quant_config = None
     device_map = None

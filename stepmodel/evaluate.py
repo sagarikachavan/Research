@@ -14,7 +14,14 @@ from tokenizers import Tokenizer
 from tokenizers.models import Model as TokenizersModel
 from transformers import AutoTokenizer, AutoModelForCausalLM, GPT2Tokenizer, BitsAndBytesConfig
 
-from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+try:
+    from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+    PEFT_AVAILABLE = True
+except ImportError:
+    LoraConfig = None
+    get_peft_model = None
+    prepare_model_for_kbit_training = None
+    PEFT_AVAILABLE = False
 
 from label_space import (
     STEP_LABELS,
@@ -177,6 +184,11 @@ def main():
         print(f"Disabling 4-bit loading for checkpoint backbone `{checkpoint_llm_name}`.")
     if bool(config.get('model', {}).get('use_lora', False)) and not use_lora:
         print("Disabling LoRA adapter injection because the checkpoint does not contain LoRA weights.")
+    if checkpoint_has_lora and not PEFT_AVAILABLE:
+        raise ImportError(
+            "This checkpoint contains LoRA weights, but the `peft` package is not installed. "
+            "Install it with `pip install peft` before running evaluation."
+        )
 
     quant_config = None
     device_map = None
