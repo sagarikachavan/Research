@@ -24,7 +24,7 @@
     "pooling_strategy": "hybrid"
   },
   "training": {
-    "num_supervised_epochs": 5,
+    "num_supervised_epochs": 8,
     "num_grpo_epochs": 10,
     "batch_size": 1,
     "learning_rate": 3e-5,
@@ -45,8 +45,10 @@
     "step_class_weighting": true,
     "step_class_weight_power": 0.5,
     "max_step_class_weight": 4.0,
-    "selection_step_weight": 0.75,
-    "selection_mcp_weight": 0.25,
+    "use_weighted_sampler": true,
+    "sampler_power": 1.0,
+    "selection_step_weight": 0.8,
+    "selection_mcp_weight": 0.2,
     "selection_both_exact_weight": 0.0
   },
   "paths": {

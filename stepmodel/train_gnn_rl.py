@@ -17,7 +17,7 @@ from typing import List, Dict, Any, Optional
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 try:
     # First try importing tensorboard directly to catch errors
     import tensorboard
@@ -488,17 +488,21 @@ def predict_mcp_multihot(mcp_logits: torch.Tensor, threshold: float = 0.5) -> np
     return (probs >= threshold).astype(np.float32)
 
 
-def compute_step_class_weights(
-    dataset,
-    power: float = 0.5,
-    max_weight: float = 4.0,
-) -> torch.Tensor:
+def compute_step_label_counts(dataset) -> torch.Tensor:
     counts = torch.zeros(len(STEP_LABELS), dtype=torch.float32)
     for sample in dataset.samples:
         step_id = step_label_to_id(sample['step_pair'].get('next_step'))
         if step_id is not None:
             counts[step_id] += 1.0
+    return counts
 
+
+def compute_step_class_weights(
+    dataset,
+    power: float = 0.5,
+    max_weight: float = 4.0,
+) -> torch.Tensor:
+    counts = compute_step_label_counts(dataset)
     nonzero = counts > 0
     weights = torch.ones_like(counts)
     if nonzero.any():
@@ -508,6 +512,28 @@ def compute_step_class_weights(
         weights[nonzero] = weights[nonzero] / weights[nonzero].mean().clamp_min(1e-8)
     weights[~nonzero] = 0.0
     return weights
+
+
+def build_step_weighted_sampler(
+    dataset,
+    power: float = 1.0,
+):
+    counts = compute_step_label_counts(dataset)
+    sample_weights = []
+    for sample in dataset.samples:
+        step_id = step_label_to_id(sample['step_pair'].get('next_step'))
+        if step_id is None or counts[step_id] <= 0:
+            sample_weights.append(0.0)
+        else:
+            sample_weights.append(float(torch.pow(counts[step_id], -float(power)).item()))
+
+    sample_weights_tensor = torch.tensor(sample_weights, dtype=torch.double)
+    sampler = WeightedRandomSampler(
+        weights=sample_weights_tensor,
+        num_samples=len(sample_weights),
+        replacement=True,
+    )
+    return sampler, counts
 
 
 def compute_selection_score(
@@ -1001,13 +1027,6 @@ def main():
             f"test={test_dataset.skipped_unknown_step}"
         )
     
-    train_loader = DataLoader(
-        train_dataset, 
-        batch_size=batch_size, 
-        shuffle=True, 
-        collate_fn=collate_fn
-    )
-    print(f"Train size: {len(train_dataset)}, Val size: {len(val_dataset)}, Test size: {len(test_dataset)}")
     learning_rate = config['training']['learning_rate']
     weight_decay = config['training']['weight_decay']
     max_grad_norm = config['training']['max_grad_norm']
@@ -1023,10 +1042,16 @@ def main():
     step_class_weighting = bool(config['training'].get('step_class_weighting', True))
     step_class_weight_power = float(config['training'].get('step_class_weight_power', 0.5))
     max_step_class_weight = float(config['training'].get('max_step_class_weight', 4.0))
+    use_weighted_sampler = bool(config['training'].get('use_weighted_sampler', True))
+    sampler_power = float(config['training'].get('sampler_power', 1.0))
     selection_step_weight = float(config['training'].get('selection_step_weight', 0.75))
     selection_mcp_weight = float(config['training'].get('selection_mcp_weight', 0.25))
     selection_both_exact_weight = float(config['training'].get('selection_both_exact_weight', 0.0))
     step_class_weights = None
+    step_label_counts = compute_step_label_counts(train_dataset)
+    zero_step_labels = [STEP_LABELS[i] for i, count in enumerate(step_label_counts.tolist()) if count == 0]
+    if zero_step_labels:
+        print(f"Warning: zero-shot Step labels in training data: {zero_step_labels}")
     if step_class_weighting:
         step_class_weights = compute_step_class_weights(
             train_dataset,
@@ -1034,6 +1059,22 @@ def main():
             max_weight=max_step_class_weight,
         ).to(device)
         print(f"Using Step class weights: {step_class_weights.detach().cpu().tolist()}")
+    train_sampler = None
+    if use_weighted_sampler:
+        train_sampler, _ = build_step_weighted_sampler(
+            train_dataset,
+            power=sampler_power,
+        )
+        print(f"Using WeightedRandomSampler for Step balance (power={sampler_power:.2f}).")
+
+    train_loader = DataLoader(
+        train_dataset,
+        batch_size=batch_size,
+        shuffle=train_sampler is None,
+        sampler=train_sampler,
+        collate_fn=collate_fn,
+    )
+    print(f"Train size: {len(train_dataset)}, Val size: {len(val_dataset)}, Test size: {len(test_dataset)}")
 
     # Fix total steps calculation: both phases use batch steps (Phase1 uses batch_size=1 effectively for now)
     supervised_updates_per_epoch = len(train_loader)

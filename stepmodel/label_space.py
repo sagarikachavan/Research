@@ -190,18 +190,16 @@ def classification_reward(
     else:
         mcp_recall = len(pred_tools & true_tools) / len(true_tools)
 
-    # Denser task-aligned reward:
-    # - exact Step correctness remains primary
-    # - MCP F1 gives partial credit
-    # - MCP recall rewards finding the needed tools
-    # - Step+MCP joint term encourages tool quality only when Step is right
-    # - both_exact rewards the hardest target without harsh negative penalties
+    # Step-focused reward:
+    # - exact Step correctness is the dominant term
+    # - MCP quality still matters, but less than Step
+    # - both_exact keeps pressure on solving the full task
     reward = (
-        0.30 * step_score
-        + 0.25 * mcp_score
-        + 0.20 * mcp_recall
-        + 0.15 * joint_score
-        + 0.10 * both_exact
+        0.45 * step_score
+        + 0.20 * mcp_score
+        + 0.10 * mcp_recall
+        + 0.10 * joint_score
+        + 0.15 * both_exact
     )
     return float(reward)
 
