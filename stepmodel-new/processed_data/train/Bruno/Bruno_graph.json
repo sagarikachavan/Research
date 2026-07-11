@@ -1,0 +1,1066 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Bruno",
+  "source": "training_data.csv, Machine == 'Bruno', 10 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Bruno:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Bruno'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bruno:r1_s1_2.1",
+      "label": "Search: 2.1\nFTP enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: FTP enumeration\n\nMCP tool calls:\nNmap: Full port scan with service detection on target 10.129.238.9",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bruno:r1_s1_2.1",
+      "label": "Track: FTP enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 FTP enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bruno:r1_s1_2.1",
+      "label": "Agent: 2.1\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u2713 1.2 Service enumeration\n\u25cb 2 Enumeration\n  \u25cb 2.1 FTP enumeration\n\u25cb 3 Exploitation\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bruno:r1_s2_2.2",
+      "label": "Search: 2.2\nBinary analysis",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.2: Binary analysis\n\nMCP tool calls:\nSMB client: Anonymous FTP connection to brunodc.bruno.vl enumerate directories",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bruno:r1_s2_2.2",
+      "label": "Track: Binary analysis",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.2 Binary analysis:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bruno:r1_s2_2.2",
+      "label": "Agent: 2.2\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u2713 2.1 FTP enumeration\n  \u25cb 2.2 Binary analysis\n\u25cb 3 Exploitation\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bruno:r1_s3_2.3",
+      "label": "Search: 2.3\nUser enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.3: User enumeration\n\nMCP tool calls:\nInteractive CLI: Use DotPeek to decompile SampleScanner.exe analyze zip extraction",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bruno:r1_s3_2.3",
+      "label": "Track: User enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.3 User enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bruno:r1_s3_2.3",
+      "label": "Agent: 2.3\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.3:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u2713 2.1 FTP enumeration\n  \u2713 2.2 Binary analysis\n  \u25cb 2.3 User enumeration\n\u25cb 3 Exploitation\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bruno:r1_s4_3.1",
+      "label": "Search: 3.1\nZipSlip exploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: ZipSlip exploitation\n\nMCP tool calls:\nInteractive CLI: Use kerbrute for username validation; Nmap: AS-REP roasting for svc_scan",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bruno:r1_s4_3.1",
+      "label": "Track: ZipSlip exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 ZipSlip exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bruno:r1_s4_3.1",
+      "label": "Agent: 3.1\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Exploitation\n  \u25cb 3.1 ZipSlip exploitation\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bruno:r1_s5_3.1.1",
+      "label": "Search: 3.1.1\nDLL hijacking",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1.1: DLL hijacking\n\nMCP tool calls:\nInteractive CLI: Create Python script generating zip with ../app/hostfxr.dll entry upload via SMB",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bruno:r1_s5_3.1.1",
+      "label": "Track: DLL hijacking",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1.1 DLL hijacking:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bruno:r1_s5_3.1.1",
+      "label": "Agent: 3.1.1\nZipSlip exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Exploitation\n  \u2026 3.1 ZipSlip exploitation\n    \u25cb 3.1.1 DLL hijacking\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bruno:r1_s6_4.1",
+      "label": "Search: 4.1\nDomain enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Domain enumeration\n\nMCP tool calls:\nMetasploit: Generate windows/x64/shell_reverse_tcp DLL payload; Interactive CLI: Create zip",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bruno:r1_s6_4.1",
+      "label": "Track: Domain enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Domain enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bruno:r1_s6_4.1",
+      "label": "Agent: 4.1\nPost-exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Exploitation\n\u2026 4 Post-exploitation\n  \u25cb 4.1 Domain enumeration\n  \u25cb 4.2 Privilege escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bruno:r1_s6_4.2",
+      "label": "Search: 4.2\nPrivilege escalation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2: Privilege escalation\n\nMCP tool calls:\nMetasploit: Generate windows/x64/shell_reverse_tcp DLL payload; Interactive CLI: Create zip",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bruno:r1_s6_4.2",
+      "label": "Track: Privilege escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2 Privilege escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bruno:r1_s6_4.2",
+      "label": "Agent: 4.2\nPost-exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Exploitation\n\u2026 4 Post-exploitation\n  \u25cb 4.1 Domain enumeration\n  \u25cb 4.2 Privilege escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bruno:r1_s7_4.2.1",
+      "label": "Search: 4.2.1\nCOM coercion",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2.1: COM coercion\n\nMCP tool calls:\nInteractive CLI: Use netexec to check LDAP signing channel binding and MAQ values",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bruno:r1_s7_4.2.1",
+      "label": "Track: COM coercion",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2.1 COM coercion:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bruno:r1_s7_4.2.1",
+      "label": "Agent: 4.2.1\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Exploitation\n\u2026 4 Post-exploitation\n  \u2713 4.1 Domain enumeration\n  \u2026 4.2 Privilege escalation\n    \u25cb 4.2.1 COM coercion\n    \u25cb 4.2.2 Kerberos relay",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bruno:r1_s7_4.2.2",
+      "label": "Search: 4.2.2\nKerberos relay",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2.2: Kerberos relay\n\nMCP tool calls:\nInteractive CLI: Use netexec to check LDAP signing channel binding and MAQ values",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bruno:r1_s7_4.2.2",
+      "label": "Track: Kerberos relay",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2.2 Kerberos relay:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bruno:r1_s7_4.2.2",
+      "label": "Agent: 4.2.2\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2.2:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Exploitation\n\u2026 4 Post-exploitation\n  \u2713 4.1 Domain enumeration\n  \u2026 4.2 Privilege escalation\n    \u25cb 4.2.1 COM coercion\n    \u25cb 4.2.2 Kerberos relay",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bruno:r1_s8_4.2.3",
+      "label": "Search: 4.2.3\nService ticket generation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2.3: Service ticket generation\n\nMCP tool calls:\nInteractive CLI: Execute KrbRelayUp.exe relay create machine account configure RBCD",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bruno:r1_s8_4.2.3",
+      "label": "Track: Service ticket generation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2.3 Service ticket generation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bruno:r1_s8_4.2.3",
+      "label": "Agent: 4.2.3\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2.3:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Exploitation\n\u2026 4 Post-exploitation\n  \u2713 4.1 Domain enumeration\n  \u2026 4.2 Privilege escalation\n    \u25cb 4.2.3 Service ticket generation\n    \u25cb 4.2.4 Admin impersonation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bruno:r1_s8_4.2.4",
+      "label": "Search: 4.2.4\nAdmin impersonation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2.4: Admin impersonation\n\nMCP tool calls:\nInteractive CLI: Execute KrbRelayUp.exe relay create machine account configure RBCD",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bruno:r1_s8_4.2.4",
+      "label": "Track: Admin impersonation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2.4 Admin impersonation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bruno:r1_s8_4.2.4",
+      "label": "Agent: 4.2.4\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2.4:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Exploitation\n\u2026 4 Post-exploitation\n  \u2713 4.1 Domain enumeration\n  \u2026 4.2 Privilege escalation\n    \u25cb 4.2.3 Service ticket generation\n    \u25cb 4.2.4 Admin impersonation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bruno:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Exploitation\n\u2713 4 Post-exploitation\n  \u2713 4.1 Domain enumeration\n  \u2713 4.2 Privilege escalation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Bruno:START",
+      "to": "agent:Bruno:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:START",
+      "to": "search:Bruno:r1_s1_2.1",
+      "label": "2.1 FTP enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bruno:r1_s1_2.1",
+      "to": "track:Bruno:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bruno:r1_s1_2.1",
+      "to": "agent:Bruno:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s1_2.1",
+      "to": "agent:Bruno:r1_s2_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s1_2.1",
+      "to": "search:Bruno:r1_s2_2.2",
+      "label": "2.2 Binary analysis",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bruno:r1_s2_2.2",
+      "to": "track:Bruno:r1_s2_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bruno:r1_s2_2.2",
+      "to": "agent:Bruno:r1_s2_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s2_2.2",
+      "to": "agent:Bruno:r1_s3_2.3",
+      "label": "\u2192 2.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s2_2.2",
+      "to": "search:Bruno:r1_s3_2.3",
+      "label": "2.3 User enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bruno:r1_s3_2.3",
+      "to": "track:Bruno:r1_s3_2.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bruno:r1_s3_2.3",
+      "to": "agent:Bruno:r1_s3_2.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s3_2.3",
+      "to": "agent:Bruno:r1_s4_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s3_2.3",
+      "to": "search:Bruno:r1_s4_3.1",
+      "label": "3.1 ZipSlip exploitation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bruno:r1_s4_3.1",
+      "to": "track:Bruno:r1_s4_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bruno:r1_s4_3.1",
+      "to": "agent:Bruno:r1_s4_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s4_3.1",
+      "to": "agent:Bruno:r1_s5_3.1.1",
+      "label": "\u2192 3.1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s4_3.1",
+      "to": "search:Bruno:r1_s5_3.1.1",
+      "label": "3.1.1 DLL hijacking",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bruno:r1_s5_3.1.1",
+      "to": "track:Bruno:r1_s5_3.1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bruno:r1_s5_3.1.1",
+      "to": "agent:Bruno:r1_s5_3.1.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s5_3.1.1",
+      "to": "agent:Bruno:r1_s6_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s5_3.1.1",
+      "to": "search:Bruno:r1_s6_4.1",
+      "label": "4.1 Domain enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bruno:r1_s6_4.1",
+      "to": "track:Bruno:r1_s6_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bruno:r1_s6_4.1",
+      "to": "agent:Bruno:r1_s6_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s6_4.1",
+      "to": "agent:Bruno:r1_s6_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s6_4.1",
+      "to": "search:Bruno:r1_s6_4.2",
+      "label": "4.2 Privilege escalation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bruno:r1_s6_4.2",
+      "to": "track:Bruno:r1_s6_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bruno:r1_s6_4.2",
+      "to": "agent:Bruno:r1_s6_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s6_4.2",
+      "to": "agent:Bruno:r1_s7_4.2.1",
+      "label": "\u2192 4.2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s6_4.2",
+      "to": "search:Bruno:r1_s7_4.2.1",
+      "label": "4.2.1 COM coercion",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bruno:r1_s7_4.2.1",
+      "to": "track:Bruno:r1_s7_4.2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bruno:r1_s7_4.2.1",
+      "to": "agent:Bruno:r1_s7_4.2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s7_4.2.1",
+      "to": "agent:Bruno:r1_s7_4.2.2",
+      "label": "\u2192 4.2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s7_4.2.1",
+      "to": "search:Bruno:r1_s7_4.2.2",
+      "label": "4.2.2 Kerberos relay",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bruno:r1_s7_4.2.2",
+      "to": "track:Bruno:r1_s7_4.2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bruno:r1_s7_4.2.2",
+      "to": "agent:Bruno:r1_s7_4.2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s7_4.2.2",
+      "to": "agent:Bruno:r1_s8_4.2.3",
+      "label": "\u2192 4.2.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s7_4.2.2",
+      "to": "search:Bruno:r1_s8_4.2.3",
+      "label": "4.2.3 Service ticket gene\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bruno:r1_s8_4.2.3",
+      "to": "track:Bruno:r1_s8_4.2.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bruno:r1_s8_4.2.3",
+      "to": "agent:Bruno:r1_s8_4.2.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s8_4.2.3",
+      "to": "agent:Bruno:r1_s8_4.2.4",
+      "label": "\u2192 4.2.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s8_4.2.3",
+      "to": "search:Bruno:r1_s8_4.2.4",
+      "label": "4.2.4 Admin impersonation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bruno:r1_s8_4.2.4",
+      "to": "track:Bruno:r1_s8_4.2.4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bruno:r1_s8_4.2.4",
+      "to": "agent:Bruno:r1_s8_4.2.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bruno:r1_s8_4.2.4",
+      "to": "agent:Bruno:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 35,
+    "total_edges": 45,
+    "agent_nodes": 13,
+    "search_nodes": 11,
+    "track_nodes": 11,
+    "runs_detected": 1,
+    "rows_captured": 10
+  }
+}

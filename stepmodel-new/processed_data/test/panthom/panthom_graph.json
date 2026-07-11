@@ -1,0 +1,1246 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "panthom",
+  "source": "test_data.csv, Machine == 'panthom', 14 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:panthom:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'panthom'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:panthom:r1_base",
+      "label": "Search: Baseline\n(3 item(s))",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "Baseline recon already completed before this run's first tracked step:\n1.3 Identify Open Ports, Services running on the open ports and their versions\n1.3.1 Perform a port scan\n1.3.2 Determine the services and versions on each open port",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:panthom:r1_base",
+      "label": "Track: Determine the services an\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.3 Identify Open Ports, Services running on the open ports and their versions: Port 53/tcp - State: open, Service: domain, Version: Simple DNS Plus; Port 88/tcp - State: open, Service: kerberos-sec, Version: Microsoft Windows Kerberos, Server Time: 2025-07-29 20:36:50Z; Port 135/tcp - State: open, Service: msrpc, Version: Microsoft Windows RPC; Port 139/tcp - State: open, Service: netbios-ssn, Version: Microsoft Windows netbios-ssn; Port 389/tcp - State: open, Service: ldap, Version: Microsoft Windows Active Directory LDAP, Domain: phantom.vl0., Site: Default-First-Site-Name; Port 445/tcp - State: open, Service: microsoft-ds?; Port 464/tcp - State: open, Service: kpasswd5?; Port 593/tcp - State: open, Service: ncacn_http, Version: Microsoft Windows RPC over HTTP 1.0; Port 636/tcp - State: open, Service: tcpwrapped; Port 3268/tcp - State: open, Service: ldap, Version: Microsoft Windows Active Directory LDAP, Domain: phantom.vl0., Site: Default-First-Site-Name; Port 3269/tcp - State: open, Service: tcpwrapped; Port 3389/tcp - State: open, Service: ms-wbt-server, Version: Microsoft Terminal Services; Port 5985/tcp - State: open, Service: http, Version: Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP), HTTP Title: Not Found, HTTP Server Header: Microsoft-HTTPAPI/2.0;\n\n1.3.1 Perform a port scan: Port 53/tcp, Port 88/tcp, Port 135/tcp, Port 139/tcp, Port 389/tcp, Port 445/tcp, Port 464/tcp, Port 593/tcp, Port 636/tcp, Port 3268/tcp, Port 3269/tcp, Port 3389/tcp, Port 5985/tcp;\n\n1.3.2 Determine the services and versions on each open port: Port 53/tcp - Service: domain, Version: Simple DNS Plus; Port 88/tcp - Service: kerberos-sec, Version: Microsoft Windows Kerberos; Port 135/tcp - Service: msrpc, Version: Microsoft Windows RPC; Port 139/tcp - Service: netbios-ssn, Version: Microsoft Windows netbios-ssn; Port 389/tcp - Service: ldap, Version: Microsoft Windows Active Directory LDAP; Port 445/tcp - Service: microsoft-ds?; Port 464/tcp - Service: kpasswd5?; Port 593/tcp - Service: ncacn_http, Version: Microsoft Windows RPC over HTTP 1.0; Port 636/tcp - Service: tcpwrapped; Port 3268/tcp - Service: ldap, Version: Microsoft Windows Active Directory LDAP; Port 3269/tcp - Service: tcpwrapped; Port 3389/tcp - Service: ms-wbt-server, Version: Microsoft Terminal Services; Port 5985/tcp - Service: http, Version: Microsoft HTTPAPI httpd 2.0 (SSDP/UPnP);}\n   1.4 Target IP - 10.129.234.63",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:panthom:r1_base",
+      "label": "Agent: Baseline\nIdentify Open Ports, \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT so far:\n\u25cb 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:panthom:r1_s1_1.5",
+      "label": "Search: 1.5\nEnumerate SMB Service",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.5: Enumerate SMB Service\n\nMCP tool calls:\n- Smb client: Enumerate SMB shares, users, and software versions.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:panthom:r1_s1_1.5",
+      "label": "Track: SMB Connection Attempt: Targe\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.5 Enumerate SMB Service:\nSMB Connection Attempt: Target: 10.129.234.63, Port: 445, User: guest, Password: (empty); System Information: OS: Windows Server 2022 Build 20348 x64, Host Name: DC, Domain: phantom.vl, Signing: True, SMBv1: False; Shares Enumerated: ADMIN$ - Permissions: Remote Admin; C$ - Permissions: Default share; Departments - Permissions: (not specified); IPC$ - Permissions: READ (Remote IPC); NETLOGON - Permissions: Logon server share; Public - Permissions: READ (accessible by guest user); SYSVOL - Permissions: Logon server share; Note: The Public share is readable by the guest user, allowing for enumeration of users' RIDs; RID Brute Force Attempt: Command: nxc smb phantom.vl -u 'guest' -p '' --rid-brute - Output Processed: Extracted user list saved to users.txt; Password Spray Attack: Command: nxc smb phantom.vl -u users.txt -p users.txt --continue-on-success --no-bruteforce - Results: User: phantom.vl\\SMB (Guest), User: phantom.vl\\guest:guest (Guest), User: phantom.vl\\SSPR:SSPR (Guest); Conclusion: The enumeration of shares and the password spray attack indicate potential access points, particularly with the Public share being accessible to the guest user. Further investigation into the identified users and shares may be warranted.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:panthom:r1_s1_1.5",
+      "label": "Agent: 1.5\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.5:\n\u25cb 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate SMB Service",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:panthom:r1_s2_1.6",
+      "label": "Search: 1.6\nExplore Public Share",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.6: Explore Public Share\n\nMCP tool calls:\n- Smb client: Explore the contents of the 'Public' share to identify suspicious files and commands.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:panthom:r1_s2_1.6",
+      "label": "Track: Summary of Findings from `tec\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.6 Explore Public Share:\nSummary of Findings from `tech_support_email.eml`: File Access: Share Accessed: Public; Directory Listing: . (current directory) - Permissions: drw-rw-rw-; Last Modified: Thu Jul 11 16:03:14 2024; .. (parent directory) - Permissions: drw-rw-rw-; Last Modified: Thu Aug 14 12:55:49 2025; tech_support_email.eml - Permissions: -rw-rw-rw-; Size: 14,565 bytes; Last Modified: Sat Jul 6 17:09:28 2024; Email Details: From: alucas@phantom.vl; To: techsupport@phantom.vl; Date: Sat, 06 Jul 2024 12:02:39 -0000; Subject: New Welcome Email Template for New Employees; Email Content: The sender, Anthony Lucas, informs the Tech Support Team about the completion of a new welcome email template for onboarding new employees. Requests the team to start using this template for all new employees; Attachment: Content-Type: application/pdf; Encoding: Base64 (indicates that the PDF is encoded within the email); Next Steps: The PDF attachment should be decoded from Base64 to analyze its contents for sensitive information or potential vulnerabilities related to the onboarding process.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:panthom:r1_s2_1.6",
+      "label": "Agent: 1.6\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.6:\n\u25cb 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate SMB Service\n  \u2713 1.6 Explore Public Share",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:panthom:r1_s3_1.7",
+      "label": "Search: 1.7\nDecode Base64 Encoded Con\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.7: Decode Base64 Encoded Content\n\nMCP tool calls:\n- Metasploit: Exploit identified vulnerabilities from the decoded PDF content.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:panthom:r1_s3_1.7",
+      "label": "Track: Credential Discovery Summary:\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.7 Decode Base64 Encoded Content:\nCredential Discovery Summary: Found Credentials: Username: <USERNAME>; Password: Ph4nt0m@5t4rt!; Next Steps: The discovered credentials should be verified for access to various services or systems within the target environment. Consider using these credentials in further testing to assess their effectiveness and any potential vulnerabilities.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:panthom:r1_s3_1.7",
+      "label": "Agent: 1.7\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.7:\n\u25cb 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate SMB Service\n  \u2713 1.6 Explore Public Share\n  \u2713 1.7 Decode Base64 Encoded Content",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:panthom:r1_s5_1.8",
+      "label": "Search: 1.8\nExplore the Departments S\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.8: Explore the Departments Share\n\nMCP tool calls:\n- Smb client: Explore shares ADMIN$, C$, Departments, IPC$, NETLOGON, Public, SYSVOL using ibryant credentials to find suspicious files and commands.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:panthom:r1_s5_1.8",
+      "label": "Track: Summary of Findings from the \u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.8 Explore the Departments Share:\nSummary of Findings from the Departments Share: Share Access: Share Name: Departments; Accessible Content: Multiple directories; Directory Navigation: Navigated to: IT; Contents of IT Directory: Directories: . (current directory) - Permissions: drw-rw-rw-; Last Modified: Thu Jul 11 15:59:02 2024; .. (parent directory) - Permissions: drw-rw-rw-; Last Modified: Sat Jul 6 17:25:31 2024; Backup - Permissions: drw-rw-rw-; Last Modified: Sat Jul 6 19:04:34 2024; Files: mRemoteNG-Installer-1.76.20.24615.msi - Size: 43,593,728 bytes - Last Modified: Sat Jul 6 17:25:36 2024; TeamViewerQS_x64.exe - Size: 32,498,992 bytes - Last Modified: Sat Jul 6 17:26:59 2024; TeamViewer_Setup_x64.exe - Size: 80,383,920 bytes - Last Modified: Sat Jul 6 17:27:15 2024; veracrypt-1.26.7-Ubuntu-22.04-amd64.deb - Size: 9,201,076 bytes - Last Modified: Thu Jul 11 15:59:06 2024; Wireshark-4.2.5-x64.exe - Size: 86,489,296 bytes - Last Modified: Sat Jul 6 17:25:36 2024; Backup Directory: Navigated to: Backup; Contents of Backup Directory: Directories: . (current directory) - Permissions: drw-rw-rw-; Last Modified: Sat Jul 6 19:04:34 2024; .. (parent directory) - Permissions: drw-rw-rw-; Last Modified: Thu Jul 11 15:59:02 2024; File: IT_BACKUP_201123.hc - Size: 12,582,912 bytes - Last Modified: Sat Jul 6 19:04:34 2024; Action Taken: File Retrieved: IT_BACKUP_201123.hc; Next Steps: The retrieved VeraCrypt backup file (`IT_BACKUP_201123.hc`) should be analyzed for sensitive information or potential vulnerabilities. Investigate the contents of the other executables and installers in the IT directory for any security implications or potential exploits. Consider assessing the overall security posture of the Departments share, especially regarding access control and sensitive data exposure.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:panthom:r1_s5_1.8",
+      "label": "Agent: 1.8\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.8:\n\u25cb 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate SMB Service\n  \u2713 1.6 Explore Public Share\n  \u2713 1.7 Decode Base64 Encoded Content\n  \u2713 1.8 Explore the Departments Share",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:panthom:r1_s6_1.9",
+      "label": "Search: 1.9\nCrack VeraCrypt Hash Back\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.9: Crack VeraCrypt Hash Backup\n\nMCP tool calls:\n- John-the-ripper: Crack the VeraCrypt hash backup using the retrieved file IT_BACKUP_201123.hc.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:panthom:r1_s6_1.9",
+      "label": "Track: Credential Discovery Summary:\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.9 Crack VeraCrypt Hash Backup:\nCredential Discovery Summary: Hash Cracking Result: Status: Successfully cracked the hash; Recovered Password: Phantom2023!; Next Steps: Verify the usability of the cracked password across various accounts or services within the target environment. Assess the security implications of this password, including its strength and any associated user accounts. Consider performing a password spray or brute-force attack using this credential to identify any additional vulnerabilities within the system. Evaluate the overall security measures in place for password storage and hashing to prevent similar vulnerabilities in the future.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:panthom:r1_s6_1.9",
+      "label": "Agent: 1.9\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.9:\n\u25cb 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate SMB Service\n  \u2713 1.6 Explore Public Share\n  \u2713 1.7 Decode Base64 Encoded Content\n  \u2713 1.8 Explore the Departments Share\n  \u2713 1.9 Crack VeraCrypt Hash Backup",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:panthom:r1_s7_1.10",
+      "label": "Search: 1.10\nExplore the Contents of t\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.10: Explore the Contents of the VeraCrypt Backup\n\nMCP tool calls:\n- Interactive CLI: Explore the contents of the VeraCrypt backup file using the recovered password.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:panthom:r1_s7_1.10",
+      "label": "Track: Summary of Findings from Back\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.10 Explore the Contents of the VeraCrypt Backup:\nSummary of Findings from Backup Analysis: Initial Findings: Logs and JSON Analysis: The examination of logs and JSON files in the backup did not yield any sensitive information. Identified File of Interest: The file `vyos_backup.tar.gz` was identified as a potentially valuable source of information. Extraction Process: Action Taken: Contents of `vyos_backup.tar.gz` were copied to `/tmp` and extracted into a dedicated folder for further analysis. Key File Identified: File of Interest: `/config/config.boot` contains sensitive VPN settings, specifically: VPN Configuration: Type: SSTP, Authentication Method: Local users, User Account: Username: lstanley, Password: gB6XTcqVP5MlP7Rc. Next Steps: Credential Utilization: The username and password for `lstanley` should be tested for access to the VyOS system and any associated services. Security Assessment: Evaluate the security measures in place for the VyOS configuration, particularly regarding user account management and password storage. Further Analysis: Investigate other files within the extracted contents of `vyos_backup.tar.gz` for additional sensitive information or configuration settings that could pose security risks. Recommendations: Suggest implementing stronger password policies and regular audits of configuration files to prevent unauthorized access and enhance overall security posture.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:panthom:r1_s7_1.10",
+      "label": "Agent: 1.10\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.10:\n\u25cb 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate SMB Service\n  \u2713 1.6 Explore Public Share\n  \u2713 1.7 Decode Base64 Encoded Content\n  \u2713 1.8 Explore the Departments Share\n  \u2713 1.9 Crack VeraCrypt Hash Backup\n  \u2713 1.10 Explore the Contents of the VeraCrypt Backup",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:panthom:r1_s8_1.11",
+      "label": "Search: 1.11\nCredential Discovery Summ\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.11: Credential Discovery Summary\n\nMCP tool calls:\n- Smb client: Conduct a password spray attack using the username 'lstanley' and password 'gB6XTcqVP5MlP7Rc' against the SMB service.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:panthom:r1_s8_1.11",
+      "label": "Track: User Account Identified: User\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.11 Credential Discovery Summary:\nUser Account Identified: Username: svc_sspr; Ownership: The password associated with this user has been located. Next Steps: Credential Verification: Verify the usability of the password for the `svc_sspr` account across relevant systems and services to assess access levels and potential vulnerabilities. Access Assessment: Investigate the permissions and roles assigned to the `svc_sspr` account to determine its impact on system security and the potential risks associated with its access. Security Review: Conduct a review of the security practices surrounding the management of service accounts, including password complexity, storage, and rotation policies. Further Testing: Consider using the credentials associated with the `svc_sspr` account in additional penetration testing activities to identify any weaknesses in the system's defenses.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:panthom:r1_s8_1.11",
+      "label": "Agent: 1.11\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.11:\n\u25cb 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate SMB Service\n  \u2713 1.6 Explore Public Share\n  \u2713 1.7 Decode Base64 Encoded Content\n  \u2713 1.8 Explore the Departments Share\n  \u2713 1.9 Crack VeraCrypt Hash Backup\n  \u2713 1.10 Explore the Contents of the VeraCrypt Backup\n  \u2713 1.11 Credential Discovery Summary",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:panthom:r1_s9_1.12",
+      "label": "Search: 1.12\nBloodHound Data Collectio\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.12: BloodHound Data Collection Summary\n\nMCP tool calls:\n- Smb client: Enumerate the domain using valid credentials to gather information about user accounts, groups, and permissions.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:panthom:r1_s9_1.12",
+      "label": "Track: Data Collection Status: Outco\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.12 BloodHound Data Collection Summary:\nData Collection Status: Outcome: Successfully collected BloodHound data. Next Steps: Data Analysis: Analyze the collected BloodHound data to identify relationships and permissions within the Active Directory environment. Look for potential attack paths that could be exploited to escalate privileges or access sensitive resources. Identify High-Risk Accounts: Focus on identifying accounts with excessive privileges, such as Domain Admins or those with administrative access to critical systems. Review Group Memberships: Examine group memberships to determine if there are any misconfigurations or overly permissive roles that could be leveraged for lateral movement. Mapping Attack Vectors: Utilize the BloodHound data to map out potential attack vectors and develop strategies for exploiting identified weaknesses. Reporting Findings: Prepare a detailed report of findings, including any vulnerabilities or misconfigurations discovered in the analysis, along with recommended remediation steps. Recommendations for Security Improvements: Suggest implementing stricter access controls and regular audits of group memberships and permissions to mitigate risks identified from the BloodHound data.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:panthom:r1_s9_1.12",
+      "label": "Agent: 1.12\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.12:\n\u25cb 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate SMB Service\n  \u2713 1.6 Explore Public Share\n  \u2713 1.7 Decode Base64 Encoded Content\n  \u2713 1.8 Explore the Departments Share\n  \u2713 1.9 Crack VeraCrypt Hash Backup\n  \u2713 1.10 Explore the Contents of the VeraCrypt Backup\n  \u2713 1.11 Credential Discovery Summary\n  \u2713 1.12 BloodHound Data Collection Summary",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:panthom:r1_s10_1.13",
+      "label": "Search: 1.13\nPrivilege Analysis Summary",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.13: Privilege Analysis Summary\n\nMCP tool calls:\n- Interactive CLI: Analyze BloodHound data to identify attack paths and privilege escalations.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:panthom:r1_s10_1.13",
+      "label": "Track: User Account: Compromised Acc\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.13 Privilege Analysis Summary:\nUser Account: Compromised Account: svc_sspr@PHANTOM.VL; Control Permissions: svc_sspr has the `ForceChangePassword` permission over the following users: crose@PHANTOM.VL, wsilva@PHANTOM.VL, rnichols@PHANTOM.VL; Group Membership: User wsilva: Member of the `ICT SECURITY@PHANTOM.VL` group; Delegation Permissions: User wsilva has the ability to modify the `msds-AllowedToActOnBehalfOfOtherIdentity` attribute on the `DC.PHANTOM.VL` computer object; Attack Vector Identified: The configuration indicates the potential for a **Resource-Based Constrained Delegation (RBCD)** attack using the wsilva user account. Next Steps: Exploit Potential: Investigate the feasibility of executing an RBCD attack using the wsilva account to escalate privileges or gain access to sensitive resources; Assessment of Impact: Evaluate the security implications of the `ForceChangePassword` permissions held by svc_sspr and the implications of wsilva's group membership and delegated permissions; Mitigation Recommendations: Suggest implementing stricter controls on password management permissions and reviewing group memberships to limit unnecessary privileges. Recommend auditing the `msds-AllowedToActOnBehalfOfOtherIdentity` configurations to ensure only trusted accounts have such capabilities; Reporting Findings: Prepare a comprehensive report detailing the identified vulnerabilities, potential attack paths, and recommended remediation steps to enhance the security posture of the environment.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:panthom:r1_s10_1.13",
+      "label": "Agent: 1.13\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.13:\n\u25cb 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate SMB Service\n  \u2713 1.6 Explore Public Share\n  \u2713 1.7 Decode Base64 Encoded Content\n  \u2713 1.8 Explore the Departments Share\n  \u2713 1.9 Crack VeraCrypt Hash Backup\n  \u2713 1.10 Explore the Contents of the VeraCrypt Backup\n  \u2713 1.11 Credential Discovery Summary\n  \u2713 1.12 BloodHound Data Collection Summary\n  \u2713 1.13 Privilege Analysis Summary",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:panthom:r1_s11_1.14",
+      "label": "Search: 1.14\nMachine Account Quota Fin\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.14: Machine Account Quota Findings\n\nMCP tool calls:\n- Smb client: Enumerate domain users and their permissions related to computer object creation.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:panthom:r1_s11_1.14",
+      "label": "Track: Configuration Status: Machine\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.14 Machine Account Quota Findings:\nConfiguration Status: Machine Account Quota: Set to 0; Implication: The setting of the Machine Account Quota to 0 indicates that no new computer objects can be created within the Active Directory environment. Next Steps: Impact Assessment: Evaluate the implications of this configuration on the overall security posture and functionality of the network. This may affect the ability to deploy new systems or services that require the creation of computer accounts; Review of Security Policies: Investigate the rationale behind the Machine Account Quota being set to 0. This could be a deliberate security measure or a configuration oversight; Recommendations: If the restriction is not intentional, consider recommending an adjustment to the Machine Account Quota to allow for controlled creation of computer objects while ensuring that proper security measures are in place to prevent abuse. Suggest implementing monitoring mechanisms to track any changes to the Machine Account Quota settings in the future; Documentation: Document the findings and recommendations for review and action by the security team, ensuring that any changes to this setting are properly managed and aligned with organizational security policies.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:panthom:r1_s11_1.14",
+      "label": "Agent: 1.14\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.14:\n\u25cb 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate SMB Service\n  \u2713 1.6 Explore Public Share\n  \u2713 1.7 Decode Base64 Encoded Content\n  \u2713 1.8 Explore the Departments Share\n  \u2713 1.9 Crack VeraCrypt Hash Backup\n  \u2713 1.10 Explore the Contents of the VeraCrypt Backup\n  \u2713 1.11 Credential Discovery Summary\n  \u2713 1.12 BloodHound Data Collection Summary\n  \u2713 1.13 Privilege Analysis Summary\n  \u2713 1.14 Machine Account Quota Findings",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:panthom:r1_s12_1.15",
+      "label": "Search: 1.15\nResource-Based Constraine\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.15: Resource-Based Constrained Delegation (RBCD) Findings\n\nMCP tool calls:\n- Google search: Search for information on RBCD exploitation techniques and privilege escalation methods in Active Directory.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:panthom:r1_s12_1.15",
+      "label": "Track: Overview of RBCD: RBCD is a s\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.15 Resource-Based Constrained Delegation (RBCD) Findings:\nOverview of RBCD: RBCD is a security feature in Active Directory introduced with Windows Server 2012; It allows a resource (computer object) to specify which users or machines can impersonate accounts to access its resources; Designed for granular control, it can lead to privilege escalation if misconfigured; Configuration Details: RBCD is configured by modifying the `msDS-AllowedToActOnBehalfOfOtherIdentity` attribute on the target resource; This attribute determines which security principals can delegate their privileges to a service running on that resource; Privilege Escalation Process: 1. An attacker gains control over an account (A) that can modify the `msDS-AllowedToActOnBehalfOfOtherIdentity` attribute of a target object (B); 2. Using account (A), the attacker requests a Kerberos Service for User to Self (S4U2Self) ticket to impersonate a privileged account; 3. The attacker then requests a Service for User to Proxy (S4U2Proxy) ticket to authenticate services on target machine (B) as the impersonated user; 4. The service ticket obtained can be used with \"Pass-the-Ticket\" techniques to access the target service as the impersonated user; Exploiting RBCD without Machine Accounts: SPN-less RBCD with User-to-User (U2U) Authentication: Allows RBCD abuse without needing a Service Principal Name (SPN) and even when `MachineAccountQuota` is set to 0; Process includes obtaining a Ticket Granting Ticket (TGT) for the SPN-less user, manipulating the password hash, and using S4U2Self and U2U to obtain service tickets; Relaying NTLM Authentication to LDAP: Low-privilege user authentication can be relayed to the Active Directory LDAP service if LDAP signing is not enforced; This allows modification of the `msDS-AllowedToActOnBehalfOfOtherIdentity` attribute, setting up RBCD for an attacker-controlled account; Key Requirements for RBCD Attacks: Control over an account that can modify the `msDS-AllowedToActOnBehalfOfOtherIdentity` attribute; For classical RBCD, `msDS-MachineAccountQuota` must be greater than 0; For SPN-less RBCD, manipulation of user account properties and U2U Kerberos extension is crucial; In NTLM relaying scenarios, LDAP signing and LDAPS channel binding should not be enforced; Tools for RBCD Exploitation: Impacket: Includes the `getST` script for S4U2Self and S4U2Proxy operations; Rubeus: A C# toolkit for ticket manipulation; Powerview (PowerShell): For enumeration and modifying attributes; Bloody AD: For Active Directory attacks; Ldap_shell: For LDAP interactions; Metasploit: Contains modules for various AD attacks; Next Steps: Risk Assessment: Evaluate the current Active Directory configuration for potential RBCD vulnerabilities and misconfigurations; Mitigation Strategies: Recommend implementing stricter access controls and monitoring for accounts with the ability to modify delegation attributes; Consider enforcing LDAP signing and channel binding to protect against NTLM relaying; Documentation and Reporting: Prepare a detailed report on the RBCD vulnerabilities identified, the potential attack vectors, and recommended remediation steps to enhance the security posture of the Active Directory environment.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:panthom:r1_s12_1.15",
+      "label": "Agent: 1.15\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.15:\n\u25cb 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate SMB Service\n  \u2713 1.6 Explore Public Share\n  \u2713 1.7 Decode Base64 Encoded Content\n  \u2713 1.8 Explore the Departments Share\n  \u2713 1.9 Crack VeraCrypt Hash Backup\n  \u2713 1.10 Explore the Contents of the VeraCrypt Backup\n  \u2713 1.11 Credential Discovery Summary\n  \u2713 1.12 BloodHound Data Collection Summary\n  \u2713 1.13 Privilege Analysis Summary\n  \u2713 1.14 Machine Account Quota Findings\n  \u2713 1.15 Resource-Based Constrained Delegation (RBCD) Findings",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:panthom:r1_s13_1.16",
+      "label": "Search: 1.16\nAdministrative Access Fin\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 1.16: Administrative Access Findings\n\nMCP tool calls:\n- Metasploit: Execute the RBCD attack using the wsilva account to gain administrative access.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:panthom:r1_s13_1.16",
+      "label": "Track: Access Status: Outcome: Succe\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.16 Administrative Access Findings:\nAccess Status: Outcome: Successfully gained access as the administrator; Key Points of Interest: Access Level: The access obtained is at the administrator level, which may provide significant control over the system and its resources; Potential Actions: With administrative access, the following actions can be performed: Full system configuration changes; User account management, including creating, modifying, or deleting accounts; Access to sensitive data and resources across the environment; Installation of software or tools for further testing or exploitation; Security Implications: The ability to operate as an administrator poses a risk to the integrity and security of the environment. This access should be thoroughly assessed for any potential vulnerabilities that could be exploited further; Next Steps: Assessment of Environment: Conduct a thorough assessment of the environment to identify any additional vulnerabilities or misconfigurations that can be exploited while in an administrator role; Privilege Escalation Opportunities: Investigate potential privilege escalation paths or lateral movement opportunities that can be taken from this position; Data Exfiltration: Evaluate the potential for data exfiltration, including sensitive information that can be accessed with administrator privileges; Documentation: Document the method used to gain administrative access, including any tools or techniques applied; Prepare a report outlining the implications of this access, potential risks, and recommendations for remediation to enhance security controls; Recommendations for Security Improvements: Suggest implementing stricter access controls and monitoring to detect unauthorized access attempts; Recommend regular audits of administrative access and permissions to ensure compliance with security policies.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:panthom:r1_s13_1.16",
+      "label": "Agent: 1.16\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 1.16:\n\u25cb 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate SMB Service\n  \u2713 1.6 Explore Public Share\n  \u2713 1.7 Decode Base64 Encoded Content\n  \u2713 1.8 Explore the Departments Share\n  \u2713 1.9 Crack VeraCrypt Hash Backup\n  \u2713 1.10 Explore the Contents of the VeraCrypt Backup\n  \u2713 1.11 Credential Discovery Summary\n  \u2713 1.12 BloodHound Data Collection Summary\n  \u2713 1.13 Privilege Analysis Summary\n  \u2713 1.14 Machine Account Quota Findings\n  \u2713 1.15 Resource-Based Constrained Delegation (RBCD) Findings\n  \u2713 1.16 Administrative Access Findings",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:panthom:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u25cb 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate SMB Service\n  \u2713 1.6 Explore Public Share\n  \u2713 1.7 Decode Base64 Encoded Content\n  \u2713 1.8 Explore the Departments Share\n  \u2713 1.9 Crack VeraCrypt Hash Backup\n  \u2713 1.10 Explore the Contents of the VeraCrypt Backup\n  \u2713 1.11 Credential Discovery Summary\n  \u2713 1.12 BloodHound Data Collection Summary\n  \u2713 1.13 Privilege Analysis Summary\n  \u2713 1.14 Machine Account Quota Findings\n  \u2713 1.15 Resource-Based Constrained Delegation (RBCD) Findings\n  \u2713 1.16 Administrative Access Findings",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:panthom:START",
+      "to": "agent:panthom:r1_base",
+      "label": "baseline",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:START",
+      "to": "search:panthom:r1_base",
+      "label": "Baseline Recon",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:panthom:r1_base",
+      "to": "track:panthom:r1_base",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:panthom:r1_base",
+      "to": "agent:panthom:r1_base",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_base",
+      "to": "agent:panthom:r1_s1_1.5",
+      "label": "\u2192 1.5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_base",
+      "to": "search:panthom:r1_s1_1.5",
+      "label": "1.5 Enumerate SMB Servi\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:panthom:r1_s1_1.5",
+      "to": "track:panthom:r1_s1_1.5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:panthom:r1_s1_1.5",
+      "to": "agent:panthom:r1_s1_1.5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s1_1.5",
+      "to": "agent:panthom:r1_s2_1.6",
+      "label": "\u2192 1.6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s1_1.5",
+      "to": "search:panthom:r1_s2_1.6",
+      "label": "1.6 Explore Public Share",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:panthom:r1_s2_1.6",
+      "to": "track:panthom:r1_s2_1.6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:panthom:r1_s2_1.6",
+      "to": "agent:panthom:r1_s2_1.6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s2_1.6",
+      "to": "agent:panthom:r1_s3_1.7",
+      "label": "\u2192 1.7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s2_1.6",
+      "to": "search:panthom:r1_s3_1.7",
+      "label": "1.7 Decode Base64 Encod\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:panthom:r1_s3_1.7",
+      "to": "track:panthom:r1_s3_1.7",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:panthom:r1_s3_1.7",
+      "to": "agent:panthom:r1_s3_1.7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s3_1.7",
+      "to": "agent:panthom:r1_s5_1.8",
+      "label": "\u2192 1.8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s3_1.7",
+      "to": "search:panthom:r1_s5_1.8",
+      "label": "1.8 Explore the Departm\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:panthom:r1_s5_1.8",
+      "to": "track:panthom:r1_s5_1.8",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:panthom:r1_s5_1.8",
+      "to": "agent:panthom:r1_s5_1.8",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s5_1.8",
+      "to": "agent:panthom:r1_s6_1.9",
+      "label": "\u2192 1.9",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s5_1.8",
+      "to": "search:panthom:r1_s6_1.9",
+      "label": "1.9 Crack VeraCrypt Has\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:panthom:r1_s6_1.9",
+      "to": "track:panthom:r1_s6_1.9",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:panthom:r1_s6_1.9",
+      "to": "agent:panthom:r1_s6_1.9",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s6_1.9",
+      "to": "agent:panthom:r1_s7_1.10",
+      "label": "\u2192 1.10",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s6_1.9",
+      "to": "search:panthom:r1_s7_1.10",
+      "label": "1.10 Explore the Content\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:panthom:r1_s7_1.10",
+      "to": "track:panthom:r1_s7_1.10",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:panthom:r1_s7_1.10",
+      "to": "agent:panthom:r1_s7_1.10",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s7_1.10",
+      "to": "agent:panthom:r1_s8_1.11",
+      "label": "\u2192 1.11",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s7_1.10",
+      "to": "search:panthom:r1_s8_1.11",
+      "label": "1.11 Credential Discover\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:panthom:r1_s8_1.11",
+      "to": "track:panthom:r1_s8_1.11",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:panthom:r1_s8_1.11",
+      "to": "agent:panthom:r1_s8_1.11",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s8_1.11",
+      "to": "agent:panthom:r1_s9_1.12",
+      "label": "\u2192 1.12",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s8_1.11",
+      "to": "search:panthom:r1_s9_1.12",
+      "label": "1.12 BloodHound Data Col\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:panthom:r1_s9_1.12",
+      "to": "track:panthom:r1_s9_1.12",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:panthom:r1_s9_1.12",
+      "to": "agent:panthom:r1_s9_1.12",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s9_1.12",
+      "to": "agent:panthom:r1_s10_1.13",
+      "label": "\u2192 1.13",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s9_1.12",
+      "to": "search:panthom:r1_s10_1.13",
+      "label": "1.13 Privilege Analysis \u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:panthom:r1_s10_1.13",
+      "to": "track:panthom:r1_s10_1.13",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:panthom:r1_s10_1.13",
+      "to": "agent:panthom:r1_s10_1.13",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s10_1.13",
+      "to": "agent:panthom:r1_s11_1.14",
+      "label": "\u2192 1.14",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s10_1.13",
+      "to": "search:panthom:r1_s11_1.14",
+      "label": "1.14 Machine Account Quo\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:panthom:r1_s11_1.14",
+      "to": "track:panthom:r1_s11_1.14",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:panthom:r1_s11_1.14",
+      "to": "agent:panthom:r1_s11_1.14",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s11_1.14",
+      "to": "agent:panthom:r1_s12_1.15",
+      "label": "\u2192 1.15",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s11_1.14",
+      "to": "search:panthom:r1_s12_1.15",
+      "label": "1.15 Resource-Based Cons\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:panthom:r1_s12_1.15",
+      "to": "track:panthom:r1_s12_1.15",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:panthom:r1_s12_1.15",
+      "to": "agent:panthom:r1_s12_1.15",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s12_1.15",
+      "to": "agent:panthom:r1_s13_1.16",
+      "label": "\u2192 1.16",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s12_1.15",
+      "to": "search:panthom:r1_s13_1.16",
+      "label": "1.16 Administrative Acce\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:panthom:r1_s13_1.16",
+      "to": "track:panthom:r1_s13_1.16",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:panthom:r1_s13_1.16",
+      "to": "agent:panthom:r1_s13_1.16",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:panthom:r1_s13_1.16",
+      "to": "agent:panthom:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 41,
+    "total_edges": 53,
+    "agent_nodes": 15,
+    "search_nodes": 13,
+    "track_nodes": 13,
+    "runs_detected": 1,
+    "rows_captured": 14
+  }
+}

@@ -1,0 +1,1336 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Empire LupinOne",
+  "source": "test_data.csv, Machine == 'Empire LupinOne', 9 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Empire LupinOne:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Empire LupinOne'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Empire LupinOne:r1_s1_2",
+      "label": "Search: 2\nWeb Enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2: Web Enumeration\n\nMCP tool calls:\nNmap: Execute full TCP port scan with service version detection on target 192.168.1.2",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Empire LupinOne:r1_s1_2",
+      "label": "Track: Web Enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2 Web Enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Empire LupinOne:r1_s1_2",
+      "label": "Agent: 2\nWeb Enumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u25cb 1.2 Service enumeration\n\u25cb 2 Web Enumeration\n  \u25cb 2.1 Enumerate hidden directories",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Empire LupinOne:r1_s1_2.1",
+      "label": "Search: 2.1\nEnumerate hidden director\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: Enumerate hidden directories\n\nMCP tool calls:\nNmap: Execute full TCP port scan with service version detection on target 192.168.1.2",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Empire LupinOne:r1_s1_2.1",
+      "label": "Track: Enumerate hidden directories",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 Enumerate hidden directories:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Empire LupinOne:r1_s1_2.1",
+      "label": "Agent: 2.1\nWeb Enumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u25cb 1.2 Service enumeration\n\u25cb 2 Web Enumeration\n  \u25cb 2.1 Enumerate hidden directories",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Empire LupinOne:r1_s2_3",
+      "label": "Search: 3\nHidden File Discovery",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3: Hidden File Discovery\n\nMCP tool calls:\nDirbuster: Use ffuf with common.txt wordlist to fuzz http://192.168.1.2/~FUZZ for hidden directories; Web page interaction: Access discovered /~secret directory; Interactive CLI: Document HTML comments and hints found in responses",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Empire LupinOne:r1_s2_3",
+      "label": "Track: Hidden File Discovery",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3 Hidden File Discovery:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Empire LupinOne:r1_s2_3",
+      "label": "Agent: 3\nHidden File Discovery",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 Web Enumeration\n  \u2713 2.1 Enumerate hidden directories\n\u25cb 3 Hidden File Discovery\n  \u25cb 3.1 Fuzz for hidden files in secret directory",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Empire LupinOne:r1_s2_3.1",
+      "label": "Search: 3.1\nFuzz for hidden files in \u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: Fuzz for hidden files in secret directory\n\nMCP tool calls:\nDirbuster: Use ffuf with common.txt wordlist to fuzz http://192.168.1.2/~FUZZ for hidden directories; Web page interaction: Access discovered /~secret directory; Interactive CLI: Document HTML comments and hints found in responses",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Empire LupinOne:r1_s2_3.1",
+      "label": "Track: Fuzz for hidden files in secr\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 Fuzz for hidden files in secret directory:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Empire LupinOne:r1_s2_3.1",
+      "label": "Agent: 3.1\nHidden File Discovery",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 Web Enumeration\n  \u2713 2.1 Enumerate hidden directories\n\u25cb 3 Hidden File Discovery\n  \u25cb 3.1 Fuzz for hidden files in secret directory",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Empire LupinOne:r1_s3_4",
+      "label": "Search: 4\nSSH Key Decoding",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4: SSH Key Decoding\n\nMCP tool calls:\nDirbuster: Use ffuf with directory-list-2.3-medium.txt wordlist against http://192.168.1.2/~secret/.FUZZ; Dirbuster: Include extensions .txt and .html with -e flag; Dirbuster: Use -fc 403 to filter forbidden responses; Web page interaction: Download discovered .mysecret.txt file; Interactive CLI: Examine file contents for encoded SSH key",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Empire LupinOne:r1_s3_4",
+      "label": "Track: SSH Key Decoding",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4 SSH Key Decoding:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Empire LupinOne:r1_s3_4",
+      "label": "Agent: 4\nSSH Key Decoding",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 Web Enumeration\n  \u2713 2.1 Enumerate hidden directories\n\u2713 3 Hidden File Discovery\n  \u2713 3.1 Fuzz for hidden files\n\u25cb 4 SSH Key Decoding\n  \u25cb 4.1 Decode base58 SSH key",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Empire LupinOne:r1_s3_4.1",
+      "label": "Search: 4.1\nDecode base58 SSH key",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Decode base58 SSH key\n\nMCP tool calls:\nDirbuster: Use ffuf with directory-list-2.3-medium.txt wordlist against http://192.168.1.2/~secret/.FUZZ; Dirbuster: Include extensions .txt and .html with -e flag; Dirbuster: Use -fc 403 to filter forbidden responses; Web page interaction: Download discovered .mysecret.txt file; Interactive CLI: Examine file contents for encoded SSH key",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Empire LupinOne:r1_s3_4.1",
+      "label": "Track: Decode base58 SSH key",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Decode base58 SSH key:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Empire LupinOne:r1_s3_4.1",
+      "label": "Agent: 4.1\nSSH Key Decoding",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 Web Enumeration\n  \u2713 2.1 Enumerate hidden directories\n\u2713 3 Hidden File Discovery\n  \u2713 3.1 Fuzz for hidden files\n\u25cb 4 SSH Key Decoding\n  \u25cb 4.1 Decode base58 SSH key",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Empire LupinOne:r1_s4_5",
+      "label": "Search: 5\nSSH Key Cracking",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5: SSH Key Cracking\n\nMCP tool calls:\nInteractive CLI: Download .mysecret.txt file content; Web page interaction: Use online base-58 decoder to decode the key; Interactive CLI: Save decoded SSH private key to file; Interactive CLI: Set proper permissions chmod 600 on SSH key file; Interactive CLI: Document decoded key for icex64 user",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Empire LupinOne:r1_s4_5",
+      "label": "Track: SSH Key Cracking",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5 SSH Key Cracking:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Empire LupinOne:r1_s4_5",
+      "label": "Agent: 5\nSSH Key Cracking",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 Web Enumeration\n  \u2713 2.1 Enumerate directories\n\u2713 3 Hidden File Discovery\n  \u2713 3.1 Fuzz for files\n\u2713 4 SSH Key Decoding\n  \u2713 4.1 Decode base58\n\u25cb 5 SSH Key Cracking\n  \u25cb 5.1 Crack SSH key passphrase",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Empire LupinOne:r1_s4_5.1",
+      "label": "Search: 5.1\nCrack SSH key passphrase",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5.1: Crack SSH key passphrase\n\nMCP tool calls:\nInteractive CLI: Download .mysecret.txt file content; Web page interaction: Use online base-58 decoder to decode the key; Interactive CLI: Save decoded SSH private key to file; Interactive CLI: Set proper permissions chmod 600 on SSH key file; Interactive CLI: Document decoded key for icex64 user",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Empire LupinOne:r1_s4_5.1",
+      "label": "Track: Crack SSH key passphrase",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5.1 Crack SSH key passphrase:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Empire LupinOne:r1_s4_5.1",
+      "label": "Agent: 5.1\nSSH Key Cracking",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 Web Enumeration\n  \u2713 2.1 Enumerate directories\n\u2713 3 Hidden File Discovery\n  \u2713 3.1 Fuzz for files\n\u2713 4 SSH Key Decoding\n  \u2713 4.1 Decode base58\n\u25cb 5 SSH Key Cracking\n  \u25cb 5.1 Crack SSH key passphrase",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Empire LupinOne:r1_s5_6",
+      "label": "Search: 6\nPrivilege Escalation to A\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6: Privilege Escalation to Arsene\n\nMCP tool calls:\nJohn-the-ripper: Use ssh2john.py to convert SSH key to hash format; John-the-ripper: Crack hash using john with fastrack.txt wordlist; Interactive CLI: Identify cracked passphrase P@55w0rd!; Interactive CLI: Test SSH authentication with ssh -i sshkey icex64@192.168.1.2; Interactive CLI: Confirm successful SSH login as icex64",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Empire LupinOne:r1_s5_6",
+      "label": "Track: Privilege Escalation to Arsene",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6 Privilege Escalation to Arsene:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Empire LupinOne:r1_s5_6",
+      "label": "Agent: 6\nPrivilege Escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 Web Enumeration\n  \u2713 2.1 Enumerate directories\n\u2713 3 Hidden File Discovery\n  \u2713 3.1 Fuzz for files\n\u2713 4 SSH Key Decoding\n  \u2713 4.1 Decode base58\n\u2713 5 SSH Key Cracking\n  \u2713 5.1 Crack passphrase\n\u25cb 6 Privilege Escalation to Arsene\n  \u25cb 6.1 Python library hijacking for arsene",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Empire LupinOne:r1_s5_6.1",
+      "label": "Search: 6.1\nPython library hijacking \u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6.1: Python library hijacking for arsene\n\nMCP tool calls:\nJohn-the-ripper: Use ssh2john.py to convert SSH key to hash format; John-the-ripper: Crack hash using john with fastrack.txt wordlist; Interactive CLI: Identify cracked passphrase P@55w0rd!; Interactive CLI: Test SSH authentication with ssh -i sshkey icex64@192.168.1.2; Interactive CLI: Confirm successful SSH login as icex64",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Empire LupinOne:r1_s5_6.1",
+      "label": "Track: Python library hijacking for \u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6.1 Python library hijacking for arsene:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Empire LupinOne:r1_s5_6.1",
+      "label": "Agent: 6.1\nPrivilege Escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 Web Enumeration\n  \u2713 2.1 Enumerate directories\n\u2713 3 Hidden File Discovery\n  \u2713 3.1 Fuzz for files\n\u2713 4 SSH Key Decoding\n  \u2713 4.1 Decode base58\n\u2713 5 SSH Key Cracking\n  \u2713 5.1 Crack passphrase\n\u25cb 6 Privilege Escalation to Arsene\n  \u25cb 6.1 Python library hijacking for arsene",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Empire LupinOne:r1_s6_7",
+      "label": "Search: 7\nPrivilege Escalation to R\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 7: Privilege Escalation to Root\n\nMCP tool calls:\nInteractive CLI: Use linpeas or find command to locate webbrowser.py path at /usr/lib/python3.9/webbrowser.py; Interactive CLI: Check file permissions on webbrowser.py; Interactive CLI: Edit /usr/lib/python3.9/webbrowser.py; Interactive CLI: Inject malicious code: import os; os.system('/bin/bash'); Interactive CLI: Execute sudo -u arsene /usr/bin/python3.9 /home/arsene/heist.py; Interactive CLI: Obtain shell as arsene user",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Empire LupinOne:r1_s6_7",
+      "label": "Track: Privilege Escalation to Root",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "7 Privilege Escalation to Root:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Empire LupinOne:r1_s6_7",
+      "label": "Agent: 7\nPrivilege Escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 7:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 Web Enumeration\n  \u2713 2.1 Enumerate directories\n\u2713 3 Hidden File Discovery\n  \u2713 3.1 Fuzz for files\n\u2713 4 SSH Key Decoding\n  \u2713 4.1 Decode base58\n\u2713 5 SSH Key Cracking\n  \u2713 5.1 Crack passphrase\n\u2713 6 Privilege Escalation to Arsene\n  \u2713 6.1 Python library hijacking\n\u25cb 7 Privilege Escalation to Root\n  \u25cb 7.1 Enumerate arsene sudo privileges",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Empire LupinOne:r1_s6_7.1",
+      "label": "Search: 7.1\nEnumerate arsene sudo pri\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 7.1: Enumerate arsene sudo privileges\n\nMCP tool calls:\nInteractive CLI: Use linpeas or find command to locate webbrowser.py path at /usr/lib/python3.9/webbrowser.py; Interactive CLI: Check file permissions on webbrowser.py; Interactive CLI: Edit /usr/lib/python3.9/webbrowser.py; Interactive CLI: Inject malicious code: import os; os.system('/bin/bash'); Interactive CLI: Execute sudo -u arsene /usr/bin/python3.9 /home/arsene/heist.py; Interactive CLI: Obtain shell as arsene user",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Empire LupinOne:r1_s6_7.1",
+      "label": "Track: Enumerate arsene sudo privile\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "7.1 Enumerate arsene sudo privileges:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Empire LupinOne:r1_s6_7.1",
+      "label": "Agent: 7.1\nPrivilege Escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 7.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 Web Enumeration\n  \u2713 2.1 Enumerate directories\n\u2713 3 Hidden File Discovery\n  \u2713 3.1 Fuzz for files\n\u2713 4 SSH Key Decoding\n  \u2713 4.1 Decode base58\n\u2713 5 SSH Key Cracking\n  \u2713 5.1 Crack passphrase\n\u2713 6 Privilege Escalation to Arsene\n  \u2713 6.1 Python library hijacking\n\u25cb 7 Privilege Escalation to Root\n  \u25cb 7.1 Enumerate arsene sudo privileges",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Empire LupinOne:r1_s7_8",
+      "label": "Search: 8\nRoot Exploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 8: Root Exploitation\n\nMCP tool calls:\nInteractive CLI: Execute sudo -l as arsene user; Interactive CLI: Identify pip binary can be executed as root without authentication; Interactive CLI: Research GTFOBins for pip privilege escalation techniques; Interactive CLI: Document exploitation method using pip malicious package installation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Empire LupinOne:r1_s7_8",
+      "label": "Track: Root Exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "8 Root Exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Empire LupinOne:r1_s7_8",
+      "label": "Agent: 8\nRoot Exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 8:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 Web Enumeration\n  \u2713 2.1 Enumerate directories\n\u2713 3 Hidden File Discovery\n  \u2713 3.1 Fuzz for files\n\u2713 4 SSH Key Decoding\n  \u2713 4.1 Decode base58\n\u2713 5 SSH Key Cracking\n  \u2713 5.1 Crack passphrase\n\u2713 6 Privilege Escalation to Arsene\n  \u2713 6.1 Python library hijacking\n\u2713 7 Privilege Escalation to Root\n  \u2713 7.1 Enumerate arsene sudo\n\u25cb 8 Root Exploitation\n  \u25cb 8.1 Exploit pip for root shell",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Empire LupinOne:r1_s7_8.1",
+      "label": "Search: 8.1\nExploit pip for root shell",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 8.1: Exploit pip for root shell\n\nMCP tool calls:\nInteractive CLI: Execute sudo -l as arsene user; Interactive CLI: Identify pip binary can be executed as root without authentication; Interactive CLI: Research GTFOBins for pip privilege escalation techniques; Interactive CLI: Document exploitation method using pip malicious package installation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Empire LupinOne:r1_s7_8.1",
+      "label": "Track: Exploit pip for root shell",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "8.1 Exploit pip for root shell:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Empire LupinOne:r1_s7_8.1",
+      "label": "Agent: 8.1\nRoot Exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 8.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 Web Enumeration\n  \u2713 2.1 Enumerate directories\n\u2713 3 Hidden File Discovery\n  \u2713 3.1 Fuzz for files\n\u2713 4 SSH Key Decoding\n  \u2713 4.1 Decode base58\n\u2713 5 SSH Key Cracking\n  \u2713 5.1 Crack passphrase\n\u2713 6 Privilege Escalation to Arsene\n  \u2713 6.1 Python library hijacking\n\u2713 7 Privilege Escalation to Root\n  \u2713 7.1 Enumerate arsene sudo\n\u25cb 8 Root Exploitation\n  \u25cb 8.1 Exploit pip for root shell",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Empire LupinOne:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n\u2713 2 Web Enumeration\n  \u2713 2.1 Enumerate directories\n\u2713 3 Hidden File Discovery\n  \u2713 3.1 Fuzz for files\n\u2713 4 SSH Key Decoding\n  \u2713 4.1 Decode base58\n\u2713 5 SSH Key Cracking\n  \u2713 5.1 Crack passphrase\n\u2713 6 Privilege Escalation to Arsene\n  \u2713 6.1 Python library hijacking\n\u2713 7 Privilege Escalation to Root\n  \u2713 7.1 Enumerate arsene sudo\n\u2713 8 Root Exploitation\n  \u2713 8.1 Exploit pip",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Empire LupinOne:START",
+      "to": "agent:Empire LupinOne:r1_s1_2",
+      "label": "\u2192 2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:START",
+      "to": "search:Empire LupinOne:r1_s1_2",
+      "label": "2 Web Enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Empire LupinOne:r1_s1_2",
+      "to": "track:Empire LupinOne:r1_s1_2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Empire LupinOne:r1_s1_2",
+      "to": "agent:Empire LupinOne:r1_s1_2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s1_2",
+      "to": "agent:Empire LupinOne:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s1_2",
+      "to": "search:Empire LupinOne:r1_s1_2.1",
+      "label": "2.1 Enumerate hidden di\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Empire LupinOne:r1_s1_2.1",
+      "to": "track:Empire LupinOne:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Empire LupinOne:r1_s1_2.1",
+      "to": "agent:Empire LupinOne:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s1_2.1",
+      "to": "agent:Empire LupinOne:r1_s2_3",
+      "label": "\u2192 3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s1_2.1",
+      "to": "search:Empire LupinOne:r1_s2_3",
+      "label": "3 Hidden File Discove\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Empire LupinOne:r1_s2_3",
+      "to": "track:Empire LupinOne:r1_s2_3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Empire LupinOne:r1_s2_3",
+      "to": "agent:Empire LupinOne:r1_s2_3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s2_3",
+      "to": "agent:Empire LupinOne:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s2_3",
+      "to": "search:Empire LupinOne:r1_s2_3.1",
+      "label": "3.1 Fuzz for hidden fil\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Empire LupinOne:r1_s2_3.1",
+      "to": "track:Empire LupinOne:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Empire LupinOne:r1_s2_3.1",
+      "to": "agent:Empire LupinOne:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s2_3.1",
+      "to": "agent:Empire LupinOne:r1_s3_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s2_3.1",
+      "to": "search:Empire LupinOne:r1_s3_4",
+      "label": "4 SSH Key Decoding",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Empire LupinOne:r1_s3_4",
+      "to": "track:Empire LupinOne:r1_s3_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Empire LupinOne:r1_s3_4",
+      "to": "agent:Empire LupinOne:r1_s3_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s3_4",
+      "to": "agent:Empire LupinOne:r1_s3_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s3_4",
+      "to": "search:Empire LupinOne:r1_s3_4.1",
+      "label": "4.1 Decode base58 SSH k\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Empire LupinOne:r1_s3_4.1",
+      "to": "track:Empire LupinOne:r1_s3_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Empire LupinOne:r1_s3_4.1",
+      "to": "agent:Empire LupinOne:r1_s3_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s3_4.1",
+      "to": "agent:Empire LupinOne:r1_s4_5",
+      "label": "\u2192 5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s3_4.1",
+      "to": "search:Empire LupinOne:r1_s4_5",
+      "label": "5 SSH Key Cracking",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Empire LupinOne:r1_s4_5",
+      "to": "track:Empire LupinOne:r1_s4_5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Empire LupinOne:r1_s4_5",
+      "to": "agent:Empire LupinOne:r1_s4_5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s4_5",
+      "to": "agent:Empire LupinOne:r1_s4_5.1",
+      "label": "\u2192 5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s4_5",
+      "to": "search:Empire LupinOne:r1_s4_5.1",
+      "label": "5.1 Crack SSH key passp\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Empire LupinOne:r1_s4_5.1",
+      "to": "track:Empire LupinOne:r1_s4_5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Empire LupinOne:r1_s4_5.1",
+      "to": "agent:Empire LupinOne:r1_s4_5.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s4_5.1",
+      "to": "agent:Empire LupinOne:r1_s5_6",
+      "label": "\u2192 6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s4_5.1",
+      "to": "search:Empire LupinOne:r1_s5_6",
+      "label": "6 Privilege Escalatio\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Empire LupinOne:r1_s5_6",
+      "to": "track:Empire LupinOne:r1_s5_6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Empire LupinOne:r1_s5_6",
+      "to": "agent:Empire LupinOne:r1_s5_6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s5_6",
+      "to": "agent:Empire LupinOne:r1_s5_6.1",
+      "label": "\u2192 6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s5_6",
+      "to": "search:Empire LupinOne:r1_s5_6.1",
+      "label": "6.1 Python library hija\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Empire LupinOne:r1_s5_6.1",
+      "to": "track:Empire LupinOne:r1_s5_6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Empire LupinOne:r1_s5_6.1",
+      "to": "agent:Empire LupinOne:r1_s5_6.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s5_6.1",
+      "to": "agent:Empire LupinOne:r1_s6_7",
+      "label": "\u2192 7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s5_6.1",
+      "to": "search:Empire LupinOne:r1_s6_7",
+      "label": "7 Privilege Escalatio\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Empire LupinOne:r1_s6_7",
+      "to": "track:Empire LupinOne:r1_s6_7",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Empire LupinOne:r1_s6_7",
+      "to": "agent:Empire LupinOne:r1_s6_7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s6_7",
+      "to": "agent:Empire LupinOne:r1_s6_7.1",
+      "label": "\u2192 7.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s6_7",
+      "to": "search:Empire LupinOne:r1_s6_7.1",
+      "label": "7.1 Enumerate arsene su\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Empire LupinOne:r1_s6_7.1",
+      "to": "track:Empire LupinOne:r1_s6_7.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Empire LupinOne:r1_s6_7.1",
+      "to": "agent:Empire LupinOne:r1_s6_7.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s6_7.1",
+      "to": "agent:Empire LupinOne:r1_s7_8",
+      "label": "\u2192 8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s6_7.1",
+      "to": "search:Empire LupinOne:r1_s7_8",
+      "label": "8 Root Exploitation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Empire LupinOne:r1_s7_8",
+      "to": "track:Empire LupinOne:r1_s7_8",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Empire LupinOne:r1_s7_8",
+      "to": "agent:Empire LupinOne:r1_s7_8",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s7_8",
+      "to": "agent:Empire LupinOne:r1_s7_8.1",
+      "label": "\u2192 8.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s7_8",
+      "to": "search:Empire LupinOne:r1_s7_8.1",
+      "label": "8.1 Exploit pip for roo\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Empire LupinOne:r1_s7_8.1",
+      "to": "track:Empire LupinOne:r1_s7_8.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Empire LupinOne:r1_s7_8.1",
+      "to": "agent:Empire LupinOne:r1_s7_8.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Empire LupinOne:r1_s7_8.1",
+      "to": "agent:Empire LupinOne:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 44,
+    "total_edges": 57,
+    "agent_nodes": 16,
+    "search_nodes": 14,
+    "track_nodes": 14,
+    "runs_detected": 1,
+    "rows_captured": 9
+  }
+}

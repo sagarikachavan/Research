@@ -1,0 +1,706 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Matrix 1",
+  "source": "training_data.csv, Machine == 'Matrix 1', 9 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Matrix 1:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Matrix 1'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Matrix 1:r1_s2_3.1",
+      "label": "Search: 3.1\nWeb Service Analysis",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: Web Service Analysis\n\nMCP tool calls:\nNmap to scan target revealing ports 22 SSH, 80 HTTP, 31337 HTTP",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Matrix 1:r1_s2_3.1",
+      "label": "Track: Web Service Analysis",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 Web Service Analysis:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Matrix 1:r1_s2_3.1",
+      "label": "Agent: 3.1\nVulnerability Assessm\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u25cb 3 Vulnerability Assessment\n  \u25cb 3.1 Web Service Analysis\n\u25cb 4 Exploitation\n\u25cb 5 Post-Exploitation\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Matrix 1:r1_s3_4.1",
+      "label": "Search: 4.1\nFile Analysis",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: File Analysis\n\nMCP tool calls:\nWeb page interaction to access port 31337 and view page source",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Matrix 1:r1_s3_4.1",
+      "label": "Track: File Analysis",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 File Analysis:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Matrix 1:r1_s3_4.1",
+      "label": "Agent: 4.1\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 Web Service Analysis\n\u25cb 4 Exploitation\n  \u25cb 4.1 File Analysis\n  \u25cb 4.2 Credential Discovery\n\u25cb 5 Post-Exploitation\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Matrix 1:r1_s3_4.2",
+      "label": "Search: 4.2\nCredential Discovery",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2: Credential Discovery\n\nMCP tool calls:\nWeb page interaction to access port 31337 and view page source",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Matrix 1:r1_s3_4.2",
+      "label": "Track: Credential Discovery",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2 Credential Discovery:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Matrix 1:r1_s3_4.2",
+      "label": "Agent: 4.2\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 Web Service Analysis\n\u25cb 4 Exploitation\n  \u25cb 4.1 File Analysis\n  \u25cb 4.2 Credential Discovery\n\u25cb 5 Post-Exploitation\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Matrix 1:r1_s4_3.2",
+      "label": "Search: 3.2\nFile Analysis",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.2: File Analysis\n\nMCP tool calls:\nWeb page interaction to access and download Cypher.matrix file, Interactive CLI to analyze file contents",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Matrix 1:r1_s4_3.2",
+      "label": "Track: BIN file downloaded, contains\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.2 File Analysis:\nBIN file downloaded, contains brainfuck encoded string",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Matrix 1:r1_s4_3.2",
+      "label": "Agent: 3.2\nVulnerability Assessm\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.2:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 Web Service Analysis\n  \u2713 3.2 File Analysis\n\u25cb 4 Exploitation\n  \u25cb 4.1 Credential Discovery\n  \u25cb 4.2 SSH Brute Force\n\u25cb 5 Post-Exploitation\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Matrix 1:r1_s6_5.1",
+      "label": "Search: 5.1\nRestricted Shell Escape",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5.1: Restricted Shell Escape\n\nMCP tool calls:\nInteractive CLI to execute: crunch 8 8 -t k1ll0r%@ -o dict.txt, then Hydra: hydra -l guest -P dict.txt 192.168.1.18 ssh",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Matrix 1:r1_s6_5.1",
+      "label": "Track: Restricted Shell Escape",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5.1 Restricted Shell Escape:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Matrix 1:r1_s6_5.1",
+      "label": "Agent: 5.1\nPost-Exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5.1:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 Web Service Analysis\n  \u2713 3.2 File Analysis\n\u2713 4 Exploitation\n  \u2713 4.1 Credential Discovery\n  \u2713 4.2 SSH Brute Force\n\u25cb 5 Post-Exploitation\n  \u25cb 5.1 Restricted Shell Escape\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Matrix 1:r1_s7_6.1",
+      "label": "Search: 6.1\nEnvironment Configuration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6.1: Environment Configuration\n\nMCP tool calls:\nInteractive CLI to execute: ssh guest@192.168.1.18 with password k1ll0r7n",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Matrix 1:r1_s7_6.1",
+      "label": "Track: Environment Configuration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6.1 Environment Configuration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Matrix 1:r1_s7_6.1",
+      "label": "Agent: 6.1\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6.1:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 Web Service Analysis\n  \u2713 3.2 File Analysis\n\u2713 4 Exploitation\n  \u2713 4.1 Credential Discovery\n  \u2713 4.2 SSH Brute Force\n\u2713 5 Post-Exploitation\n  \u2713 5.1 Restricted Shell Escape\n\u25cb 6 Privilege Escalation\n  \u25cb 6.1 Environment Configuration\n  \u25cb 6.2 Sudo Exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Matrix 1:r1_s7_6.2",
+      "label": "Search: 6.2\nSudo Exploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6.2: Sudo Exploitation\n\nMCP tool calls:\nInteractive CLI to execute: ssh guest@192.168.1.18 with password k1ll0r7n",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Matrix 1:r1_s7_6.2",
+      "label": "Track: Sudo Exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6.2 Sudo Exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Matrix 1:r1_s7_6.2",
+      "label": "Agent: 6.2\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6.2:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 Web Service Analysis\n  \u2713 3.2 File Analysis\n\u2713 4 Exploitation\n  \u2713 4.1 Credential Discovery\n  \u2713 4.2 SSH Brute Force\n\u2713 5 Post-Exploitation\n  \u2713 5.1 Restricted Shell Escape\n\u25cb 6 Privilege Escalation\n  \u25cb 6.1 Environment Configuration\n  \u25cb 6.2 Sudo Exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Matrix 1:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 Web Service Analysis\n  \u2713 3.2 File Analysis\n\u2713 4 Exploitation\n  \u2713 4.1 Credential Discovery\n  \u2713 4.2 SSH Brute Force\n\u2713 5 Post-Exploitation\n  \u2713 5.1 Restricted Shell Escape\n\u2713 6 Privilege Escalation\n  \u2713 6.1 Environment Configuration\n  \u2713 6.2 Sudo Exploitation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Matrix 1:START",
+      "to": "agent:Matrix 1:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Matrix 1:START",
+      "to": "search:Matrix 1:r1_s2_3.1",
+      "label": "3.1 Web Service Analysis",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Matrix 1:r1_s2_3.1",
+      "to": "track:Matrix 1:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Matrix 1:r1_s2_3.1",
+      "to": "agent:Matrix 1:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Matrix 1:r1_s2_3.1",
+      "to": "agent:Matrix 1:r1_s3_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Matrix 1:r1_s2_3.1",
+      "to": "search:Matrix 1:r1_s3_4.1",
+      "label": "4.1 File Analysis",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Matrix 1:r1_s3_4.1",
+      "to": "track:Matrix 1:r1_s3_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Matrix 1:r1_s3_4.1",
+      "to": "agent:Matrix 1:r1_s3_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Matrix 1:r1_s3_4.1",
+      "to": "agent:Matrix 1:r1_s3_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Matrix 1:r1_s3_4.1",
+      "to": "search:Matrix 1:r1_s3_4.2",
+      "label": "4.2 Credential Discovery",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Matrix 1:r1_s3_4.2",
+      "to": "track:Matrix 1:r1_s3_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Matrix 1:r1_s3_4.2",
+      "to": "agent:Matrix 1:r1_s3_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Matrix 1:r1_s3_4.2",
+      "to": "agent:Matrix 1:r1_s4_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Matrix 1:r1_s3_4.2",
+      "to": "search:Matrix 1:r1_s4_3.2",
+      "label": "3.2 File Analysis",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Matrix 1:r1_s4_3.2",
+      "to": "track:Matrix 1:r1_s4_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Matrix 1:r1_s4_3.2",
+      "to": "agent:Matrix 1:r1_s4_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Matrix 1:r1_s4_3.2",
+      "to": "agent:Matrix 1:r1_s6_5.1",
+      "label": "\u2192 5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Matrix 1:r1_s4_3.2",
+      "to": "search:Matrix 1:r1_s6_5.1",
+      "label": "5.1 Restricted Shell Es\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Matrix 1:r1_s6_5.1",
+      "to": "track:Matrix 1:r1_s6_5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Matrix 1:r1_s6_5.1",
+      "to": "agent:Matrix 1:r1_s6_5.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Matrix 1:r1_s6_5.1",
+      "to": "agent:Matrix 1:r1_s7_6.1",
+      "label": "\u2192 6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Matrix 1:r1_s6_5.1",
+      "to": "search:Matrix 1:r1_s7_6.1",
+      "label": "6.1 Environment Configu\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Matrix 1:r1_s7_6.1",
+      "to": "track:Matrix 1:r1_s7_6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Matrix 1:r1_s7_6.1",
+      "to": "agent:Matrix 1:r1_s7_6.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Matrix 1:r1_s7_6.1",
+      "to": "agent:Matrix 1:r1_s7_6.2",
+      "label": "\u2192 6.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Matrix 1:r1_s7_6.1",
+      "to": "search:Matrix 1:r1_s7_6.2",
+      "label": "6.2 Sudo Exploitation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Matrix 1:r1_s7_6.2",
+      "to": "track:Matrix 1:r1_s7_6.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Matrix 1:r1_s7_6.2",
+      "to": "agent:Matrix 1:r1_s7_6.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Matrix 1:r1_s7_6.2",
+      "to": "agent:Matrix 1:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 23,
+    "total_edges": 29,
+    "agent_nodes": 9,
+    "search_nodes": 7,
+    "track_nodes": 7,
+    "runs_detected": 1,
+    "rows_captured": 9
+  }
+}

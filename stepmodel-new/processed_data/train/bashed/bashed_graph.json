@@ -1,0 +1,526 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Bashed",
+  "source": "training_data.csv, Machine == 'Bashed', 7 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Bashed:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Bashed'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bashed:r1_s1_2.1",
+      "label": "Search: 2.1\nWeb enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: Web enumeration\n\nMCP tool calls:\nNmap: Execute port scan with service version and script detection (-sV -sC) against target 10.10.10.68",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bashed:r1_s1_2.1",
+      "label": "Track: Web enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 Web enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bashed:r1_s1_2.1",
+      "label": "Agent: 2.1\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u25cb 2.1 Web enumeration\n\u25cb 3 Initial Access\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bashed:r1_s2_3.1",
+      "label": "Search: 3.1\nWeb shell access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: Web shell access\n\nMCP tool calls:\nDirbuster: Execute directory enumeration against http://10.10.10.68 using medium wordlist; Web page interaction: Browse root page and examine links and HTML source code",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bashed:r1_s2_3.1",
+      "label": "Track: Web shell access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 Web shell access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bashed:r1_s2_3.1",
+      "label": "Agent: 3.1\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Initial Access\n  \u25cb 3.1 Web shell access\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bashed:r1_s3_4.1",
+      "label": "Search: 4.1\nPrivilege enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Privilege enumeration\n\nMCP tool calls:\nWeb page interaction: Access http://10.10.10.68/dev/phpbash.php to obtain interactive web shell as www-data user; Interactive CLI: Navigate filesystem to locate user.txt flag file",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bashed:r1_s3_4.1",
+      "label": "Track: Privilege enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Privilege enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bashed:r1_s3_4.1",
+      "label": "Agent: 4.1\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2026 4 Privilege Escalation\n  \u25cb 4.1 Privilege enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bashed:r1_s4_4.2",
+      "label": "Search: 4.2\nLateral movement",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2: Lateral movement\n\nMCP tool calls:\nInteractive CLI: Execute sudo -l to check sudoers configuration for www-data user; Interactive CLI: Download and run LinEnum.sh enumeration script",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bashed:r1_s4_4.2",
+      "label": "Track: Lateral movement",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2 Lateral movement:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bashed:r1_s4_4.2",
+      "label": "Agent: 4.2\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2026 4 Privilege Escalation\n  \u2713 4.1 Privilege enumeration\n  \u25cb 4.2 Lateral movement",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bashed:r1_s5_4.3",
+      "label": "Search: 4.3\nCron exploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.3: Cron exploitation\n\nMCP tool calls:\nInteractive CLI: Execute sudo -u scriptmanager /bin/bash to obtain shell as scriptmanager user",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bashed:r1_s5_4.3",
+      "label": "Track: Cron exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.3 Cron exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bashed:r1_s5_4.3",
+      "label": "Agent: 4.3\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.3:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2026 4 Privilege Escalation\n  \u2713 4.1 Privilege enumeration\n  \u2713 4.2 Lateral movement\n  \u25cb 4.3 Cron exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bashed:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2713 4 Privilege Escalation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Bashed:START",
+      "to": "agent:Bashed:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bashed:START",
+      "to": "search:Bashed:r1_s1_2.1",
+      "label": "2.1 Web enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bashed:r1_s1_2.1",
+      "to": "track:Bashed:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bashed:r1_s1_2.1",
+      "to": "agent:Bashed:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bashed:r1_s1_2.1",
+      "to": "agent:Bashed:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bashed:r1_s1_2.1",
+      "to": "search:Bashed:r1_s2_3.1",
+      "label": "3.1 Web shell access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bashed:r1_s2_3.1",
+      "to": "track:Bashed:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bashed:r1_s2_3.1",
+      "to": "agent:Bashed:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bashed:r1_s2_3.1",
+      "to": "agent:Bashed:r1_s3_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bashed:r1_s2_3.1",
+      "to": "search:Bashed:r1_s3_4.1",
+      "label": "4.1 Privilege enumerati\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bashed:r1_s3_4.1",
+      "to": "track:Bashed:r1_s3_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bashed:r1_s3_4.1",
+      "to": "agent:Bashed:r1_s3_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bashed:r1_s3_4.1",
+      "to": "agent:Bashed:r1_s4_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bashed:r1_s3_4.1",
+      "to": "search:Bashed:r1_s4_4.2",
+      "label": "4.2 Lateral movement",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bashed:r1_s4_4.2",
+      "to": "track:Bashed:r1_s4_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bashed:r1_s4_4.2",
+      "to": "agent:Bashed:r1_s4_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bashed:r1_s4_4.2",
+      "to": "agent:Bashed:r1_s5_4.3",
+      "label": "\u2192 4.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bashed:r1_s4_4.2",
+      "to": "search:Bashed:r1_s5_4.3",
+      "label": "4.3 Cron exploitation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bashed:r1_s5_4.3",
+      "to": "track:Bashed:r1_s5_4.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bashed:r1_s5_4.3",
+      "to": "agent:Bashed:r1_s5_4.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bashed:r1_s5_4.3",
+      "to": "agent:Bashed:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 17,
+    "total_edges": 21,
+    "agent_nodes": 7,
+    "search_nodes": 5,
+    "track_nodes": 5,
+    "runs_detected": 1,
+    "rows_captured": 7
+  }
+}

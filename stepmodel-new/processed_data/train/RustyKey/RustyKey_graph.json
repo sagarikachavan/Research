@@ -1,0 +1,2236 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "RustyKey",
+  "source": "training_data.csv, Machine == 'RustyKey', 11 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:RustyKey:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'RustyKey'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s1_2",
+      "label": "Search: 2\nInitial access testing",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2: Initial access testing\n\nMCP tool calls:\nNmap: Perform comprehensive port scan with service version detection and OS fingerprinting on target 10.10.11.75",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s1_2",
+      "label": "Track: Initial access testing",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2 Initial access testing:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s1_2",
+      "label": "Agent: 2\nInitial access testing",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u2713 1.2 Service enumeration\n\u25cb 2 Initial access testing\n  \u25cb 2.1 Credential validation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s1_2.1",
+      "label": "Search: 2.1\nCredential validation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: Credential validation\n\nMCP tool calls:\nNmap: Perform comprehensive port scan with service version detection and OS fingerprinting on target 10.10.11.75",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s1_2.1",
+      "label": "Track: Credential validation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 Credential validation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s1_2.1",
+      "label": "Agent: 2.1\nInitial access testing",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u2713 1.2 Service enumeration\n\u25cb 2 Initial access testing\n  \u25cb 2.1 Credential validation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s2_2.2",
+      "label": "Search: 2.2\nSMB enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.2: SMB enumeration\n\nMCP tool calls:\nInteractive CLI: Generate krb5.conf with realm RUSTYKEY.HTB. Execute ntpdate to sync with dc.rustykey.htb. Test authentication with netexec using Kerberos (-k flag). Enumerate SMB shares. SMB client: Access discovered shares looking for sensitive data.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s2_2.2",
+      "label": "Track: SMB enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.2 SMB enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s2_2.2",
+      "label": "Agent: 2.2\nInitial access testing",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n  \u2713 2.1 Credential validation\n  \u2713 2.2 SMB enumeration\n\u25cb 3 Active Directory enumeration\n  \u25cb 3.1 BloodHound collection",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s2_3",
+      "label": "Search: 3\nActive Directory enumerat\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3: Active Directory enumeration\n\nMCP tool calls:\nInteractive CLI: Generate krb5.conf with realm RUSTYKEY.HTB. Execute ntpdate to sync with dc.rustykey.htb. Test authentication with netexec using Kerberos (-k flag). Enumerate SMB shares. SMB client: Access discovered shares looking for sensitive data.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s2_3",
+      "label": "Track: Active Directory enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3 Active Directory enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s2_3",
+      "label": "Agent: 3\nActive Directory enum\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n  \u2713 2.1 Credential validation\n  \u2713 2.2 SMB enumeration\n\u25cb 3 Active Directory enumeration\n  \u25cb 3.1 BloodHound collection",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s2_3.1",
+      "label": "Search: 3.1\nBloodHound collection",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: BloodHound collection\n\nMCP tool calls:\nInteractive CLI: Generate krb5.conf with realm RUSTYKEY.HTB. Execute ntpdate to sync with dc.rustykey.htb. Test authentication with netexec using Kerberos (-k flag). Enumerate SMB shares. SMB client: Access discovered shares looking for sensitive data.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s2_3.1",
+      "label": "Track: BloodHound collection",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 BloodHound collection:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s2_3.1",
+      "label": "Agent: 3.1\nActive Directory enum\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n  \u2713 2.1 Credential validation\n  \u2713 2.2 SMB enumeration\n\u25cb 3 Active Directory enumeration\n  \u25cb 3.1 BloodHound collection",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s3_3.2",
+      "label": "Search: 3.2\nAttack path analysis",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.2: Attack path analysis\n\nMCP tool calls:\nInteractive CLI: Execute RustHound-CE with rr.parker credentials to collect AD data. Import collected data into BloodHound. Analyze for privilege escalation paths, group memberships, computer accounts, and permission relationships.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s3_3.2",
+      "label": "Track: Attack path analysis",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.2 Attack path analysis:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s3_3.2",
+      "label": "Agent: 3.2\nActive Directory enum\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.2:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n  \u2713 3.1 BloodHound collection\n  \u2713 3.2 Attack path analysis\n\u25cb 4 Computer account compromise\n  \u25cb 4.1 Timeroasting attack",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s3_4",
+      "label": "Search: 4\nComputer account compromi\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4: Computer account compromise\n\nMCP tool calls:\nInteractive CLI: Execute RustHound-CE with rr.parker credentials to collect AD data. Import collected data into BloodHound. Analyze for privilege escalation paths, group memberships, computer accounts, and permission relationships.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s3_4",
+      "label": "Track: Computer account compromise",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4 Computer account compromise:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s3_4",
+      "label": "Agent: 4\nComputer account comp\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n  \u2713 3.1 BloodHound collection\n  \u2713 3.2 Attack path analysis\n\u25cb 4 Computer account compromise\n  \u25cb 4.1 Timeroasting attack",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s3_4.1",
+      "label": "Search: 4.1\nTimeroasting attack",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Timeroasting attack\n\nMCP tool calls:\nInteractive CLI: Execute RustHound-CE with rr.parker credentials to collect AD data. Import collected data into BloodHound. Analyze for privilege escalation paths, group memberships, computer accounts, and permission relationships.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s3_4.1",
+      "label": "Track: Timeroasting attack",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Timeroasting attack:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s3_4.1",
+      "label": "Agent: 4.1\nComputer account comp\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n  \u2713 3.1 BloodHound collection\n  \u2713 3.2 Attack path analysis\n\u25cb 4 Computer account compromise\n  \u25cb 4.1 Timeroasting attack",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s4_5",
+      "label": "Search: 5\nPrivilege escalation via \u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5: Privilege escalation via groups\n\nMCP tool calls:\nInteractive CLI: Execute NetExec timeroast module against dc.rustykey.htb to extract computer account hashes via NTP. Hydra: Use hashcat to crack extracted hashes, particularly RID 1125 (IT-COMPUTER3), using rockyou.txt and common password lists.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s4_5",
+      "label": "Track: Privilege escalation via grou\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5 Privilege escalation via groups:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s4_5",
+      "label": "Agent: 5\nPrivilege escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n\u2713 4 Computer account compromise\n  \u2713 4.1 Timeroasting attack\n\u25cb 5 Privilege escalation via groups\n  \u25cb 5.1 Group membership manipulation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s4_5.1",
+      "label": "Search: 5.1\nGroup membership manipula\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5.1: Group membership manipulation\n\nMCP tool calls:\nInteractive CLI: Execute NetExec timeroast module against dc.rustykey.htb to extract computer account hashes via NTP. Hydra: Use hashcat to crack extracted hashes, particularly RID 1125 (IT-COMPUTER3), using rockyou.txt and common password lists.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s4_5.1",
+      "label": "Track: Group membership manipulation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5.1 Group membership manipulation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s4_5.1",
+      "label": "Agent: 5.1\nPrivilege escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5.1:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n\u2713 4 Computer account compromise\n  \u2713 4.1 Timeroasting attack\n\u25cb 5 Privilege escalation via groups\n  \u25cb 5.1 Group membership manipulation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s5_5.2",
+      "label": "Search: 5.2\nPassword reset",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5.2: Password reset\n\nMCP tool calls:\nInteractive CLI: Use bloodyAD with IT-COMPUTER3$ credentials to add self to Helpdesk group. Change password for bb.morgan. Remove IT group from Protected Objects group to enable authentication bypass of Protected Users restriction. Generate TGT for bb.morgan using getTGT.py.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s5_5.2",
+      "label": "Track: Password reset",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5.2 Password reset:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s5_5.2",
+      "label": "Agent: 5.2\nPrivilege escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5.2:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n\u2713 4 Computer account compromise\n\u2713 5 Privilege escalation via groups\n  \u2713 5.1 Group membership manipulation\n  \u2713 5.2 Password reset\n\u25cb 6 User access\n  \u25cb 6.1 WinRM connection",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s5_6",
+      "label": "Search: 6\nUser access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6: User access\n\nMCP tool calls:\nInteractive CLI: Use bloodyAD with IT-COMPUTER3$ credentials to add self to Helpdesk group. Change password for bb.morgan. Remove IT group from Protected Objects group to enable authentication bypass of Protected Users restriction. Generate TGT for bb.morgan using getTGT.py.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s5_6",
+      "label": "Track: User access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6 User access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s5_6",
+      "label": "Agent: 6\nUser access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n\u2713 4 Computer account compromise\n\u2713 5 Privilege escalation via groups\n  \u2713 5.1 Group membership manipulation\n  \u2713 5.2 Password reset\n\u25cb 6 User access\n  \u25cb 6.1 WinRM connection",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s5_6.1",
+      "label": "Search: 6.1\nWinRM connection",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6.1: WinRM connection\n\nMCP tool calls:\nInteractive CLI: Use bloodyAD with IT-COMPUTER3$ credentials to add self to Helpdesk group. Change password for bb.morgan. Remove IT group from Protected Objects group to enable authentication bypass of Protected Users restriction. Generate TGT for bb.morgan using getTGT.py.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s5_6.1",
+      "label": "Track: WinRM connection",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6.1 WinRM connection:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s5_6.1",
+      "label": "Agent: 6.1\nUser access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6.1:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n\u2713 4 Computer account compromise\n\u2713 5 Privilege escalation via groups\n  \u2713 5.1 Group membership manipulation\n  \u2713 5.2 Password reset\n\u25cb 6 User access\n  \u25cb 6.1 WinRM connection",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s6_7",
+      "label": "Search: 7\nLateral movement planning",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 7: Lateral movement planning\n\nMCP tool calls:\nNetcat: Connect via evil-winrm using bb.morgan credentials with Kerberos authentication. Upon successful connection, capture user.txt flag from bb.morgan's desktop.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s6_7",
+      "label": "Track: Lateral movement planning",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "7 Lateral movement planning:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s6_7",
+      "label": "Agent: 7\nLateral movement plan\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 7:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n\u2713 4 Computer account compromise\n\u2713 5 Privilege escalation via groups\n\u2713 6 User access\n  \u2713 6.1 WinRM connection\n\u25cb 7 Lateral movement planning\n  \u25cb 7.1 Desktop enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s6_7.1",
+      "label": "Search: 7.1\nDesktop enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 7.1: Desktop enumeration\n\nMCP tool calls:\nNetcat: Connect via evil-winrm using bb.morgan credentials with Kerberos authentication. Upon successful connection, capture user.txt flag from bb.morgan's desktop.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s6_7.1",
+      "label": "Track: Desktop enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "7.1 Desktop enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s6_7.1",
+      "label": "Agent: 7.1\nLateral movement plan\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 7.1:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n\u2713 4 Computer account compromise\n\u2713 5 Privilege escalation via groups\n\u2713 6 User access\n  \u2713 6.1 WinRM connection\n\u25cb 7 Lateral movement planning\n  \u25cb 7.1 Desktop enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s7_7.2",
+      "label": "Search: 7.2\nRegistry permissions disc\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 7.2: Registry permissions discovery\n\nMCP tool calls:\nInteractive CLI: List files in bb.morgan's desktop directory. Read any PDF or text files found. Document hints about 7-Zip, context menus, or application vulnerabilities.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s7_7.2",
+      "label": "Track: Registry permissions discovery",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "7.2 Registry permissions discovery:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s7_7.2",
+      "label": "Agent: 7.2\nLateral movement plan\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 7.2:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n\u2713 4 Computer account compromise\n\u2713 5 Privilege escalation via groups\n\u2713 6 User access\n\u2713 7 Lateral movement planning\n  \u2713 7.1 Desktop enumeration\n  \u2713 7.2 Registry permissions discovery\n\u25cb 8 Context menu hijacking\n  \u25cb 8.1 User escalation chain",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s7_8",
+      "label": "Search: 8\nContext menu hijacking",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 8: Context menu hijacking\n\nMCP tool calls:\nInteractive CLI: List files in bb.morgan's desktop directory. Read any PDF or text files found. Document hints about 7-Zip, context menus, or application vulnerabilities.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s7_8",
+      "label": "Track: Context menu hijacking",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "8 Context menu hijacking:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s7_8",
+      "label": "Agent: 8\nContext menu hijacking",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 8:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n\u2713 4 Computer account compromise\n\u2713 5 Privilege escalation via groups\n\u2713 6 User access\n\u2713 7 Lateral movement planning\n  \u2713 7.1 Desktop enumeration\n  \u2713 7.2 Registry permissions discovery\n\u25cb 8 Context menu hijacking\n  \u25cb 8.1 User escalation chain",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s7_8.1",
+      "label": "Search: 8.1\nUser escalation chain",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 8.1: User escalation chain\n\nMCP tool calls:\nInteractive CLI: List files in bb.morgan's desktop directory. Read any PDF or text files found. Document hints about 7-Zip, context menus, or application vulnerabilities.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s7_8.1",
+      "label": "Track: User escalation chain",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "8.1 User escalation chain:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s7_8.1",
+      "label": "Agent: 8.1\nContext menu hijacking",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 8.1:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n\u2713 4 Computer account compromise\n\u2713 5 Privilege escalation via groups\n\u2713 6 User access\n\u2713 7 Lateral movement planning\n  \u2713 7.1 Desktop enumeration\n  \u2713 7.2 Registry permissions discovery\n\u25cb 8 Context menu hijacking\n  \u25cb 8.1 User escalation chain",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s8_8.2",
+      "label": "Search: 8.2\nDLL injection",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 8.2: DLL injection\n\nMCP tool calls:\nInteractive CLI: Use bloodyAD to reset ee.reed password via ForceChangePassword. Use RunasCs to obtain shell as ee.reed. Reset mm.turner password. Execute RunasCs as mm.turner. Interactive CLI: Generate malicious DLL with msfvenom. Upload to C:\\programdata\\rev.dll. Modify registry HKCR\\CLSID\\{23170F69-40C1-278A-1000-000100020000}\\InProcServer32 to point to C:\\programdata\\rev.dll.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s8_8.2",
+      "label": "Track: DLL injection",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "8.2 DLL injection:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s8_8.2",
+      "label": "Agent: 8.2\nContext menu hijacking",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 8.2:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n\u2713 4 Computer account compromise\n\u2713 5 Privilege escalation via groups\n\u2713 6 User access\n\u2713 7 Lateral movement planning\n\u2713 8 Context menu hijacking\n  \u2713 8.1 User escalation chain\n  \u2713 8.2 DLL injection\n\u25cb 9 Resource-Based Constrained Delegation\n  \u25cb 9.1 RBCD configuration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s8_9",
+      "label": "Search: 9\nResource-Based Constraine\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 9: Resource-Based Constrained Delegation\n\nMCP tool calls:\nInteractive CLI: Use bloodyAD to reset ee.reed password via ForceChangePassword. Use RunasCs to obtain shell as ee.reed. Reset mm.turner password. Execute RunasCs as mm.turner. Interactive CLI: Generate malicious DLL with msfvenom. Upload to C:\\programdata\\rev.dll. Modify registry HKCR\\CLSID\\{23170F69-40C1-278A-1000-000100020000}\\InProcServer32 to point to C:\\programdata\\rev.dll.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s8_9",
+      "label": "Track: Resource-Based Constrained De\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "9 Resource-Based Constrained Delegation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s8_9",
+      "label": "Agent: 9\nResource-Based Constr\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 9:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n\u2713 4 Computer account compromise\n\u2713 5 Privilege escalation via groups\n\u2713 6 User access\n\u2713 7 Lateral movement planning\n\u2713 8 Context menu hijacking\n  \u2713 8.1 User escalation chain\n  \u2713 8.2 DLL injection\n\u25cb 9 Resource-Based Constrained Delegation\n  \u25cb 9.1 RBCD configuration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s8_9.1",
+      "label": "Search: 9.1\nRBCD configuration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 9.1: RBCD configuration\n\nMCP tool calls:\nInteractive CLI: Use bloodyAD to reset ee.reed password via ForceChangePassword. Use RunasCs to obtain shell as ee.reed. Reset mm.turner password. Execute RunasCs as mm.turner. Interactive CLI: Generate malicious DLL with msfvenom. Upload to C:\\programdata\\rev.dll. Modify registry HKCR\\CLSID\\{23170F69-40C1-278A-1000-000100020000}\\InProcServer32 to point to C:\\programdata\\rev.dll.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s8_9.1",
+      "label": "Track: RBCD configuration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "9.1 RBCD configuration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s8_9.1",
+      "label": "Agent: 9.1\nResource-Based Constr\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 9.1:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n\u2713 4 Computer account compromise\n\u2713 5 Privilege escalation via groups\n\u2713 6 User access\n\u2713 7 Lateral movement planning\n\u2713 8 Context menu hijacking\n  \u2713 8.1 User escalation chain\n  \u2713 8.2 DLL injection\n\u25cb 9 Resource-Based Constrained Delegation\n  \u25cb 9.1 RBCD configuration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s9_9.2",
+      "label": "Search: 9.2\nAdministrator access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 9.2: Administrator access\n\nMCP tool calls:\nInteractive CLI: Use bloodyAD or PowerView with mm.turner credentials to set msDS-AllowedToActOnBehalfOfOtherIdentity on DC to IT-COMPUTER3$. Interactive CLI: Execute getST.py with IT-COMPUTER3$ credentials to generate service ticket impersonating backupadmin account. Interactive CLI: Use wmiexec.py with generated ticket to connect as backupadmin (Administrators group member).",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s9_9.2",
+      "label": "Track: Administrator access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "9.2 Administrator access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s9_9.2",
+      "label": "Agent: 9.2\nResource-Based Constr\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 9.2:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n\u2713 4 Computer account compromise\n\u2713 5 Privilege escalation via groups\n\u2713 6 User access\n\u2713 7 Lateral movement planning\n\u2713 8 Context menu hijacking\n\u2713 9 Resource-Based Constrained Delegation\n  \u2713 9.1 RBCD configuration\n  \u2713 9.2 Administrator access\n\u25cb 10 Domain compromise\n  \u25cb 10.1 DCSync operation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s9_10",
+      "label": "Search: 10\nDomain compromise",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 10: Domain compromise\n\nMCP tool calls:\nInteractive CLI: Use bloodyAD or PowerView with mm.turner credentials to set msDS-AllowedToActOnBehalfOfOtherIdentity on DC to IT-COMPUTER3$. Interactive CLI: Execute getST.py with IT-COMPUTER3$ credentials to generate service ticket impersonating backupadmin account. Interactive CLI: Use wmiexec.py with generated ticket to connect as backupadmin (Administrators group member).",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s9_10",
+      "label": "Track: Domain compromise",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "10 Domain compromise:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s9_10",
+      "label": "Agent: 10\nDomain compromise",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 10:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n\u2713 4 Computer account compromise\n\u2713 5 Privilege escalation via groups\n\u2713 6 User access\n\u2713 7 Lateral movement planning\n\u2713 8 Context menu hijacking\n\u2713 9 Resource-Based Constrained Delegation\n  \u2713 9.1 RBCD configuration\n  \u2713 9.2 Administrator access\n\u25cb 10 Domain compromise\n  \u25cb 10.1 DCSync operation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:RustyKey:r1_s9_10.1",
+      "label": "Search: 10.1\nDCSync operation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 10.1: DCSync operation\n\nMCP tool calls:\nInteractive CLI: Use bloodyAD or PowerView with mm.turner credentials to set msDS-AllowedToActOnBehalfOfOtherIdentity on DC to IT-COMPUTER3$. Interactive CLI: Execute getST.py with IT-COMPUTER3$ credentials to generate service ticket impersonating backupadmin account. Interactive CLI: Use wmiexec.py with generated ticket to connect as backupadmin (Administrators group member).",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:RustyKey:r1_s9_10.1",
+      "label": "Track: DCSync operation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "10.1 DCSync operation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_s9_10.1",
+      "label": "Agent: 10.1\nDomain compromise",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 10.1:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n\u2713 4 Computer account compromise\n\u2713 5 Privilege escalation via groups\n\u2713 6 User access\n\u2713 7 Lateral movement planning\n\u2713 8 Context menu hijacking\n\u2713 9 Resource-Based Constrained Delegation\n  \u2713 9.1 RBCD configuration\n  \u2713 9.2 Administrator access\n\u25cb 10 Domain compromise\n  \u25cb 10.1 DCSync operation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:RustyKey:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access testing\n\u2713 3 Active Directory enumeration\n\u2713 4 Computer account compromise\n\u2713 5 Privilege escalation via groups\n\u2713 6 User access\n\u2713 7 Lateral movement planning\n\u2713 8 Context menu hijacking\n\u2713 9 Resource-Based Constrained Delegation\n\u2713 10 Domain compromise\n  \u2713 10.1 DCSync operation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:RustyKey:START",
+      "to": "agent:RustyKey:r1_s1_2",
+      "label": "\u2192 2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:START",
+      "to": "search:RustyKey:r1_s1_2",
+      "label": "2 Initial access test\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s1_2",
+      "to": "track:RustyKey:r1_s1_2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s1_2",
+      "to": "agent:RustyKey:r1_s1_2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s1_2",
+      "to": "agent:RustyKey:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s1_2",
+      "to": "search:RustyKey:r1_s1_2.1",
+      "label": "2.1 Credential validati\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s1_2.1",
+      "to": "track:RustyKey:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s1_2.1",
+      "to": "agent:RustyKey:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s1_2.1",
+      "to": "agent:RustyKey:r1_s2_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s1_2.1",
+      "to": "search:RustyKey:r1_s2_2.2",
+      "label": "2.2 SMB enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s2_2.2",
+      "to": "track:RustyKey:r1_s2_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s2_2.2",
+      "to": "agent:RustyKey:r1_s2_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s2_2.2",
+      "to": "agent:RustyKey:r1_s2_3",
+      "label": "\u2192 3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s2_2.2",
+      "to": "search:RustyKey:r1_s2_3",
+      "label": "3 Active Directory en\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s2_3",
+      "to": "track:RustyKey:r1_s2_3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s2_3",
+      "to": "agent:RustyKey:r1_s2_3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s2_3",
+      "to": "agent:RustyKey:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s2_3",
+      "to": "search:RustyKey:r1_s2_3.1",
+      "label": "3.1 BloodHound collecti\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s2_3.1",
+      "to": "track:RustyKey:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s2_3.1",
+      "to": "agent:RustyKey:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s2_3.1",
+      "to": "agent:RustyKey:r1_s3_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s2_3.1",
+      "to": "search:RustyKey:r1_s3_3.2",
+      "label": "3.2 Attack path analysis",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s3_3.2",
+      "to": "track:RustyKey:r1_s3_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s3_3.2",
+      "to": "agent:RustyKey:r1_s3_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s3_3.2",
+      "to": "agent:RustyKey:r1_s3_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s3_3.2",
+      "to": "search:RustyKey:r1_s3_4",
+      "label": "4 Computer account co\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s3_4",
+      "to": "track:RustyKey:r1_s3_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s3_4",
+      "to": "agent:RustyKey:r1_s3_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s3_4",
+      "to": "agent:RustyKey:r1_s3_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s3_4",
+      "to": "search:RustyKey:r1_s3_4.1",
+      "label": "4.1 Timeroasting attack",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s3_4.1",
+      "to": "track:RustyKey:r1_s3_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s3_4.1",
+      "to": "agent:RustyKey:r1_s3_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s3_4.1",
+      "to": "agent:RustyKey:r1_s4_5",
+      "label": "\u2192 5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s3_4.1",
+      "to": "search:RustyKey:r1_s4_5",
+      "label": "5 Privilege escalatio\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s4_5",
+      "to": "track:RustyKey:r1_s4_5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s4_5",
+      "to": "agent:RustyKey:r1_s4_5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s4_5",
+      "to": "agent:RustyKey:r1_s4_5.1",
+      "label": "\u2192 5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s4_5",
+      "to": "search:RustyKey:r1_s4_5.1",
+      "label": "5.1 Group membership ma\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s4_5.1",
+      "to": "track:RustyKey:r1_s4_5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s4_5.1",
+      "to": "agent:RustyKey:r1_s4_5.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s4_5.1",
+      "to": "agent:RustyKey:r1_s5_5.2",
+      "label": "\u2192 5.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s4_5.1",
+      "to": "search:RustyKey:r1_s5_5.2",
+      "label": "5.2 Password reset",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s5_5.2",
+      "to": "track:RustyKey:r1_s5_5.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s5_5.2",
+      "to": "agent:RustyKey:r1_s5_5.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s5_5.2",
+      "to": "agent:RustyKey:r1_s5_6",
+      "label": "\u2192 6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s5_5.2",
+      "to": "search:RustyKey:r1_s5_6",
+      "label": "6 User access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s5_6",
+      "to": "track:RustyKey:r1_s5_6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s5_6",
+      "to": "agent:RustyKey:r1_s5_6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s5_6",
+      "to": "agent:RustyKey:r1_s5_6.1",
+      "label": "\u2192 6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s5_6",
+      "to": "search:RustyKey:r1_s5_6.1",
+      "label": "6.1 WinRM connection",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s5_6.1",
+      "to": "track:RustyKey:r1_s5_6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s5_6.1",
+      "to": "agent:RustyKey:r1_s5_6.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s5_6.1",
+      "to": "agent:RustyKey:r1_s6_7",
+      "label": "\u2192 7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s5_6.1",
+      "to": "search:RustyKey:r1_s6_7",
+      "label": "7 Lateral movement pl\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s6_7",
+      "to": "track:RustyKey:r1_s6_7",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s6_7",
+      "to": "agent:RustyKey:r1_s6_7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s6_7",
+      "to": "agent:RustyKey:r1_s6_7.1",
+      "label": "\u2192 7.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s6_7",
+      "to": "search:RustyKey:r1_s6_7.1",
+      "label": "7.1 Desktop enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s6_7.1",
+      "to": "track:RustyKey:r1_s6_7.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s6_7.1",
+      "to": "agent:RustyKey:r1_s6_7.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s6_7.1",
+      "to": "agent:RustyKey:r1_s7_7.2",
+      "label": "\u2192 7.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s6_7.1",
+      "to": "search:RustyKey:r1_s7_7.2",
+      "label": "7.2 Registry permission\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s7_7.2",
+      "to": "track:RustyKey:r1_s7_7.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s7_7.2",
+      "to": "agent:RustyKey:r1_s7_7.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s7_7.2",
+      "to": "agent:RustyKey:r1_s7_8",
+      "label": "\u2192 8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s7_7.2",
+      "to": "search:RustyKey:r1_s7_8",
+      "label": "8 Context menu hijack\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s7_8",
+      "to": "track:RustyKey:r1_s7_8",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s7_8",
+      "to": "agent:RustyKey:r1_s7_8",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s7_8",
+      "to": "agent:RustyKey:r1_s7_8.1",
+      "label": "\u2192 8.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s7_8",
+      "to": "search:RustyKey:r1_s7_8.1",
+      "label": "8.1 User escalation cha\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s7_8.1",
+      "to": "track:RustyKey:r1_s7_8.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s7_8.1",
+      "to": "agent:RustyKey:r1_s7_8.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s7_8.1",
+      "to": "agent:RustyKey:r1_s8_8.2",
+      "label": "\u2192 8.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s7_8.1",
+      "to": "search:RustyKey:r1_s8_8.2",
+      "label": "8.2 DLL injection",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s8_8.2",
+      "to": "track:RustyKey:r1_s8_8.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s8_8.2",
+      "to": "agent:RustyKey:r1_s8_8.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s8_8.2",
+      "to": "agent:RustyKey:r1_s8_9",
+      "label": "\u2192 9",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s8_8.2",
+      "to": "search:RustyKey:r1_s8_9",
+      "label": "9 Resource-Based Cons\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s8_9",
+      "to": "track:RustyKey:r1_s8_9",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s8_9",
+      "to": "agent:RustyKey:r1_s8_9",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s8_9",
+      "to": "agent:RustyKey:r1_s8_9.1",
+      "label": "\u2192 9.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s8_9",
+      "to": "search:RustyKey:r1_s8_9.1",
+      "label": "9.1 RBCD configuration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s8_9.1",
+      "to": "track:RustyKey:r1_s8_9.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s8_9.1",
+      "to": "agent:RustyKey:r1_s8_9.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s8_9.1",
+      "to": "agent:RustyKey:r1_s9_9.2",
+      "label": "\u2192 9.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s8_9.1",
+      "to": "search:RustyKey:r1_s9_9.2",
+      "label": "9.2 Administrator access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s9_9.2",
+      "to": "track:RustyKey:r1_s9_9.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s9_9.2",
+      "to": "agent:RustyKey:r1_s9_9.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s9_9.2",
+      "to": "agent:RustyKey:r1_s9_10",
+      "label": "\u2192 10",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s9_9.2",
+      "to": "search:RustyKey:r1_s9_10",
+      "label": "10 Domain compromise",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s9_10",
+      "to": "track:RustyKey:r1_s9_10",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s9_10",
+      "to": "agent:RustyKey:r1_s9_10",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s9_10",
+      "to": "agent:RustyKey:r1_s9_10.1",
+      "label": "\u2192 10.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s9_10",
+      "to": "search:RustyKey:r1_s9_10.1",
+      "label": "10.1 DCSync operation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:RustyKey:r1_s9_10.1",
+      "to": "track:RustyKey:r1_s9_10.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:RustyKey:r1_s9_10.1",
+      "to": "agent:RustyKey:r1_s9_10.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:RustyKey:r1_s9_10.1",
+      "to": "agent:RustyKey:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 74,
+    "total_edges": 97,
+    "agent_nodes": 26,
+    "search_nodes": 24,
+    "track_nodes": 24,
+    "runs_detected": 1,
+    "rows_captured": 11
+  }
+}

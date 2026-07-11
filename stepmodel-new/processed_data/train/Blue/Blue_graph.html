@@ -1,0 +1,43 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Blue - PTT Evolution Graph</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" crossorigin="anonymous" />
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f8f9fa; }
+    header { padding: 14px 18px; background: white; border-bottom: 1px solid #d1d5db; }
+    #network { height: calc(100vh - 78px); width: 100vw; background-color: #f8f9fa; border: 1px solid lightgray; }
+    .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 13px; margin-top: 6px; }
+    .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Blue - PTT Evolution Graph (1 run(s), 4 row(s))</strong>
+    <div class="legend">
+      <span><span class="swatch" style="background:#3A86FF"></span>Agent (cumulative PTT state)</span>
+      <span><span class="swatch" style="background:#FF006E"></span>Agent Goal</span>
+      <span><span class="swatch" style="background:#FB5607"></span>Search (PTT item worked)</span>
+      <span><span class="swatch" style="background:#06D6A0"></span>Track (findings)</span>
+      <span>Black: StateTransition | Green: SearchUpdate | Blue: TrackUpdate | Purple: Prediction</span>
+    </div>
+  </header>
+  <div id="network"></div>
+  <script type="text/javascript">
+    var nodes = new vis.DataSet([{"id": "agent:Blue:START", "label": "Agent: Initial\n(Start)", "color": "#3A86FF", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 3, "font": {"color": "#212529"}, "title": "Start of pentest against 'Blue'. 1 recorded run(s) below."}, {"id": "search:Blue:r1_s1_2.1", "label": "Search: 2.1\nSMB enumeration", "color": "#FB5607", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 3, "font": {"color": "#212529"}, "title": "PTT item 2.1: SMB enumeration\n\nMCP tool calls:\nNmap: Execute full TCP port scan with --min-rate 10000 followed by service version detection on discovered ports for target"}, {"id": "track:Blue:r1_s1_2.1", "label": "Track: SMB enumeration", "color": "#06D6A0", "shape": "dot", "size": 34, "borderColor": "#212529", "borderWidth": 3, "font": {"color": "#212529"}, "title": "2.1 SMB enumeration:\n(status change only)"}, {"id": "agent:Blue:r1_s1_2.1", "label": "Agent: 2.1\nEnumeration", "color": "#3A86FF", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 3, "font": {"color": "#212529"}, "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u25cb 2.1 SMB enumeration\n  \u25cb 2.2 Vulnerability scanning\n\u25cb 3 Initial Access\n\u25cb 4 Post-Exploitation"}, {"id": "search:Blue:r1_s1_2.2", "label": "Search: 2.2\nVulnerability scanning", "color": "#FB5607", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 3, "font": {"color": "#212529"}, "title": "PTT item 2.2: Vulnerability scanning\n\nMCP tool calls:\nNmap: Execute full TCP port scan with --min-rate 10000 followed by service version detection on discovered ports for target"}, {"id": "track:Blue:r1_s1_2.2", "label": "Track: Vulnerability scanning", "color": "#06D6A0", "shape": "dot", "size": 34, "borderColor": "#212529", "borderWidth": 3, "font": {"color": "#212529"}, "title": "2.2 Vulnerability scanning:\n(status change only)"}, {"id": "agent:Blue:r1_s1_2.2", "label": "Agent: 2.2\nEnumeration", "color": "#3A86FF", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 3, "font": {"color": "#212529"}, "title": "Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u25cb 2.1 SMB enumeration\n  \u25cb 2.2 Vulnerability scanning\n\u25cb 3 Initial Access\n\u25cb 4 Post-Exploitation"}, {"id": "search:Blue:r1_s2_3.1", "label": "Search: 3.1\nMS17-010 exploitation", "color": "#FB5607", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 3, "font": {"color": "#212529"}, "title": "PTT item 3.1: MS17-010 exploitation\n\nMCP tool calls:\nSMB client: Execute smbmap with guest credentials to enumerate shares; Nmap: Run nmap -p 445 --script vuln to scan for SMB vulnerabilities including MS17-010"}, {"id": "track:Blue:r1_s2_3.1", "label": "Track: MS17-010 exploitation", "color": "#06D6A0", "shape": "dot", "size": 34, "borderColor": "#212529", "borderWidth": 3, "font": {"color": "#212529"}, "title": "3.1 MS17-010 exploitation:\n(status change only)"}, {"id": "agent:Blue:r1_s2_3.1", "label": "Agent: 3.1\nInitial Access", "color": "#3A86FF", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 3, "font": {"color": "#212529"}, "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Initial Access\n  \u25cb 3.1 MS17-010 exploitation\n\u25cb 4 Post-Exploitation"}, {"id": "agent:Blue:r1_close", "label": "Agent: Task\nComplete (Goal)", "color": "#FF006E", "shape": "dot", "size": 46, "borderColor": "#212529", "borderWidth": 3, "font": {"color": "#212529"}, "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Initial Access\n\u2713 4 Post-Exploitation"}]);
+    var edges = new vis.DataSet([{"from": "agent:Blue:START", "to": "agent:Blue:r1_s1_2.1", "label": "\u2192 2.1", "color": "#000000", "width": 4, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "agent:Blue:START", "to": "search:Blue:r1_s1_2.1", "label": "2.1 SMB enumeration", "color": "#06D6A0", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "SearchUpdate"}, {"from": "search:Blue:r1_s1_2.1", "to": "track:Blue:r1_s1_2.1", "label": "Discover", "color": "#3A86FF", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "TrackUpdate"}, {"from": "track:Blue:r1_s1_2.1", "to": "agent:Blue:r1_s1_2.1", "label": "Leads to", "color": "#8338EC", "width": 2, "arrows": "to", "smooth": {"type": "continuous"}, "title": "Prediction"}, {"from": "agent:Blue:r1_s1_2.1", "to": "agent:Blue:r1_s1_2.2", "label": "\u2192 2.2", "color": "#000000", "width": 4, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "agent:Blue:r1_s1_2.1", "to": "search:Blue:r1_s1_2.2", "label": "2.2 Vulnerability scann\u2026", "color": "#06D6A0", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "SearchUpdate"}, {"from": "search:Blue:r1_s1_2.2", "to": "track:Blue:r1_s1_2.2", "label": "Discover", "color": "#3A86FF", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "TrackUpdate"}, {"from": "track:Blue:r1_s1_2.2", "to": "agent:Blue:r1_s1_2.2", "label": "Leads to", "color": "#8338EC", "width": 2, "arrows": "to", "smooth": {"type": "continuous"}, "title": "Prediction"}, {"from": "agent:Blue:r1_s1_2.2", "to": "agent:Blue:r1_s2_3.1", "label": "\u2192 3.1", "color": "#000000", "width": 4, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "agent:Blue:r1_s1_2.2", "to": "search:Blue:r1_s2_3.1", "label": "3.1 MS17-010 exploitati\u2026", "color": "#06D6A0", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "SearchUpdate"}, {"from": "search:Blue:r1_s2_3.1", "to": "track:Blue:r1_s2_3.1", "label": "Discover", "color": "#3A86FF", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "TrackUpdate"}, {"from": "track:Blue:r1_s2_3.1", "to": "agent:Blue:r1_s2_3.1", "label": "Leads to", "color": "#8338EC", "width": 2, "arrows": "to", "smooth": {"type": "continuous"}, "title": "Prediction"}, {"from": "agent:Blue:r1_s2_3.1", "to": "agent:Blue:r1_close", "label": "close", "color": "#000000", "width": 4, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}]);
+    var container = document.getElementById('network');
+    var data = { nodes: nodes, edges: edges };
+    var options = {
+      physics: { forceAtlas2Based: { springLength: 340, springConstant: 0.02, centralGravity: 0.006, damping: 0.3, nodeDistance: 300 },
+                  minVelocity: 0.75, solver: "forceAtlas2Based", stabilization: { iterations: 220 } },
+      interaction: { hover: true, navigationButtons: true, keyboard: true },
+      nodes: { font: { size: 13 } },
+      edges: { font: { size: 9, color: '#212529', align: 'middle' }, smooth: { type: 'continuous' } }
+    };
+    new vis.Network(container, data, options);
+  </script>
+</body>
+</html>

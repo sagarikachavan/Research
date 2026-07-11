@@ -1,0 +1,616 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "GrimTheRipper",
+  "source": "training_data.csv, Machine == 'GrimTheRipper', 8 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:GrimTheRipper:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'GrimTheRipper'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:GrimTheRipper:r1_s1_2.1",
+      "label": "Search: 2.1\nHTTP service enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: HTTP service enumeration\n\nMCP tool calls:\nNmap: Execute aggressive scan to identify open ports and services on target at 192.168.0.8; Interactive CLI: Use netdiscover for initial network discovery",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:GrimTheRipper:r1_s1_2.1",
+      "label": "Track: HTTP service enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 HTTP service enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:GrimTheRipper:r1_s1_2.1",
+      "label": "Agent: 2.1\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance Phase\n  \u2713 1.1 Network discovery\n  \u2713 1.2 Port enumeration\n\u25cb 2 Enumeration\n  \u25cb 2.1 HTTP service enumeration\n\u25cb 3 Exploitation\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:GrimTheRipper:r1_s2_2.2",
+      "label": "Search: 2.2\nDecode hidden hints",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.2: Decode hidden hints\n\nMCP tool calls:\nDirbuster: Execute dirb against http://192.168.0.8/ to discover hidden directories; Web page interaction: Browse root webpage and examine source code for hidden hints or encoded data",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:GrimTheRipper:r1_s2_2.2",
+      "label": "Track: Decode hidden hints",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.2 Decode hidden hints:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:GrimTheRipper:r1_s2_2.2",
+      "label": "Agent: 2.2\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance Phase\n  \u2713 1.1 Network discovery\n  \u2713 1.2 Port enumeration\n\u2026 2 Enumeration\n  \u2713 2.1 HTTP service enumeration\n  \u25cb 2.2 Decode hidden hints\n\u25cb 3 Exploitation\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:GrimTheRipper:r1_s3_3.1",
+      "label": "Search: 3.1\nWordPress credential brut\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: WordPress credential brute-force\n\nMCP tool calls:\nInteractive CLI: Decode base64 string using echo THpFd0f1UQXhNREU9IHRyeSBoYXJk | base64 -d; Interactive CLI: If result is Try Harder, perform additional binary or base64 decoding to reveal /1010101 directory",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:GrimTheRipper:r1_s3_3.1",
+      "label": "Track: WordPress credential brute-fo\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 WordPress credential brute-force:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:GrimTheRipper:r1_s3_3.1",
+      "label": "Agent: 3.1\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance Phase\n  \u2713 1.1 Network discovery\n  \u2713 1.2 Port enumeration\n\u2713 2 Enumeration\n  \u2713 2.1 HTTP service enumeration\n  \u2713 2.2 Decode hidden hints\n\u25cb 3 Exploitation\n  \u25cb 3.1 WordPress credential brute-force\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:GrimTheRipper:r1_s4_3.2",
+      "label": "Search: 3.2\nDeploy WordPress shell",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.2: Deploy WordPress shell\n\nMCP tool calls:\nHydra: Execute wpscan --url http://192.168.0.8/1010101/wordpress/ -U admin -P /usr/share/wordlists/rockyou.txt to brute-force WordPress admin password",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:GrimTheRipper:r1_s4_3.2",
+      "label": "Track: Deploy WordPress shell",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.2 Deploy WordPress shell:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:GrimTheRipper:r1_s4_3.2",
+      "label": "Agent: 3.2\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.2:\n\u2713 1 Reconnaissance Phase\n  \u2713 1.1 Network discovery\n  \u2713 1.2 Port enumeration\n\u2713 2 Enumeration\n  \u2713 2.1 HTTP service enumeration\n  \u2713 2.2 Decode hidden hints\n\u2026 3 Exploitation\n  \u2713 3.1 WordPress credential brute-force\n  \u25cb 3.2 Deploy WordPress shell\n\u25cb 4 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:GrimTheRipper:r1_s5_4.1",
+      "label": "Search: 4.1\nSystem information gather\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: System information gathering\n\nMCP tool calls:\nMetasploit: Execute use exploit/unix/webapp/wp_admin_shell_upload; Metasploit: Set USERNAME=admin, PASSWORD=Password@123, TARGETURI=/1010101/wordpress/, RHOSTS=192.168.0.8; Metasploit: Run exploit to obtain meterpreter session",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:GrimTheRipper:r1_s5_4.1",
+      "label": "Track: System information gathering",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 System information gathering:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:GrimTheRipper:r1_s5_4.1",
+      "label": "Agent: 4.1\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance Phase\n  \u2713 1.1 Network discovery\n  \u2713 1.2 Port enumeration\n\u2713 2 Enumeration\n  \u2713 2.1 HTTP service enumeration\n  \u2713 2.2 Decode hidden hints\n\u2713 3 Exploitation\n  \u2713 3.1 WordPress credential brute-force\n  \u2713 3.2 Deploy WordPress shell\n\u25cb 4 Privilege Escalation\n  \u25cb 4.1 System information gathering",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:GrimTheRipper:r1_s6_4.2",
+      "label": "Search: 4.2\nDeploy kernel exploit",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2: Deploy kernel exploit\n\nMCP tool calls:\nInteractive CLI: Execute lsb_release command from meterpreter to identify OS version; Interactive CLI: Use searchsploit to identify applicable kernel exploits for identified Ubuntu version",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:GrimTheRipper:r1_s6_4.2",
+      "label": "Track: Deploy kernel exploit",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2 Deploy kernel exploit:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:GrimTheRipper:r1_s6_4.2",
+      "label": "Agent: 4.2\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2:\n\u2713 1 Reconnaissance Phase\n  \u2713 1.1 Network discovery\n  \u2713 1.2 Port enumeration\n\u2713 2 Enumeration\n  \u2713 2.1 HTTP service enumeration\n  \u2713 2.2 Decode hidden hints\n\u2713 3 Exploitation\n  \u2713 3.1 WordPress credential brute-force\n  \u2713 3.2 Deploy WordPress shell\n\u2026 4 Privilege Escalation\n  \u2713 4.1 System information gathering\n  \u25cb 4.2 Deploy kernel exploit",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:GrimTheRipper:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance Phase\n  \u2713 1.1 Network discovery\n  \u2713 1.2 Port enumeration\n\u2713 2 Enumeration\n  \u2713 2.1 HTTP service enumeration\n  \u2713 2.2 Decode hidden hints\n\u2713 3 Exploitation\n  \u2713 3.1 WordPress credential brute-force\n  \u2713 3.2 Deploy WordPress shell\n\u2713 4 Privilege Escalation\n  \u2713 4.1 System information gathering\n  \u2713 4.2 Deploy kernel exploit",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:GrimTheRipper:START",
+      "to": "agent:GrimTheRipper:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:GrimTheRipper:START",
+      "to": "search:GrimTheRipper:r1_s1_2.1",
+      "label": "2.1 HTTP service enumer\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:GrimTheRipper:r1_s1_2.1",
+      "to": "track:GrimTheRipper:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:GrimTheRipper:r1_s1_2.1",
+      "to": "agent:GrimTheRipper:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:GrimTheRipper:r1_s1_2.1",
+      "to": "agent:GrimTheRipper:r1_s2_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:GrimTheRipper:r1_s1_2.1",
+      "to": "search:GrimTheRipper:r1_s2_2.2",
+      "label": "2.2 Decode hidden hints",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:GrimTheRipper:r1_s2_2.2",
+      "to": "track:GrimTheRipper:r1_s2_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:GrimTheRipper:r1_s2_2.2",
+      "to": "agent:GrimTheRipper:r1_s2_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:GrimTheRipper:r1_s2_2.2",
+      "to": "agent:GrimTheRipper:r1_s3_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:GrimTheRipper:r1_s2_2.2",
+      "to": "search:GrimTheRipper:r1_s3_3.1",
+      "label": "3.1 WordPress credentia\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:GrimTheRipper:r1_s3_3.1",
+      "to": "track:GrimTheRipper:r1_s3_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:GrimTheRipper:r1_s3_3.1",
+      "to": "agent:GrimTheRipper:r1_s3_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:GrimTheRipper:r1_s3_3.1",
+      "to": "agent:GrimTheRipper:r1_s4_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:GrimTheRipper:r1_s3_3.1",
+      "to": "search:GrimTheRipper:r1_s4_3.2",
+      "label": "3.2 Deploy WordPress sh\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:GrimTheRipper:r1_s4_3.2",
+      "to": "track:GrimTheRipper:r1_s4_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:GrimTheRipper:r1_s4_3.2",
+      "to": "agent:GrimTheRipper:r1_s4_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:GrimTheRipper:r1_s4_3.2",
+      "to": "agent:GrimTheRipper:r1_s5_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:GrimTheRipper:r1_s4_3.2",
+      "to": "search:GrimTheRipper:r1_s5_4.1",
+      "label": "4.1 System information \u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:GrimTheRipper:r1_s5_4.1",
+      "to": "track:GrimTheRipper:r1_s5_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:GrimTheRipper:r1_s5_4.1",
+      "to": "agent:GrimTheRipper:r1_s5_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:GrimTheRipper:r1_s5_4.1",
+      "to": "agent:GrimTheRipper:r1_s6_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:GrimTheRipper:r1_s5_4.1",
+      "to": "search:GrimTheRipper:r1_s6_4.2",
+      "label": "4.2 Deploy kernel explo\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:GrimTheRipper:r1_s6_4.2",
+      "to": "track:GrimTheRipper:r1_s6_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:GrimTheRipper:r1_s6_4.2",
+      "to": "agent:GrimTheRipper:r1_s6_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:GrimTheRipper:r1_s6_4.2",
+      "to": "agent:GrimTheRipper:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 20,
+    "total_edges": 25,
+    "agent_nodes": 8,
+    "search_nodes": 6,
+    "track_nodes": 6,
+    "runs_detected": 1,
+    "rows_captured": 8
+  }
+}

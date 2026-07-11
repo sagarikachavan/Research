@@ -1,0 +1,1156 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Phoenix",
+  "source": "training_data.csv, Machine == 'Phoenix', 11 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Phoenix:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Phoenix'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Phoenix:r1_s1_2",
+      "label": "Search: 2\nWordPress enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2: WordPress enumeration\n\nMCP tool calls:\nNmap for TCP port scanning with version detection",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Phoenix:r1_s1_2",
+      "label": "Track: WordPress enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2 WordPress enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Phoenix:r1_s1_2",
+      "label": "Agent: 2\nWordPress enumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u25cb 1.2 Web application enumeration\n\u25cb 2 WordPress enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Phoenix:r1_s2_3",
+      "label": "Search: 3\nSQL injection exploitation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3: SQL injection exploitation\n\nMCP tool calls:\nGoogle search for 'asgaros-forum 1.15.12 SQL injection CVE vulnerabilities'",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Phoenix:r1_s2_3",
+      "label": "Track: SQL injection exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3 SQL injection exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Phoenix:r1_s2_3",
+      "label": "Agent: 3\nSQL injection exploit\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3:\n\u2713 1 Reconnaissance\n  \u2713 1.2 Web application enumeration\n\u2713 2 WordPress enumeration\n\u25cb 3 SQL injection exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Phoenix:r1_s3_4",
+      "label": "Search: 4\nTwo-factor bypass",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4: Two-factor bypass\n\nMCP tool calls:\nSQLmap with aggressive settings (level 5) targeting subscribe_topic parameter for blind SQL injection; extracting wp_users table",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Phoenix:r1_s3_4",
+      "label": "Track: Two-factor bypass",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4 Two-factor bypass:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Phoenix:r1_s3_4",
+      "label": "Agent: 4\nTwo-factor bypass",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4:\n\u2713 1 Reconnaissance\n\u2713 2 WordPress enumeration\n\u2713 3 SQL injection exploitation\n\u25cb 4 Two-factor bypass\n  \u25cb 4.1 Extract TOTP seed",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Phoenix:r1_s3_4.1",
+      "label": "Search: 4.1\nExtract TOTP seed",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Extract TOTP seed\n\nMCP tool calls:\nSQLmap with aggressive settings (level 5) targeting subscribe_topic parameter for blind SQL injection; extracting wp_users table",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Phoenix:r1_s3_4.1",
+      "label": "Track: Extract TOTP seed",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Extract TOTP seed:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Phoenix:r1_s3_4.1",
+      "label": "Agent: 4.1\nTwo-factor bypass",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n\u2713 2 WordPress enumeration\n\u2713 3 SQL injection exploitation\n\u25cb 4 Two-factor bypass\n  \u25cb 4.1 Extract TOTP seed",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Phoenix:r1_s4_5",
+      "label": "Search: 5\nWordPress admin access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5: WordPress admin access\n\nMCP tool calls:\nSQLmap to query wp_usermeta for miniOrange encrypted secret and AES key values",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Phoenix:r1_s4_5",
+      "label": "Track: WordPress admin access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5 WordPress admin access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Phoenix:r1_s4_5",
+      "label": "Agent: 5\nWordPress admin access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5:\n\u2713 1 Reconnaissance\n\u2713 2 WordPress enumeration\n\u2713 3 SQL injection exploitation\n\u2026 4 Two-factor bypass\n\u25cb 5 WordPress admin access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Phoenix:r1_s5_6",
+      "label": "Search: 6\nRemote code execution",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6: Remote code execution\n\nMCP tool calls:\nInteractive CLI with oathtool to generate TOTP codes; Web page interaction for WordPress admin authentication",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Phoenix:r1_s5_6",
+      "label": "Track: Remote code execution",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6 Remote code execution:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Phoenix:r1_s5_6",
+      "label": "Agent: 6\nRemote code execution",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6:\n\u2713 1 Reconnaissance\n\u2713 2 WordPress enumeration\n\u2713 3 SQL injection exploitation\n\u2713 4 Two-factor bypass\n\u2713 5 WordPress admin access\n\u25cb 6 Remote code execution",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Phoenix:r1_s6_7",
+      "label": "Search: 7\nPrivilege escalation reco\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 7: Privilege escalation reconnaissance\n\nMCP tool calls:\nWeb page interaction to upload webshell to /wp-admin/ via plugin vulnerability; accessing /pandora_console/images/ path with get_file.php for execution",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Phoenix:r1_s6_7",
+      "label": "Track: Privilege escalation reconnai\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "7 Privilege escalation reconnaissance:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Phoenix:r1_s6_7",
+      "label": "Agent: 7\nPrivilege escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 7:\n\u2713 1 Reconnaissance\n\u2713 2 WordPress enumeration\n\u2713 3 SQL injection exploitation\n\u2713 4 Two-factor bypass\n\u2713 5 WordPress admin access\n\u2713 6 Remote code execution\n\u25cb 7 Privilege escalation reconnaissance\n  \u25cb 7.1 Network enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Phoenix:r1_s6_7.1",
+      "label": "Search: 7.1\nNetwork enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 7.1: Network enumeration\n\nMCP tool calls:\nWeb page interaction to upload webshell to /wp-admin/ via plugin vulnerability; accessing /pandora_console/images/ path with get_file.php for execution",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Phoenix:r1_s6_7.1",
+      "label": "Track: Network enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "7.1 Network enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Phoenix:r1_s6_7.1",
+      "label": "Agent: 7.1\nPrivilege escalation \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 7.1:\n\u2713 1 Reconnaissance\n\u2713 2 WordPress enumeration\n\u2713 3 SQL injection exploitation\n\u2713 4 Two-factor bypass\n\u2713 5 WordPress admin access\n\u2713 6 Remote code execution\n\u25cb 7 Privilege escalation reconnaissance\n  \u25cb 7.1 Network enumeration",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Phoenix:r1_s7_8",
+      "label": "Search: 8\nSSH lateral movement",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 8: SSH lateral movement\n\nMCP tool calls:\nInteractive CLI to check network interfaces (ip addr), examine /etc/pam.d/sshd, and review /etc/security/access-local.conf",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Phoenix:r1_s7_8",
+      "label": "Track: SSH lateral movement",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "8 SSH lateral movement:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Phoenix:r1_s7_8",
+      "label": "Agent: 8\nSSH lateral movement",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 8:\n\u2713 1 Reconnaissance\n\u2713 2 WordPress enumeration\n\u2713 3 SQL injection exploitation\n\u2713 4 Two-factor bypass\n\u2713 5 WordPress admin access\n\u2713 6 Remote code execution\n\u2713 7 Privilege escalation reconnaissance\n\u25cb 8 SSH lateral movement",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Phoenix:r1_s8_9",
+      "label": "Search: 9\nRoot privilege escalation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 9: Root privilege escalation\n\nMCP tool calls:\nInteractive CLI for SSH connection: ssh editor@10.11.12.13 with password superphoenix",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Phoenix:r1_s8_9",
+      "label": "Track: Root privilege escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "9 Root privilege escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Phoenix:r1_s8_9",
+      "label": "Agent: 9\nRoot privilege escala\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 9:\n\u2713 1 Reconnaissance\n\u2713 2 WordPress enumeration\n\u2713 3 SQL injection exploitation\n\u2713 4 Two-factor bypass\n\u2713 5 WordPress admin access\n\u2713 6 Remote code execution\n\u2713 7 Privilege escalation reconnaissance\n\u2713 8 SSH lateral movement\n\u25cb 9 Root privilege escalation\n  \u25cb 9.1 Enumerate scheduled tasks",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Phoenix:r1_s8_9.1",
+      "label": "Search: 9.1\nEnumerate scheduled tasks",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 9.1: Enumerate scheduled tasks\n\nMCP tool calls:\nInteractive CLI for SSH connection: ssh editor@10.11.12.13 with password superphoenix",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Phoenix:r1_s8_9.1",
+      "label": "Track: Enumerate scheduled tasks",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "9.1 Enumerate scheduled tasks:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Phoenix:r1_s8_9.1",
+      "label": "Agent: 9.1\nRoot privilege escala\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 9.1:\n\u2713 1 Reconnaissance\n\u2713 2 WordPress enumeration\n\u2713 3 SQL injection exploitation\n\u2713 4 Two-factor bypass\n\u2713 5 WordPress admin access\n\u2713 6 Remote code execution\n\u2713 7 Privilege escalation reconnaissance\n\u2713 8 SSH lateral movement\n\u25cb 9 Root privilege escalation\n  \u25cb 9.1 Enumerate scheduled tasks",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Phoenix:r1_s9_10",
+      "label": "Search: 10\nWildcard injection exploi\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 10: Wildcard injection exploitation\n\nMCP tool calls:\nInteractive CLI with pspy for process monitoring; examining /usr/local/bin/ for compiled scripts",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Phoenix:r1_s9_10",
+      "label": "Track: Wildcard injection exploitati\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "10 Wildcard injection exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Phoenix:r1_s9_10",
+      "label": "Agent: 10\nWildcard injection ex\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 10:\n\u2713 1 Reconnaissance\n\u2713 2 WordPress enumeration\n\u2713 3 SQL injection exploitation\n\u2713 4 Two-factor bypass\n\u2713 5 WordPress admin access\n\u2713 6 Remote code execution\n\u2713 7 Privilege escalation reconnaissance\n\u2713 8 SSH lateral movement\n\u2026 9 Root privilege escalation\n\u25cb 10 Wildcard injection exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Phoenix:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 WordPress enumeration\n\u2713 3 SQL injection exploitation\n\u2713 4 Two-factor bypass\n\u2713 5 WordPress admin access\n\u2713 6 Remote code execution\n\u2713 7 Privilege escalation reconnaissance\n\u2713 8 SSH lateral movement\n\u2713 9 Root privilege escalation\n\u2713 10 Wildcard injection exploitation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Phoenix:START",
+      "to": "agent:Phoenix:r1_s1_2",
+      "label": "\u2192 2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:START",
+      "to": "search:Phoenix:r1_s1_2",
+      "label": "2 WordPress enumerati\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Phoenix:r1_s1_2",
+      "to": "track:Phoenix:r1_s1_2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Phoenix:r1_s1_2",
+      "to": "agent:Phoenix:r1_s1_2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s1_2",
+      "to": "agent:Phoenix:r1_s2_3",
+      "label": "\u2192 3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s1_2",
+      "to": "search:Phoenix:r1_s2_3",
+      "label": "3 SQL injection explo\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Phoenix:r1_s2_3",
+      "to": "track:Phoenix:r1_s2_3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Phoenix:r1_s2_3",
+      "to": "agent:Phoenix:r1_s2_3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s2_3",
+      "to": "agent:Phoenix:r1_s3_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s2_3",
+      "to": "search:Phoenix:r1_s3_4",
+      "label": "4 Two-factor bypass",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Phoenix:r1_s3_4",
+      "to": "track:Phoenix:r1_s3_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Phoenix:r1_s3_4",
+      "to": "agent:Phoenix:r1_s3_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s3_4",
+      "to": "agent:Phoenix:r1_s3_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s3_4",
+      "to": "search:Phoenix:r1_s3_4.1",
+      "label": "4.1 Extract TOTP seed",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Phoenix:r1_s3_4.1",
+      "to": "track:Phoenix:r1_s3_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Phoenix:r1_s3_4.1",
+      "to": "agent:Phoenix:r1_s3_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s3_4.1",
+      "to": "agent:Phoenix:r1_s4_5",
+      "label": "\u2192 5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s3_4.1",
+      "to": "search:Phoenix:r1_s4_5",
+      "label": "5 WordPress admin acc\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Phoenix:r1_s4_5",
+      "to": "track:Phoenix:r1_s4_5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Phoenix:r1_s4_5",
+      "to": "agent:Phoenix:r1_s4_5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s4_5",
+      "to": "agent:Phoenix:r1_s5_6",
+      "label": "\u2192 6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s4_5",
+      "to": "search:Phoenix:r1_s5_6",
+      "label": "6 Remote code executi\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Phoenix:r1_s5_6",
+      "to": "track:Phoenix:r1_s5_6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Phoenix:r1_s5_6",
+      "to": "agent:Phoenix:r1_s5_6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s5_6",
+      "to": "agent:Phoenix:r1_s6_7",
+      "label": "\u2192 7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s5_6",
+      "to": "search:Phoenix:r1_s6_7",
+      "label": "7 Privilege escalatio\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Phoenix:r1_s6_7",
+      "to": "track:Phoenix:r1_s6_7",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Phoenix:r1_s6_7",
+      "to": "agent:Phoenix:r1_s6_7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s6_7",
+      "to": "agent:Phoenix:r1_s6_7.1",
+      "label": "\u2192 7.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s6_7",
+      "to": "search:Phoenix:r1_s6_7.1",
+      "label": "7.1 Network enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Phoenix:r1_s6_7.1",
+      "to": "track:Phoenix:r1_s6_7.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Phoenix:r1_s6_7.1",
+      "to": "agent:Phoenix:r1_s6_7.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s6_7.1",
+      "to": "agent:Phoenix:r1_s7_8",
+      "label": "\u2192 8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s6_7.1",
+      "to": "search:Phoenix:r1_s7_8",
+      "label": "8 SSH lateral movement",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Phoenix:r1_s7_8",
+      "to": "track:Phoenix:r1_s7_8",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Phoenix:r1_s7_8",
+      "to": "agent:Phoenix:r1_s7_8",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s7_8",
+      "to": "agent:Phoenix:r1_s8_9",
+      "label": "\u2192 9",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s7_8",
+      "to": "search:Phoenix:r1_s8_9",
+      "label": "9 Root privilege esca\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Phoenix:r1_s8_9",
+      "to": "track:Phoenix:r1_s8_9",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Phoenix:r1_s8_9",
+      "to": "agent:Phoenix:r1_s8_9",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s8_9",
+      "to": "agent:Phoenix:r1_s8_9.1",
+      "label": "\u2192 9.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s8_9",
+      "to": "search:Phoenix:r1_s8_9.1",
+      "label": "9.1 Enumerate scheduled\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Phoenix:r1_s8_9.1",
+      "to": "track:Phoenix:r1_s8_9.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Phoenix:r1_s8_9.1",
+      "to": "agent:Phoenix:r1_s8_9.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s8_9.1",
+      "to": "agent:Phoenix:r1_s9_10",
+      "label": "\u2192 10",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s8_9.1",
+      "to": "search:Phoenix:r1_s9_10",
+      "label": "10 Wildcard injection \u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Phoenix:r1_s9_10",
+      "to": "track:Phoenix:r1_s9_10",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Phoenix:r1_s9_10",
+      "to": "agent:Phoenix:r1_s9_10",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Phoenix:r1_s9_10",
+      "to": "agent:Phoenix:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 38,
+    "total_edges": 49,
+    "agent_nodes": 14,
+    "search_nodes": 12,
+    "track_nodes": 12,
+    "runs_detected": 1,
+    "rows_captured": 11
+  }
+}

@@ -1,0 +1,976 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Acute",
+  "source": "training_data.csv, Machine == 'Acute', 10 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Acute:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Acute'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Acute:r1_s3_2",
+      "label": "Search: 2\nInitial access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2: Initial access\n\nMCP tool calls:\nInteractive CLI with exiftool for metadata extraction; document viewer for content analysis",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Acute:r1_s3_2",
+      "label": "Track: Initial access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2 Initial access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Acute:r1_s3_2",
+      "label": "Agent: 2\nInitial access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2:\n\u2713 1 Reconnaissance\n  \u2713 1.2 Web enumeration\n  \u2713 1.3 Document analysis\n\u25cb 2 Initial access\n  \u25cb 2.1 PSWA authentication",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Acute:r1_s3_2.1",
+      "label": "Search: 2.1\nPSWA authentication",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: PSWA authentication\n\nMCP tool calls:\nInteractive CLI with exiftool for metadata extraction; document viewer for content analysis",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Acute:r1_s3_2.1",
+      "label": "Track: PSWA authentication",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 PSWA authentication:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Acute:r1_s3_2.1",
+      "label": "Agent: 2.1\nInitial access",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n  \u2713 1.2 Web enumeration\n  \u2713 1.3 Document analysis\n\u25cb 2 Initial access\n  \u25cb 2.1 PSWA authentication",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Acute:r1_s4_3",
+      "label": "Search: 3\nLateral movement",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3: Lateral movement\n\nMCP tool calls:\nWeb page interaction to access /Acute_Staff_Access PSWA portal and test credentials edavies:Password1! against computer Acute-PC01",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Acute:r1_s4_3",
+      "label": "Track: Lateral movement",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3 Lateral movement:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Acute:r1_s4_3",
+      "label": "Agent: 3\nLateral movement",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3:\n\u2713 1 Reconnaissance\n  \u2713 1.3 Document analysis\n\u2713 2 Initial access\n\u25cb 3 Lateral movement\n  \u25cb 3.1 Establish better shell access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Acute:r1_s4_3.1",
+      "label": "Search: 3.1\nEstablish better shell ac\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: Establish better shell access\n\nMCP tool calls:\nWeb page interaction to access /Acute_Staff_Access PSWA portal and test credentials edavies:Password1! against computer Acute-PC01",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Acute:r1_s4_3.1",
+      "label": "Track: Establish better shell access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 Establish better shell access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Acute:r1_s4_3.1",
+      "label": "Agent: 3.1\nLateral movement",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n  \u2713 1.3 Document analysis\n\u2713 2 Initial access\n\u25cb 3 Lateral movement\n  \u25cb 3.1 Establish better shell access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Acute:r1_s5_4",
+      "label": "Search: 4\nPowerShell remoting",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4: PowerShell remoting\n\nMCP tool calls:\nMetasploit for payload generation with msfvenom; Web page interaction via PSWA to download and execute payload from C:\\Utils",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Acute:r1_s5_4",
+      "label": "Track: PowerShell remoting",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4 PowerShell remoting:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Acute:r1_s5_4",
+      "label": "Agent: 4\nPowerShell remoting",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access\n\u2026 3 Lateral movement\n  \u2713 3.1 Establish better shell access\n\u25cb 4 PowerShell remoting",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Acute:r1_s6_5",
+      "label": "Search: 5\nPrivilege escalation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5: Privilege escalation\n\nMCP tool calls:\nInteractive CLI with PowerShell Invoke-Command targeting ATSSERVER as imonks with ConfigurationName dc_manage",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Acute:r1_s6_5",
+      "label": "Track: Privilege escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5 Privilege escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Acute:r1_s6_5",
+      "label": "Agent: 5\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access\n\u2713 3 Lateral movement\n\u2713 4 PowerShell remoting\n\u25cb 5 Privilege escalation\n  \u25cb 5.1 Modify scheduled script",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Acute:r1_s6_5.1",
+      "label": "Search: 5.1\nModify scheduled script",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5.1: Modify scheduled script\n\nMCP tool calls:\nInteractive CLI with PowerShell Invoke-Command targeting ATSSERVER as imonks with ConfigurationName dc_manage",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Acute:r1_s6_5.1",
+      "label": "Track: Modify scheduled script",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5.1 Modify scheduled script:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Acute:r1_s6_5.1",
+      "label": "Agent: 5.1\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5.1:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access\n\u2713 3 Lateral movement\n\u2713 4 PowerShell remoting\n\u25cb 5 Privilege escalation\n  \u25cb 5.1 Modify scheduled script",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Acute:r1_s7_6",
+      "label": "Search: 6\nDomain privilege escalati\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6: Domain privilege escalation\n\nMCP tool calls:\nInteractive CLI with Set-Content to modify wm.ps1; Netcat listener for reverse shell; triggering script execution via imonks session",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Acute:r1_s7_6",
+      "label": "Track: Domain privilege escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6 Domain privilege escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Acute:r1_s7_6",
+      "label": "Agent: 6\nDomain privilege esca\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access\n\u2713 3 Lateral movement\n\u2713 4 PowerShell remoting\n\u2713 5 Privilege escalation\n\u25cb 6 Domain privilege escalation\n  \u25cb 6.1 Test credential reuse",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Acute:r1_s7_6.1",
+      "label": "Search: 6.1\nTest credential reuse",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6.1: Test credential reuse\n\nMCP tool calls:\nInteractive CLI with Set-Content to modify wm.ps1; Netcat listener for reverse shell; triggering script execution via imonks session",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Acute:r1_s7_6.1",
+      "label": "Track: Test credential reuse",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6.1 Test credential reuse:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Acute:r1_s7_6.1",
+      "label": "Agent: 6.1\nDomain privilege esca\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6.1:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access\n\u2713 3 Lateral movement\n\u2713 4 PowerShell remoting\n\u2713 5 Privilege escalation\n\u25cb 6 Domain privilege escalation\n  \u25cb 6.1 Test credential reuse",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Acute:r1_s8_7",
+      "label": "Search: 7\nAutomated privilege escal\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 7: Automated privilege escalation\n\nMCP tool calls:\nInteractive CLI with PowerShell remoting to authenticate as awallace:Password@123 on ATSSERVER",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Acute:r1_s8_7",
+      "label": "Track: Automated privilege escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "7 Automated privilege escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Acute:r1_s8_7",
+      "label": "Agent: 7\nAutomated privilege e\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 7:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access\n\u2713 3 Lateral movement\n\u2713 4 PowerShell remoting\n\u2713 5 Privilege escalation\n\u2026 6 Domain privilege escalation\n\u25cb 7 Automated privilege escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Acute:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Initial access\n\u2713 3 Lateral movement\n\u2713 4 PowerShell remoting\n\u2713 5 Privilege escalation\n\u2713 6 Domain privilege escalation\n\u2713 7 Automated privilege escalation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Acute:START",
+      "to": "agent:Acute:r1_s3_2",
+      "label": "\u2192 2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:START",
+      "to": "search:Acute:r1_s3_2",
+      "label": "2 Initial access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Acute:r1_s3_2",
+      "to": "track:Acute:r1_s3_2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Acute:r1_s3_2",
+      "to": "agent:Acute:r1_s3_2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s3_2",
+      "to": "agent:Acute:r1_s3_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s3_2",
+      "to": "search:Acute:r1_s3_2.1",
+      "label": "2.1 PSWA authentication",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Acute:r1_s3_2.1",
+      "to": "track:Acute:r1_s3_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Acute:r1_s3_2.1",
+      "to": "agent:Acute:r1_s3_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s3_2.1",
+      "to": "agent:Acute:r1_s4_3",
+      "label": "\u2192 3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s3_2.1",
+      "to": "search:Acute:r1_s4_3",
+      "label": "3 Lateral movement",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Acute:r1_s4_3",
+      "to": "track:Acute:r1_s4_3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Acute:r1_s4_3",
+      "to": "agent:Acute:r1_s4_3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s4_3",
+      "to": "agent:Acute:r1_s4_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s4_3",
+      "to": "search:Acute:r1_s4_3.1",
+      "label": "3.1 Establish better sh\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Acute:r1_s4_3.1",
+      "to": "track:Acute:r1_s4_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Acute:r1_s4_3.1",
+      "to": "agent:Acute:r1_s4_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s4_3.1",
+      "to": "agent:Acute:r1_s5_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s4_3.1",
+      "to": "search:Acute:r1_s5_4",
+      "label": "4 PowerShell remoting",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Acute:r1_s5_4",
+      "to": "track:Acute:r1_s5_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Acute:r1_s5_4",
+      "to": "agent:Acute:r1_s5_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s5_4",
+      "to": "agent:Acute:r1_s6_5",
+      "label": "\u2192 5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s5_4",
+      "to": "search:Acute:r1_s6_5",
+      "label": "5 Privilege escalation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Acute:r1_s6_5",
+      "to": "track:Acute:r1_s6_5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Acute:r1_s6_5",
+      "to": "agent:Acute:r1_s6_5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s6_5",
+      "to": "agent:Acute:r1_s6_5.1",
+      "label": "\u2192 5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s6_5",
+      "to": "search:Acute:r1_s6_5.1",
+      "label": "5.1 Modify scheduled sc\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Acute:r1_s6_5.1",
+      "to": "track:Acute:r1_s6_5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Acute:r1_s6_5.1",
+      "to": "agent:Acute:r1_s6_5.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s6_5.1",
+      "to": "agent:Acute:r1_s7_6",
+      "label": "\u2192 6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s6_5.1",
+      "to": "search:Acute:r1_s7_6",
+      "label": "6 Domain privilege es\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Acute:r1_s7_6",
+      "to": "track:Acute:r1_s7_6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Acute:r1_s7_6",
+      "to": "agent:Acute:r1_s7_6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s7_6",
+      "to": "agent:Acute:r1_s7_6.1",
+      "label": "\u2192 6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s7_6",
+      "to": "search:Acute:r1_s7_6.1",
+      "label": "6.1 Test credential reu\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Acute:r1_s7_6.1",
+      "to": "track:Acute:r1_s7_6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Acute:r1_s7_6.1",
+      "to": "agent:Acute:r1_s7_6.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s7_6.1",
+      "to": "agent:Acute:r1_s8_7",
+      "label": "\u2192 7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s7_6.1",
+      "to": "search:Acute:r1_s8_7",
+      "label": "7 Automated privilege\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Acute:r1_s8_7",
+      "to": "track:Acute:r1_s8_7",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Acute:r1_s8_7",
+      "to": "agent:Acute:r1_s8_7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Acute:r1_s8_7",
+      "to": "agent:Acute:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 32,
+    "total_edges": 41,
+    "agent_nodes": 12,
+    "search_nodes": 10,
+    "track_nodes": 10,
+    "runs_detected": 1,
+    "rows_captured": 10
+  }
+}

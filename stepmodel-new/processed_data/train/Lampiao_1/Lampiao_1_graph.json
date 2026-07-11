@@ -1,0 +1,526 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Lampiao 1",
+  "source": "training_data.csv, Machine == 'Lampiao 1', 7 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Lampiao 1:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Lampiao 1'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Lampiao 1:r1_s3_5.1",
+      "label": "Search: 5.1\nSystem Information Gather\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5.1: System Information Gathering\n\nMCP tool calls:\nMetasploit to configure and execute exploit/unix/webapp/drupal_drupalgeddon2 with rhost=192.168.1.105 and rport=1898",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Lampiao 1:r1_s3_5.1",
+      "label": "Track: System Information Gathering",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5.1 System Information Gathering:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Lampiao 1:r1_s3_5.1",
+      "label": "Agent: 5.1\nPost-Exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5.1:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n\u2713 4 Exploitation\n\u25cb 5 Post-Exploitation\n  \u25cb 5.1 System Information Gathering\n  \u25cb 5.2 Privilege Escalation Vector Identification\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Lampiao 1:r1_s3_5.2",
+      "label": "Search: 5.2\nPrivilege Escalation Vect\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5.2: Privilege Escalation Vector Identification\n\nMCP tool calls:\nMetasploit to configure and execute exploit/unix/webapp/drupal_drupalgeddon2 with rhost=192.168.1.105 and rport=1898",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Lampiao 1:r1_s3_5.2",
+      "label": "Track: Privilege Escalation Vector I\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5.2 Privilege Escalation Vector Identification:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Lampiao 1:r1_s3_5.2",
+      "label": "Agent: 5.2\nPost-Exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5.2:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n\u2713 4 Exploitation\n\u25cb 5 Post-Exploitation\n  \u25cb 5.1 System Information Gathering\n  \u25cb 5.2 Privilege Escalation Vector Identification\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Lampiao 1:r1_s5_6.1",
+      "label": "Search: 6.1\nExploit Transfer",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6.1: Exploit Transfer\n\nMCP tool calls:\nGoogle search to find exploit 40847.cpp details and download location",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Lampiao 1:r1_s5_6.1",
+      "label": "Track: Exploit Transfer",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6.1 Exploit Transfer:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Lampiao 1:r1_s5_6.1",
+      "label": "Agent: 6.1\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6.1:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n\u2713 4 Exploitation\n\u2713 5 Post-Exploitation\n  \u2713 5.1 System Information Gathering\n  \u2713 5.2 Privilege Escalation Vector Identification\n\u25cb 6 Privilege Escalation\n  \u25cb 6.1 Exploit Transfer\n  \u25cb 6.2 Exploit Compilation\n  \u25cb 6.3 Exploit Execution",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Lampiao 1:r1_s5_6.2",
+      "label": "Search: 6.2\nExploit Compilation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6.2: Exploit Compilation\n\nMCP tool calls:\nGoogle search to find exploit 40847.cpp details and download location",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Lampiao 1:r1_s5_6.2",
+      "label": "Track: Exploit Compilation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6.2 Exploit Compilation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Lampiao 1:r1_s5_6.2",
+      "label": "Agent: 6.2\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6.2:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n\u2713 4 Exploitation\n\u2713 5 Post-Exploitation\n  \u2713 5.1 System Information Gathering\n  \u2713 5.2 Privilege Escalation Vector Identification\n\u25cb 6 Privilege Escalation\n  \u25cb 6.1 Exploit Transfer\n  \u25cb 6.2 Exploit Compilation\n  \u25cb 6.3 Exploit Execution",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Lampiao 1:r1_s5_6.3",
+      "label": "Search: 6.3\nExploit Execution",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6.3: Exploit Execution\n\nMCP tool calls:\nGoogle search to find exploit 40847.cpp details and download location",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Lampiao 1:r1_s5_6.3",
+      "label": "Track: Exploit Execution",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6.3 Exploit Execution:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Lampiao 1:r1_s5_6.3",
+      "label": "Agent: 6.3\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6.3:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n\u2713 4 Exploitation\n\u2713 5 Post-Exploitation\n  \u2713 5.1 System Information Gathering\n  \u2713 5.2 Privilege Escalation Vector Identification\n\u25cb 6 Privilege Escalation\n  \u25cb 6.1 Exploit Transfer\n  \u25cb 6.2 Exploit Compilation\n  \u25cb 6.3 Exploit Execution",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Lampiao 1:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n\u2713 4 Exploitation\n\u2713 5 Post-Exploitation\n  \u2713 5.1 System Information Gathering\n  \u2713 5.2 Privilege Escalation Vector Identification\n\u2713 6 Privilege Escalation\n  \u2713 6.1 Exploit Transfer\n  \u2713 6.2 Exploit Compilation\n  \u2713 6.3 Exploit Execution",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Lampiao 1:START",
+      "to": "agent:Lampiao 1:r1_s3_5.1",
+      "label": "\u2192 5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Lampiao 1:START",
+      "to": "search:Lampiao 1:r1_s3_5.1",
+      "label": "5.1 System Information \u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Lampiao 1:r1_s3_5.1",
+      "to": "track:Lampiao 1:r1_s3_5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Lampiao 1:r1_s3_5.1",
+      "to": "agent:Lampiao 1:r1_s3_5.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Lampiao 1:r1_s3_5.1",
+      "to": "agent:Lampiao 1:r1_s3_5.2",
+      "label": "\u2192 5.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Lampiao 1:r1_s3_5.1",
+      "to": "search:Lampiao 1:r1_s3_5.2",
+      "label": "5.2 Privilege Escalatio\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Lampiao 1:r1_s3_5.2",
+      "to": "track:Lampiao 1:r1_s3_5.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Lampiao 1:r1_s3_5.2",
+      "to": "agent:Lampiao 1:r1_s3_5.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Lampiao 1:r1_s3_5.2",
+      "to": "agent:Lampiao 1:r1_s5_6.1",
+      "label": "\u2192 6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Lampiao 1:r1_s3_5.2",
+      "to": "search:Lampiao 1:r1_s5_6.1",
+      "label": "6.1 Exploit Transfer",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Lampiao 1:r1_s5_6.1",
+      "to": "track:Lampiao 1:r1_s5_6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Lampiao 1:r1_s5_6.1",
+      "to": "agent:Lampiao 1:r1_s5_6.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Lampiao 1:r1_s5_6.1",
+      "to": "agent:Lampiao 1:r1_s5_6.2",
+      "label": "\u2192 6.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Lampiao 1:r1_s5_6.1",
+      "to": "search:Lampiao 1:r1_s5_6.2",
+      "label": "6.2 Exploit Compilation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Lampiao 1:r1_s5_6.2",
+      "to": "track:Lampiao 1:r1_s5_6.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Lampiao 1:r1_s5_6.2",
+      "to": "agent:Lampiao 1:r1_s5_6.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Lampiao 1:r1_s5_6.2",
+      "to": "agent:Lampiao 1:r1_s5_6.3",
+      "label": "\u2192 6.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Lampiao 1:r1_s5_6.2",
+      "to": "search:Lampiao 1:r1_s5_6.3",
+      "label": "6.3 Exploit Execution",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Lampiao 1:r1_s5_6.3",
+      "to": "track:Lampiao 1:r1_s5_6.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Lampiao 1:r1_s5_6.3",
+      "to": "agent:Lampiao 1:r1_s5_6.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Lampiao 1:r1_s5_6.3",
+      "to": "agent:Lampiao 1:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 17,
+    "total_edges": 21,
+    "agent_nodes": 7,
+    "search_nodes": 5,
+    "track_nodes": 5,
+    "runs_detected": 1,
+    "rows_captured": 7
+  }
+}

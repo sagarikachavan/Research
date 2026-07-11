@@ -1,0 +1,976 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Authority",
+  "source": "training_data.csv, Machine == 'Authority', 5 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Authority:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Authority'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Authority:r1_s1_2",
+      "label": "Search: 2\nDecrypt Ansible vault and\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2: Decrypt Ansible vault and extract credentials\n\nMCP tool calls:\nNmap: Scan target 10.10.11.222 for DNS (53), HTTP (80), Kerberos (88), LDAP (389), SMB (445), WinRM (5985); SMB client: Enumerate shares discovering Development share accessible; SMB client: Download Ansible playbooks from /Automation/Ansible/ directories",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Authority:r1_s1_2",
+      "label": "Track: Decrypt Ansible vault and ext\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2 Decrypt Ansible vault and extract credentials:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Authority:r1_s1_2",
+      "label": "Agent: 2\nDecrypt Ansible vault\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate SMB shares\n  \u2713 1.3 Analyze Ansible configurations\n\u25cb 2 Decrypt Ansible vault and extract credentials\n  \u25cb 2.1 Extract and crack Ansible vault passwords\n  \u25cb 2.2 Access PWM configuration manager\n  \u25cb 2.3 Capture LDAP credentials",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Authority:r1_s1_2.1",
+      "label": "Search: 2.1\nExtract and crack Ansible\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.1: Extract and crack Ansible vault passwords\n\nMCP tool calls:\nNmap: Scan target 10.10.11.222 for DNS (53), HTTP (80), Kerberos (88), LDAP (389), SMB (445), WinRM (5985); SMB client: Enumerate shares discovering Development share accessible; SMB client: Download Ansible playbooks from /Automation/Ansible/ directories",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Authority:r1_s1_2.1",
+      "label": "Track: Extract and crack Ansible vau\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.1 Extract and crack Ansible vault passwords:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Authority:r1_s1_2.1",
+      "label": "Agent: 2.1\nDecrypt Ansible vault\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.1:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate SMB shares\n  \u2713 1.3 Analyze Ansible configurations\n\u25cb 2 Decrypt Ansible vault and extract credentials\n  \u25cb 2.1 Extract and crack Ansible vault passwords\n  \u25cb 2.2 Access PWM configuration manager\n  \u25cb 2.3 Capture LDAP credentials",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Authority:r1_s1_2.2",
+      "label": "Search: 2.2\nAccess PWM configuration \u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.2: Access PWM configuration manager\n\nMCP tool calls:\nNmap: Scan target 10.10.11.222 for DNS (53), HTTP (80), Kerberos (88), LDAP (389), SMB (445), WinRM (5985); SMB client: Enumerate shares discovering Development share accessible; SMB client: Download Ansible playbooks from /Automation/Ansible/ directories",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Authority:r1_s1_2.2",
+      "label": "Track: Access PWM configuration mana\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.2 Access PWM configuration manager:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Authority:r1_s1_2.2",
+      "label": "Agent: 2.2\nDecrypt Ansible vault\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.2:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate SMB shares\n  \u2713 1.3 Analyze Ansible configurations\n\u25cb 2 Decrypt Ansible vault and extract credentials\n  \u25cb 2.1 Extract and crack Ansible vault passwords\n  \u25cb 2.2 Access PWM configuration manager\n  \u25cb 2.3 Capture LDAP credentials",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Authority:r1_s1_2.3",
+      "label": "Search: 2.3\nCapture LDAP credentials",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 2.3: Capture LDAP credentials\n\nMCP tool calls:\nNmap: Scan target 10.10.11.222 for DNS (53), HTTP (80), Kerberos (88), LDAP (389), SMB (445), WinRM (5985); SMB client: Enumerate shares discovering Development share accessible; SMB client: Download Ansible playbooks from /Automation/Ansible/ directories",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Authority:r1_s1_2.3",
+      "label": "Track: Capture LDAP credentials",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "2.3 Capture LDAP credentials:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Authority:r1_s1_2.3",
+      "label": "Agent: 2.3\nDecrypt Ansible vault\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 2.3:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate SMB shares\n  \u2713 1.3 Analyze Ansible configurations\n\u25cb 2 Decrypt Ansible vault and extract credentials\n  \u25cb 2.1 Extract and crack Ansible vault passwords\n  \u25cb 2.2 Access PWM configuration manager\n  \u25cb 2.3 Capture LDAP credentials",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Authority:r1_s2_3",
+      "label": "Search: 3\nObtain initial access via\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3: Obtain initial access via WinRM\n\nMCP tool calls:\nInteractive CLI: Extract vault hashes with ansible2john.py vault_fields > hashes.txt; John-the-ripper: Crack with john hashes.txt or hashcat mode; Interactive CLI: Decrypt vaults revealing svc_pwm:pWm_@dm!N_!23 and LDAP password DevT3st@123; Web page interaction: Authenticate to PWM at port 8443 with svc_pwm credentials; Web page interaction: Modify LDAP configuration pointing to attacker IP; Netcat: Listen on port 389 capturing cleartext LDAP authentication",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Authority:r1_s2_3",
+      "label": "Track: Obtain initial access via Win\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3 Obtain initial access via WinRM:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Authority:r1_s2_3",
+      "label": "Agent: 3\nObtain initial access\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate SMB shares\n  \u2713 1.3 Analyze Ansible configurations\n\u2713 2 Decrypt Ansible vault and extract credentials\n  \u2713 2.1 Extract and crack Ansible vault passwords\n  \u2713 2.2 Access PWM configuration manager\n  \u2713 2.3 Capture LDAP credentials via server redirection\n\u25cb 3 Obtain initial access via WinRM\n  \u25cb 3.1 Test credentials for WinRM access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Authority:r1_s2_3.1",
+      "label": "Search: 3.1\nTest credentials for WinR\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: Test credentials for WinRM access\n\nMCP tool calls:\nInteractive CLI: Extract vault hashes with ansible2john.py vault_fields > hashes.txt; John-the-ripper: Crack with john hashes.txt or hashcat mode; Interactive CLI: Decrypt vaults revealing svc_pwm:pWm_@dm!N_!23 and LDAP password DevT3st@123; Web page interaction: Authenticate to PWM at port 8443 with svc_pwm credentials; Web page interaction: Modify LDAP configuration pointing to attacker IP; Netcat: Listen on port 389 capturing cleartext LDAP authentication",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Authority:r1_s2_3.1",
+      "label": "Track: Test credentials for WinRM ac\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 Test credentials for WinRM access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Authority:r1_s2_3.1",
+      "label": "Agent: 3.1\nObtain initial access\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate SMB shares\n  \u2713 1.3 Analyze Ansible configurations\n\u2713 2 Decrypt Ansible vault and extract credentials\n  \u2713 2.1 Extract and crack Ansible vault passwords\n  \u2713 2.2 Access PWM configuration manager\n  \u2713 2.3 Capture LDAP credentials via server redirection\n\u25cb 3 Obtain initial access via WinRM\n  \u25cb 3.1 Test credentials for WinRM access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Authority:r1_s3_4",
+      "label": "Search: 4\nEscalate privileges via A\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4: Escalate privileges via ADCS ESC1 vulnerability\n\nMCP tool calls:\nInteractive CLI: Test WinRM access with evil-winrm -i 10.10.11.222 -u svc_ldap -p 'lDaP_1n_th3_cle4r!'; Interactive CLI: Obtain PowerShell session and retrieve user.txt flag",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Authority:r1_s3_4",
+      "label": "Track: Escalate privileges via ADCS \u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4 Escalate privileges via ADCS ESC1 vulnerability:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Authority:r1_s3_4",
+      "label": "Agent: 4\nEscalate privileges v\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate SMB shares\n  \u2713 1.3 Analyze Ansible configurations\n\u2713 2 Decrypt Ansible vault and extract credentials\n  \u2713 2.1 Extract and crack Ansible vault passwords\n  \u2713 2.2 Access PWM configuration manager\n  \u2713 2.3 Capture LDAP credentials via server redirection\n\u2713 3 Obtain initial access via WinRM\n  \u2713 3.1 Test credentials for WinRM access\n\u25cb 4 Escalate privileges via ADCS ESC1 vulnerability\n  \u25cb 4.1 Enumerate ADCS certificate templates\n  \u25cb 4.2 Create computer account and request certificate\n  \u25cb 4.3 Exploit PassTheCert for administrator access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Authority:r1_s3_4.1",
+      "label": "Search: 4.1\nEnumerate ADCS certificat\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Enumerate ADCS certificate templates\n\nMCP tool calls:\nInteractive CLI: Test WinRM access with evil-winrm -i 10.10.11.222 -u svc_ldap -p 'lDaP_1n_th3_cle4r!'; Interactive CLI: Obtain PowerShell session and retrieve user.txt flag",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Authority:r1_s3_4.1",
+      "label": "Track: Enumerate ADCS certificate te\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Enumerate ADCS certificate templates:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Authority:r1_s3_4.1",
+      "label": "Agent: 4.1\nEscalate privileges v\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate SMB shares\n  \u2713 1.3 Analyze Ansible configurations\n\u2713 2 Decrypt Ansible vault and extract credentials\n  \u2713 2.1 Extract and crack Ansible vault passwords\n  \u2713 2.2 Access PWM configuration manager\n  \u2713 2.3 Capture LDAP credentials via server redirection\n\u2713 3 Obtain initial access via WinRM\n  \u2713 3.1 Test credentials for WinRM access\n\u25cb 4 Escalate privileges via ADCS ESC1 vulnerability\n  \u25cb 4.1 Enumerate ADCS certificate templates\n  \u25cb 4.2 Create computer account and request certificate\n  \u25cb 4.3 Exploit PassTheCert for administrator access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Authority:r1_s3_4.2",
+      "label": "Search: 4.2\nCreate computer account a\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2: Create computer account and request certificate\n\nMCP tool calls:\nInteractive CLI: Test WinRM access with evil-winrm -i 10.10.11.222 -u svc_ldap -p 'lDaP_1n_th3_cle4r!'; Interactive CLI: Obtain PowerShell session and retrieve user.txt flag",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Authority:r1_s3_4.2",
+      "label": "Track: Create computer account and r\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2 Create computer account and request certificate:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Authority:r1_s3_4.2",
+      "label": "Agent: 4.2\nEscalate privileges v\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate SMB shares\n  \u2713 1.3 Analyze Ansible configurations\n\u2713 2 Decrypt Ansible vault and extract credentials\n  \u2713 2.1 Extract and crack Ansible vault passwords\n  \u2713 2.2 Access PWM configuration manager\n  \u2713 2.3 Capture LDAP credentials via server redirection\n\u2713 3 Obtain initial access via WinRM\n  \u2713 3.1 Test credentials for WinRM access\n\u25cb 4 Escalate privileges via ADCS ESC1 vulnerability\n  \u25cb 4.1 Enumerate ADCS certificate templates\n  \u25cb 4.2 Create computer account and request certificate\n  \u25cb 4.3 Exploit PassTheCert for administrator access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Authority:r1_s3_4.3",
+      "label": "Search: 4.3\nExploit PassTheCert for a\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.3: Exploit PassTheCert for administrator access\n\nMCP tool calls:\nInteractive CLI: Test WinRM access with evil-winrm -i 10.10.11.222 -u svc_ldap -p 'lDaP_1n_th3_cle4r!'; Interactive CLI: Obtain PowerShell session and retrieve user.txt flag",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Authority:r1_s3_4.3",
+      "label": "Track: Exploit PassTheCert for admin\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.3 Exploit PassTheCert for administrator access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Authority:r1_s3_4.3",
+      "label": "Agent: 4.3\nEscalate privileges v\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.3:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate SMB shares\n  \u2713 1.3 Analyze Ansible configurations\n\u2713 2 Decrypt Ansible vault and extract credentials\n  \u2713 2.1 Extract and crack Ansible vault passwords\n  \u2713 2.2 Access PWM configuration manager\n  \u2713 2.3 Capture LDAP credentials via server redirection\n\u2713 3 Obtain initial access via WinRM\n  \u2713 3.1 Test credentials for WinRM access\n\u25cb 4 Escalate privileges via ADCS ESC1 vulnerability\n  \u25cb 4.1 Enumerate ADCS certificate templates\n  \u25cb 4.2 Create computer account and request certificate\n  \u25cb 4.3 Exploit PassTheCert for administrator access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Authority:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Perform reconnaissance on target system\n  \u2713 1.1 Scan for open ports and services\n  \u2713 1.2 Enumerate SMB shares\n  \u2713 1.3 Analyze Ansible configurations\n\u2713 2 Decrypt Ansible vault and extract credentials\n  \u2713 2.1 Extract and crack Ansible vault passwords\n  \u2713 2.2 Access PWM configuration manager\n  \u2713 2.3 Capture LDAP credentials via server redirection\n\u2713 3 Obtain initial access via WinRM\n  \u2713 3.1 Test credentials for WinRM access\n\u2713 4 Escalate privileges via ADCS ESC1 vulnerability\n  \u2713 4.1 Enumerate ADCS certificate templates\n  \u2713 4.2 Create computer account and request certificate\n  \u2713 4.3 Exploit PassTheCert for administrator access",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Authority:START",
+      "to": "agent:Authority:r1_s1_2",
+      "label": "\u2192 2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:START",
+      "to": "search:Authority:r1_s1_2",
+      "label": "2 Decrypt Ansible vau\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Authority:r1_s1_2",
+      "to": "track:Authority:r1_s1_2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Authority:r1_s1_2",
+      "to": "agent:Authority:r1_s1_2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s1_2",
+      "to": "agent:Authority:r1_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s1_2",
+      "to": "search:Authority:r1_s1_2.1",
+      "label": "2.1 Extract and crack A\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Authority:r1_s1_2.1",
+      "to": "track:Authority:r1_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Authority:r1_s1_2.1",
+      "to": "agent:Authority:r1_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s1_2.1",
+      "to": "agent:Authority:r1_s1_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s1_2.1",
+      "to": "search:Authority:r1_s1_2.2",
+      "label": "2.2 Access PWM configur\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Authority:r1_s1_2.2",
+      "to": "track:Authority:r1_s1_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Authority:r1_s1_2.2",
+      "to": "agent:Authority:r1_s1_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s1_2.2",
+      "to": "agent:Authority:r1_s1_2.3",
+      "label": "\u2192 2.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s1_2.2",
+      "to": "search:Authority:r1_s1_2.3",
+      "label": "2.3 Capture LDAP creden\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Authority:r1_s1_2.3",
+      "to": "track:Authority:r1_s1_2.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Authority:r1_s1_2.3",
+      "to": "agent:Authority:r1_s1_2.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s1_2.3",
+      "to": "agent:Authority:r1_s2_3",
+      "label": "\u2192 3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s1_2.3",
+      "to": "search:Authority:r1_s2_3",
+      "label": "3 Obtain initial acce\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Authority:r1_s2_3",
+      "to": "track:Authority:r1_s2_3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Authority:r1_s2_3",
+      "to": "agent:Authority:r1_s2_3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s2_3",
+      "to": "agent:Authority:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s2_3",
+      "to": "search:Authority:r1_s2_3.1",
+      "label": "3.1 Test credentials fo\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Authority:r1_s2_3.1",
+      "to": "track:Authority:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Authority:r1_s2_3.1",
+      "to": "agent:Authority:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s2_3.1",
+      "to": "agent:Authority:r1_s3_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s2_3.1",
+      "to": "search:Authority:r1_s3_4",
+      "label": "4 Escalate privileges\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Authority:r1_s3_4",
+      "to": "track:Authority:r1_s3_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Authority:r1_s3_4",
+      "to": "agent:Authority:r1_s3_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s3_4",
+      "to": "agent:Authority:r1_s3_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s3_4",
+      "to": "search:Authority:r1_s3_4.1",
+      "label": "4.1 Enumerate ADCS cert\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Authority:r1_s3_4.1",
+      "to": "track:Authority:r1_s3_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Authority:r1_s3_4.1",
+      "to": "agent:Authority:r1_s3_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s3_4.1",
+      "to": "agent:Authority:r1_s3_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s3_4.1",
+      "to": "search:Authority:r1_s3_4.2",
+      "label": "4.2 Create computer acc\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Authority:r1_s3_4.2",
+      "to": "track:Authority:r1_s3_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Authority:r1_s3_4.2",
+      "to": "agent:Authority:r1_s3_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s3_4.2",
+      "to": "agent:Authority:r1_s3_4.3",
+      "label": "\u2192 4.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s3_4.2",
+      "to": "search:Authority:r1_s3_4.3",
+      "label": "4.3 Exploit PassTheCert\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Authority:r1_s3_4.3",
+      "to": "track:Authority:r1_s3_4.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Authority:r1_s3_4.3",
+      "to": "agent:Authority:r1_s3_4.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Authority:r1_s3_4.3",
+      "to": "agent:Authority:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 32,
+    "total_edges": 41,
+    "agent_nodes": 12,
+    "search_nodes": 10,
+    "track_nodes": 10,
+    "runs_detected": 1,
+    "rows_captured": 5
+  }
+}

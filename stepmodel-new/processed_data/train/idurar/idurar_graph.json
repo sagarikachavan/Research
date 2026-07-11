@@ -1,0 +1,166 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "idurar",
+  "source": "training_data.csv, Machine == 'idurar', 7 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:idurar:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'idurar'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:idurar:r1_base",
+      "label": "Search: Baseline\n(2 item(s))",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "Baseline recon already completed before this run's first tracked step:\n1.3.1 Perform a port scan - {Findings: Open Ports: 22, 80, 443, 8888}\n1.5 Host Status: {Findings: Up}",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:idurar:r1_base",
+      "label": "Track: Host Status: {Findings: U\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "1.3.1 Perform a port scan - {Findings: Open Ports: 22, 80, 443, 8888}: 1.3.2 Determine the services and versions on each open port - {Findings: \n       - Port 22: OpenSSH 8.9p1 Ubuntu 3ubuntu0.11\n       - Port 80: nginx 1.18.0 (Ubuntu)\n       - Port 443: nginx 1.18.0 (Ubuntu)\n       - Port 8888: Node.js Express framework} - [completed]\n\n1.5 Host Status: {Findings: Up}: 1.6 SSH Hostkey: {Findings: \n   - ECDSA: 3e:ea:45:4b:c5:d1:6d:6f:e2:d4:d1:3b:0a:3d:a9:4f\n   - ED25519: 64:cc:75:de:4a:e6:a5:b4:73:eb:3f:1b:cf:b4:e3:94} - [completed]\n   1.7 HTTP Server Headers: {Findings: \n   - Port 80: nginx/1.18.0 (Ubuntu)\n   - Port 443: nginx/1.18.0 (Ubuntu)} - [completed]\n   1.8 HTTP Titles: {Findings: \n   - Port 80: Redirect to https://idurar.htb/\n   - Port 443: IDURAR ERP CRM | Free Open Source Accounting Invoice Quote\n   - Port 8888: No title (application/json; charset=utf-8)} - [completed]\n   1.9 SSL Certificate (Port 443): {Findings: \n   - Subject: commonName=idurar.htb\n   - Not valid before: 2025-03-06T15:59:18\n   - Not valid after: 2035-03-04T15:59:18} - [completed]",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:idurar:r1_base",
+      "label": "Agent: Baseline\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT so far:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan - {Findings: Open Ports: 22, 80, 443, 8888}\n  \u2713 1.4 IP Address: {Findings:10.129.231.23}\n  \u2713 1.5 Host Status: {Findings: Up}\n  \u2713 1.10 OS: {Findings: Linux}\n  \u2713 1.11 Scan Duration: {Findings: 85.12 seconds}",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:idurar:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan - {Findings: Open Ports: 22, 80, 443, 8888}\n  \u2713 1.4 IP Address: {Findings:10.129.231.23}\n  \u2713 1.5 Host Status: {Findings: Up}\n  \u2713 1.10 OS: {Findings: Linux}\n  \u2713 1.11 Scan Duration: {Findings: 85.12 seconds}",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:idurar:START",
+      "to": "agent:idurar:r1_base",
+      "label": "baseline",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:idurar:START",
+      "to": "search:idurar:r1_base",
+      "label": "Baseline Recon",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:idurar:r1_base",
+      "to": "track:idurar:r1_base",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:idurar:r1_base",
+      "to": "agent:idurar:r1_base",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:idurar:r1_base",
+      "to": "agent:idurar:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 5,
+    "total_edges": 5,
+    "agent_nodes": 3,
+    "search_nodes": 1,
+    "track_nodes": 1,
+    "runs_detected": 1,
+    "rows_captured": 7
+  }
+}

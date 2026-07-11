@@ -1,0 +1,706 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "PwnLab",
+  "source": "training_data.csv, Machine == 'PwnLab', 9 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:PwnLab:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'PwnLab'. 1 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:PwnLab:r1_s2_3.1",
+      "label": "Search: 3.1\nLFI Discovery",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.1: LFI Discovery\n\nMCP tool calls:\nNmap to execute nmap -A 192.168.1.103, Nikto via Interactive CLI to scan HTTP service",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:PwnLab:r1_s2_3.1",
+      "label": "Track: LFI Discovery",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.1 LFI Discovery:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:PwnLab:r1_s2_3.1",
+      "label": "Agent: 3.1\nVulnerability Assessm\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.1:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u25cb 3 Vulnerability Assessment\n  \u25cb 3.1 LFI Discovery\n  \u25cb 3.2 Config File Extraction\n\u25cb 4 Exploitation\n\u25cb 5 Post-Exploitation\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:PwnLab:r1_s2_3.2",
+      "label": "Search: 3.2\nConfig File Extraction",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 3.2: Config File Extraction\n\nMCP tool calls:\nNmap to execute nmap -A 192.168.1.103, Nikto via Interactive CLI to scan HTTP service",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:PwnLab:r1_s2_3.2",
+      "label": "Track: Config File Extraction",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "3.2 Config File Extraction:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:PwnLab:r1_s2_3.2",
+      "label": "Agent: 3.2\nVulnerability Assessm\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 3.2:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u25cb 3 Vulnerability Assessment\n  \u25cb 3.1 LFI Discovery\n  \u25cb 3.2 Config File Extraction\n\u25cb 4 Exploitation\n\u25cb 5 Post-Exploitation\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:PwnLab:r1_s3_4.1",
+      "label": "Search: 4.1\nDatabase Access",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.1: Database Access\n\nMCP tool calls:\nInteractive CLI to execute curl with PHP filter: curl http://192.168.1.103/index.php?page=php://filter/convert.base64-encode/resource=config, then decode base64 output",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:PwnLab:r1_s3_4.1",
+      "label": "Track: Database Access",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.1 Database Access:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:PwnLab:r1_s3_4.1",
+      "label": "Agent: 4.1\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.1:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 LFI Discovery\n  \u2713 3.2 Config File Extraction\n\u25cb 4 Exploitation\n  \u25cb 4.1 Database Access\n  \u25cb 4.2 Credential Extraction\n\u25cb 5 Post-Exploitation\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:PwnLab:r1_s3_4.2",
+      "label": "Search: 4.2\nCredential Extraction",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 4.2: Credential Extraction\n\nMCP tool calls:\nInteractive CLI to execute curl with PHP filter: curl http://192.168.1.103/index.php?page=php://filter/convert.base64-encode/resource=config, then decode base64 output",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:PwnLab:r1_s3_4.2",
+      "label": "Track: Credential Extraction",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "4.2 Credential Extraction:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:PwnLab:r1_s3_4.2",
+      "label": "Agent: 4.2\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 4.2:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 LFI Discovery\n  \u2713 3.2 Config File Extraction\n\u25cb 4 Exploitation\n  \u25cb 4.1 Database Access\n  \u25cb 4.2 Credential Extraction\n\u25cb 5 Post-Exploitation\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:PwnLab:r1_s5_5.1",
+      "label": "Search: 5.1\nSUID Binary Discovery",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5.1: SUID Binary Discovery\n\nMCP tool calls:\nInteractive CLI to modify PHP reverse shell by prepending GIF98 header and renaming to shell.gif, Web page interaction to login as Kane and upload file",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:PwnLab:r1_s5_5.1",
+      "label": "Track: SUID Binary Discovery",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5.1 SUID Binary Discovery:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:PwnLab:r1_s5_5.1",
+      "label": "Agent: 5.1\nPost-Exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5.1:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 LFI Discovery\n  \u2713 3.2 Config File Extraction\n\u2713 4 Exploitation\n  \u2713 4.1 Database Access\n  \u2713 4.2 Web Shell Upload\n\u25cb 5 Post-Exploitation\n  \u25cb 5.1 SUID Binary Discovery\n  \u25cb 5.2 Mike User Escalation\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:PwnLab:r1_s5_5.2",
+      "label": "Search: 5.2\nMike User Escalation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 5.2: Mike User Escalation\n\nMCP tool calls:\nInteractive CLI to modify PHP reverse shell by prepending GIF98 header and renaming to shell.gif, Web page interaction to login as Kane and upload file",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:PwnLab:r1_s5_5.2",
+      "label": "Track: Mike User Escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "5.2 Mike User Escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:PwnLab:r1_s5_5.2",
+      "label": "Agent: 5.2\nPost-Exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 5.2:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 LFI Discovery\n  \u2713 3.2 Config File Extraction\n\u2713 4 Exploitation\n  \u2713 4.1 Database Access\n  \u2713 4.2 Web Shell Upload\n\u25cb 5 Post-Exploitation\n  \u25cb 5.1 SUID Binary Discovery\n  \u25cb 5.2 Mike User Escalation\n\u25cb 6 Privilege Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:PwnLab:r1_s6_6.1",
+      "label": "Search: 6.1\nRoot Escalation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "PTT item 6.1: Root Escalation\n\nMCP tool calls:\nInteractive CLI to navigate kane home directory and identify SUID binaries, particularly msgmike",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:PwnLab:r1_s6_6.1",
+      "label": "Track: Root Escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "6.1 Root Escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:PwnLab:r1_s6_6.1",
+      "label": "Agent: 6.1\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Cumulative PTT after 6.1:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 LFI Discovery\n  \u2713 3.2 Config File Extraction\n\u2713 4 Exploitation\n  \u2713 4.1 Database Access\n  \u2713 4.2 Web Shell Upload\n\u2713 5 Post-Exploitation\n  \u2713 5.1 SUID Binary Discovery\n  \u25cb 5.2 Mike User Escalation\n\u25cb 6 Privilege Escalation\n  \u25cb 6.1 Root Escalation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:PwnLab:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Network Reconnaissance\n\u2713 2 Service Enumeration\n\u2713 3 Vulnerability Assessment\n  \u2713 3.1 LFI Discovery\n  \u2713 3.2 Config File Extraction\n\u2713 4 Exploitation\n  \u2713 4.1 Database Access\n  \u2713 4.2 Web Shell Upload\n\u2713 5 Post-Exploitation\n  \u2713 5.1 SUID Binary Discovery\n  \u2713 5.2 Mike User Escalation\n\u2713 6 Privilege Escalation\n  \u2713 6.1 Root Escalation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:PwnLab:START",
+      "to": "agent:PwnLab:r1_s2_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:PwnLab:START",
+      "to": "search:PwnLab:r1_s2_3.1",
+      "label": "3.1 LFI Discovery",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:PwnLab:r1_s2_3.1",
+      "to": "track:PwnLab:r1_s2_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:PwnLab:r1_s2_3.1",
+      "to": "agent:PwnLab:r1_s2_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:PwnLab:r1_s2_3.1",
+      "to": "agent:PwnLab:r1_s2_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:PwnLab:r1_s2_3.1",
+      "to": "search:PwnLab:r1_s2_3.2",
+      "label": "3.2 Config File Extract\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:PwnLab:r1_s2_3.2",
+      "to": "track:PwnLab:r1_s2_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:PwnLab:r1_s2_3.2",
+      "to": "agent:PwnLab:r1_s2_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:PwnLab:r1_s2_3.2",
+      "to": "agent:PwnLab:r1_s3_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:PwnLab:r1_s2_3.2",
+      "to": "search:PwnLab:r1_s3_4.1",
+      "label": "4.1 Database Access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:PwnLab:r1_s3_4.1",
+      "to": "track:PwnLab:r1_s3_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:PwnLab:r1_s3_4.1",
+      "to": "agent:PwnLab:r1_s3_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:PwnLab:r1_s3_4.1",
+      "to": "agent:PwnLab:r1_s3_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:PwnLab:r1_s3_4.1",
+      "to": "search:PwnLab:r1_s3_4.2",
+      "label": "4.2 Credential Extracti\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:PwnLab:r1_s3_4.2",
+      "to": "track:PwnLab:r1_s3_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:PwnLab:r1_s3_4.2",
+      "to": "agent:PwnLab:r1_s3_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:PwnLab:r1_s3_4.2",
+      "to": "agent:PwnLab:r1_s5_5.1",
+      "label": "\u2192 5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:PwnLab:r1_s3_4.2",
+      "to": "search:PwnLab:r1_s5_5.1",
+      "label": "5.1 SUID Binary Discove\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:PwnLab:r1_s5_5.1",
+      "to": "track:PwnLab:r1_s5_5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:PwnLab:r1_s5_5.1",
+      "to": "agent:PwnLab:r1_s5_5.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:PwnLab:r1_s5_5.1",
+      "to": "agent:PwnLab:r1_s5_5.2",
+      "label": "\u2192 5.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:PwnLab:r1_s5_5.1",
+      "to": "search:PwnLab:r1_s5_5.2",
+      "label": "5.2 Mike User Escalation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:PwnLab:r1_s5_5.2",
+      "to": "track:PwnLab:r1_s5_5.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:PwnLab:r1_s5_5.2",
+      "to": "agent:PwnLab:r1_s5_5.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:PwnLab:r1_s5_5.2",
+      "to": "agent:PwnLab:r1_s6_6.1",
+      "label": "\u2192 6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:PwnLab:r1_s5_5.2",
+      "to": "search:PwnLab:r1_s6_6.1",
+      "label": "6.1 Root Escalation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:PwnLab:r1_s6_6.1",
+      "to": "track:PwnLab:r1_s6_6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:PwnLab:r1_s6_6.1",
+      "to": "agent:PwnLab:r1_s6_6.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:PwnLab:r1_s6_6.1",
+      "to": "agent:PwnLab:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 23,
+    "total_edges": 29,
+    "agent_nodes": 9,
+    "search_nodes": 7,
+    "track_nodes": 7,
+    "runs_detected": 1,
+    "rows_captured": 9
+  }
+}

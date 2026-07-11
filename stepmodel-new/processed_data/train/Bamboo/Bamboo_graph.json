@@ -1,0 +1,2352 @@
+{
+  "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
+  "machine": "Bamboo",
+  "source": "training_data.csv, Machine == 'Bamboo', 23 row(s), 2 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "analogy_mapping": {
+    "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
+    "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
+    "Track Nodes": "That item's findings payload -- what was actually discovered"
+  },
+  "legend": {
+    "node_types": {
+      "Agent (Blue/Pink goal)": "PTT state after a new item completes",
+      "Search (Orange)": "PTT item being worked (tool calls in tooltip)",
+      "Track (Green)": "Findings payload of that item"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "Agent -> Agent, label = PTT item number",
+      "SearchUpdate (Green)": "Agent -> Search, item being worked from that state",
+      "TrackUpdate (Blue)": "Search -> Track, what item's execution found",
+      "Prediction (Purple)": "Track -> Agent, leads to next cumulative PTT state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "agent:Bamboo:START",
+      "label": "Agent: Initial\n(Start)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "Start of pentest against 'Bamboo'. 2 recorded run(s) below.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r1_s2_2",
+      "label": "Search: 2\nService Enumeration",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 2: Service Enumeration\n\nMCP tool calls:\nInteractive CLI: Analyze nmap results to identify attack surface and prioritize enumeration targets",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r1_s2_2",
+      "label": "Track: Service Enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 2 Service Enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r1_s2_2",
+      "label": "Agent: 2\nService Enumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 2:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u25cb 2 Service Enumeration\n  \u25cb 2.1 Enumerate Squid proxy for internal services",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r1_s2_2.1",
+      "label": "Search: 2.1\nEnumerate Squid proxy for\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 2.1: Enumerate Squid proxy for internal services\n\nMCP tool calls:\nInteractive CLI: Analyze nmap results to identify attack surface and prioritize enumeration targets",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r1_s2_2.1",
+      "label": "Track: Enumerate Squid proxy for int\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 2.1 Enumerate Squid proxy for internal services:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r1_s2_2.1",
+      "label": "Agent: 2.1\nService Enumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 2.1:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u25cb 2 Service Enumeration\n  \u25cb 2.1 Enumerate Squid proxy for internal services",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r1_s3_2.2",
+      "label": "Search: 2.2\nEnumerate PaperCut web ap\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 2.2: Enumerate PaperCut web application\n\nMCP tool calls:\nInteractive CLI: Use spose.py --proxy http://10.129.238.16:3128 --target localhost --allports to enumerate internal services accessible through Squid proxy",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r1_s3_2.2",
+      "label": "Track: Enumerate PaperCut web applic\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 2.2 Enumerate PaperCut web application:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r1_s3_2.2",
+      "label": "Agent: 2.2\nService Enumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 2.2:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2026 2 Service Enumeration\n  \u2713 2.1 Enumerate Squid proxy for internal services\n  \u25cb 2.2 Enumerate PaperCut web application",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r1_s4_3",
+      "label": "Search: 3\nVulnerability Analysis",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 3: Vulnerability Analysis\n\nMCP tool calls:\nWeb page interaction: Configure proxy settings (proxychains or Burp with upstream proxy http://10.129.238.16:3128) and enumerate PaperCut web application at localhost:9191 for version information and functionality",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r1_s4_3",
+      "label": "Track: Vulnerability Analysis",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 3 Vulnerability Analysis:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r1_s4_3",
+      "label": "Agent: 3\nVulnerability Analysis",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 3:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate Squid proxy for internal services\n  \u2713 2.2 Enumerate PaperCut web application\n\u25cb 3 Vulnerability Analysis\n  \u25cb 3.1 Research PaperCut NG vulnerabilities",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r1_s4_3.1",
+      "label": "Search: 3.1\nResearch PaperCut NG vuln\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 3.1: Research PaperCut NG vulnerabilities\n\nMCP tool calls:\nWeb page interaction: Configure proxy settings (proxychains or Burp with upstream proxy http://10.129.238.16:3128) and enumerate PaperCut web application at localhost:9191 for version information and functionality",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r1_s4_3.1",
+      "label": "Track: Research PaperCut NG vulnerab\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 3.1 Research PaperCut NG vulnerabilities:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r1_s4_3.1",
+      "label": "Agent: 3.1\nVulnerability Analysis",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 3.1:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate Squid proxy for internal services\n  \u2713 2.2 Enumerate PaperCut web application\n\u25cb 3 Vulnerability Analysis\n  \u25cb 3.1 Research PaperCut NG vulnerabilities",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r1_s5_4",
+      "label": "Search: 4\nInitial Access Exploitati\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 4: Initial Access Exploitation\n\nMCP tool calls:\nGoogle search: Search for PaperCut NG 22.0 vulnerabilities, CVE-2023-27350 authentication bypass, and public exploits",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r1_s5_4",
+      "label": "Track: Initial Access Exploitation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 4 Initial Access Exploitation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r1_s5_4",
+      "label": "Agent: 4\nInitial Access Exploi\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 4:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate Squid proxy for internal services\n  \u2713 2.2 Enumerate PaperCut web application\n\u2713 3 Vulnerability Analysis\n  \u2713 3.1 Research PaperCut NG vulnerabilities\n\u25cb 4 Initial Access Exploitation\n  \u25cb 4.1 Exploit CVE-2023-27350 authentication bypass",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r1_s5_4.1",
+      "label": "Search: 4.1\nExploit CVE-2023-27350 au\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 4.1: Exploit CVE-2023-27350 authentication bypass\n\nMCP tool calls:\nGoogle search: Search for PaperCut NG 22.0 vulnerabilities, CVE-2023-27350 authentication bypass, and public exploits",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r1_s5_4.1",
+      "label": "Track: Exploit CVE-2023-27350 authen\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 4.1 Exploit CVE-2023-27350 authentication bypass:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r1_s5_4.1",
+      "label": "Agent: 4.1\nInitial Access Exploi\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 4.1:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate Squid proxy for internal services\n  \u2713 2.2 Enumerate PaperCut web application\n\u2713 3 Vulnerability Analysis\n  \u2713 3.1 Research PaperCut NG vulnerabilities\n\u25cb 4 Initial Access Exploitation\n  \u25cb 4.1 Exploit CVE-2023-27350 authentication bypass",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r1_s6_4.2",
+      "label": "Search: 4.2\nEnumerate authenticated f\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 4.2: Enumerate authenticated features for RCE vectors\n\nMCP tool calls:\nWeb page interaction: Access PaperCut setup completion page through proxy, exploit authentication bypass to gain dashboard access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r1_s6_4.2",
+      "label": "Track: Enumerate authenticated featu\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 4.2 Enumerate authenticated features for RCE vectors:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r1_s6_4.2",
+      "label": "Agent: 4.2\nInitial Access Exploi\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 4.2:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate Squid proxy for internal services\n  \u2713 2.2 Enumerate PaperCut web application\n\u2713 3 Vulnerability Analysis\n  \u2713 3.1 Research PaperCut NG vulnerabilities\n\u2026 4 Initial Access Exploitation\n  \u2713 4.1 Exploit CVE-2023-27350 authentication bypass\n  \u25cb 4.2 Enumerate authenticated features for RCE vectors",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r1_s7_4.3",
+      "label": "Search: 4.3\nAnalyze print script inje\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 4.3: Analyze print script injection attack path\n\nMCP tool calls:\nWeb page interaction: Navigate through PaperCut dashboard options, config editor, printer settings, and scripting features to find code execution opportunities",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r1_s7_4.3",
+      "label": "Track: Analyze print script injectio\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 4.3 Analyze print script injection attack path:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r1_s7_4.3",
+      "label": "Agent: 4.3\nInitial Access Exploi\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 4.3:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate Squid proxy for internal services\n  \u2713 2.2 Enumerate PaperCut web application\n\u2713 3 Vulnerability Analysis\n  \u2713 3.1 Research PaperCut NG vulnerabilities\n\u2026 4 Initial Access Exploitation\n  \u2713 4.1 Exploit CVE-2023-27350 authentication bypass\n  \u2713 4.2 Enumerate authenticated features for RCE vectors\n  \u25cb 4.3 Analyze print script injection attack path",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r1_s8_4.4",
+      "label": "Search: 4.4\nExecute print script inje\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 4.4: Execute print script injection for RCE\n\nMCP tool calls:\nInteractive CLI: Plan exploitation sequence - enable print-and-device.script.enabled, disable print.script.sandboxed, inject bash reverse shell in printer scripting tab",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r1_s8_4.4",
+      "label": "Track: Execute print script injectio\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 4.4 Execute print script injection for RCE:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r1_s8_4.4",
+      "label": "Agent: 4.4\nInitial Access Exploi\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 4.4:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate Squid proxy for internal services\n  \u2713 2.2 Enumerate PaperCut web application\n\u2713 3 Vulnerability Analysis\n  \u2713 3.1 Research PaperCut NG vulnerabilities\n\u2026 4 Initial Access Exploitation\n  \u2713 4.1 Exploit CVE-2023-27350 authentication bypass\n  \u2713 4.2 Enumerate authenticated features for RCE vectors\n  \u2713 4.3 Analyze print script injection attack path\n  \u25cb 4.4 Execute print script injection for RCE",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r1_s9_5",
+      "label": "Search: 5\nPost-Exploitation Enumera\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 5: Post-Exploitation Enumeration\n\nMCP tool calls:\nWeb page interaction: Enable print-and-device.script.enabled and disable print.script.sandboxed in Config Editor, inject bash reverse shell in printer Scripting tab; Netcat: Setup listener on port 443 to receive reverse shell connection",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r1_s9_5",
+      "label": "Track: Post-Exploitation Enumeration",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 5 Post-Exploitation Enumeration:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r1_s9_5",
+      "label": "Agent: 5\nPost-Exploitation Enu\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 5:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate Squid proxy for internal services\n  \u2713 2.2 Enumerate PaperCut web application\n\u2713 3 Vulnerability Analysis\n  \u2713 3.1 Research PaperCut NG vulnerabilities\n\u2713 4 Initial Access Exploitation\n  \u2713 4.1 Exploit CVE-2023-27350 authentication bypass\n  \u2713 4.2 Enumerate authenticated features for RCE vectors\n  \u2713 4.3 Analyze print script injection attack path\n  \u2713 4.4 Execute print script injection for RCE\n\u25cb 5 Post-Exploitation Enumeration\n  \u25cb 5.1 Enumerate system for privilege escalation vectors",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r1_s9_5.1",
+      "label": "Search: 5.1\nEnumerate system for priv\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 5.1: Enumerate system for privilege escalation vectors\n\nMCP tool calls:\nWeb page interaction: Enable print-and-device.script.enabled and disable print.script.sandboxed in Config Editor, inject bash reverse shell in printer Scripting tab; Netcat: Setup listener on port 443 to receive reverse shell connection",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r1_s9_5.1",
+      "label": "Track: Enumerate system for privileg\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 5.1 Enumerate system for privilege escalation vectors:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r1_s9_5.1",
+      "label": "Agent: 5.1\nPost-Exploitation Enu\u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 5.1:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate Squid proxy for internal services\n  \u2713 2.2 Enumerate PaperCut web application\n\u2713 3 Vulnerability Analysis\n  \u2713 3.1 Research PaperCut NG vulnerabilities\n\u2713 4 Initial Access Exploitation\n  \u2713 4.1 Exploit CVE-2023-27350 authentication bypass\n  \u2713 4.2 Enumerate authenticated features for RCE vectors\n  \u2713 4.3 Analyze print script injection attack path\n  \u2713 4.4 Execute print script injection for RCE\n\u25cb 5 Post-Exploitation Enumeration\n  \u25cb 5.1 Enumerate system for privilege escalation vectors",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r1_s10_6",
+      "label": "Search: 6\nPrivilege Escalation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 6: Privilege Escalation\n\nMCP tool calls:\nInteractive CLI: Upgrade shell (script /dev/null -c bash, stty raw -echo), check sudo -l, find SUID binaries, enumerate home directory, upload and run pspy64 in /dev/shm to monitor processes",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r1_s10_6",
+      "label": "Track: Privilege Escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 6 Privilege Escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r1_s10_6",
+      "label": "Agent: 6\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 6:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate Squid proxy for internal services\n  \u2713 2.2 Enumerate PaperCut web application\n\u2713 3 Vulnerability Analysis\n  \u2713 3.1 Research PaperCut NG vulnerabilities\n\u2713 4 Initial Access Exploitation\n  \u2713 4.1 Exploit CVE-2023-27350 authentication bypass\n  \u2713 4.2 Enumerate authenticated features for RCE vectors\n  \u2713 4.3 Analyze print script injection attack path\n  \u2713 4.4 Execute print script injection for RCE\n\u2713 5 Post-Exploitation Enumeration\n  \u2713 5.1 Enumerate system for privilege escalation vectors\n\u25cb 6 Privilege Escalation\n  \u25cb 6.1 Analyze binary hijacking opportunity",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r1_s10_6.1",
+      "label": "Search: 6.1\nAnalyze binary hijacking \u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 6.1: Analyze binary hijacking opportunity\n\nMCP tool calls:\nInteractive CLI: Upgrade shell (script /dev/null -c bash, stty raw -echo), check sudo -l, find SUID binaries, enumerate home directory, upload and run pspy64 in /dev/shm to monitor processes",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r1_s10_6.1",
+      "label": "Track: Analyze binary hijacking oppo\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 6.1 Analyze binary hijacking opportunity:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r1_s10_6.1",
+      "label": "Agent: 6.1\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 6.1:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate Squid proxy for internal services\n  \u2713 2.2 Enumerate PaperCut web application\n\u2713 3 Vulnerability Analysis\n  \u2713 3.1 Research PaperCut NG vulnerabilities\n\u2713 4 Initial Access Exploitation\n  \u2713 4.1 Exploit CVE-2023-27350 authentication bypass\n  \u2713 4.2 Enumerate authenticated features for RCE vectors\n  \u2713 4.3 Analyze print script injection attack path\n  \u2713 4.4 Execute print script injection for RCE\n\u2713 5 Post-Exploitation Enumeration\n  \u2713 5.1 Enumerate system for privilege escalation vectors\n\u25cb 6 Privilege Escalation\n  \u25cb 6.1 Analyze binary hijacking opportunity",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r1_s11_6.2",
+      "label": "Search: 6.2\nExecute binary hijacking \u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 6.2: Execute binary hijacking attack\n\nMCP tool calls:\nInteractive CLI: Plan privilege escalation - backup server-command, create malicious script to copy bash and set SUID, determine trigger mechanism via PaperCut web UI",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r1_s11_6.2",
+      "label": "Track: Execute binary hijacking atta\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 6.2 Execute binary hijacking attack:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r1_s11_6.2",
+      "label": "Agent: 6.2\nPrivilege Escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 6.2:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate Squid proxy for internal services\n  \u2713 2.2 Enumerate PaperCut web application\n\u2713 3 Vulnerability Analysis\n  \u2713 3.1 Research PaperCut NG vulnerabilities\n\u2713 4 Initial Access Exploitation\n  \u2713 4.1 Exploit CVE-2023-27350 authentication bypass\n  \u2713 4.2 Enumerate authenticated features for RCE vectors\n  \u2713 4.3 Analyze print script injection attack path\n  \u2713 4.4 Execute print script injection for RCE\n\u2713 5 Post-Exploitation Enumeration\n  \u2713 5.1 Enumerate system for privilege escalation vectors\n\u2026 6 Privilege Escalation\n  \u2713 6.1 Analyze binary hijacking opportunity\n  \u25cb 6.2 Execute binary hijacking attack",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r1_s12_7",
+      "label": "Search: 7\nReport Generation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 1/2] PTT item 7: Report Generation\n\nMCP tool calls:\nInteractive CLI: Backup server-command, create malicious script to create SUID bash, make executable; Web page interaction: Trigger execution by refreshing servers in PaperCut web UI; Interactive CLI: Execute SUID bash with -p flag to gain root shell",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r1_s12_7",
+      "label": "Track: Report Generation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 1/2] 7 Report Generation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r1_s12_7",
+      "label": "Agent: 7\nReport Generation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/2] Cumulative PTT after 7:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate Squid proxy for internal services\n  \u2713 2.2 Enumerate PaperCut web application\n\u2713 3 Vulnerability Analysis\n  \u2713 3.1 Research PaperCut NG vulnerabilities\n\u2713 4 Initial Access Exploitation\n  \u2713 4.1 Exploit CVE-2023-27350 authentication bypass\n  \u2713 4.2 Enumerate authenticated features for RCE vectors\n  \u2713 4.3 Analyze print script injection attack path\n  \u2713 4.4 Execute print script injection for RCE\n\u2713 5 Post-Exploitation Enumeration\n  \u2713 5.1 Enumerate system for privilege escalation vectors\n\u2713 6 Privilege Escalation\n  \u2713 6.1 Analyze binary hijacking opportunity\n  \u2713 6.2 Execute binary hijacking attack\n\u2713 7 Report Generation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r1_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "[Run 1/2] Final cumulative PTT for this run:\n\u2713 1 Network Reconnaissance\n  \u2713 1.1 Perform initial port scan\n  \u2713 1.2 Identify running services\n\u2713 2 Service Enumeration\n  \u2713 2.1 Enumerate Squid proxy for internal services\n  \u2713 2.2 Enumerate PaperCut web application\n\u2713 3 Vulnerability Analysis\n  \u2713 3.1 Research PaperCut NG vulnerabilities\n\u2713 4 Initial Access Exploitation\n  \u2713 4.1 Exploit CVE-2023-27350 authentication bypass\n  \u2713 4.2 Enumerate authenticated features for RCE vectors\n  \u2713 4.3 Analyze print script injection attack path\n  \u2713 4.4 Execute print script injection for RCE\n\u2713 5 Post-Exploitation Enumeration\n  \u2713 5.1 Enumerate system for privilege escalation vectors\n\u2713 6 Privilege Escalation\n  \u2713 6.1 Analyze binary hijacking opportunity\n  \u2713 6.2 Execute binary hijacking attack\n\u2713 7 Report Generation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r2_s1_2.1",
+      "label": "Search: 2.1\nProxy port scanning",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 2.1: Proxy port scanning\n\nMCP tool calls:\nNmap: Full port scan with service detection on target 10.129.238.16",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r2_s1_2.1",
+      "label": "Track: Proxy port scanning",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 2.1 Proxy port scanning:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r2_s1_2.1",
+      "label": "Agent: 2.1\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network scanning\n  \u2713 1.2 Service enumeration\n\u25cb 2 Enumeration\n  \u25cb 2.1 Proxy port scanning\n\u25cb 3 Exploitation\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r2_s2_2.2",
+      "label": "Search: 2.2\nApplication identification",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 2.2: Application identification\n\nMCP tool calls:\nInteractive CLI: Use spose.py to scan localhost ports through Squid proxy",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r2_s2_2.2",
+      "label": "Track: Application identification",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 2.2 Application identification:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r2_s2_2.2",
+      "label": "Agent: 2.2\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance\n\u2026 2 Enumeration\n  \u2713 2.1 Proxy port scanning\n  \u25cb 2.2 Application identification\n\u25cb 3 Exploitation\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r2_s3_2.3",
+      "label": "Search: 2.3\nVulnerability research",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 2.3: Vulnerability research\n\nMCP tool calls:\nWeb page interaction: Configure proxychains and browser proxy access PaperCut on port 9191 identify version",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r2_s3_2.3",
+      "label": "Track: Vulnerability research",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 2.3 Vulnerability research:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r2_s3_2.3",
+      "label": "Agent: 2.3\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 2.3:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n  \u2713 2.1 Proxy port scanning\n  \u2713 2.2 Application identification\n  \u25cb 2.3 Vulnerability research\n\u25cb 3 Exploitation\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r2_s4_3.1",
+      "label": "Search: 3.1\nAuthentication bypass",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 3.1: Authentication bypass\n\nMCP tool calls:\nGoogle search: PaperCut NG 22.0 CVE vulnerabilities CVE-2023-27350 authentication bypass",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r2_s4_3.1",
+      "label": "Track: Authentication bypass",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 3.1 Authentication bypass:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r2_s4_3.1",
+      "label": "Agent: 3.1\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Exploitation\n  \u25cb 3.1 Authentication bypass\n  \u25cb 3.2 Configuration modification\n  \u25cb 3.3 Code execution\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r2_s4_3.2",
+      "label": "Search: 3.2\nConfiguration modification",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 3.2: Configuration modification\n\nMCP tool calls:\nGoogle search: PaperCut NG 22.0 CVE vulnerabilities CVE-2023-27350 authentication bypass",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r2_s4_3.2",
+      "label": "Track: Configuration modification",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 3.2 Configuration modification:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r2_s4_3.2",
+      "label": "Agent: 3.2\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 3.2:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Exploitation\n  \u25cb 3.1 Authentication bypass\n  \u25cb 3.2 Configuration modification\n  \u25cb 3.3 Code execution\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r2_s4_3.3",
+      "label": "Search: 3.3\nCode execution",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 3.3: Code execution\n\nMCP tool calls:\nGoogle search: PaperCut NG 22.0 CVE vulnerabilities CVE-2023-27350 authentication bypass",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r2_s4_3.3",
+      "label": "Track: Code execution",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 3.3 Code execution:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r2_s4_3.3",
+      "label": "Agent: 3.3\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 3.3:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2026 3 Exploitation\n  \u25cb 3.1 Authentication bypass\n  \u25cb 3.2 Configuration modification\n  \u25cb 3.3 Code execution\n\u25cb 4 Post-exploitation",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r2_s7_4.1",
+      "label": "Search: 4.1\nPrivilege escalation",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 4.1: Privilege escalation\n\nMCP tool calls:\nWeb page interaction: Add reverse shell script to printer configuration; Netcat: Trigger script execution receive shell",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r2_s7_4.1",
+      "label": "Track: Privilege escalation",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 4.1 Privilege escalation:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r2_s7_4.1",
+      "label": "Agent: 4.1\nPost-exploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Exploitation\n\u2026 4 Post-exploitation\n  \u25cb 4.1 Privilege escalation\n    \u25cb 4.1.1 Process monitoring",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r2_s7_4.1.1",
+      "label": "Search: 4.1.1\nProcess monitoring",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 4.1.1: Process monitoring\n\nMCP tool calls:\nWeb page interaction: Add reverse shell script to printer configuration; Netcat: Trigger script execution receive shell",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r2_s7_4.1.1",
+      "label": "Track: Process monitoring",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 4.1.1 Process monitoring:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r2_s7_4.1.1",
+      "label": "Agent: 4.1.1\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 4.1.1:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Exploitation\n\u2026 4 Post-exploitation\n  \u25cb 4.1 Privilege escalation\n    \u25cb 4.1.1 Process monitoring",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:Bamboo:r2_s8_4.1.2",
+      "label": "Search: 4.1.2\nBinary hijacking",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/2] PTT item 4.1.2: Binary hijacking\n\nMCP tool calls:\nInteractive CLI: Upload pspy64 monitor processes identify root-executed commands",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:Bamboo:r2_s8_4.1.2",
+      "label": "Track: Binary hijacking",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/2] 4.1.2 Binary hijacking:\n(status change only)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r2_s8_4.1.2",
+      "label": "Agent: 4.1.2\nPrivilege escalation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/2] Cumulative PTT after 4.1.2:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Exploitation\n\u2026 4 Post-exploitation\n  \u2026 4.1 Privilege escalation\n    \u2713 4.1.1 Process monitoring\n    \u25cb 4.1.2 Binary hijacking",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:Bamboo:r2_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "[Run 2/2] Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n\u2713 2 Enumeration\n\u2713 3 Exploitation\n\u2713 4 Post-exploitation\n  \u2713 4.1 Privilege escalation",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "agent:Bamboo:START",
+      "to": "agent:Bamboo:r1_s2_2",
+      "label": "\u2192 2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:START",
+      "to": "search:Bamboo:r1_s2_2",
+      "label": "2 Service Enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r1_s2_2",
+      "to": "track:Bamboo:r1_s2_2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r1_s2_2",
+      "to": "agent:Bamboo:r1_s2_2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s2_2",
+      "to": "agent:Bamboo:r1_s2_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s2_2",
+      "to": "search:Bamboo:r1_s2_2.1",
+      "label": "2.1 Enumerate Squid pro\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r1_s2_2.1",
+      "to": "track:Bamboo:r1_s2_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r1_s2_2.1",
+      "to": "agent:Bamboo:r1_s2_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s2_2.1",
+      "to": "agent:Bamboo:r1_s3_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s2_2.1",
+      "to": "search:Bamboo:r1_s3_2.2",
+      "label": "2.2 Enumerate PaperCut \u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r1_s3_2.2",
+      "to": "track:Bamboo:r1_s3_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r1_s3_2.2",
+      "to": "agent:Bamboo:r1_s3_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s3_2.2",
+      "to": "agent:Bamboo:r1_s4_3",
+      "label": "\u2192 3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s3_2.2",
+      "to": "search:Bamboo:r1_s4_3",
+      "label": "3 Vulnerability Analy\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r1_s4_3",
+      "to": "track:Bamboo:r1_s4_3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r1_s4_3",
+      "to": "agent:Bamboo:r1_s4_3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s4_3",
+      "to": "agent:Bamboo:r1_s4_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s4_3",
+      "to": "search:Bamboo:r1_s4_3.1",
+      "label": "3.1 Research PaperCut N\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r1_s4_3.1",
+      "to": "track:Bamboo:r1_s4_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r1_s4_3.1",
+      "to": "agent:Bamboo:r1_s4_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s4_3.1",
+      "to": "agent:Bamboo:r1_s5_4",
+      "label": "\u2192 4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s4_3.1",
+      "to": "search:Bamboo:r1_s5_4",
+      "label": "4 Initial Access Expl\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r1_s5_4",
+      "to": "track:Bamboo:r1_s5_4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r1_s5_4",
+      "to": "agent:Bamboo:r1_s5_4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s5_4",
+      "to": "agent:Bamboo:r1_s5_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s5_4",
+      "to": "search:Bamboo:r1_s5_4.1",
+      "label": "4.1 Exploit CVE-2023-27\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r1_s5_4.1",
+      "to": "track:Bamboo:r1_s5_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r1_s5_4.1",
+      "to": "agent:Bamboo:r1_s5_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s5_4.1",
+      "to": "agent:Bamboo:r1_s6_4.2",
+      "label": "\u2192 4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s5_4.1",
+      "to": "search:Bamboo:r1_s6_4.2",
+      "label": "4.2 Enumerate authentic\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r1_s6_4.2",
+      "to": "track:Bamboo:r1_s6_4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r1_s6_4.2",
+      "to": "agent:Bamboo:r1_s6_4.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s6_4.2",
+      "to": "agent:Bamboo:r1_s7_4.3",
+      "label": "\u2192 4.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s6_4.2",
+      "to": "search:Bamboo:r1_s7_4.3",
+      "label": "4.3 Analyze print scrip\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r1_s7_4.3",
+      "to": "track:Bamboo:r1_s7_4.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r1_s7_4.3",
+      "to": "agent:Bamboo:r1_s7_4.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s7_4.3",
+      "to": "agent:Bamboo:r1_s8_4.4",
+      "label": "\u2192 4.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s7_4.3",
+      "to": "search:Bamboo:r1_s8_4.4",
+      "label": "4.4 Execute print scrip\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r1_s8_4.4",
+      "to": "track:Bamboo:r1_s8_4.4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r1_s8_4.4",
+      "to": "agent:Bamboo:r1_s8_4.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s8_4.4",
+      "to": "agent:Bamboo:r1_s9_5",
+      "label": "\u2192 5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s8_4.4",
+      "to": "search:Bamboo:r1_s9_5",
+      "label": "5 Post-Exploitation E\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r1_s9_5",
+      "to": "track:Bamboo:r1_s9_5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r1_s9_5",
+      "to": "agent:Bamboo:r1_s9_5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s9_5",
+      "to": "agent:Bamboo:r1_s9_5.1",
+      "label": "\u2192 5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s9_5",
+      "to": "search:Bamboo:r1_s9_5.1",
+      "label": "5.1 Enumerate system fo\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r1_s9_5.1",
+      "to": "track:Bamboo:r1_s9_5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r1_s9_5.1",
+      "to": "agent:Bamboo:r1_s9_5.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s9_5.1",
+      "to": "agent:Bamboo:r1_s10_6",
+      "label": "\u2192 6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s9_5.1",
+      "to": "search:Bamboo:r1_s10_6",
+      "label": "6 Privilege Escalation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r1_s10_6",
+      "to": "track:Bamboo:r1_s10_6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r1_s10_6",
+      "to": "agent:Bamboo:r1_s10_6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s10_6",
+      "to": "agent:Bamboo:r1_s10_6.1",
+      "label": "\u2192 6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s10_6",
+      "to": "search:Bamboo:r1_s10_6.1",
+      "label": "6.1 Analyze binary hija\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r1_s10_6.1",
+      "to": "track:Bamboo:r1_s10_6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r1_s10_6.1",
+      "to": "agent:Bamboo:r1_s10_6.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s10_6.1",
+      "to": "agent:Bamboo:r1_s11_6.2",
+      "label": "\u2192 6.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s10_6.1",
+      "to": "search:Bamboo:r1_s11_6.2",
+      "label": "6.2 Execute binary hija\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r1_s11_6.2",
+      "to": "track:Bamboo:r1_s11_6.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r1_s11_6.2",
+      "to": "agent:Bamboo:r1_s11_6.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s11_6.2",
+      "to": "agent:Bamboo:r1_s12_7",
+      "label": "\u2192 7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s11_6.2",
+      "to": "search:Bamboo:r1_s12_7",
+      "label": "7 Report Generation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r1_s12_7",
+      "to": "track:Bamboo:r1_s12_7",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r1_s12_7",
+      "to": "agent:Bamboo:r1_s12_7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r1_s12_7",
+      "to": "agent:Bamboo:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:START",
+      "to": "agent:Bamboo:r2_s1_2.1",
+      "label": "\u2192 2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:START",
+      "to": "search:Bamboo:r2_s1_2.1",
+      "label": "2.1 Proxy port scanning",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r2_s1_2.1",
+      "to": "track:Bamboo:r2_s1_2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r2_s1_2.1",
+      "to": "agent:Bamboo:r2_s1_2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r2_s1_2.1",
+      "to": "agent:Bamboo:r2_s2_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r2_s1_2.1",
+      "to": "search:Bamboo:r2_s2_2.2",
+      "label": "2.2 Application identif\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r2_s2_2.2",
+      "to": "track:Bamboo:r2_s2_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r2_s2_2.2",
+      "to": "agent:Bamboo:r2_s2_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r2_s2_2.2",
+      "to": "agent:Bamboo:r2_s3_2.3",
+      "label": "\u2192 2.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r2_s2_2.2",
+      "to": "search:Bamboo:r2_s3_2.3",
+      "label": "2.3 Vulnerability resea\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r2_s3_2.3",
+      "to": "track:Bamboo:r2_s3_2.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r2_s3_2.3",
+      "to": "agent:Bamboo:r2_s3_2.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r2_s3_2.3",
+      "to": "agent:Bamboo:r2_s4_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r2_s3_2.3",
+      "to": "search:Bamboo:r2_s4_3.1",
+      "label": "3.1 Authentication bypa\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r2_s4_3.1",
+      "to": "track:Bamboo:r2_s4_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r2_s4_3.1",
+      "to": "agent:Bamboo:r2_s4_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r2_s4_3.1",
+      "to": "agent:Bamboo:r2_s4_3.2",
+      "label": "\u2192 3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r2_s4_3.1",
+      "to": "search:Bamboo:r2_s4_3.2",
+      "label": "3.2 Configuration modif\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r2_s4_3.2",
+      "to": "track:Bamboo:r2_s4_3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r2_s4_3.2",
+      "to": "agent:Bamboo:r2_s4_3.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r2_s4_3.2",
+      "to": "agent:Bamboo:r2_s4_3.3",
+      "label": "\u2192 3.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r2_s4_3.2",
+      "to": "search:Bamboo:r2_s4_3.3",
+      "label": "3.3 Code execution",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r2_s4_3.3",
+      "to": "track:Bamboo:r2_s4_3.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r2_s4_3.3",
+      "to": "agent:Bamboo:r2_s4_3.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r2_s4_3.3",
+      "to": "agent:Bamboo:r2_s7_4.1",
+      "label": "\u2192 4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r2_s4_3.3",
+      "to": "search:Bamboo:r2_s7_4.1",
+      "label": "4.1 Privilege escalation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r2_s7_4.1",
+      "to": "track:Bamboo:r2_s7_4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r2_s7_4.1",
+      "to": "agent:Bamboo:r2_s7_4.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r2_s7_4.1",
+      "to": "agent:Bamboo:r2_s7_4.1.1",
+      "label": "\u2192 4.1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r2_s7_4.1",
+      "to": "search:Bamboo:r2_s7_4.1.1",
+      "label": "4.1.1 Process monitoring",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r2_s7_4.1.1",
+      "to": "track:Bamboo:r2_s7_4.1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r2_s7_4.1.1",
+      "to": "agent:Bamboo:r2_s7_4.1.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r2_s7_4.1.1",
+      "to": "agent:Bamboo:r2_s8_4.1.2",
+      "label": "\u2192 4.1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r2_s7_4.1.1",
+      "to": "search:Bamboo:r2_s8_4.1.2",
+      "label": "4.1.2 Binary hijacking",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:Bamboo:r2_s8_4.1.2",
+      "to": "track:Bamboo:r2_s8_4.1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:Bamboo:r2_s8_4.1.2",
+      "to": "agent:Bamboo:r2_s8_4.1.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:Bamboo:r2_s8_4.1.2",
+      "to": "agent:Bamboo:r2_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 78,
+    "total_edges": 102,
+    "agent_nodes": 28,
+    "search_nodes": 25,
+    "track_nodes": 25,
+    "runs_detected": 2,
+    "rows_captured": 23
+  }
+}
