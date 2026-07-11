@@ -197,14 +197,10 @@ class GNNLLMPolicy(nn.Module):
         use_gat: bool = False,
         pooling_strategy: str = "mean",
         graph_token_count: int = 4,
-        step_condition_mcp: bool = False,
-        step_condition_dim: int = 64,
     ):
         super().__init__()
         self.pooling_strategy = str(pooling_strategy or "mean").lower()
         self.graph_token_count = int(graph_token_count)
-        self.step_condition_mcp = bool(step_condition_mcp)
-        self.step_condition_dim = int(step_condition_dim)
         self.gnn = GNNModel(
             node_dim=text_emb_dim,
             hidden_dim=256,
@@ -234,12 +230,7 @@ class GNNLLMPolicy(nn.Module):
         else:
             raise ValueError(f"Unsupported pooling_strategy: {pooling_strategy}")
         self.step_head = nn.Linear(llm_hidden_size, len(STEP_LABELS))
-        if self.step_condition_mcp:
-            self.step_label_embeddings = nn.Embedding(len(STEP_LABELS), self.step_condition_dim)
-            self.mcp_head = nn.Linear(llm_hidden_size + self.step_condition_dim, len(MCP_LABELS))
-        else:
-            self.step_label_embeddings = None
-            self.mcp_head = nn.Linear(llm_hidden_size, len(MCP_LABELS))
+        self.mcp_head = nn.Linear(llm_hidden_size, len(MCP_LABELS))
 
     def get_graph_embedding(self, nodes, edges, device):
         """
@@ -333,22 +324,9 @@ class GNNLLMPolicy(nn.Module):
             return self.readout_projection(torch.cat([first_hidden, mean_hidden], dim=-1))
         raise ValueError(f"Unsupported pooling_strategy: {self.pooling_strategy}")
 
-    def build_step_context(self, step_logits: torch.Tensor) -> Optional[torch.Tensor]:
-        if not self.step_condition_mcp or self.step_label_embeddings is None:
-            return None
-
-        step_probs = torch.softmax(step_logits, dim=-1)
-        return step_probs @ self.step_label_embeddings.weight
-
     def classify(self, pooled_hidden: torch.Tensor):
         hidden = self.classifier_dropout(pooled_hidden)
-        step_logits = self.step_head(hidden)
-        step_context = self.build_step_context(step_logits)
-        if step_context is not None:
-            mcp_hidden = torch.cat([hidden, step_context], dim=-1)
-        else:
-            mcp_hidden = hidden
-        return step_logits, self.mcp_head(mcp_hidden)
+        return self.step_head(hidden), self.mcp_head(hidden)
 
 
 class PenTestDataset(Dataset):
@@ -1077,8 +1055,6 @@ def main():
     gnn_type = str(config.get('model', {}).get('gnn_type', 'gcn')).lower()
     pooling_strategy = str(config.get('model', {}).get('pooling_strategy', 'hybrid')).lower()
     graph_token_count = int(config.get('model', {}).get('graph_token_count', 4))
-    step_condition_mcp = bool(config.get('model', {}).get('step_condition_mcp', True))
-    step_condition_dim = int(config.get('model', {}).get('step_condition_dim', 64))
     prompt_style = str(config.get('training', {}).get('prompt_style', 'compact')).lower()
 
     # Initialize policy
@@ -1090,8 +1066,6 @@ def main():
         use_gat=config['model']['use_gat'],
         pooling_strategy=pooling_strategy,
         graph_token_count=graph_token_count,
-        step_condition_mcp=step_condition_mcp,
-        step_condition_dim=step_condition_dim,
     ).to(device)
 
     # Training setup first (define batch_size before creating loader)
@@ -1142,6 +1116,7 @@ def main():
     patience = config['training']['patience']
     step_loss_weight = config['training'].get('step_loss_weight', 1.5)
     mcp_loss_weight = config['training'].get('mcp_loss_weight', 1.5)
+    rl_aux_supervised_weight = float(config['training'].get('rl_aux_supervised_weight', 0.1))
     step_class_weighting = bool(config['training'].get('step_class_weighting', True))
     step_class_weight_power = float(config['training'].get('step_class_weight_power', 0.5))
     max_step_class_weight = float(config['training'].get('max_step_class_weight', 4.0))
@@ -1338,8 +1313,6 @@ def main():
                         "gnn_type": gnn_type,
                         "graph_token_count": graph_token_count,
                         "pooling_strategy": pooling_strategy,
-                        "step_condition_mcp": step_condition_mcp,
-                        "step_condition_dim": step_condition_dim,
                         "prompt_style": prompt_style,
                     },
                 ),
@@ -1360,8 +1333,6 @@ def main():
                     "gnn_type": gnn_type,
                     "graph_token_count": graph_token_count,
                     "pooling_strategy": pooling_strategy,
-                    "step_condition_mcp": step_condition_mcp,
-                    "step_condition_dim": step_condition_dim,
                     "prompt_style": prompt_style,
                 },
             ),
@@ -1374,12 +1345,15 @@ def main():
     print("\n" + "="*60)
     print("PHASE 2: GRPO REINFORCEMENT LEARNING FINE-TUNING")
     print("="*60 + "\n")
+    print(f"RL auxiliary supervised weight: {rl_aux_supervised_weight:.3f}")
     policy.train()
     llm.train()
     patience_counter = 0  # Reset patience
 
     for epoch in range(num_grpo_epochs):
         total_loss = 0.0
+        total_grpo_loss = 0.0
+        total_aux_sup_loss = 0.0
         total_reward = 0.0
         num_updates = 0
 
@@ -1421,7 +1395,28 @@ def main():
             optimizer.zero_grad()
 
             with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
-                loss = compute_grpo_loss(policy, llm, tokenizer, text_model, all_rollouts, device, clip_eps=clip_eps)
+                grpo_loss = compute_grpo_loss(
+                    policy, llm, tokenizer, text_model, all_rollouts, device, clip_eps=clip_eps
+                )
+                aux_sup_loss = torch.zeros((), device=device, dtype=grpo_loss.dtype)
+                if rl_aux_supervised_weight > 0.0:
+                    aux_loss_terms = []
+                    for sample in batch_samples:
+                        sup_loss, _, _ = compute_supervised_loss_for_sample(
+                            policy,
+                            llm,
+                            tokenizer,
+                            text_model,
+                            sample,
+                            device,
+                            step_loss_weight=step_loss_weight,
+                            mcp_loss_weight=mcp_loss_weight,
+                            step_class_weights=step_class_weights,
+                        )
+                        aux_loss_terms.append(sup_loss)
+                    if aux_loss_terms:
+                        aux_sup_loss = torch.stack(aux_loss_terms).mean()
+                loss = grpo_loss + rl_aux_supervised_weight * aux_sup_loss
             if not torch.isfinite(loss):
                 _debug_report(
                     "F",
@@ -1444,12 +1439,18 @@ def main():
 
             if writer is not None:
                 writer.add_scalar("GRPO/loss", loss.item(), global_step)
+                writer.add_scalar("GRPO/grpo_loss", grpo_loss.item(), global_step)
+                writer.add_scalar("GRPO/aux_supervised_loss", aux_sup_loss.item(), global_step)
                 writer.add_scalar("GRPO/avg_reward", avg_reward, global_step)
 
             total_loss += loss.item()
+            total_grpo_loss += grpo_loss.item()
+            total_aux_sup_loss += aux_sup_loss.item()
             num_updates += 1
 
         avg_epoch_loss = total_loss / max(num_updates, 1)
+        avg_epoch_grpo_loss = total_grpo_loss / max(num_updates, 1)
+        avg_epoch_aux_sup_loss = total_aux_sup_loss / max(num_updates, 1)
         avg_epoch_reward = total_reward / max(num_updates, 1)
         val_metrics = find_best_mcp_threshold(
             val_dataset,
@@ -1466,6 +1467,8 @@ def main():
 
         if writer is not None:
             writer.add_scalar("GRPO/avg_loss", avg_epoch_loss, epoch+1)
+            writer.add_scalar("GRPO/avg_grpo_loss", avg_epoch_grpo_loss, epoch+1)
+            writer.add_scalar("GRPO/avg_aux_supervised_loss", avg_epoch_aux_sup_loss, epoch+1)
             writer.add_scalar("GRPO/val_reward", val_reward, epoch+1)
             writer.add_scalar("GRPO/val_step_acc", val_metrics["step_acc"], epoch+1)
             writer.add_scalar("GRPO/val_mcp_f1", val_metrics["mcp_f1"], epoch+1)
@@ -1476,6 +1479,8 @@ def main():
         print(f"\nGRPO Epoch {epoch+1} Complete!")
         print(
             f"Avg Loss: {avg_epoch_loss:.4f}, "
+            f"Avg GRPO Loss: {avg_epoch_grpo_loss:.4f}, "
+            f"Avg Aux Sup Loss: {avg_epoch_aux_sup_loss:.4f}, "
             f"Avg Train Reward: {avg_epoch_reward:.4f}, "
             f"Val Reward: {val_reward:.4f}, "
             f"Val Step Acc: {val_metrics['step_acc']:.4f}, "
@@ -1511,8 +1516,6 @@ def main():
                         "gnn_type": gnn_type,
                         "graph_token_count": graph_token_count,
                         "pooling_strategy": pooling_strategy,
-                        "step_condition_mcp": step_condition_mcp,
-                        "step_condition_dim": step_condition_dim,
                         "prompt_style": prompt_style,
                     },
                 ),
@@ -1536,8 +1539,6 @@ def main():
                     "gnn_type": gnn_type,
                     "graph_token_count": graph_token_count,
                     "pooling_strategy": pooling_strategy,
-                    "step_condition_mcp": step_condition_mcp,
-                    "step_condition_dim": step_condition_dim,
                     "prompt_style": prompt_style,
                 },
             ),
@@ -1586,8 +1587,6 @@ def main():
                 "gnn_type": gnn_type,
                 "graph_token_count": graph_token_count,
                 "pooling_strategy": pooling_strategy,
-                "step_condition_mcp": step_condition_mcp,
-                "step_condition_dim": step_condition_dim,
                 "prompt_style": prompt_style,
             },
         ),

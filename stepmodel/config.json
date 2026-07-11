@@ -23,9 +23,7 @@
     "gnn_type": "gcn",
     "use_gat": false,
     "graph_token_count": 4,
-    "pooling_strategy": "hybrid",
-    "step_condition_mcp": true,
-    "step_condition_dim": 64
+    "pooling_strategy": "hybrid"
   },
   "training": {
     "num_supervised_epochs": 8,
@@ -45,6 +43,7 @@
     "max_seq_length": 1024,
     "step_loss_weight": 1.5,
     "mcp_loss_weight": 1.5,
+    "rl_aux_supervised_weight": 0.1,
     "prompt_style": "compact",
     "step_class_weighting": true,
     "step_class_weight_power": 0.5,
