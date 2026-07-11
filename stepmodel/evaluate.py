@@ -117,6 +117,29 @@ def infer_pooling_strategy(policy_state_dict):
     return None
 
 
+def infer_step_condition_mcp(policy_state_dict):
+    if "step_label_embeddings.weight" in policy_state_dict:
+        return True
+    return False
+
+
+def infer_step_condition_dim(policy_state_dict):
+    step_label_embeddings = policy_state_dict.get("step_label_embeddings.weight")
+    if step_label_embeddings is not None:
+        return step_label_embeddings.shape[1]
+
+    step_head_weight = policy_state_dict.get("step_head.weight")
+    mcp_head_weight = policy_state_dict.get("mcp_head.weight")
+    if step_head_weight is None or mcp_head_weight is None:
+        return None
+
+    hidden_size = step_head_weight.shape[1]
+    inferred_dim = mcp_head_weight.shape[1] - hidden_size
+    if inferred_dim > 0:
+        return inferred_dim
+    return None
+
+
 def checkpoint_has_label_heads(policy_state_dict):
     required = {
         "step_head.weight",
@@ -233,7 +256,7 @@ def main():
     checkpoint_gnn_type = (
         checkpoint.get("gnn_type")
         if checkpoint is not None and checkpoint.get("gnn_type") is not None
-        else str(config.get('model', {}).get('gnn_type', 'sage')).lower()
+        else str(config.get('model', {}).get('gnn_type', 'gcn')).lower()
     )
     inferred_graph_token_count = infer_graph_token_count(policy_state)
     checkpoint_graph_token_count = (
@@ -246,6 +269,19 @@ def main():
         checkpoint.get("prompt_style")
         if checkpoint is not None and checkpoint.get("prompt_style") is not None
         else "full"
+    )
+    inferred_step_condition_mcp = infer_step_condition_mcp(policy_state)
+    checkpoint_step_condition_mcp = (
+        bool(checkpoint.get("step_condition_mcp"))
+        if checkpoint is not None and checkpoint.get("step_condition_mcp") is not None
+        else inferred_step_condition_mcp
+    )
+    inferred_step_condition_dim = infer_step_condition_dim(policy_state)
+    checkpoint_step_condition_dim = (
+        int(checkpoint.get("step_condition_dim"))
+        if checkpoint is not None and checkpoint.get("step_condition_dim") is not None
+        else inferred_step_condition_dim
+        or int(config.get('model', {}).get('step_condition_dim', 64))
     )
 
     trust_remote_code = bool(config.get('model', {}).get('trust_remote_code', False))
@@ -350,6 +386,8 @@ def main():
         use_gat=config['model']['use_gat'],
         pooling_strategy=checkpoint_pooling_strategy,
         graph_token_count=checkpoint_graph_token_count,
+        step_condition_mcp=checkpoint_step_condition_mcp,
+        step_condition_dim=checkpoint_step_condition_dim,
     ).to(device)
 
     if checkpoint is not None:
@@ -381,15 +419,9 @@ def main():
     print(f"FINAL TEST EVALUATION ON FULL DATASET ({num_samples} samples):")
     print(f"Average Reward: {metrics['avg_reward']:.4f}")
     print(f"Step Accuracy: {metrics['step_acc']:.4f}")
-    print(f"MCP F1 (set): {metrics['mcp_f1']:.4f}")
-    print(f"MCP Precision: {metrics['mcp_prec']:.4f}")
-    print(f"MCP Recall: {metrics['mcp_rec']:.4f}")
+    print(f"Step Micro F1: {metrics['step_micro_f1']:.4f}")
+    print(f"MCP Accuracy: {metrics['mcp_acc']:.4f}")
     print(f"MCP Micro F1 (global): {metrics['mcp_micro_f1']:.4f}")
-    print(f"MCP Exact Set Match: {metrics['mcp_exact']:.4f}")
-    print(f"Both Exact Match: {metrics['both_exact']:.4f}")
-    print(f"Checkpoint MCP Threshold: {mcp_threshold:.2f}")
-    print(f"Fixed Step Labels: {len(STEP_LABELS)}")
-    print(f"Fixed MCP Labels: {len(MCP_LABELS)}")
     print("=" * 60 + "\n")
 
 

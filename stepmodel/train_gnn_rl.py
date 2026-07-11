@@ -156,13 +156,13 @@ class GNNModel(nn.Module):
         node_dim: int,
         hidden_dim: int,
         output_dim: int,
-        gnn_type: str = "sage",
+        gnn_type: str = "gcn",
         use_gat: bool = False,
     ):
         super().__init__()
         if use_gat:
             gnn_type = "gat"
-        self.gnn_type = str(gnn_type or "sage").lower()
+        self.gnn_type = str(gnn_type or "gcn").lower()
         if self.gnn_type == "gat":
             self.conv1 = GATConv(node_dim, hidden_dim, heads=4, concat=True)
             self.conv2 = GATConv(hidden_dim * 4, hidden_dim, heads=4, concat=True)
@@ -193,14 +193,18 @@ class GNNLLMPolicy(nn.Module):
         gnn_out_dim: int,
         text_emb_dim: int,
         llm_hidden_size: int,
-        gnn_type: str = "sage",
+        gnn_type: str = "gcn",
         use_gat: bool = False,
         pooling_strategy: str = "mean",
         graph_token_count: int = 4,
+        step_condition_mcp: bool = False,
+        step_condition_dim: int = 64,
     ):
         super().__init__()
         self.pooling_strategy = str(pooling_strategy or "mean").lower()
         self.graph_token_count = int(graph_token_count)
+        self.step_condition_mcp = bool(step_condition_mcp)
+        self.step_condition_dim = int(step_condition_dim)
         self.gnn = GNNModel(
             node_dim=text_emb_dim,
             hidden_dim=256,
@@ -230,7 +234,12 @@ class GNNLLMPolicy(nn.Module):
         else:
             raise ValueError(f"Unsupported pooling_strategy: {pooling_strategy}")
         self.step_head = nn.Linear(llm_hidden_size, len(STEP_LABELS))
-        self.mcp_head = nn.Linear(llm_hidden_size, len(MCP_LABELS))
+        if self.step_condition_mcp:
+            self.step_label_embeddings = nn.Embedding(len(STEP_LABELS), self.step_condition_dim)
+            self.mcp_head = nn.Linear(llm_hidden_size + self.step_condition_dim, len(MCP_LABELS))
+        else:
+            self.step_label_embeddings = None
+            self.mcp_head = nn.Linear(llm_hidden_size, len(MCP_LABELS))
 
     def get_graph_embedding(self, nodes, edges, device):
         """
@@ -324,9 +333,22 @@ class GNNLLMPolicy(nn.Module):
             return self.readout_projection(torch.cat([first_hidden, mean_hidden], dim=-1))
         raise ValueError(f"Unsupported pooling_strategy: {self.pooling_strategy}")
 
+    def build_step_context(self, step_logits: torch.Tensor) -> Optional[torch.Tensor]:
+        if not self.step_condition_mcp or self.step_label_embeddings is None:
+            return None
+
+        step_probs = torch.softmax(step_logits, dim=-1)
+        return step_probs @ self.step_label_embeddings.weight
+
     def classify(self, pooled_hidden: torch.Tensor):
         hidden = self.classifier_dropout(pooled_hidden)
-        return self.step_head(hidden), self.mcp_head(hidden)
+        step_logits = self.step_head(hidden)
+        step_context = self.build_step_context(step_logits)
+        if step_context is not None:
+            mcp_hidden = torch.cat([hidden, step_context], dim=-1)
+        else:
+            mcp_hidden = hidden
+        return step_logits, self.mcp_head(mcp_hidden)
 
 
 class PenTestDataset(Dataset):
@@ -795,6 +817,9 @@ def evaluate_metrics_on_dataset(
     mcp_tp = 0
     mcp_fp = 0
     mcp_fn = 0
+    total_step_predictions = 0
+    total_mcp_label_correct = 0.0
+    total_mcp_label_count = 0
     num_evals = 0
 
     eval_indices = list(range(len(dataset)))
@@ -842,14 +867,26 @@ def evaluate_metrics_on_dataset(
             mcp_tp += int(tp)
             mcp_fp += int(fp)
             mcp_fn += int(fn)
+            total_step_predictions += 1
+            total_mcp_label_correct += float((pred_arr == true_arr).sum())
+            total_mcp_label_count += int(true_arr.size)
             num_evals += 1
 
     avg_reward = total_reward / max(num_evals, 1)
     step_acc = total_step_correct / max(num_evals, 1)
+    step_micro_precision = total_step_correct / max(total_step_predictions, 1)
+    step_micro_recall = total_step_correct / max(total_step_predictions, 1)
+    step_micro_denom = step_micro_precision + step_micro_recall
+    step_micro_f1 = (
+        0.0
+        if step_micro_denom == 0
+        else 2.0 * step_micro_precision * step_micro_recall / step_micro_denom
+    )
     mcp_exact = total_mcp_exact / max(num_evals, 1)
     mcp_f1 = total_mcp_f1 / max(num_evals, 1)
     mcp_prec = total_mcp_prec / max(num_evals, 1)
     mcp_rec = total_mcp_rec / max(num_evals, 1)
+    mcp_acc = total_mcp_label_correct / max(total_mcp_label_count, 1)
     both_exact = total_both_exact / max(num_evals, 1)
     micro_precision = mcp_tp / max(mcp_tp + mcp_fp, 1)
     micro_recall = mcp_tp / max(mcp_tp + mcp_fn, 1)
@@ -861,6 +898,8 @@ def evaluate_metrics_on_dataset(
     return {
         "avg_reward": avg_reward,
         "step_acc": step_acc,
+        "step_micro_f1": step_micro_f1,
+        "mcp_acc": mcp_acc,
         "mcp_exact": mcp_exact,
         "mcp_f1": mcp_f1,
         "mcp_prec": mcp_prec,
@@ -1035,9 +1074,11 @@ def main():
         llm = get_peft_model(llm, lora_config)
 
     llm_hidden_size = llm.config.hidden_size
-    gnn_type = str(config.get('model', {}).get('gnn_type', 'sage')).lower()
+    gnn_type = str(config.get('model', {}).get('gnn_type', 'gcn')).lower()
     pooling_strategy = str(config.get('model', {}).get('pooling_strategy', 'hybrid')).lower()
     graph_token_count = int(config.get('model', {}).get('graph_token_count', 4))
+    step_condition_mcp = bool(config.get('model', {}).get('step_condition_mcp', True))
+    step_condition_dim = int(config.get('model', {}).get('step_condition_dim', 64))
     prompt_style = str(config.get('training', {}).get('prompt_style', 'compact')).lower()
 
     # Initialize policy
@@ -1049,6 +1090,8 @@ def main():
         use_gat=config['model']['use_gat'],
         pooling_strategy=pooling_strategy,
         graph_token_count=graph_token_count,
+        step_condition_mcp=step_condition_mcp,
+        step_condition_dim=step_condition_dim,
     ).to(device)
 
     # Training setup first (define batch_size before creating loader)
@@ -1295,6 +1338,8 @@ def main():
                         "gnn_type": gnn_type,
                         "graph_token_count": graph_token_count,
                         "pooling_strategy": pooling_strategy,
+                        "step_condition_mcp": step_condition_mcp,
+                        "step_condition_dim": step_condition_dim,
                         "prompt_style": prompt_style,
                     },
                 ),
@@ -1315,6 +1360,8 @@ def main():
                     "gnn_type": gnn_type,
                     "graph_token_count": graph_token_count,
                     "pooling_strategy": pooling_strategy,
+                    "step_condition_mcp": step_condition_mcp,
+                    "step_condition_dim": step_condition_dim,
                     "prompt_style": prompt_style,
                 },
             ),
@@ -1464,6 +1511,8 @@ def main():
                         "gnn_type": gnn_type,
                         "graph_token_count": graph_token_count,
                         "pooling_strategy": pooling_strategy,
+                        "step_condition_mcp": step_condition_mcp,
+                        "step_condition_dim": step_condition_dim,
                         "prompt_style": prompt_style,
                     },
                 ),
@@ -1487,6 +1536,8 @@ def main():
                     "gnn_type": gnn_type,
                     "graph_token_count": graph_token_count,
                     "pooling_strategy": pooling_strategy,
+                    "step_condition_mcp": step_condition_mcp,
+                    "step_condition_dim": step_condition_dim,
                     "prompt_style": prompt_style,
                 },
             ),
@@ -1535,6 +1586,8 @@ def main():
                 "gnn_type": gnn_type,
                 "graph_token_count": graph_token_count,
                 "pooling_strategy": pooling_strategy,
+                "step_condition_mcp": step_condition_mcp,
+                "step_condition_dim": step_condition_dim,
                 "prompt_style": prompt_style,
             },
         ),

@@ -20,10 +20,12 @@
     "text_embedding_model": "all-MiniLM-L6-v2",
     "gnn_hidden_dim": 256,
     "gnn_out_dim": 128,
-    "gnn_type": "sage",
+    "gnn_type": "gcn",
     "use_gat": false,
     "graph_token_count": 4,
-    "pooling_strategy": "hybrid"
+    "pooling_strategy": "hybrid",
+    "step_condition_mcp": true,
+    "step_condition_dim": 64
   },
   "training": {
     "num_supervised_epochs": 8,
