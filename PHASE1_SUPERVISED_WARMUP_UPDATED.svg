@@ -1,0 +1,106 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="1600" viewBox="0 0 900 1600">
+  <defs>
+    <style>
+      .title { font: 700 28px Arial, sans-serif; fill: #1f3b63; }
+      .subtitle { font: italic 18px Arial, sans-serif; fill: #444; }
+      .boxTitle { font: 700 22px Arial, sans-serif; fill: #1f3b63; }
+      .boxText { font: 18px Arial, sans-serif; fill: #222; }
+      .small { font: 16px Arial, sans-serif; fill: #333; }
+      .tiny { font: 14px Arial, sans-serif; fill: #444; }
+      .pill { font: 700 18px Arial, sans-serif; fill: #5b3f98; }
+      .greenTitle { font: 700 24px Arial, sans-serif; fill: #2c6a3f; }
+      .greenText { font: 18px Arial, sans-serif; fill: #234b2f; }
+    </style>
+    <marker id="arrow" markerWidth="10" markerHeight="10" refX="7" refY="3" orient="auto" markerUnits="strokeWidth">
+      <path d="M0,0 L0,6 L8,3 z" fill="#222"/>
+    </marker>
+  </defs>
+
+  <rect width="100%" height="100%" fill="#ffffff"/>
+
+  <text x="450" y="50" text-anchor="middle" class="title">PHASE 1: SUPERVISED LEARNING (WARMUP)</text>
+  <text x="450" y="82" text-anchor="middle" class="subtitle">One Training Sample (Graph + Previous Context + Gold Step/MCP Labels)</text>
+
+  <line x1="450" y1="100" x2="450" y2="128" stroke="#222" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="90" y="130" rx="18" ry="18" width="720" height="170" fill="#edf8ee" stroke="#6eb37a" stroke-width="3"/>
+  <text x="450" y="168" text-anchor="middle" class="greenTitle">Current Pentest State</text>
+  <text x="170" y="210" class="boxText">• Graph nodes + edges</text>
+  <text x="170" y="242" class="boxText">• Previous strategy</text>
+  <text x="170" y="274" class="boxText">• Previous step</text>
+  <text x="170" y="306" class="boxText">• Previous result</text>
+  <text x="170" y="338" class="boxText">• Previous MCP tasks</text>
+  <text x="510" y="210" class="boxText">• Compact prompt style</text>
+  <text x="510" y="242" class="boxText">• Gold Step label (10-way)</text>
+  <text x="510" y="274" class="boxText">• Gold MCP labels (11-way multi-label)</text>
+  <text x="510" y="306" class="boxText">• Weighted Step sampling</text>
+  <text x="510" y="338" class="boxText">• Step class weighting</text>
+
+  <line x1="450" y1="300" x2="450" y2="372" stroke="#222" stroke-width="3"/>
+  <line x1="450" y1="372" x2="260" y2="372" stroke="#222" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="450" y1="372" x2="640" y2="372" stroke="#222" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="70" y="390" rx="14" ry="14" width="310" height="130" fill="#eef6ff" stroke="#6b9fe2" stroke-width="3"/>
+  <text x="225" y="430" text-anchor="middle" class="boxTitle">GCN</text>
+  <text x="125" y="466" class="boxText">Encodes graph structure</text>
+  <text x="125" y="496" class="small">2-layer GCN over node embeddings</text>
+
+  <rect x="520" y="390" rx="14" ry="14" width="310" height="130" fill="#eef6ff" stroke="#6b9fe2" stroke-width="3"/>
+  <text x="675" y="430" text-anchor="middle" class="boxTitle">Sentence-BERT</text>
+  <text x="575" y="466" class="boxText">Encodes previous text context</text>
+  <text x="575" y="496" class="small">Then projected into graph space</text>
+
+  <line x1="225" y1="520" x2="225" y2="562" stroke="#222" stroke-width="3"/>
+  <line x1="675" y1="520" x2="675" y2="562" stroke="#222" stroke-width="3"/>
+  <line x1="225" y1="562" x2="450" y2="562" stroke="#222" stroke-width="3"/>
+  <line x1="675" y1="562" x2="450" y2="562" stroke="#222" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="210" y="582" rx="14" ry="14" width="480" height="78" fill="#f5edff" stroke="#b198db" stroke-width="3"/>
+  <text x="450" y="628" text-anchor="middle" class="pill">Fuse Graph State + SBERT Context</text>
+
+  <line x1="450" y1="660" x2="450" y2="700" stroke="#222" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="210" y="716" rx="14" ry="14" width="480" height="78" fill="#f5edff" stroke="#b198db" stroke-width="3"/>
+  <text x="450" y="763" text-anchor="middle" class="pill">Project into K Graph Tokens and Replace First K [GRAPH] Tokens</text>
+
+  <line x1="450" y1="794" x2="450" y2="834" stroke="#222" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="160" y="850" rx="14" ry="14" width="580" height="96" fill="#f5edff" stroke="#b198db" stroke-width="3"/>
+  <text x="450" y="892" text-anchor="middle" class="boxTitle">Qwen3-14B Forward Pass</text>
+  <text x="450" y="924" text-anchor="middle" class="boxText">Qwen reads prompt plus injected graph tokens; LoRA training, 4-bit optional</text>
+
+  <line x1="450" y1="946" x2="450" y2="986" stroke="#222" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="160" y="1002" rx="14" ry="14" width="580" height="96" fill="#f5edff" stroke="#b198db" stroke-width="3"/>
+  <text x="450" y="1044" text-anchor="middle" class="boxTitle">Hybrid Pooling Readout</text>
+  <text x="450" y="1076" text-anchor="middle" class="boxText">Use first token hidden state + mean pooled hidden state</text>
+
+  <line x1="450" y1="1098" x2="450" y2="1138" stroke="#222" stroke-width="3"/>
+  <line x1="450" y1="1138" x2="270" y2="1138" stroke="#222" stroke-width="3" marker-end="url(#arrow)"/>
+  <line x1="450" y1="1138" x2="630" y2="1138" stroke="#222" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="95" y="1156" rx="14" ry="14" width="300" height="108" fill="#f5edff" stroke="#b198db" stroke-width="3"/>
+  <text x="245" y="1198" text-anchor="middle" class="boxTitle">Step Head</text>
+  <text x="245" y="1230" text-anchor="middle" class="boxText">10-way logits</text>
+  <text x="245" y="1254" text-anchor="middle" class="small">Cross-entropy loss</text>
+
+  <rect x="505" y="1156" rx="14" ry="14" width="300" height="108" fill="#f5edff" stroke="#b198db" stroke-width="3"/>
+  <text x="655" y="1198" text-anchor="middle" class="boxTitle">MCP Head</text>
+  <text x="655" y="1230" text-anchor="middle" class="boxText">11-way multi-label logits</text>
+  <text x="655" y="1254" text-anchor="middle" class="small">Binary cross-entropy loss</text>
+
+  <line x1="245" y1="1264" x2="245" y2="1302" stroke="#222" stroke-width="3"/>
+  <line x1="655" y1="1264" x2="655" y2="1302" stroke="#222" stroke-width="3"/>
+  <line x1="245" y1="1302" x2="450" y2="1302" stroke="#222" stroke-width="3"/>
+  <line x1="655" y1="1302" x2="450" y2="1302" stroke="#222" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="190" y="1322" rx="14" ry="14" width="520" height="88" fill="#fff7ea" stroke="#e4b05f" stroke-width="3"/>
+  <text x="450" y="1360" text-anchor="middle" class="boxTitle">Total Supervised Loss</text>
+  <text x="450" y="1392" text-anchor="middle" class="boxText">1.5 × Step CE + 1.5 × MCP BCEWithLogits</text>
+
+  <line x1="450" y1="1410" x2="450" y2="1450" stroke="#222" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="160" y="1466" rx="16" ry="16" width="580" height="102" fill="#edf8ee" stroke="#6eb37a" stroke-width="3"/>
+  <text x="450" y="1504" text-anchor="middle" class="greenTitle">Backpropagation and Update</text>
+  <text x="450" y="1538" text-anchor="middle" class="greenText">Update GCN + token projector + classifier heads + trainable Qwen LoRA weights</text>
+</svg>
