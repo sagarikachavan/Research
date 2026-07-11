@@ -184,6 +184,16 @@ def main():
         if checkpoint is not None and checkpoint.get("pooling_strategy") is not None
         else "mean"
     )
+    checkpoint_gnn_type = (
+        checkpoint.get("gnn_type")
+        if checkpoint is not None and checkpoint.get("gnn_type") is not None
+        else str(config.get('model', {}).get('gnn_type', 'sage')).lower()
+    )
+    checkpoint_graph_token_count = (
+        int(checkpoint.get("graph_token_count"))
+        if checkpoint is not None and checkpoint.get("graph_token_count") is not None
+        else int(config.get('model', {}).get('graph_token_count', 4))
+    )
     checkpoint_prompt_style = (
         checkpoint.get("prompt_style")
         if checkpoint is not None and checkpoint.get("prompt_style") is not None
@@ -288,8 +298,10 @@ def main():
         gnn_out_dim=config['model']['gnn_out_dim'],
         text_emb_dim=text_emb_dim,
         llm_hidden_size=policy_hidden_size,
+        gnn_type=checkpoint_gnn_type,
         use_gat=config['model']['use_gat'],
         pooling_strategy=checkpoint_pooling_strategy,
+        graph_token_count=checkpoint_graph_token_count,
     ).to(device)
 
     if checkpoint is not None:
@@ -307,6 +319,7 @@ def main():
         text_model,
         max_seq_length=config.get('training', {}).get('max_seq_length', 1024),
         prompt_style=checkpoint_prompt_style,
+        graph_token_count=checkpoint_graph_token_count,
     )
 
     mcp_threshold = float(checkpoint.get("mcp_threshold", 0.5)) if checkpoint is not None else 0.5

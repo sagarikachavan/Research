@@ -33,7 +33,7 @@ from transformers import (
     BitsAndBytesConfig,
     get_linear_schedule_with_warmup
 )
-from torch_geometric.nn import GCNConv, GATConv, global_mean_pool
+from torch_geometric.nn import GCNConv, GATConv, SAGEConv, global_mean_pool
 
 try:
     from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
@@ -151,17 +151,32 @@ def atomic_torch_save(obj, path: str):
 
 
 class GNNModel(nn.Module):
-    def __init__(self, node_dim: int, hidden_dim: int, output_dim: int, use_gat: bool = False):
+    def __init__(
+        self,
+        node_dim: int,
+        hidden_dim: int,
+        output_dim: int,
+        gnn_type: str = "sage",
+        use_gat: bool = False,
+    ):
         super().__init__()
-        self.use_gat = use_gat
         if use_gat:
+            gnn_type = "gat"
+        self.gnn_type = str(gnn_type or "sage").lower()
+        if self.gnn_type == "gat":
             self.conv1 = GATConv(node_dim, hidden_dim, heads=4, concat=True)
             self.conv2 = GATConv(hidden_dim * 4, hidden_dim, heads=4, concat=True)
             self.fc = nn.Linear(hidden_dim * 4, output_dim)
-        else:
+        elif self.gnn_type == "gcn":
             self.conv1 = GCNConv(node_dim, hidden_dim)
             self.conv2 = GCNConv(hidden_dim, hidden_dim)
             self.fc = nn.Linear(hidden_dim, output_dim)
+        elif self.gnn_type == "sage":
+            self.conv1 = SAGEConv(node_dim, hidden_dim)
+            self.conv2 = SAGEConv(hidden_dim, hidden_dim)
+            self.fc = nn.Linear(hidden_dim, output_dim)
+        else:
+            raise ValueError(f"Unsupported gnn_type: {gnn_type}")
         self.relu = nn.ReLU()
 
     def forward(self, x: torch.Tensor, edge_index: torch.Tensor, batch: torch.Tensor):
@@ -178,21 +193,31 @@ class GNNLLMPolicy(nn.Module):
         gnn_out_dim: int,
         text_emb_dim: int,
         llm_hidden_size: int,
+        gnn_type: str = "sage",
         use_gat: bool = False,
         pooling_strategy: str = "mean",
+        graph_token_count: int = 4,
     ):
         super().__init__()
         self.pooling_strategy = str(pooling_strategy or "mean").lower()
-        self.gnn = GNNModel(node_dim=text_emb_dim, hidden_dim=256, output_dim=gnn_out_dim, use_gat=use_gat)
+        self.graph_token_count = int(graph_token_count)
+        self.gnn = GNNModel(
+            node_dim=text_emb_dim,
+            hidden_dim=256,
+            output_dim=gnn_out_dim,
+            gnn_type=gnn_type,
+            use_gat=use_gat,
+        )
         self.project_step_text = nn.Sequential(
             nn.Linear(text_emb_dim, 256),
             nn.ReLU(),
             nn.Linear(256, gnn_out_dim)
         )
         self.combine = nn.Sequential(
-            nn.Linear(gnn_out_dim * 2, llm_hidden_size),
+            nn.Linear(gnn_out_dim * 2, gnn_out_dim),
             nn.ReLU()
         )
+        self.graph_token_projector = nn.Linear(gnn_out_dim, llm_hidden_size * self.graph_token_count)
         self.classifier_dropout = nn.Dropout(0.1)
         if self.pooling_strategy == "hybrid":
             self.readout_projection = nn.Sequential(
@@ -283,7 +308,8 @@ class GNNLLMPolicy(nn.Module):
         graph_emb = self.get_graph_embedding(nodes, edges, device)
         step_proj = self.project_step_text(step_text_embeddings)
         combined = self.combine(torch.cat([graph_emb, step_proj], dim=-1))
-        return combined
+        graph_tokens = self.graph_token_projector(combined)
+        return graph_tokens.view(combined.size(0), self.graph_token_count, -1)
 
     def pool_hidden_states(self, hidden: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
         mask = attention_mask.unsqueeze(-1).float()
@@ -310,11 +336,13 @@ class PenTestDataset(Dataset):
         text_model: SentenceTransformer,
         max_seq_length=1024,
         prompt_style: str = "full",
+        graph_token_count: int = 1,
     ):
         self.data = data
         self.text_model = text_model
         self.max_seq_length = max_seq_length
         self.prompt_style = str(prompt_style or "full").lower()
+        self.graph_token_count = int(graph_token_count)
         self.samples = []
         self.skipped_unknown_step = 0
         self._prepare_samples()
@@ -345,7 +373,11 @@ class PenTestDataset(Dataset):
         return {
             'nodes': sample['nodes'],
             'edges': sample['edges'],
-            'prompt_text': build_prompt_text(step_pair, prompt_style=self.prompt_style),
+            'prompt_text': build_prompt_text(
+                step_pair,
+                prompt_style=self.prompt_style,
+                graph_token_count=self.graph_token_count,
+            ),
             'previous_text': build_previous_text(step_pair, prompt_style=self.prompt_style),
             'step_pair': step_pair,
             'step_label': step_id,
@@ -385,13 +417,18 @@ def build_previous_text(step_pair: Dict[str, Any], prompt_style: str = "full") -
     return " ".join(str(part).strip() for part in parts if str(part).strip())
 
 
-def build_prompt_text(step_pair: Dict[str, Any], prompt_style: str = "full") -> str:
+def build_prompt_text(
+    step_pair: Dict[str, Any],
+    prompt_style: str = "full",
+    graph_token_count: int = 1,
+) -> str:
     context_lines = "\n".join(
         f"{label}: {value}"
         for label, value in _prompt_fields(step_pair, prompt_style=prompt_style)
     )
+    graph_prefix = " ".join(["[GRAPH]"] * max(int(graph_token_count), 1))
     return (
-        "[GRAPH]\n"
+        f"{graph_prefix}\n"
         "### Previous Penetration Testing Context ###\n"
         f"{context_lines}\n\n"
         "### Prediction Task ###\n"
@@ -564,8 +601,8 @@ def classify_sample(
         device=device,
     )
     previous_emb = _ensure_finite_tensor(previous_emb, "previous_emb")
-    policy_out = policy(sample['nodes'], sample['edges'], previous_emb, device)
-    policy_out = _ensure_finite_tensor(policy_out, "policy_out")
+    graph_tokens = policy(sample['nodes'], sample['edges'], previous_emb, device)
+    graph_tokens = _ensure_finite_tensor(graph_tokens, "graph_tokens")
     tokenized_prompt = tokenizer(
         [sample['prompt_text']],
         return_tensors='pt',
@@ -573,7 +610,8 @@ def classify_sample(
         max_length=max_seq_length,
     ).to(device)
     inputs_embeds = llm.get_input_embeddings()(tokenized_prompt['input_ids']).clone()
-    inputs_embeds[:, 0, :] = policy_out
+    num_graph_tokens = min(policy.graph_token_count, inputs_embeds.size(1))
+    inputs_embeds[:, :num_graph_tokens, :] = graph_tokens[:, :num_graph_tokens, :]
 
     outputs = llm(
         inputs_embeds=inputs_embeds,
@@ -997,7 +1035,9 @@ def main():
         llm = get_peft_model(llm, lora_config)
 
     llm_hidden_size = llm.config.hidden_size
+    gnn_type = str(config.get('model', {}).get('gnn_type', 'sage')).lower()
     pooling_strategy = str(config.get('model', {}).get('pooling_strategy', 'hybrid')).lower()
+    graph_token_count = int(config.get('model', {}).get('graph_token_count', 4))
     prompt_style = str(config.get('training', {}).get('prompt_style', 'compact')).lower()
 
     # Initialize policy
@@ -1005,8 +1045,10 @@ def main():
         gnn_out_dim=config['model']['gnn_out_dim'],
         text_emb_dim=text_emb_dim,
         llm_hidden_size=llm_hidden_size,
+        gnn_type=gnn_type,
         use_gat=config['model']['use_gat'],
         pooling_strategy=pooling_strategy,
+        graph_token_count=graph_token_count,
     ).to(device)
 
     # Training setup first (define batch_size before creating loader)
@@ -1016,9 +1058,27 @@ def main():
     
     # Create datasets and dataloaders
     max_seq_length = config.get('training', {}).get('max_seq_length', 1024)
-    train_dataset = PenTestDataset(train_data, text_model, max_seq_length=max_seq_length, prompt_style=prompt_style)
-    val_dataset = PenTestDataset(val_data, text_model, max_seq_length=max_seq_length, prompt_style=prompt_style)
-    test_dataset = PenTestDataset(test_data, text_model, max_seq_length=max_seq_length, prompt_style=prompt_style)
+    train_dataset = PenTestDataset(
+        train_data,
+        text_model,
+        max_seq_length=max_seq_length,
+        prompt_style=prompt_style,
+        graph_token_count=graph_token_count,
+    )
+    val_dataset = PenTestDataset(
+        val_data,
+        text_model,
+        max_seq_length=max_seq_length,
+        prompt_style=prompt_style,
+        graph_token_count=graph_token_count,
+    )
+    test_dataset = PenTestDataset(
+        test_data,
+        text_model,
+        max_seq_length=max_seq_length,
+        prompt_style=prompt_style,
+        graph_token_count=graph_token_count,
+    )
     if train_dataset.skipped_unknown_step or val_dataset.skipped_unknown_step or test_dataset.skipped_unknown_step:
         print(
             "Skipped samples with unknown Step labels: "
@@ -1232,6 +1292,8 @@ def main():
                         "val_selection_score": val_metrics["selection_score"],
                         "mcp_threshold": val_metrics["threshold"],
                         "phase": "supervised",
+                        "gnn_type": gnn_type,
+                        "graph_token_count": graph_token_count,
                         "pooling_strategy": pooling_strategy,
                         "prompt_style": prompt_style,
                     },
@@ -1250,6 +1312,8 @@ def main():
                 optimizer=optimizer,
                 scheduler=scheduler,
                 extra={
+                    "gnn_type": gnn_type,
+                    "graph_token_count": graph_token_count,
                     "pooling_strategy": pooling_strategy,
                     "prompt_style": prompt_style,
                 },
@@ -1397,6 +1461,8 @@ def main():
                         "val_selection_score": val_metrics["selection_score"],
                         "mcp_threshold": val_metrics["threshold"],
                         "phase": "grpo",
+                        "gnn_type": gnn_type,
+                        "graph_token_count": graph_token_count,
                         "pooling_strategy": pooling_strategy,
                         "prompt_style": prompt_style,
                     },
@@ -1418,6 +1484,8 @@ def main():
                 optimizer=optimizer,
                 scheduler=scheduler,
                 extra={
+                    "gnn_type": gnn_type,
+                    "graph_token_count": graph_token_count,
                     "pooling_strategy": pooling_strategy,
                     "prompt_style": prompt_style,
                 },
@@ -1464,6 +1532,8 @@ def main():
                 "test_mcp_f1": test_metrics["mcp_f1"],
                 "test_mcp_exact": test_metrics["mcp_exact"],
                 "mcp_threshold": best_mcp_threshold,
+                "gnn_type": gnn_type,
+                "graph_token_count": graph_token_count,
                 "pooling_strategy": pooling_strategy,
                 "prompt_style": prompt_style,
             },

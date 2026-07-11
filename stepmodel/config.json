@@ -20,7 +20,9 @@
     "text_embedding_model": "all-MiniLM-L6-v2",
     "gnn_hidden_dim": 256,
     "gnn_out_dim": 128,
+    "gnn_type": "sage",
     "use_gat": false,
+    "graph_token_count": 4,
     "pooling_strategy": "hybrid"
   },
   "training": {
