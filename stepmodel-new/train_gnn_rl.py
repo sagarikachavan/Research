@@ -685,9 +685,10 @@ def compute_grpo_loss(
     total_loss = 0.0
     for i, rollout in enumerate(rollouts):
         sample = rollout['sample']
-        step_logits, mcp_logits = classify_sample(
-            policy, llm, tokenizer, text_model, sample, device
-        )
+        with torch.no_grad():
+            step_logits, mcp_logits = classify_sample(
+                policy, llm, tokenizer, text_model, sample, device
+            )
         step_dist = torch.distributions.Categorical(logits=step_logits.squeeze(0))
         mcp_probs = torch.sigmoid(mcp_logits.squeeze(0)).clamp(1e-6, 1 - 1e-6)
 
@@ -702,6 +703,11 @@ def compute_grpo_loss(
         clipped_ratio = torch.clamp(ratio, 1 - clip_eps, 1 + clip_eps)
         advantage = advantages[i]
         total_loss = total_loss + (-torch.min(ratio * advantage, clipped_ratio * advantage))
+        
+        # Clear intermediate tensors to free memory
+        del step_logits, mcp_logits, step_dist, mcp_probs
+        if device.type == 'cuda':
+            torch.cuda.empty_cache()
 
     return total_loss / max(len(rollouts), 1)
 
@@ -1377,18 +1383,21 @@ def main():
                 if rl_aux_supervised_weight > 0.0:
                     aux_loss_terms = []
                     for sample in batch_samples:
-                        sup_loss, _, _ = compute_supervised_loss_for_sample(
-                            policy,
-                            llm,
-                            tokenizer,
-                            text_model,
-                            sample,
-                            device,
-                            step_loss_weight=step_loss_weight,
-                            mcp_loss_weight=mcp_loss_weight,
-                            step_class_weights=step_class_weights,
-                        )
+                        with torch.cuda.amp.autocast(device_type=device.type, enabled=amp_enabled):
+                            sup_loss, _, _ = compute_supervised_loss_for_sample(
+                                policy,
+                                llm,
+                                tokenizer,
+                                text_model,
+                                sample,
+                                device,
+                                step_loss_weight=step_loss_weight,
+                                mcp_loss_weight=mcp_loss_weight,
+                                step_class_weights=step_class_weights,
+                            )
                         aux_loss_terms.append(sup_loss)
+                        if device.type == 'cuda':
+                            torch.cuda.empty_cache()
                     if aux_loss_terms:
                         aux_sup_loss = torch.stack(aux_loss_terms).mean()
                 loss = grpo_loss + rl_aux_supervised_weight * aux_sup_loss

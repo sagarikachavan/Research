@@ -27,7 +27,7 @@
   },
   "training": {
     "num_supervised_epochs": 8,
-    "num_grpo_epochs": 10,
+    "num_grpo_epochs": 5,
     "batch_size": 1,
     "learning_rate": 3e-5,
     "gnn_learning_rate": 3e-6,
