@@ -1,6 +1,6 @@
 {
   "model": {
-    "llm_name": "Qwen/Qwen3-14B",
+    "llm_name": "Qwen/Qwen3-7B",
     "trust_remote_code": true,
     "torch_dtype": "bfloat16",
     "text_embedding_model": "all-MiniLM-L6-v2",
@@ -24,7 +24,7 @@
     "num_warmup_steps": 200,
     "num_generations_per_sample": 2,
     "clip_eps": 0.2,
-    "generate_max_new_tokens": 384,
+    "generate_max_new_tokens": 256,
     "generate_temperature": 0.8,
     "grpo_generate_temperature": 1.1,
     "grpo_reward_std_epsilon": 1e-6,
