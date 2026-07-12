@@ -58,8 +58,8 @@
   },
   "paths": {
     "data_dir": "data",
-    "embeddings_dir": "embeddings_data",
-    "output_dir": "checkpoints",
+    "embeddings_dir": "embeddings_data_baseline",
+    "output_dir": "checkpoints_baseline",
     "log_dir": "logs"
   }
 }
