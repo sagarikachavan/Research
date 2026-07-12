@@ -143,15 +143,16 @@ def calculate_overall_quality(sample: Dict, weights: Dict[str, float] = None) ->
 
 
 def filter_dataset(input_file: str, output_file: str, threshold: float = 0.7, 
-                   max_samples: int = None) -> Tuple[int, int]:
+                   max_samples: int = None, percentile: float = None) -> Tuple[int, int]:
     """
-    Filter dataset based on quality threshold.
+    Filter dataset based on quality threshold or percentile.
     
     Args:
         input_file: Path to input JSON file
         output_file: Path to output filtered JSON file
-        threshold: Quality threshold (0-1)
+        threshold: Quality threshold (0-1), ignored if percentile is specified
         max_samples: Maximum number of samples to keep
+        percentile: Keep top percentile of samples (0-100), overrides threshold
     
     Returns:
         Tuple of (original_count, filtered_count)
@@ -167,10 +168,26 @@ def filter_dataset(input_file: str, output_file: str, threshold: float = 0.7,
         score = calculate_overall_quality(sample)
         quality_scores.append(score)
     
+    # Determine actual threshold
+    if percentile is not None:
+        # Use percentile-based filtering
+        actual_threshold = np.percentile(quality_scores, percentile)
+        print(f"Using percentile-based threshold: {actual_threshold:.3f} (top {100-percentile:.1f}%)")
+    else:
+        # Use absolute threshold
+        actual_threshold = threshold
+        print(f"Using absolute threshold: {actual_threshold:.3f}")
+    
+    # If absolute threshold is too high, adjust it adaptively
+    if percentile is None and np.mean(quality_scores) < threshold:
+        print(f"Warning: Mean quality score ({np.mean(quality_scores):.3f}) is below threshold ({threshold})")
+        print("Adjusting threshold to keep top 75% of samples...")
+        actual_threshold = np.percentile(quality_scores, 25)
+    
     # Filter based on threshold
     filtered_data = []
     for sample, score in zip(data, quality_scores):
-        if score >= threshold:
+        if score >= actual_threshold:
             sample['quality_score'] = score
             filtered_data.append(sample)
     
@@ -191,6 +208,7 @@ def filter_dataset(input_file: str, output_file: str, threshold: float = 0.7,
         print(f"  Std: {np.std(quality_scores):.3f}")
         print(f"  Min: {np.min(quality_scores):.3f}")
         print(f"  Max: {np.max(quality_scores):.3f}")
+        print(f"  Applied threshold: {actual_threshold:.3f}")
     
     # Save filtered data
     print(f"Saving filtered data to {output_file}...")
@@ -216,10 +234,12 @@ def main():
                        help='Quality threshold (0-1, default: 0.7)')
     parser.add_argument('--max_samples', type=int, default=None,
                        help='Maximum number of samples to keep')
+    parser.add_argument('--percentile', type=float, default=None,
+                       help='Keep top percentile of samples (0-100), overrides threshold')
     
     args = parser.parse_args()
     
-    filter_dataset(args.input, args.output, args.threshold, args.max_samples)
+    filter_dataset(args.input, args.output, args.threshold, args.max_samples, args.percentile)
 
 
 if __name__ == '__main__':

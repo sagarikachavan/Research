@@ -58,10 +58,10 @@
     "selection_step_weight": 0.85,
     "selection_mcp_weight": 0.15,
     "selection_both_exact_weight": 0.0,
-    "use_curriculum_learning": true,
+    "use_curriculum_learning": false,
     "curriculum_stages": 3,
     "data_quality_threshold": 0.7,
-    "use_data_filtering": true
+    "use_data_filtering": false
   },
   "paths": {
     "data_dir": "data",
