@@ -20,19 +20,16 @@
     "text_embedding_model": "all-MiniLM-L6-v2",
     "gnn_hidden_dim": 256,
     "gnn_out_dim": 128,
-    "gnn_type": "gat",
-    "use_gat": true,
+    "gnn_type": "gcn",
+    "use_gat": false,
     "graph_token_count": 4,
     "pooling_strategy": "hybrid"
   },
   "training": {
     "num_supervised_epochs": 8,
-    "num_grpo_epochs": 5,
+    "num_grpo_epochs": 10,
     "batch_size": 1,
     "learning_rate": 3e-5,
-    "gnn_learning_rate": 3e-6,
-    "projector_learning_rate": 3e-6,
-    "drift_guard_weight": 0.01,
     "weight_decay": 0.01,
     "max_grad_norm": 1.0,
     "num_warmup_steps": 200,
@@ -57,8 +54,7 @@
     "sampler_power": 1.0,
     "selection_step_weight": 0.8,
     "selection_mcp_weight": 0.2,
-    "selection_both_exact_weight": 0.0,
-    "phase0_checkpoint": "checkpoints/phase0_gnn_projector.pt"
+    "selection_both_exact_weight": 0.0
   },
   "paths": {
     "data_dir": "data",
