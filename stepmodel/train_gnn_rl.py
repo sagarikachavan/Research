@@ -163,25 +163,60 @@ class GNNModel(nn.Module):
         if use_gat:
             gnn_type = "gat"
         self.gnn_type = str(gnn_type or "gcn").lower()
+        
+        # Enhanced architecture with residual connections and normalization
         if self.gnn_type == "gat":
             self.conv1 = GATConv(node_dim, hidden_dim, heads=4, concat=True)
+            self.bn1 = nn.BatchNorm1d(hidden_dim * 4)
             self.conv2 = GATConv(hidden_dim * 4, hidden_dim, heads=4, concat=True)
+            self.bn2 = nn.BatchNorm1d(hidden_dim * 4)
+            self.conv3 = GATConv(hidden_dim * 4, hidden_dim, heads=4, concat=True)
+            self.bn3 = nn.BatchNorm1d(hidden_dim * 4)
             self.fc = nn.Linear(hidden_dim * 4, output_dim)
         elif self.gnn_type == "gcn":
             self.conv1 = GCNConv(node_dim, hidden_dim)
+            self.bn1 = nn.BatchNorm1d(hidden_dim)
             self.conv2 = GCNConv(hidden_dim, hidden_dim)
+            self.bn2 = nn.BatchNorm1d(hidden_dim)
+            self.conv3 = GCNConv(hidden_dim, hidden_dim)
+            self.bn3 = nn.BatchNorm1d(hidden_dim)
             self.fc = nn.Linear(hidden_dim, output_dim)
         elif self.gnn_type == "sage":
             self.conv1 = SAGEConv(node_dim, hidden_dim)
+            self.bn1 = nn.BatchNorm1d(hidden_dim)
             self.conv2 = SAGEConv(hidden_dim, hidden_dim)
+            self.bn2 = nn.BatchNorm1d(hidden_dim)
+            self.conv3 = SAGEConv(hidden_dim, hidden_dim)
+            self.bn3 = nn.BatchNorm1d(hidden_dim)
             self.fc = nn.Linear(hidden_dim, output_dim)
         else:
             raise ValueError(f"Unsupported gnn_type: {gnn_type}")
+        
         self.relu = nn.ReLU()
+        self.dropout = nn.Dropout(0.2)
 
     def forward(self, x: torch.Tensor, edge_index: torch.Tensor, batch: torch.Tensor):
+        # Layer 1 with residual connection
+        x_in = x
         x = self.relu(self.conv1(x, edge_index))
+        x = self.bn1(x)
+        x = self.dropout(x)
+        
+        # Layer 2 with residual connection (if dimensions match)
+        if x.shape[-1] == x_in.shape[-1]:
+            x = x + x_in
+        x_in = x
         x = self.relu(self.conv2(x, edge_index))
+        x = self.bn2(x)
+        x = self.dropout(x)
+        
+        # Layer 3 with residual connection
+        if x.shape[-1] == x_in.shape[-1]:
+            x = x + x_in
+        x = self.relu(self.conv3(x, edge_index))
+        x = self.bn3(x)
+        x = self.dropout(x)
+        
         x = global_mean_pool(x, batch)
         x = self.fc(x)
         return x
@@ -208,17 +243,44 @@ class GNNLLMPolicy(nn.Module):
             gnn_type=gnn_type,
             use_gat=use_gat,
         )
+        
+        # Enhanced text projection with normalization and dropout
         self.project_step_text = nn.Sequential(
-            nn.Linear(text_emb_dim, 256),
+            nn.Linear(text_emb_dim, 512),
+            nn.LayerNorm(512),
             nn.ReLU(),
-            nn.Linear(256, gnn_out_dim)
+            nn.Dropout(0.15),
+            nn.Linear(512, gnn_out_dim),
+            nn.LayerNorm(gnn_out_dim),
+            nn.ReLU(),
+            nn.Dropout(0.1)
         )
-        self.combine = nn.Sequential(
+        
+        # Improved fusion mechanism with attention-like weighting
+        self.fusion_attention = nn.Sequential(
             nn.Linear(gnn_out_dim * 2, gnn_out_dim),
+            nn.LayerNorm(gnn_out_dim),
+            nn.Sigmoid()
+        )
+        
+        # Enhanced combination with residual connection
+        self.combine = nn.Sequential(
+            nn.Linear(gnn_out_dim * 2, gnn_out_dim * 2),
+            nn.LayerNorm(gnn_out_dim * 2),
+            nn.ReLU(),
+            nn.Dropout(0.15),
+            nn.Linear(gnn_out_dim * 2, gnn_out_dim),
+            nn.LayerNorm(gnn_out_dim),
             nn.ReLU()
         )
-        self.graph_token_projector = nn.Linear(gnn_out_dim, llm_hidden_size * self.graph_token_count)
-        self.classifier_dropout = nn.Dropout(0.1)
+        
+        self.graph_token_projector = nn.Sequential(
+            nn.Linear(gnn_out_dim, gnn_out_dim * 2),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+            nn.Linear(gnn_out_dim * 2, llm_hidden_size * self.graph_token_count)
+        )
+        self.classifier_dropout = nn.Dropout(0.2)
         if self.pooling_strategy == "hybrid":
             self.readout_projection = nn.Sequential(
                 nn.LayerNorm(llm_hidden_size * 2),
@@ -229,8 +291,23 @@ class GNNLLMPolicy(nn.Module):
             self.readout_projection = nn.Identity()
         else:
             raise ValueError(f"Unsupported pooling_strategy: {pooling_strategy}")
-        self.step_head = nn.Linear(llm_hidden_size, len(STEP_LABELS))
-        self.mcp_head = nn.Linear(llm_hidden_size, len(MCP_LABELS))
+        
+        # Enhanced classifier heads with better regularization
+        self.step_head = nn.Sequential(
+            nn.Linear(llm_hidden_size, llm_hidden_size // 2),
+            nn.LayerNorm(llm_hidden_size // 2),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(llm_hidden_size // 2, len(STEP_LABELS))
+        )
+        
+        self.mcp_head = nn.Sequential(
+            nn.Linear(llm_hidden_size, llm_hidden_size // 2),
+            nn.LayerNorm(llm_hidden_size // 2),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(llm_hidden_size // 2, len(MCP_LABELS))
+        )
 
     def get_graph_embedding(self, nodes, edges, device):
         """
@@ -307,7 +384,17 @@ class GNNLLMPolicy(nn.Module):
     def forward(self, nodes, edges, step_text_embeddings, device):
         graph_emb = self.get_graph_embedding(nodes, edges, device)
         step_proj = self.project_step_text(step_text_embeddings)
-        combined = self.combine(torch.cat([graph_emb, step_proj], dim=-1))
+        
+        # Attention-based fusion
+        concat_emb = torch.cat([graph_emb, step_proj], dim=-1)
+        attention_weights = self.fusion_attention(concat_emb)
+        
+        # Weighted combination
+        weighted_graph = graph_emb * attention_weights
+        weighted_step = step_proj * (1 - attention_weights)
+        fused = torch.cat([weighted_graph, weighted_step], dim=-1)
+        
+        combined = self.combine(fused)
         graph_tokens = self.graph_token_projector(combined)
         return graph_tokens.view(combined.size(0), self.graph_token_count, -1)
 
@@ -326,7 +413,9 @@ class GNNLLMPolicy(nn.Module):
 
     def classify(self, pooled_hidden: torch.Tensor):
         hidden = self.classifier_dropout(pooled_hidden)
-        return self.step_head(hidden), self.mcp_head(hidden)
+        step_logits = self.step_head(hidden)
+        mcp_logits = self.mcp_head(hidden)
+        return step_logits, mcp_logits
 
 
 class PenTestDataset(Dataset):
