@@ -1168,7 +1168,7 @@ def main():
             for sample in batch_samples:
                 optimizer.zero_grad()
 
-                with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
+                with torch.amp.autocast('cuda', enabled=amp_enabled):
                     loss, step_loss, mcp_loss = compute_supervised_loss_for_sample(
                         policy, llm, tokenizer, text_model, sample, device,
                         step_loss_weight=step_loss_weight,
@@ -1375,7 +1375,7 @@ def main():
 
             optimizer.zero_grad()
 
-            with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
+            with torch.amp.autocast('cuda', enabled=amp_enabled):
                 grpo_loss = compute_grpo_loss(
                     policy, llm, tokenizer, text_model, all_rollouts, device, clip_eps=clip_eps
                 )
@@ -1383,7 +1383,7 @@ def main():
                 if rl_aux_supervised_weight > 0.0:
                     aux_loss_terms = []
                     for sample in batch_samples:
-                        with torch.cuda.amp.autocast(device_type=device.type, enabled=amp_enabled):
+                        with torch.amp.autocast('cuda', enabled=amp_enabled):
                             sup_loss, _, _ = compute_supervised_loss_for_sample(
                                 policy,
                                 llm,
