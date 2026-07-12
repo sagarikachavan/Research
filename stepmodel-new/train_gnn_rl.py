@@ -50,9 +50,61 @@ def set_seed(seed: int = 42):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(seed)
+
+
+def create_curriculum_dataset(dataset, stage: int, total_stages: int, quality_threshold: float = 0.7):
+    """
+    Create curriculum learning dataset based on training stage.
+    
+    Args:
+        dataset: Full dataset
+        stage: Current curriculum stage (0 to total_stages-1)
+        total_stages: Total number of curriculum stages
+        quality_threshold: Minimum quality score for samples
+    
+    Returns:
+        Subset of dataset for current stage
+    """
+    if total_stages <= 1:
+        return dataset
+    
+    # Calculate progress through curriculum
+    progress = (stage + 1) / total_stages
+    
+    # For early stages, use only high-quality samples
+    # For later stages, gradually include more samples
+    if stage == 0:
+        # Stage 0: Only highest quality samples
+        threshold = quality_threshold + 0.2
+    elif stage < total_stages - 1:
+        # Middle stages: Progressive quality threshold
+        threshold = quality_threshold + (0.2 * (1 - progress))
+    else:
+        # Final stage: All samples above base threshold
+        threshold = quality_threshold
+    
+    # Filter dataset based on quality scores if available
+    filtered_indices = []
+    for idx, sample in enumerate(dataset):
+        # If sample has quality score, use it
+        if hasattr(sample, 'quality_score'):
+            if sample.quality_score >= threshold:
+                filtered_indices.append(idx)
+        else:
+            # If no quality score, include all samples in later stages
+            if stage >= total_stages - 2:
+                filtered_indices.append(idx)
+    
+    if len(filtered_indices) == 0:
+        # Fallback: return random subset if no quality scores
+        subset_size = int(len(dataset) * progress)
+        filtered_indices = random.sample(range(len(dataset)), min(subset_size, len(dataset)))
+    
+    # Create subset
+    from torch.utils.data import Subset
+    return Subset(dataset, filtered_indices)
 
 
 def freeze_module(module: nn.Module):
