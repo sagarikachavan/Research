@@ -16,7 +16,7 @@
       "up_proj",
       "down_proj"
     ],
-    "torch_dtype": "bfloat16",
+    "torch_dtype": "float16",
     "text_embedding_model": "all-MiniLM-L6-v2",
     "gnn_hidden_dim": 256,
     "gnn_out_dim": 128,
