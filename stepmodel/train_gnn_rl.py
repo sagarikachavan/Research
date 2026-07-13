@@ -1257,6 +1257,7 @@ def main():
     # Resize embeddings
     print(f"Resizing token embeddings from {llm.config.vocab_size} to {len(tokenizer)}")
     llm.resize_token_embeddings(len(tokenizer))
+    # Enable gradient checkpointing to save memory
     llm.gradient_checkpointing_enable()
     
     # Move model to device if not using device_map
