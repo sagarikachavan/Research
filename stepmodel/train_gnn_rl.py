@@ -1239,6 +1239,10 @@ def main():
             bnb_4bit_compute_dtype=compute_dtype,
         )
         device_map = "auto"
+    else:
+        # Use device_map with memory limits when not using 4-bit quantization
+        device_map = "auto"
+        print("Loading model with device_map='auto' and memory limits to save GPU memory")
 
     llm = AutoModelForCausalLM.from_pretrained(
         llm_name,
@@ -1247,11 +1251,10 @@ def main():
         low_cpu_mem_usage=True,
         device_map=device_map,
         quantization_config=quant_config,
+        max_memory={0: "20GB", "cpu": "30GB"} if not load_in_4bit else None,
     )
     llm.resize_token_embeddings(len(tokenizer))
     llm.gradient_checkpointing_enable()
-    if device_map is None:
-        llm.to(device)
 
     if use_lora:
         if load_in_4bit:
