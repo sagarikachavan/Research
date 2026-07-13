@@ -38,6 +38,13 @@ from train_gnn_rl import (
 )
 
 
+def first_existing(policy_state_dict, *keys):
+    for key in keys:
+        if key in policy_state_dict:
+            return policy_state_dict[key]
+    return None
+
+
 def infer_llm_name_from_state_dict(llm_state_dict):
     if not llm_state_dict:
         return None
@@ -68,11 +75,21 @@ def infer_llm_name_from_state_dict(llm_state_dict):
 
 
 def infer_policy_hidden_size(policy_state_dict):
-    step_head_weight = policy_state_dict.get("step_head.weight")
+    step_head_weight = first_existing(
+        policy_state_dict,
+        "step_head.weight",
+        "step_head.0.weight",
+        "step_head.4.weight",
+    )
     if step_head_weight is not None:
         return step_head_weight.shape[1]
 
-    mcp_head_weight = policy_state_dict.get("mcp_head.weight")
+    mcp_head_weight = first_existing(
+        policy_state_dict,
+        "mcp_head.weight",
+        "mcp_head.0.weight",
+        "mcp_head.4.weight",
+    )
     if mcp_head_weight is not None:
         return mcp_head_weight.shape[1]
 
@@ -100,11 +117,21 @@ def infer_graph_token_count(policy_state_dict):
 
 
 def infer_policy_hidden_size_from_heads(policy_state_dict):
-    step_head_weight = policy_state_dict.get("step_head.weight")
+    step_head_weight = first_existing(
+        policy_state_dict,
+        "step_head.weight",
+        "step_head.0.weight",
+        "step_head.4.weight",
+    )
     if step_head_weight is not None:
         return step_head_weight.shape[1]
 
-    mcp_head_weight = policy_state_dict.get("mcp_head.weight")
+    mcp_head_weight = first_existing(
+        policy_state_dict,
+        "mcp_head.weight",
+        "mcp_head.0.weight",
+        "mcp_head.4.weight",
+    )
     if mcp_head_weight is not None:
         return mcp_head_weight.shape[1]
 
@@ -118,13 +145,26 @@ def infer_pooling_strategy(policy_state_dict):
 
 
 def checkpoint_has_label_heads(policy_state_dict):
-    required = {
+    keys = set(policy_state_dict.keys())
+    linear_heads = {
         "step_head.weight",
         "step_head.bias",
         "mcp_head.weight",
         "mcp_head.bias",
     }
-    return required.issubset(set(policy_state_dict.keys()))
+    mlp_heads = {
+        "step_head.4.weight",
+        "step_head.4.bias",
+        "mcp_head.4.weight",
+        "mcp_head.4.bias",
+    }
+    return linear_heads.issubset(keys) or mlp_heads.issubset(keys)
+
+
+def format_threshold(threshold) -> str:
+    if isinstance(threshold, (list, tuple)):
+        return "[" + ", ".join(f"{float(value):.2f}" for value in threshold) + "]"
+    return f"{float(threshold):.2f}"
 
 
 def checkpoint_uses_lora(llm_state_dict):
@@ -353,7 +393,11 @@ def main():
     ).to(device)
 
     if checkpoint is not None:
-        policy.load_state_dict(policy_state)
+        missing, unexpected = policy.load_state_dict(policy_state, strict=False)
+        if missing:
+            print(f"Policy checkpoint missing {len(missing)} newly initialized keys.")
+        if unexpected:
+            print(f"Policy checkpoint had {len(unexpected)} unexpected keys.")
         if llm_checkpoint_mode == "full":
             llm.load_state_dict(checkpoint["llm"])
         else:
@@ -369,7 +413,7 @@ def main():
         graph_token_count=checkpoint_graph_token_count,
     )
 
-    mcp_threshold = float(checkpoint.get("mcp_threshold", 0.5)) if checkpoint is not None else 0.5
+    mcp_threshold = checkpoint.get("mcp_threshold", 0.5) if checkpoint is not None else 0.5
 
     print("Evaluating on full test dataset...")
     metrics = evaluate_metrics_on_dataset(
@@ -384,6 +428,7 @@ def main():
     print(f"Step Micro F1: {metrics['step_micro_f1']:.4f}")
     print(f"MCP Accuracy: {metrics['mcp_acc']:.4f}")
     print(f"MCP Micro F1 (global): {metrics['mcp_micro_f1']:.4f}")
+    print(f"MCP Threshold: {format_threshold(mcp_threshold)}")
     print("=" * 60 + "\n")
 
 
