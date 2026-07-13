@@ -1148,14 +1148,56 @@ def main():
     else:
         torch_dtype = torch.float32
 
-    llm = AutoModelForCausalLM.from_pretrained(
-        llm_name,
-        trust_remote_code=trust_remote_code,
-        dtype=torch_dtype,
-        low_cpu_mem_usage=True,
-    )
+    load_in_4bit = bool(config.get('model', {}).get('load_in_4bit', False))
+    use_lora = bool(config.get('model', {}).get('use_lora', False))
+    
+    if load_in_4bit:
+        try:
+            from transformers import BitsAndBytesConfig
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch.float16,
+                bnb_4bit_use_double_quant=True,
+            )
+            llm = AutoModelForCausalLM.from_pretrained(
+                llm_name,
+                trust_remote_code=trust_remote_code,
+                quantization_config=bnb_config,
+                low_cpu_mem_usage=True,
+                device_map="auto",
+            )
+        except ImportError:
+            print("bitsandbytes not installed, loading model in float16")
+            llm = AutoModelForCausalLM.from_pretrained(
+                llm_name,
+                trust_remote_code=trust_remote_code,
+                torch_dtype=torch.float16,
+                low_cpu_mem_usage=True,
+                device_map="auto",
+                max_memory={0: "20GB", "cpu": "30GB"},
+            )
+    else:
+        llm = AutoModelForCausalLM.from_pretrained(
+            llm_name,
+            trust_remote_code=trust_remote_code,
+            torch_dtype=torch.float16,
+            low_cpu_mem_usage=True,
+            device_map="auto",
+            max_memory={0: "20GB", "cpu": "30GB"},
+        )
+    
+    if use_lora:
+        from peft import LoraConfig, get_peft_model
+        lora_config = LoraConfig(
+            r=int(config.get('model', {}).get('lora_r', 16)),
+            lora_alpha=int(config.get('model', {}).get('lora_alpha', 32)),
+            lora_dropout=float(config.get('model', {}).get('lora_dropout', 0.05)),
+            target_modules=config.get('model', {}).get('lora_target_modules', ['q_proj', 'k_proj', 'v_proj', 'o_proj']),
+            task_type="CAUSAL_LM",
+        )
+        llm = get_peft_model(llm, lora_config)
+    
     llm.resize_token_embeddings(len(tokenizer))
-    llm.to(device)
     freeze_module(llm)
 
     llm_hidden_size = llm.config.hidden_size

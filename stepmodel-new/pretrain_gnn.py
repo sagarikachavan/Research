@@ -206,7 +206,7 @@ def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", default="config.json")
     parser.add_argument("--epochs", type=int, default=5)
-    parser.add_argument("--batch-size", type=int, default=16)
+    parser.add_argument("--batch-size", type=int, default=8)
     parser.add_argument("--temperature", type=float, default=0.2)
     parser.add_argument("--edge-drop", type=float, default=0.15)
     parser.add_argument("--feature-mask", type=float, default=0.10)
@@ -240,27 +240,81 @@ def main():
         config["model"]["llm_name"],
         trust_remote_code=bool(config["model"].get("trust_remote_code", False)),
     )
-    llm = AutoModelForCausalLM.from_pretrained(
-        config["model"]["llm_name"],
-        trust_remote_code=bool(config["model"].get("trust_remote_code", False)),
-        dtype=torch.bfloat16 if str(config["model"].get("torch_dtype", "")).lower() in {"bf16", "bfloat16"} else torch.float16,
-        low_cpu_mem_usage=True,
-    ).to(device)
-    for param in llm.parameters():
-        param.requires_grad_(False)
-    llm.eval()
-
-    embedding_matrix = llm.get_input_embeddings().weight.detach().float()
+    
+    # Load only the embedding layer to save GPU memory
+    from transformers import AutoModelForCausalLM, AutoConfig
+    load_in_4bit = bool(config["model"].get("load_in_4bit", False))
+    
+    if load_in_4bit:
+        try:
+            from transformers import BitsAndBytesConfig
+            bnb_config = BitsAndBytesConfig(
+                load_in_4bit=True,
+                bnb_4bit_compute_dtype=torch.float16,
+                bnb_4bit_use_double_quant=True,
+            )
+            llm = AutoModelForCausalLM.from_pretrained(
+                config["model"]["llm_name"],
+                trust_remote_code=bool(config["model"].get("trust_remote_code", False)),
+                quantization_config=bnb_config,
+                low_cpu_mem_usage=True,
+                device_map="auto",
+            )
+            for param in llm.parameters():
+                param.requires_grad_(False)
+            llm.eval()
+            embedding_matrix = llm.get_input_embeddings().weight.detach().float()
+        except ImportError:
+            print("bitsandbytes not installed, loading only embedding layer")
+            llm = None
+    else:
+        llm = None
+    
+    if llm is None:
+        # Load only the embedding layer using a custom approach
+        print("Loading only embedding layer to save GPU memory")
+        config_obj = AutoConfig.from_pretrained(
+            config["model"]["llm_name"],
+            trust_remote_code=bool(config["model"].get("trust_remote_code", False)),
+        )
+        
+        # Load model with device_map="auto" to let transformers handle memory
+        # This will put embeddings on GPU and other layers on CPU
+        llm = AutoModelForCausalLM.from_pretrained(
+            config["model"]["llm_name"],
+            trust_remote_code=bool(config["model"].get("trust_remote_code", False)),
+            torch_dtype=torch.float16,
+            low_cpu_mem_usage=True,
+            device_map="auto",
+            max_memory={0: "20GB", "cpu": "30GB"},
+        )
+        
+        # Extract embeddings and delete the model
+        embedding_matrix = llm.get_input_embeddings().weight.detach().float().to(device)
+        del llm
+        torch.cuda.empty_cache()
+        llm = None
     _, _, vh = torch.pca_lowrank(embedding_matrix, q=min(args.pca_rank, embedding_matrix.size(1)))
     pca_basis = vh[:, : min(args.pca_rank, vh.size(1))].to(device)
     anchor_ids = token_ids_for_words(tokenizer, ANCHOR_WORDS)
     if not anchor_ids:
         raise RuntimeError("No anchor token ids found for alignment loss.")
 
+    # Get LLM hidden size from config if llm is None
+    if llm is None:
+        from transformers import AutoConfig
+        config_obj = AutoConfig.from_pretrained(
+            config["model"]["llm_name"],
+            trust_remote_code=bool(config["model"].get("trust_remote_code", False)),
+        )
+        llm_hidden_size = config_obj.hidden_size
+    else:
+        llm_hidden_size = llm.config.hidden_size
+    
     policy = GNNLLMPolicy(
         gnn_out_dim=config["model"]["gnn_out_dim"],
         text_emb_dim=text_emb_dim,
-        llm_hidden_size=llm.config.hidden_size,
+        llm_hidden_size=llm_hidden_size,
         gnn_type=str(config["model"].get("gnn_type", "gcn")).lower(),
         use_gat=bool(config["model"].get("use_gat", False)),
         pooling_strategy=str(config["model"].get("pooling_strategy", "hybrid")).lower(),

@@ -1,7 +1,7 @@
 {
   "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
-  "machine": "Lame",
-  "source": "training_data.csv, Machine == 'Lame', 5 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "machine": "lame",
+  "source": "training_data.csv, Machine == 'lame', 16 row(s), 3 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
   "analogy_mapping": {
     "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
     "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
@@ -22,11 +22,11 @@
   },
   "nodes": [
     {
-      "id": "agent:Lame:START",
+      "id": "agent:lame:START",
       "label": "Agent: Initial\n(Start)",
       "type": "Agent",
       "color": "#3A86FF",
-      "title": "Start of pentest against 'Lame'. 1 recorded run(s) below.",
+      "title": "Start of pentest against 'lame'. 3 recorded run(s) below.",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -36,11 +36,11 @@
       }
     },
     {
-      "id": "search:Lame:r1_s1_1.1",
-      "label": "Search: 1.1\nResearch service vulnerab\u2026",
+      "id": "search:lame:r1_base",
+      "label": "Search: Baseline\n(7 item(s))",
       "type": "Search",
       "color": "#FB5607",
-      "title": "PTT item 1.1: Research service vulnerabilities\n\nMCP tool calls:\nNmap: Full port scan with --min-rate 10000; Nmap: Service version detection with -sV -sC on discovered ports",
+      "title": "[Run 1/3] Baseline recon already completed before this run's first tracked step:\n1.3.1 Perform a port scan\n1.3.2 Determine the services and versions on each open port\n1.4 Target IP\n1.5 Determine the Operating Systems\n1.6 SMB Security Mode\n1.7 SMB OS Discovery\n1.8 SMB2-time",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -50,11 +50,11 @@
       }
     },
     {
-      "id": "track:Lame:r1_s1_1.1",
-      "label": "Track: Research service vulnerabilit\u2026",
+      "id": "track:lame:r1_base",
+      "label": "Track: SMB2-time",
       "type": "Track",
       "color": "#06D6A0",
-      "title": "1.1 Research service vulnerabilities:\n(status change only)",
+      "title": "[Run 1/3] 1.3.1 Perform a port scan: Host IP: 10.129.237.12, Scan Duration: 99.47 seconds\n\n1.3.2 Determine the services and versions on each open port: - Port 21: Open, Service: FTP, Version: vsftpd 2.3.4, allows anonymous FTP login.\n       - Port 22: Open, Service: SSH, Version: OpenSSH 4.7p1 Debian 8ubuntu1 (protocol 2.0), host keys: DSA (1024 60:0f:cf:e1:c0:5f:6a:74:d6:90:24:fa:c4:d5:6c:cd), RSA (2048 56:56:24:0f:21:1d:de:a7:2b:ae:61:b1:24:3d:e8:f3)\n       - Port 139: Open, Service: netbios-ssn, Version: Samba smbd 3.X - 4.X, workgroup: WORKGROUP\n       - Port 445: Open, Service: netbios-ssn, Version: Samba smbd 3.0.20-Debian, workgroup: WORKGROUP\n\n1.4 Target IP: 10.129.237.12\n\n1.5 Determine the Operating Systems: Operating Systems: Unix, Linux\n\n1.6 SMB Security Mode: Account used: guest, Authentication level: user, Challenge response: supported, Message signing: disabled (dangerous, but default)\n\n1.7 SMB OS Discovery: OS: Unix (Samba 3.0.20-Debian), Computer name: lame, Domain name: hackthebox.gr, FQDN: lame.hackthebox.gr, System time: 2025-07-29T01:31:12-04:00\n\n1.8 SMB2-time: Protocol negotiation failed (SMB2)",
       "size": 34,
       "shape": "dot",
       "borderColor": "#212529",
@@ -64,11 +64,11 @@
       }
     },
     {
-      "id": "agent:Lame:r1_s1_1.1",
-      "label": "Agent: 1.1\nPerform network recon\u2026",
+      "id": "agent:lame:r1_base",
+      "label": "Agent: Baseline\nReconnaissance",
       "type": "Agent",
       "color": "#3A86FF",
-      "title": "Cumulative PTT after 1.1:\n\u2713 1 Perform network reconnaissance\n  \u25cb 1.1 Research service vulnerabilities\n\u25cb 2 Exploit vulnerable service for root access",
+      "title": "[Run 1/3] Cumulative PTT so far:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.4 Target IP\n  \u2713 1.5 Determine the Operating Systems\n  \u2713 1.6 SMB Security Mode\n  \u2713 1.7 SMB OS Discovery\n  \u2713 1.8 SMB2-time",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -78,11 +78,25 @@
       }
     },
     {
-      "id": "search:Lame:r1_s2_2.1",
-      "label": "Search: 2.1\nAttempt vsftpd backdoor e\u2026",
+      "id": "agent:lame:r1_close",
+      "label": "Agent: Run End\n(no further PTT growth)",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 1/3] Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.4 Target IP\n  \u2713 1.5 Determine the Operating Systems\n  \u2713 1.6 SMB Security Mode\n  \u2713 1.7 SMB OS Discovery\n  \u2713 1.8 SMB2-time",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:lame:r2_base",
+      "label": "Search: Baseline\n(2 item(s))",
       "type": "Search",
       "color": "#FB5607",
-      "title": "PTT item 2.1: Attempt vsftpd backdoor exploitation\n\nMCP tool calls:\nGoogle search: Query 'vsftpd 2.3.4 backdoor vulnerability'; Google search: Query 'Samba 3.0.20 CVE-2007-2447'",
+      "title": "[Run 2/3] Baseline recon already completed before this run's first tracked step:\n1.3.1 Perform a port scan\n1.3.2 Determine the services and versions on each open port",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -92,11 +106,11 @@
       }
     },
     {
-      "id": "track:Lame:r1_s2_2.1",
-      "label": "Track: Attempt vsftpd backdoor explo\u2026",
+      "id": "track:lame:r2_base",
+      "label": "Track: Determine the services an\u2026",
       "type": "Track",
       "color": "#06D6A0",
-      "title": "2.1 Attempt vsftpd backdoor exploitation:\n(status change only)",
+      "title": "[Run 2/3] 1.3.1 Perform a port scan: Nmap scan report for the IP address 10.129.237.13 reveals open ports 21, 22, 139, and 445. The scan took 101.67 seconds to complete.\n\n1.3.2 Determine the services and versions on each open port: 1.3.2.1 Port 21 - {Findings: FTP service running version vsftpd 2.3.4. Anonymous FTP login is allowed and the control and data connections will be in plain text.}\n            1.3.2.2 Port 22 - {Findings: SSH service running OpenSSH 4.7p1 Debian 8ubuntu1 (protocol 2.0). Host keys are provided for DSA and RSA.}\n            1.3.2.3 Port 139 - {Findings: Netbios-ssn service running Samba smbd 3.X - 4.X. The workgroup name is WORKGROUP.}\n            1.3.2.4 Port 445 - {Findings: Netbios-ssn service running Samba smbd 3.0.20-Debian. The workgroup name is WORKGROUP.}\n       {Target IP: 10.129.237.13, Operating Systems: Unix and Linux, CPE: cpe:/o:linux:linux_kernel, Computer Name: lame, Domain Name: hackthebox.gr, FQDN: lame.hackthebox.gr, SMB Security Mode: The account used is guest, authentication level is user, challenge response is supported and message signing is disabled (dangerous but default), Clock skew mean: 2h00m36s, Deviation: 2h49m46s, Median: 33s, SMB2-time protocol negotiation: failed",
       "size": 34,
       "shape": "dot",
       "borderColor": "#212529",
@@ -106,11 +120,11 @@
       }
     },
     {
-      "id": "agent:Lame:r1_s2_2.1",
-      "label": "Agent: 2.1\nExploit vulnerable se\u2026",
+      "id": "agent:lame:r2_base",
+      "label": "Agent: Baseline\nIdentify Open Ports, \u2026",
       "type": "Agent",
       "color": "#3A86FF",
-      "title": "Cumulative PTT after 2.1:\n\u2713 1 Perform network reconnaissance\n  \u2713 1.1 Research service vulnerabilities\n\u2026 2 Exploit vulnerable service for root access\n  \u25cb 2.1 Attempt vsftpd backdoor exploitation",
+      "title": "[Run 2/3] Cumulative PTT so far:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -120,11 +134,11 @@
       }
     },
     {
-      "id": "search:Lame:r1_s3_2.2",
-      "label": "Search: 2.2\nExploit Samba username in\u2026",
+      "id": "search:lame:r2_s1_1.3.2.1",
+      "label": "Search: 1.3.2.1\nPort 21",
       "type": "Search",
       "color": "#FB5607",
-      "title": "PTT item 2.2: Exploit Samba username injection\n\nMCP tool calls:\nInteractive CLI: Connect via netcat to port 21; Interactive CLI: Send 'USER 0xdf:)' and 'PASS test'; Interactive CLI: Attempt connection to port 6200",
+      "title": "[Run 2/3] PTT item 1.3.2.1: Port 21\n\nMCP tool calls:\n- Smb client: Enumerate FTP service for software version and hidden directories.\n- Interactive CLI: Attempt anonymous login to FTP service.",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -134,11 +148,11 @@
       }
     },
     {
-      "id": "track:Lame:r1_s3_2.2",
-      "label": "Track: Exploit Samba username inject\u2026",
+      "id": "track:lame:r2_s1_1.3.2.1",
+      "label": "Track: FTP service running version v\u2026",
       "type": "Track",
       "color": "#06D6A0",
-      "title": "2.2 Exploit Samba username injection:\n(status change only)",
+      "title": "[Run 2/3] 1.3.2.1 Port 21:\nFTP service running version vsftpd 2.3.4. Anonymous FTP login is allowed and the control and data connections will be in plain text.}\n            1.3.2.2 Port 22 - {Findings: SSH service running OpenSSH 4.7p1 Debian 8ubuntu1 (protocol 2.0). Host keys are provided for DSA and RSA.}\n            1.3.2.3 Port 139 - {Findings: Netbios-ssn service running Samba smbd 3.X - 4.X. The workgroup name is WORKGROUP.}\n            1.3.2.4 Port 445 - {Findings: Netbios-ssn service running Samba smbd 3.0.20-Debian. The workgroup name is WORKGROUP.}\n       {Target IP: 10.129.237.13, Operating Systems: Unix and Linux, CPE: cpe:/o:linux:linux_kernel, Computer Name: lame, Domain Name: hackthebox.gr, FQDN: lame.hackthebox.gr, SMB Security Mode: The account used is guest, authentication level is user, challenge response is supported and message signing is disabled (dangerous but default), Clock skew mean: 2h00m36s, Deviation: 2h49m46s, Median: 33s, SMB2-time protocol negotiation: failed",
       "size": 34,
       "shape": "dot",
       "borderColor": "#212529",
@@ -148,11 +162,11 @@
       }
     },
     {
-      "id": "agent:Lame:r1_s3_2.2",
-      "label": "Agent: 2.2\nExploit vulnerable se\u2026",
+      "id": "agent:lame:r2_s1_1.3.2.1",
+      "label": "Agent: 1.3.2.1\nIdentify Open Ports, \u2026",
       "type": "Agent",
       "color": "#3A86FF",
-      "title": "Cumulative PTT after 2.2:\n\u2713 1 Perform network reconnaissance\n  \u2713 1.1 Research service vulnerabilities\n\u2026 2 Exploit vulnerable service for root access\n  \u2713 2.1 Attempt vsftpd backdoor exploitation\n  \u25cb 2.2 Exploit Samba username injection",
+      "title": "[Run 2/3] Cumulative PTT after 1.3.2.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n      \u2713 1.3.2.1 Port 21\n\u2713 2 Enumeration\n  \u2713 2.1 Enumerate FTP service",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -162,11 +176,319 @@
       }
     },
     {
-      "id": "agent:Lame:r1_close",
+      "id": "search:lame:r2_s1_2.1",
+      "label": "Search: 2.1\nEnumerate FTP service",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/3] PTT item 2.1: Enumerate FTP service\n\nMCP tool calls:\n- Smb client: Enumerate FTP service for software version and hidden directories.\n- Interactive CLI: Attempt anonymous login to FTP service.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:lame:r2_s1_2.1",
+      "label": "Track: The FTP connection to the IP \u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/3] 2.1 Enumerate FTP service:\nThe FTP connection to the IP address 10.129.237.13 reveals that the FTP service running is vsFTPd 2.3.4. An attempt to log in with a username and password was unsuccessful, resulting in a \"530 Login incorrect\" response. The 'ls' command, 'pwd' command, and 'ls -la' command could not be executed due to the requirement to login with USER and PASS. The anonymous login works, but it doesn't provide access to any directories or files.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:lame:r2_s1_2.1",
+      "label": "Agent: 2.1\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/3] Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n      \u2713 1.3.2.1 Port 21\n\u2713 2 Enumeration\n  \u2713 2.1 Enumerate FTP service",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:lame:r2_s2_1.3.2.3",
+      "label": "Search: 1.3.2.3\nPort 139",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/3] PTT item 1.3.2.3: Port 139\n\nMCP tool calls:\n- Smb client: Enumerate Samba service to find software version, hidden directories, and files.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:lame:r2_s2_1.3.2.3",
+      "label": "Track: Netbios-ssn service running S\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/3] 1.3.2.3 Port 139:\nNetbios-ssn service running Samba smbd 3.X - 4.X. The workgroup name is WORKGROUP.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:lame:r2_s2_1.3.2.3",
+      "label": "Agent: 1.3.2.3\nIdentify Open Ports, \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/3] Cumulative PTT after 1.3.2.3:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n      \u2713 1.3.2.1 Port 21\n      \u2713 1.3.2.3 Port 139\n      \u2713 1.3.2.4 Port 445\n\u2713 2 Enumeration\n  \u2713 2.1 Enumerate FTP service\n  \u2713 2.2 Enumerate Samba service",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:lame:r2_s2_1.3.2.4",
+      "label": "Search: 1.3.2.4\nPort 445",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/3] PTT item 1.3.2.4: Port 445\n\nMCP tool calls:\n- Smb client: Enumerate Samba service to find software version, hidden directories, and files.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:lame:r2_s2_1.3.2.4",
+      "label": "Track: Netbios-ssn service running S\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/3] 1.3.2.4 Port 445:\nNetbios-ssn service running Samba smbd 3.0.20-Debian. The workgroup name is WORKGROUP.}\n       {Target IP: 10.129.237.13, Operating Systems: Unix and Linux, CPE: cpe:/o:linux:linux_kernel, Computer Name: lame, Domain Name: hackthebox.gr, FQDN: lame.hackthebox.gr, SMB Security Mode: The account used is guest, authentication level is user, challenge response is supported and message signing is disabled (dangerous but default), Clock skew mean: 2h00m36s, Deviation: 2h49m46s, Median: 33s, SMB2-time protocol negotiation: failed",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:lame:r2_s2_1.3.2.4",
+      "label": "Agent: 1.3.2.4\nIdentify Open Ports, \u2026",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/3] Cumulative PTT after 1.3.2.4:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n      \u2713 1.3.2.1 Port 21\n      \u2713 1.3.2.3 Port 139\n      \u2713 1.3.2.4 Port 445\n\u2713 2 Enumeration\n  \u2713 2.1 Enumerate FTP service\n  \u2713 2.2 Enumerate Samba service",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:lame:r2_s2_2.2",
+      "label": "Search: 2.2\nEnumerate Samba service",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/3] PTT item 2.2: Enumerate Samba service\n\nMCP tool calls:\n- Smb client: Enumerate Samba service to find software version, hidden directories, and files.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:lame:r2_s2_2.2",
+      "label": "Track: The share enumeration on the \u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/3] 2.2 Enumerate Samba service:\nThe share enumeration on the IP address 10.129.237.13 reveals that the 'print$' share of type Disk is for Printer Drivers. Mapping, listing, and writing are all denied. The 'tmp' share of type Disk has a comment 'oh noes!'. Mapping and listing are allowed, but writing is denied. The 'opt' share of type Disk has mapping, listing, and writing all denied. The 'IPC$' and 'ADMIN$' shares of type IPC are IPC Services for a lame server running Samba 3.0.20-Debian. Mapping, listing, and writing statuses are not available or all denied. The server is part of the WORKGROUP workgroup with the master being LAME. An error occurred while trying to understand the response for listing '\\*' on the server, resulting in a NT_STATUS_NETWORK_ACCESS_DENIED message.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:lame:r2_s2_2.2",
+      "label": "Agent: 2.2\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/3] Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n      \u2713 1.3.2.1 Port 21\n      \u2713 1.3.2.3 Port 139\n      \u2713 1.3.2.4 Port 445\n\u2713 2 Enumeration\n  \u2713 2.1 Enumerate FTP service\n  \u2713 2.2 Enumerate Samba service",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:lame:r2_s3_3.1",
+      "label": "Search: 3.1\nCheck 'tmp' share in Samb\u2026",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/3] PTT item 3.1: Check 'tmp' share in Samba service\n\nMCP tool calls:\n- Smb client: Explore the 'tmp' share in the Samba service and list the contents.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:lame:r2_s3_3.1",
+      "label": "Track: Strategy: Explore the suspici\u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/3] 3.1 Check 'tmp' share in Samba service:\nStrategy: Explore the suspicious files and create a summary of the findings.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:lame:r2_s3_3.1",
+      "label": "Agent: 3.1\nExploitation",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/3] Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n      \u2713 1.3.2.1 Port 21\n      \u2713 1.3.2.3 Port 139\n      \u2713 1.3.2.4 Port 445\n\u2713 2 Enumeration\n  \u2713 2.1 Enumerate FTP service\n  \u2713 2.2 Enumerate Samba service\n\u25cb 3 Exploitation\n  \u25cb 3.1 Check 'tmp' share in Samba service",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:lame:r2_s5_2.2",
+      "label": "Search: 2.2\nEnumerate Samba service",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 2/3] PTT item 2.2: Enumerate Samba service\n\nMCP tool calls:\n- Metasploit: Exploit the Samba service using the username map script for CVE-2007-2447.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:lame:r2_s5_2.2",
+      "label": "Track: The share enumeration on the \u2026",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 2/3] 2.2 Enumerate Samba service:\nThe share enumeration on the IP address 10.129.237.",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:lame:r2_s5_2.2",
+      "label": "Agent: 2.2\nEnumeration",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 2/3] Cumulative PTT after 2.2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n      \u2713 1.3.2.1 Port 21\n      \u2713 1.3.2.3 Port 139\n      \u2713 1.3.2.4 Port 445\n\u2713 2 Enumeration\n  \u2713 2.1 Enumerate FTP service\n  \u2713 2.2 Enumerate Samba service",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:lame:r2_close",
       "label": "Agent: Task\nComplete (Goal)",
       "type": "Agent",
       "color": "#FF006E",
-      "title": "Final cumulative PTT for this run:\n\u2713 1 Perform network reconnaissance\n  \u2713 1.1 Research service vulnerabilities\n\u2713 2 Exploit vulnerable service for root access\n  \u2713 2.1 Attempt vsftpd backdoor exploitation\n  \u2713 2.2 Exploit Samba username injection",
+      "title": "[Run 2/3] Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n      \u2713 1.3.2.1 Port 21\n      \u2713 1.3.2.3 Port 139\n      \u2713 1.3.2.4 Port 445\n\u2713 2 Enumeration\n  \u2713 2.1 Enumerate FTP service\n  \u2713 2.2 Enumerate Samba service",
+      "size": 46,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "search:lame:r3_base",
+      "label": "Search: Baseline\n(7 item(s))",
+      "type": "Search",
+      "color": "#FB5607",
+      "title": "[Run 3/3] Baseline recon already completed before this run's first tracked step:\n1.3.1 Perform a port scan\n1.3.2 Determine the services and versions on each open port\n1.4 Target IP\n1.5 Determine the Operating Systems\n1.6 SMB Security Mode\n1.7 SMB OS Discovery\n1.8 SMB2-time",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "track:lame:r3_base",
+      "label": "Track: SMB2-time",
+      "type": "Track",
+      "color": "#06D6A0",
+      "title": "[Run 3/3] 1.3.1 Perform a port scan: Host IP: 10.129.237.12, Scan Duration: 112.14 seconds\n\n1.3.2 Determine the services and versions on each open port: - Port 21: Open, Service: FTP, Version: vsftpd 2.3.4, allows anonymous FTP login\n       - Port 22: Open, Service: SSH, Version: OpenSSH 4.7p1 Debian 8ubuntu1 (protocol 2.0), host keys: DSA (1024 60:0f:cf:e1:c0:5f:6a:74:d6:90:24:fa:c4:d5:6c:cd), RSA (2048 56:56:24:0f:21:1d:de:a7:2b:ae:61:b1:24:3d:e8:f3)\n       - Port 139: Open, Service: netbios-ssn, Version: Samba smbd 3.X - 4.X, workgroup: WORKGROUP\n       - Port 445: Open, Service: netbios-ssn, Version: Samba smbd 3.0.20-Debian, workgroup: WORKGROUP\n\n1.4 Target IP: 10.129.237.12\n\n1.5 Determine the Operating Systems: Operating Systems: Unix, Linux\n\n1.6 SMB Security Mode: Account used: guest, Authentication level: user, Challenge response: supported, Message signing: disabled (dangerous, but default)\n\n1.7 SMB OS Discovery: OS: Unix (Samba 3.0.20-Debian), Computer name: lame, Domain name: hackthebox.gr, FQDN: lame.hackthebox.gr, System time: 2025-07-29T01:31:12-04:00\n\n1.8 SMB2-time: Protocol negotiation failed (SMB2)",
+      "size": 34,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:lame:r3_base",
+      "label": "Agent: Baseline\nReconnaissance",
+      "type": "Agent",
+      "color": "#3A86FF",
+      "title": "[Run 3/3] Cumulative PTT so far:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.4 Target IP\n  \u2713 1.5 Determine the Operating Systems\n  \u2713 1.6 SMB Security Mode\n  \u2713 1.7 SMB OS Discovery\n  \u2713 1.8 SMB2-time",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 3,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "agent:lame:r3_close",
+      "label": "Agent: Task\nComplete (Goal)",
+      "type": "Agent",
+      "color": "#FF006E",
+      "title": "[Run 3/3] Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.4 Target IP\n  \u2713 1.5 Determine the Operating Systems\n  \u2713 1.6 SMB Security Mode\n  \u2713 1.7 SMB OS Discovery\n  \u2713 1.8 SMB2-time",
       "size": 46,
       "shape": "dot",
       "borderColor": "#212529",
@@ -178,9 +500,9 @@
   ],
   "edges": [
     {
-      "from": "agent:Lame:START",
-      "to": "agent:Lame:r1_s1_1.1",
-      "label": "\u2192 1.1",
+      "from": "agent:lame:START",
+      "to": "agent:lame:r1_base",
+      "label": "baseline",
       "type": "StateTransition",
       "color": "#000000",
       "width": 4,
@@ -190,9 +512,9 @@
       }
     },
     {
-      "from": "agent:Lame:START",
-      "to": "search:Lame:r1_s1_1.1",
-      "label": "1.1 Research service vu\u2026",
+      "from": "agent:lame:START",
+      "to": "search:lame:r1_base",
+      "label": "Baseline Recon",
       "type": "SearchUpdate",
       "color": "#06D6A0",
       "width": 3,
@@ -202,8 +524,8 @@
       }
     },
     {
-      "from": "search:Lame:r1_s1_1.1",
-      "to": "track:Lame:r1_s1_1.1",
+      "from": "search:lame:r1_base",
+      "to": "track:lame:r1_base",
       "label": "Discover",
       "type": "TrackUpdate",
       "color": "#3A86FF",
@@ -214,8 +536,8 @@
       }
     },
     {
-      "from": "track:Lame:r1_s1_1.1",
-      "to": "agent:Lame:r1_s1_1.1",
+      "from": "track:lame:r1_base",
+      "to": "agent:lame:r1_base",
       "label": "Leads to",
       "type": "Prediction",
       "color": "#8338EC",
@@ -226,8 +548,116 @@
       }
     },
     {
-      "from": "agent:Lame:r1_s1_1.1",
-      "to": "agent:Lame:r1_s2_2.1",
+      "from": "agent:lame:r1_base",
+      "to": "agent:lame:r1_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:lame:START",
+      "to": "agent:lame:r2_base",
+      "label": "baseline",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:lame:START",
+      "to": "search:lame:r2_base",
+      "label": "Baseline Recon",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:lame:r2_base",
+      "to": "track:lame:r2_base",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:lame:r2_base",
+      "to": "agent:lame:r2_base",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:lame:r2_base",
+      "to": "agent:lame:r2_s1_1.3.2.1",
+      "label": "\u2192 1.3.2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:lame:r2_base",
+      "to": "search:lame:r2_s1_1.3.2.1",
+      "label": "1.3.2.1 Port 21",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:lame:r2_s1_1.3.2.1",
+      "to": "track:lame:r2_s1_1.3.2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:lame:r2_s1_1.3.2.1",
+      "to": "agent:lame:r2_s1_1.3.2.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:lame:r2_s1_1.3.2.1",
+      "to": "agent:lame:r2_s1_2.1",
       "label": "\u2192 2.1",
       "type": "StateTransition",
       "color": "#000000",
@@ -238,9 +668,9 @@
       }
     },
     {
-      "from": "agent:Lame:r1_s1_1.1",
-      "to": "search:Lame:r1_s2_2.1",
-      "label": "2.1 Attempt vsftpd back\u2026",
+      "from": "agent:lame:r2_s1_1.3.2.1",
+      "to": "search:lame:r2_s1_2.1",
+      "label": "2.1 Enumerate FTP servi\u2026",
       "type": "SearchUpdate",
       "color": "#06D6A0",
       "width": 3,
@@ -250,8 +680,8 @@
       }
     },
     {
-      "from": "search:Lame:r1_s2_2.1",
-      "to": "track:Lame:r1_s2_2.1",
+      "from": "search:lame:r2_s1_2.1",
+      "to": "track:lame:r2_s1_2.1",
       "label": "Discover",
       "type": "TrackUpdate",
       "color": "#3A86FF",
@@ -262,8 +692,8 @@
       }
     },
     {
-      "from": "track:Lame:r1_s2_2.1",
-      "to": "agent:Lame:r1_s2_2.1",
+      "from": "track:lame:r2_s1_2.1",
+      "to": "agent:lame:r2_s1_2.1",
       "label": "Leads to",
       "type": "Prediction",
       "color": "#8338EC",
@@ -274,8 +704,104 @@
       }
     },
     {
-      "from": "agent:Lame:r1_s2_2.1",
-      "to": "agent:Lame:r1_s3_2.2",
+      "from": "agent:lame:r2_s1_2.1",
+      "to": "agent:lame:r2_s2_1.3.2.3",
+      "label": "\u2192 1.3.2.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:lame:r2_s1_2.1",
+      "to": "search:lame:r2_s2_1.3.2.3",
+      "label": "1.3.2.3 Port 139",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:lame:r2_s2_1.3.2.3",
+      "to": "track:lame:r2_s2_1.3.2.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:lame:r2_s2_1.3.2.3",
+      "to": "agent:lame:r2_s2_1.3.2.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:lame:r2_s2_1.3.2.3",
+      "to": "agent:lame:r2_s2_1.3.2.4",
+      "label": "\u2192 1.3.2.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:lame:r2_s2_1.3.2.3",
+      "to": "search:lame:r2_s2_1.3.2.4",
+      "label": "1.3.2.4 Port 445",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:lame:r2_s2_1.3.2.4",
+      "to": "track:lame:r2_s2_1.3.2.4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:lame:r2_s2_1.3.2.4",
+      "to": "agent:lame:r2_s2_1.3.2.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:lame:r2_s2_1.3.2.4",
+      "to": "agent:lame:r2_s2_2.2",
       "label": "\u2192 2.2",
       "type": "StateTransition",
       "color": "#000000",
@@ -286,9 +812,9 @@
       }
     },
     {
-      "from": "agent:Lame:r1_s2_2.1",
-      "to": "search:Lame:r1_s3_2.2",
-      "label": "2.2 Exploit Samba usern\u2026",
+      "from": "agent:lame:r2_s2_1.3.2.4",
+      "to": "search:lame:r2_s2_2.2",
+      "label": "2.2 Enumerate Samba ser\u2026",
       "type": "SearchUpdate",
       "color": "#06D6A0",
       "width": 3,
@@ -298,8 +824,8 @@
       }
     },
     {
-      "from": "search:Lame:r1_s3_2.2",
-      "to": "track:Lame:r1_s3_2.2",
+      "from": "search:lame:r2_s2_2.2",
+      "to": "track:lame:r2_s2_2.2",
       "label": "Discover",
       "type": "TrackUpdate",
       "color": "#3A86FF",
@@ -310,8 +836,8 @@
       }
     },
     {
-      "from": "track:Lame:r1_s3_2.2",
-      "to": "agent:Lame:r1_s3_2.2",
+      "from": "track:lame:r2_s2_2.2",
+      "to": "agent:lame:r2_s2_2.2",
       "label": "Leads to",
       "type": "Prediction",
       "color": "#8338EC",
@@ -322,8 +848,164 @@
       }
     },
     {
-      "from": "agent:Lame:r1_s3_2.2",
-      "to": "agent:Lame:r1_close",
+      "from": "agent:lame:r2_s2_2.2",
+      "to": "agent:lame:r2_s3_3.1",
+      "label": "\u2192 3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:lame:r2_s2_2.2",
+      "to": "search:lame:r2_s3_3.1",
+      "label": "3.1 Check 'tmp' share i\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:lame:r2_s3_3.1",
+      "to": "track:lame:r2_s3_3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:lame:r2_s3_3.1",
+      "to": "agent:lame:r2_s3_3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:lame:r2_s3_3.1",
+      "to": "agent:lame:r2_s5_2.2",
+      "label": "\u2192 2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:lame:r2_s3_3.1",
+      "to": "search:lame:r2_s5_2.2",
+      "label": "2.2 Enumerate Samba ser\u2026",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:lame:r2_s5_2.2",
+      "to": "track:lame:r2_s5_2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:lame:r2_s5_2.2",
+      "to": "agent:lame:r2_s5_2.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:lame:r2_s5_2.2",
+      "to": "agent:lame:r2_close",
+      "label": "close",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:lame:START",
+      "to": "agent:lame:r3_base",
+      "label": "baseline",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 4,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:lame:START",
+      "to": "search:lame:r3_base",
+      "label": "Baseline Recon",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "search:lame:r3_base",
+      "to": "track:lame:r3_base",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "track:lame:r3_base",
+      "to": "agent:lame:r3_base",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "agent:lame:r3_base",
+      "to": "agent:lame:r3_close",
       "label": "close",
       "type": "StateTransition",
       "color": "#000000",
@@ -335,12 +1017,12 @@
     }
   ],
   "graph_statistics": {
-    "total_nodes": 11,
-    "total_edges": 13,
-    "agent_nodes": 5,
-    "search_nodes": 3,
-    "track_nodes": 3,
-    "runs_detected": 1,
-    "rows_captured": 5
+    "total_nodes": 34,
+    "total_edges": 43,
+    "agent_nodes": 14,
+    "search_nodes": 10,
+    "track_nodes": 10,
+    "runs_detected": 3,
+    "rows_captured": 16
   }
 }

