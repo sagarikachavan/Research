@@ -40,7 +40,7 @@
     "generate_top_p": 0.9,
     "validation_split": 0.1,
     "patience": 7,
-    "max_seq_length": 1024,
+    "max_seq_length": 512,
     "step_loss_weight": 2.0,
     "mcp_loss_weight": 1.8,
     "rl_aux_supervised_weight": 0.15,
