@@ -1226,11 +1226,12 @@ def main():
     if load_in_4bit:
         bnb_ok, bnb_msg = get_bitsandbytes_4bit_status()
         if not bnb_ok:
-            print(f"Warning: {bnb_msg}")
-            load_in_4bit = False
+            print(f"Error: {bnb_msg}")
+            print("Please install bitsandbytes: pip install -U bitsandbytes>=0.46.1")
+            print("Or set load_in_4bit to false in config.json and use a smaller model")
+            raise RuntimeError("bitsandbytes is required for 4-bit quantization but not installed")
         else:
             print(bnb_msg)
-    if load_in_4bit:
         compute_dtype = torch.bfloat16 if (device.type == "cuda" and torch.cuda.is_bf16_supported()) else torch.float16
         quant_config = BitsAndBytesConfig(
             load_in_4bit=True,
@@ -1240,37 +1241,23 @@ def main():
         )
         device_map = "auto"
     else:
-        # Use device_map with memory limits when not using 4-bit quantization
-        device_map = "auto"
-        print("Loading model with device_map='auto' and memory limits to save GPU memory")
+        # Without 4-bit, load model directly on device to avoid device_map issues
+        print("Loading model without 4-bit quantization - ensure model fits in GPU memory")
+        device_map = None
 
-    # Load model on CPU first to resize embeddings properly
-    print("Loading model on CPU for token embedding resize...")
     llm = AutoModelForCausalLM.from_pretrained(
         llm_name,
         trust_remote_code=trust_remote_code,
         dtype=torch_dtype,
         low_cpu_mem_usage=True,
+        device_map=device_map,
+        quantization_config=quant_config,
     )
     
-    # Resize embeddings while model is on CPU
+    # Resize embeddings
     print(f"Resizing token embeddings from {llm.config.vocab_size} to {len(tokenizer)}")
     llm.resize_token_embeddings(len(tokenizer))
     llm.gradient_checkpointing_enable()
-    
-    # Now move to device_map if needed
-    if device_map is not None:
-        print(f"Moving model to device_map with memory limits...")
-        from accelerate import infer_auto_device_map
-        from accelerate.utils import get_balanced_memory
-        
-        max_memory = {0: "20GB", "cpu": "30GB"} if not load_in_4bit else None
-        if max_memory:
-            device_map = infer_auto_device_map(llm, max_memory=max_memory)
-            from accelerate import dispatch_model
-            llm = dispatch_model(llm, device_map)
-        else:
-            llm.to(device)
 
     if use_lora:
         if load_in_4bit:
@@ -1416,8 +1403,8 @@ def main():
     scheduler = get_linear_schedule_with_warmup(
         optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=total_steps
     )
-    # Disable AMP when using device_map without 4-bit quantization to avoid device mismatch errors
-    amp_enabled = device.type == "cuda" and load_in_4bit
+    # Enable AMP only when using CUDA
+    amp_enabled = device.type == "cuda"
     scaler = torch.amp.GradScaler(device.type, enabled=amp_enabled)
 
     # Training
