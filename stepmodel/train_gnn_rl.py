@@ -1244,16 +1244,33 @@ def main():
         device_map = "auto"
         print("Loading model with device_map='auto' and memory limits to save GPU memory")
 
+    # Load model on CPU first to resize embeddings properly
+    print("Loading model on CPU for token embedding resize...")
     llm = AutoModelForCausalLM.from_pretrained(
         llm_name,
         trust_remote_code=trust_remote_code,
         dtype=torch_dtype,
         low_cpu_mem_usage=True,
-        device_map=device_map,
-        quantization_config=quant_config,
-        max_memory={0: "20GB", "cpu": "30GB"} if not load_in_4bit else None,
     )
+    
+    # Resize embeddings while model is on CPU
+    print(f"Resizing token embeddings from {llm.config.vocab_size} to {len(tokenizer)}")
+    llm.resize_token_embeddings(len(tokenizer))
     llm.gradient_checkpointing_enable()
+    
+    # Now move to device_map if needed
+    if device_map is not None:
+        print(f"Moving model to device_map with memory limits...")
+        from accelerate import infer_auto_device_map
+        from accelerate.utils import get_balanced_memory
+        
+        max_memory = {0: "20GB", "cpu": "30GB"} if not load_in_4bit else None
+        if max_memory:
+            device_map = infer_auto_device_map(llm, max_memory=max_memory)
+            from accelerate import dispatch_model
+            llm = dispatch_model(llm, device_map)
+        else:
+            llm.to(device)
 
     if use_lora:
         if load_in_4bit:
@@ -1268,9 +1285,6 @@ def main():
             task_type="CAUSAL_LM",
         )
         llm = get_peft_model(llm, lora_config)
-    
-    # Resize token embeddings after LoRA is applied to ensure proper handling with device_map
-    llm.resize_token_embeddings(len(tokenizer))
 
     llm_hidden_size = llm.config.hidden_size
     gnn_type = str(config.get('model', {}).get('gnn_type', 'gcn')).lower()
