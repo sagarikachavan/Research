@@ -1409,8 +1409,8 @@ def main():
     scheduler = get_linear_schedule_with_warmup(
         optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=total_steps
     )
-    # Enable AMP only when using CUDA
-    amp_enabled = device.type == "cuda"
+    # Disable AMP when using float16 to avoid gradient scaling issues
+    amp_enabled = device.type == "cuda" and torch_dtype != torch.float16
     scaler = torch.amp.GradScaler(device.type, enabled=amp_enabled)
 
     # Training
