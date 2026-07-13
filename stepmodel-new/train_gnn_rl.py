@@ -244,6 +244,14 @@ class GNNLLMPolicy(nn.Module):
             nn.ReLU()
         )
         self.graph_token_projector = nn.Linear(gnn_out_dim, llm_hidden_size * self.graph_token_count)
+        self.use_direct_policy_features = True
+        self.policy_feature_projection = nn.Sequential(
+            nn.LayerNorm(gnn_out_dim),
+            nn.Linear(gnn_out_dim, llm_hidden_size),
+            nn.ReLU(),
+            nn.Dropout(0.1),
+        )
+        self.classifier_norm = nn.LayerNorm(llm_hidden_size)
         self.classifier_dropout = nn.Dropout(0.1)
         if self.pooling_strategy == "hybrid":
             self.readout_projection = nn.Sequential(
@@ -331,11 +339,17 @@ class GNNLLMPolicy(nn.Module):
         return self.gnn(node_embs, edge_index, batch)
 
     def forward(self, nodes, edges, step_text_embeddings, device):
+        graph_tokens, _ = self.encode_context(nodes, edges, step_text_embeddings, device)
+        return graph_tokens
+
+    def encode_context(self, nodes, edges, step_text_embeddings, device):
         graph_emb = self.get_graph_embedding(nodes, edges, device)
         step_proj = self.project_step_text(step_text_embeddings)
         combined = self.combine(torch.cat([graph_emb, step_proj], dim=-1))
         graph_tokens = self.graph_token_projector(combined)
-        return graph_tokens.view(combined.size(0), self.graph_token_count, -1)
+        graph_tokens = graph_tokens.view(combined.size(0), self.graph_token_count, -1)
+        policy_features = self.policy_feature_projection(combined)
+        return graph_tokens, policy_features
 
     def pool_hidden_states(self, hidden: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
         mask = attention_mask.unsqueeze(-1).float()
@@ -351,7 +365,7 @@ class GNNLLMPolicy(nn.Module):
         raise ValueError(f"Unsupported pooling_strategy: {self.pooling_strategy}")
 
     def classify(self, pooled_hidden: torch.Tensor):
-        hidden = self.classifier_dropout(pooled_hidden)
+        hidden = self.classifier_dropout(self.classifier_norm(pooled_hidden))
         return self.step_head(hidden), self.mcp_head(hidden)
 
 
@@ -546,9 +560,19 @@ def compute_reward(
     )
 
 
-def predict_mcp_multihot(mcp_logits: torch.Tensor, threshold: float = 0.5) -> np.ndarray:
+def _threshold_array(threshold, size: int) -> np.ndarray:
+    if isinstance(threshold, (list, tuple, np.ndarray)):
+        values = np.asarray(threshold, dtype=np.float32)
+        if values.size != size:
+            raise ValueError(f"Expected {size} MCP thresholds, got {values.size}")
+        return values
+    return np.full(size, float(threshold), dtype=np.float32)
+
+
+def predict_mcp_multihot(mcp_logits: torch.Tensor, threshold=0.5) -> np.ndarray:
     probs = torch.sigmoid(mcp_logits).detach().cpu().numpy()
-    return (probs >= threshold).astype(np.float32)
+    thresholds = _threshold_array(threshold, probs.shape[-1])
+    return (probs >= thresholds).astype(np.float32)
 
 
 def compute_step_label_counts(dataset) -> torch.Tensor:
@@ -558,6 +582,29 @@ def compute_step_label_counts(dataset) -> torch.Tensor:
         if step_id is not None:
             counts[step_id] += 1.0
     return counts
+
+
+def compute_mcp_label_counts(dataset) -> torch.Tensor:
+    counts = torch.zeros(len(MCP_LABELS), dtype=torch.float32)
+    for idx in range(len(dataset)):
+        counts += torch.tensor(dataset[idx]['mcp_multihot'], dtype=torch.float32)
+    return counts
+
+
+def compute_mcp_pos_weights(
+    dataset,
+    power: float = 0.5,
+    max_weight: float = 8.0,
+) -> torch.Tensor:
+    positives = compute_mcp_label_counts(dataset)
+    total = float(len(dataset))
+    negatives = torch.clamp(torch.full_like(positives, total) - positives, min=0.0)
+    weights = torch.ones_like(positives)
+    nonzero = positives > 0
+    weights[nonzero] = torch.pow(negatives[nonzero] / positives[nonzero].clamp_min(1.0), float(power))
+    weights[nonzero] = torch.clamp(weights[nonzero], min=1.0 / max_weight, max=max_weight)
+    weights[~nonzero] = 0.0
+    return weights
 
 
 def compute_step_class_weights(
@@ -612,6 +659,12 @@ def compute_selection_score(
     )
 
 
+def format_threshold(threshold) -> str:
+    if isinstance(threshold, (list, tuple, np.ndarray)):
+        return "[" + ", ".join(f"{float(value):.2f}" for value in threshold) + "]"
+    return f"{float(threshold):.2f}"
+
+
 def classify_sample(
     policy,
     llm,
@@ -627,7 +680,13 @@ def classify_sample(
         device=device,
     )
     previous_emb = _ensure_finite_tensor(previous_emb, "previous_emb")
-    graph_tokens = policy(sample['nodes'], sample['edges'], previous_emb, device)
+    if hasattr(policy, "encode_context"):
+        graph_tokens, policy_features = policy.encode_context(sample['nodes'], sample['edges'], previous_emb, device)
+        if not getattr(policy, "use_direct_policy_features", True):
+            policy_features = None
+    else:
+        graph_tokens = policy(sample['nodes'], sample['edges'], previous_emb, device)
+        policy_features = None
     graph_tokens = _ensure_finite_tensor(graph_tokens, "graph_tokens")
     tokenized_prompt = tokenizer(
         [sample['prompt_text']],
@@ -647,6 +706,9 @@ def classify_sample(
     )
     hidden = _ensure_finite_tensor(outputs.hidden_states[-1], "llm_hidden")
     pooled_hidden = policy.pool_hidden_states(hidden, tokenized_prompt['attention_mask'])
+    if policy_features is not None:
+        policy_features = _ensure_finite_tensor(policy_features, "policy_features")
+        pooled_hidden = pooled_hidden + policy_features.to(dtype=pooled_hidden.dtype)
     pooled_hidden = _ensure_finite_tensor(pooled_hidden, "pooled_hidden")
     step_logits, mcp_logits = policy.classify(pooled_hidden)
     return _ensure_finite_tensor(step_logits, "step_logits"), _ensure_finite_tensor(mcp_logits, "mcp_logits")
@@ -662,6 +724,7 @@ def compute_supervised_loss_for_sample(
     step_loss_weight: float = 1.0,
     mcp_loss_weight: float = 1.5,
     step_class_weights: Optional[torch.Tensor] = None,
+    mcp_pos_weights: Optional[torch.Tensor] = None,
 ):
     step_logits, mcp_logits = classify_sample(
         policy, llm, tokenizer, text_model, sample, device
@@ -669,7 +732,7 @@ def compute_supervised_loss_for_sample(
     step_target = torch.tensor([sample['step_label']], dtype=torch.long, device=device)
     mcp_target = torch.tensor(sample['mcp_multihot'], dtype=torch.float32, device=device).unsqueeze(0)
     step_loss = F.cross_entropy(step_logits, step_target, weight=step_class_weights)
-    mcp_loss = F.binary_cross_entropy_with_logits(mcp_logits, mcp_target)
+    mcp_loss = F.binary_cross_entropy_with_logits(mcp_logits, mcp_target, pos_weight=mcp_pos_weights)
     total_loss = step_loss_weight * step_loss + mcp_loss_weight * mcp_loss
     return total_loss, step_loss.detach(), mcp_loss.detach()
 
@@ -737,10 +800,9 @@ def compute_grpo_loss(
     total_loss = 0.0
     for i, rollout in enumerate(rollouts):
         sample = rollout['sample']
-        with torch.no_grad():
-            step_logits, mcp_logits = classify_sample(
-                policy, llm, tokenizer, text_model, sample, device
-            )
+        step_logits, mcp_logits = classify_sample(
+            policy, llm, tokenizer, text_model, sample, device
+        )
         step_dist = torch.distributions.Categorical(logits=step_logits.squeeze(0))
         mcp_probs = torch.sigmoid(mcp_logits.squeeze(0)).clamp(1e-6, 1 - 1e-6)
 
@@ -768,6 +830,7 @@ def evaluate_on_dataset(
     dataset, policy, llm, tokenizer, text_model, device, num_samples: Optional[int] = None
 ):
     """Evaluate label-only Step/MCP reward on a dataset."""
+    was_training = policy.training
     policy.eval()
     llm.eval()
     total_reward = 0.0
@@ -795,7 +858,7 @@ def evaluate_on_dataset(
             num_evals += 1
 
     avg_reward = total_reward / max(num_evals, 1)
-    policy.train()
+    policy.train(was_training)
     llm.eval()
     return avg_reward
 
@@ -814,6 +877,7 @@ def evaluate_metrics_on_dataset(
     selection_both_exact_weight: float = 0.0,
 ):
     """CNN-style exact Step accuracy + multi-label MCP metrics."""
+    was_training = policy.training
     policy.eval()
     llm.eval()
 
@@ -903,7 +967,7 @@ def evaluate_metrics_on_dataset(
     micro_denom = micro_precision + micro_recall
     mcp_micro_f1 = 0.0 if micro_denom == 0 else 2.0 * micro_precision * micro_recall / micro_denom
 
-    policy.train()
+    policy.train(was_training)
     llm.eval()
     return {
         "avg_reward": avg_reward,
@@ -942,6 +1006,8 @@ def find_best_mcp_threshold(
     selection_mcp_weight: float = 0.25,
     selection_both_exact_weight: float = 0.0,
 ):
+    was_training = policy.training
+    policy.eval()
     candidate_thresholds = [round(x, 2) for x in np.arange(0.10, 0.91, 0.05)]
     best_metrics = None
     for threshold in candidate_thresholds:
@@ -971,6 +1037,56 @@ def find_best_mcp_threshold(
             )
         ):
             best_metrics = metrics
+    per_label_thresholds = []
+    for label_idx in range(len(MCP_LABELS)):
+        best_label_threshold = 0.5
+        best_label_f1 = -1.0
+        for threshold in candidate_thresholds:
+            tp = fp = fn = 0.0
+            with torch.no_grad():
+                for idx in range(len(dataset)):
+                    sample = dataset[idx]
+                    _, mcp_logits = classify_sample(
+                        policy, llm, tokenizer, text_model, sample, device
+                    )
+                    prob = float(torch.sigmoid(mcp_logits.squeeze(0))[label_idx].detach().cpu().item())
+                    pred = 1.0 if prob >= threshold else 0.0
+                    true = float(np.asarray(sample['mcp_multihot'], dtype=np.float32)[label_idx])
+                    tp += 1.0 if pred == 1.0 and true == 1.0 else 0.0
+                    fp += 1.0 if pred == 1.0 and true == 0.0 else 0.0
+                    fn += 1.0 if pred == 0.0 and true == 1.0 else 0.0
+            precision = tp / max(tp + fp, 1.0)
+            recall = tp / max(tp + fn, 1.0)
+            denom = precision + recall
+            label_f1 = 0.0 if denom == 0.0 else 2.0 * precision * recall / denom
+            if label_f1 > best_label_f1:
+                best_label_f1 = label_f1
+                best_label_threshold = threshold
+        per_label_thresholds.append(best_label_threshold)
+
+    per_label_metrics = evaluate_metrics_on_dataset(
+        dataset,
+        policy,
+        llm,
+        tokenizer,
+        text_model,
+        device,
+        threshold=per_label_thresholds,
+        selection_step_weight=selection_step_weight,
+        selection_mcp_weight=selection_mcp_weight,
+        selection_both_exact_weight=selection_both_exact_weight,
+    )
+    per_label_metrics["threshold"] = per_label_thresholds
+    if (
+        best_metrics is None
+        or per_label_metrics["selection_score"] > best_metrics["selection_score"]
+        or (
+            per_label_metrics["selection_score"] == best_metrics["selection_score"]
+            and per_label_metrics["mcp_micro_f1"] > best_metrics["mcp_micro_f1"]
+        )
+    ):
+        best_metrics = per_label_metrics
+    policy.train(was_training)
     return best_metrics
 
 
@@ -1128,6 +1244,9 @@ def main():
     step_class_weighting = bool(config['training'].get('step_class_weighting', True))
     step_class_weight_power = float(config['training'].get('step_class_weight_power', 0.5))
     max_step_class_weight = float(config['training'].get('max_step_class_weight', 4.0))
+    mcp_class_weighting = bool(config['training'].get('mcp_class_weighting', True))
+    mcp_class_weight_power = float(config['training'].get('mcp_class_weight_power', 0.5))
+    max_mcp_class_weight = float(config['training'].get('max_mcp_class_weight', 8.0))
     use_weighted_sampler = bool(config['training'].get('use_weighted_sampler', True))
     sampler_power = float(config['training'].get('sampler_power', 1.0))
     selection_step_weight = float(config['training'].get('selection_step_weight', 0.75))
@@ -1149,6 +1268,14 @@ def main():
             max_weight=max_step_class_weight,
         ).to(device)
         print(f"Using Step class weights: {step_class_weights.detach().cpu().tolist()}")
+    mcp_pos_weights = None
+    if mcp_class_weighting:
+        mcp_pos_weights = compute_mcp_pos_weights(
+            train_dataset,
+            power=mcp_class_weight_power,
+            max_weight=max_mcp_class_weight,
+        ).to(device)
+        print(f"Using MCP positive weights: {mcp_pos_weights.detach().cpu().tolist()}")
     train_sampler = None
     if use_weighted_sampler:
         train_sampler, _ = build_step_weighted_sampler(
@@ -1180,6 +1307,8 @@ def main():
             {
                 "params": list(policy.project_step_text.parameters())
                 + list(policy.combine.parameters())
+                + list(policy.policy_feature_projection.parameters())
+                + list(policy.classifier_norm.parameters())
                 + list(policy.readout_projection.parameters())
                 + list(policy.step_head.parameters())
                 + list(policy.mcp_head.parameters()),
@@ -1226,6 +1355,7 @@ def main():
                         step_loss_weight=step_loss_weight,
                         mcp_loss_weight=mcp_loss_weight,
                         step_class_weights=step_class_weights,
+                        mcp_pos_weights=mcp_pos_weights,
                     )
                     if drift_guard_weight > 0.0 and pretrained_gnn_reference:
                         loss = loss + drift_guard_weight * drift_guard_loss(policy.gnn, pretrained_gnn_reference, device)
@@ -1306,7 +1436,7 @@ def main():
             f"Val MCP F1: {val_metrics['mcp_f1']:.4f}, "
             f"Val MCP Exact: {val_metrics['mcp_exact']:.4f}, "
             f"Selection Score: {val_metrics['selection_score']:.4f}, "
-            f"Best Thr: {val_metrics['threshold']:.2f}\n"
+            f"Best Thr: {format_threshold(val_metrics['threshold'])}\n"
         )
 
         # Early stopping check
@@ -1332,6 +1462,7 @@ def main():
                         "val_combined_score": val_metrics["combined_score"],
                         "val_selection_score": val_metrics["selection_score"],
                         "mcp_threshold": val_metrics["threshold"],
+                        "mcp_thresholds": val_metrics["threshold"],
                         "phase": "supervised",
                         "gnn_type": gnn_type,
                         "graph_token_count": graph_token_count,
@@ -1446,6 +1577,7 @@ def main():
                                 step_loss_weight=step_loss_weight,
                                 mcp_loss_weight=mcp_loss_weight,
                                 step_class_weights=step_class_weights,
+                                mcp_pos_weights=mcp_pos_weights,
                             )
                         aux_loss_terms.append(sup_loss)
                         if device.type == 'cuda':
@@ -1523,7 +1655,7 @@ def main():
             f"Val MCP F1: {val_metrics['mcp_f1']:.4f}, "
             f"Val MCP Exact: {val_metrics['mcp_exact']:.4f}, "
             f"Selection Score: {val_metrics['selection_score']:.4f}, "
-            f"Best Thr: {val_metrics['threshold']:.2f}\n"
+            f"Best Thr: {format_threshold(val_metrics['threshold'])}\n"
         )
 
         if val_metrics["selection_score"] > best_val_combined:
@@ -1548,6 +1680,7 @@ def main():
                         "val_combined_score": val_metrics["combined_score"],
                         "val_selection_score": val_metrics["selection_score"],
                         "mcp_threshold": val_metrics["threshold"],
+                        "mcp_thresholds": val_metrics["threshold"],
                         "phase": "grpo",
                         "gnn_type": gnn_type,
                         "graph_token_count": graph_token_count,
@@ -1591,7 +1724,7 @@ def main():
         best_checkpoint_path = os.path.join(output_dir, "best_supervised_checkpoint.pt")
     checkpoint = torch.load(best_checkpoint_path, map_location=device)
     policy.load_state_dict(checkpoint["policy"])
-    best_mcp_threshold = float(checkpoint.get("mcp_threshold", best_mcp_threshold))
+    best_mcp_threshold = checkpoint.get("mcp_thresholds", checkpoint.get("mcp_threshold", best_mcp_threshold))
 
     test_metrics = evaluate_metrics_on_dataset(
         test_dataset, policy, llm, tokenizer, text_model, device, threshold=best_mcp_threshold
@@ -1601,7 +1734,7 @@ def main():
     print(f"Test MCP F1: {test_metrics['mcp_f1']:.4f}")
     print(f"Test MCP Exact: {test_metrics['mcp_exact']:.4f}")
     print(f"Test Both Exact: {test_metrics['both_exact']:.4f}")
-    print(f"Test MCP Threshold: {best_mcp_threshold:.2f}\n")
+    print(f"Test MCP Threshold: {format_threshold(best_mcp_threshold)}\n")
 
     # Save final
     atomic_torch_save(
@@ -1621,6 +1754,7 @@ def main():
                 "test_mcp_f1": test_metrics["mcp_f1"],
                 "test_mcp_exact": test_metrics["mcp_exact"],
                 "mcp_threshold": best_mcp_threshold,
+                "mcp_thresholds": best_mcp_threshold,
                 "gnn_type": gnn_type,
                 "graph_token_count": graph_token_count,
                 "pooling_strategy": pooling_strategy,

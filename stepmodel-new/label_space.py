@@ -151,7 +151,13 @@ def step_id_to_label(step_id: int) -> str:
 
 def multihot_to_mcp_tools(multihot, threshold: float = 0.5) -> Set[str]:
     arr = np.asarray(multihot, dtype=np.float32)
-    return {MCP_ID2LABEL[i] for i, value in enumerate(arr) if value >= threshold}
+    if isinstance(threshold, (list, tuple, np.ndarray)):
+        thresholds = np.asarray(threshold, dtype=np.float32)
+        if thresholds.size != arr.size:
+            raise ValueError(f"Expected {arr.size} MCP thresholds, got {thresholds.size}")
+    else:
+        thresholds = np.full(arr.size, float(threshold), dtype=np.float32)
+    return {MCP_ID2LABEL[i] for i, value in enumerate(arr) if value >= thresholds[i]}
 
 
 def set_f1(pred_set: Set[str], true_set: Set[str]) -> float:

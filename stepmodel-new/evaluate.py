@@ -25,6 +25,7 @@ from train_gnn_rl import (
     PenTestDataset,
     classify_sample,
     evaluate_metrics_on_dataset,
+    format_threshold,
 )
 
 
@@ -249,7 +250,14 @@ def main():
     ).to(device)
 
     if checkpoint is not None:
-        policy.load_state_dict(policy_state)
+        load_result = policy.load_state_dict(policy_state, strict=False)
+        if load_result.missing_keys:
+            print(f"Initialized new policy keys not present in checkpoint: {load_result.missing_keys}")
+            if any(key.startswith("policy_feature_projection.") for key in load_result.missing_keys):
+                policy.use_direct_policy_features = False
+                print("Disabled direct policy-feature path for this older checkpoint.")
+        if load_result.unexpected_keys:
+            print(f"Ignored unexpected checkpoint keys: {load_result.unexpected_keys}")
         llm_checkpoint_mode = checkpoint.get("llm_checkpoint_mode", "frozen_external")
         if llm_checkpoint_mode == "full" and checkpoint.get("llm"):
             llm.load_state_dict(checkpoint["llm"])
@@ -266,9 +274,9 @@ def main():
         graph_token_count=checkpoint_graph_token_count,
     )
 
-    mcp_threshold = float(checkpoint.get("mcp_threshold", 0.5)) if checkpoint is not None else 0.5
+    mcp_threshold = checkpoint.get("mcp_thresholds", checkpoint.get("mcp_threshold", 0.5)) if checkpoint is not None else 0.5
 
-    print("Evaluating on full test dataset...")
+    print(f"Evaluating on full test dataset with MCP threshold(s): {format_threshold(mcp_threshold)}")
     metrics = evaluate_metrics_on_dataset(
         test_dataset, policy, llm, tokenizer, text_model, device, threshold=mcp_threshold
     )
