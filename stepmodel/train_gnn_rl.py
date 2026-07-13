@@ -1258,6 +1258,11 @@ def main():
     print(f"Resizing token embeddings from {llm.config.vocab_size} to {len(tokenizer)}")
     llm.resize_token_embeddings(len(tokenizer))
     llm.gradient_checkpointing_enable()
+    
+    # Move model to device if not using device_map
+    if device_map is None:
+        print(f"Moving model to {device}")
+        llm.to(device)
 
     if use_lora:
         if load_in_4bit:
