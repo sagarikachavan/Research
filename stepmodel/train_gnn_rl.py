@@ -1253,7 +1253,6 @@ def main():
         quantization_config=quant_config,
         max_memory={0: "20GB", "cpu": "30GB"} if not load_in_4bit else None,
     )
-    llm.resize_token_embeddings(len(tokenizer))
     llm.gradient_checkpointing_enable()
 
     if use_lora:
@@ -1269,6 +1268,9 @@ def main():
             task_type="CAUSAL_LM",
         )
         llm = get_peft_model(llm, lora_config)
+    
+    # Resize token embeddings after LoRA is applied to ensure proper handling with device_map
+    llm.resize_token_embeddings(len(tokenizer))
 
     llm_hidden_size = llm.config.hidden_size
     gnn_type = str(config.get('model', {}).get('gnn_type', 'gcn')).lower()
