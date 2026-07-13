@@ -1,11 +1,36 @@
 # Model checkpoints
 stepmodel/checkpoints/
+stepmodel-new/checkpoints/
 
 # Processed embeddings
-stepmodel/embeddings_data/train/all_processed.json
+stepmodel/embeddings_data/
+stepmodel-new/embeddings_data/
+
+# Processed data
+stepmodel/processed_data/
+stepmodel-new/processed_data/
+
+# Logs
+stepmodel/logs/
+stepmodel-new/logs/
+stepmodel/.dbg/
+stepmodel-new/.dbg/
+*.log
 
 # PyTorch models
 *.pt
 *.pth
 *.ckpt
 *.safetensors
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+
+# Jupyter checkpoints
+.ipynb_checkpoints/
+
+# Debug files
+*.ndjson
+*.env
