@@ -390,6 +390,7 @@ def main():
         use_gat=config['model']['use_gat'],
         pooling_strategy=checkpoint_pooling_strategy,
         graph_token_count=checkpoint_graph_token_count,
+        gnn_hidden_dim=config['model'].get('gnn_hidden_dim', 256),
     ).to(device)
 
     if checkpoint is not None:

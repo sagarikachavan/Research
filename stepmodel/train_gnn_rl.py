@@ -233,13 +233,14 @@ class GNNLLMPolicy(nn.Module):
         use_gat: bool = False,
         pooling_strategy: str = "mean",
         graph_token_count: int = 4,
+        gnn_hidden_dim: int = 256,
     ):
         super().__init__()
         self.pooling_strategy = str(pooling_strategy or "mean").lower()
         self.graph_token_count = int(graph_token_count)
         self.gnn = GNNModel(
             node_dim=text_emb_dim,
-            hidden_dim=256,
+            hidden_dim=gnn_hidden_dim,
             output_dim=gnn_out_dim,
             gnn_type=gnn_type,
             use_gat=use_gat,
@@ -247,10 +248,14 @@ class GNNLLMPolicy(nn.Module):
         
         # Enhanced text projection with normalization and dropout
         self.project_step_text = nn.Sequential(
-            nn.Linear(text_emb_dim, 512),
-            nn.LayerNorm(512),
+            nn.Linear(text_emb_dim, 768),
+            nn.LayerNorm(768),
             nn.ReLU(),
             nn.Dropout(0.15),
+            nn.Linear(768, 512),
+            nn.LayerNorm(512),
+            nn.ReLU(),
+            nn.Dropout(0.12),
             nn.Linear(512, gnn_out_dim),
             nn.LayerNorm(gnn_out_dim),
             nn.ReLU(),
@@ -1226,12 +1231,11 @@ def main():
     if load_in_4bit:
         bnb_ok, bnb_msg = get_bitsandbytes_4bit_status()
         if not bnb_ok:
-            print(f"Error: {bnb_msg}")
-            print("Please install bitsandbytes: pip install -U bitsandbytes>=0.46.1")
-            print("Or set load_in_4bit to false in config.json and use a smaller model")
-            raise RuntimeError("bitsandbytes is required for 4-bit quantization but not installed")
+            print(f"Warning: {bnb_msg}")
+            load_in_4bit = False
         else:
             print(bnb_msg)
+    if load_in_4bit:
         compute_dtype = torch.bfloat16 if (device.type == "cuda" and torch.cuda.is_bf16_supported()) else torch.float16
         quant_config = BitsAndBytesConfig(
             load_in_4bit=True,
@@ -1240,10 +1244,6 @@ def main():
             bnb_4bit_compute_dtype=compute_dtype,
         )
         device_map = "auto"
-    else:
-        # Without 4-bit, load model directly on device to avoid device_map issues
-        print("Loading model without 4-bit quantization - ensure model fits in GPU memory")
-        device_map = None
 
     llm = AutoModelForCausalLM.from_pretrained(
         llm_name,
@@ -1253,16 +1253,9 @@ def main():
         device_map=device_map,
         quantization_config=quant_config,
     )
-    
-    # Resize embeddings
-    print(f"Resizing token embeddings from {llm.config.vocab_size} to {len(tokenizer)}")
     llm.resize_token_embeddings(len(tokenizer))
-    # Enable gradient checkpointing to save memory
     llm.gradient_checkpointing_enable()
-    
-    # Move model to device if not using device_map
     if device_map is None:
-        print(f"Moving model to {device}")
         llm.to(device)
 
     if use_lora:
@@ -1283,6 +1276,7 @@ def main():
     gnn_type = str(config.get('model', {}).get('gnn_type', 'gcn')).lower()
     pooling_strategy = str(config.get('model', {}).get('pooling_strategy', 'hybrid')).lower()
     graph_token_count = int(config.get('model', {}).get('graph_token_count', 4))
+    gnn_hidden_dim = int(config.get('model', {}).get('gnn_hidden_dim', 256))
     prompt_style = str(config.get('training', {}).get('prompt_style', 'compact')).lower()
 
     # Initialize policy
@@ -1294,6 +1288,7 @@ def main():
         use_gat=config['model']['use_gat'],
         pooling_strategy=pooling_strategy,
         graph_token_count=graph_token_count,
+        gnn_hidden_dim=gnn_hidden_dim,
     ).to(device)
 
     # Training setup first (define batch_size before creating loader)
@@ -1409,8 +1404,7 @@ def main():
     scheduler = get_linear_schedule_with_warmup(
         optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=total_steps
     )
-    # Disable AMP when using float16 to avoid gradient scaling issues
-    amp_enabled = device.type == "cuda" and torch_dtype != torch.float16
+    amp_enabled = device.type == "cuda"
     scaler = torch.amp.GradScaler(device.type, enabled=amp_enabled)
 
     # Training
