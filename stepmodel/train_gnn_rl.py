@@ -142,13 +142,15 @@ def atomic_torch_save(obj, path: str):
     try:
         torch.save(obj, tmp_path)
         os.replace(tmp_path, path)
-    except Exception:
+    except Exception as e:
         if os.path.exists(tmp_path):
             try:
                 os.remove(tmp_path)
             except OSError:
                 pass
-        raise
+        print(f"Warning: Failed to save checkpoint to {path}: {e}")
+        print("Training will continue without saving this checkpoint")
+        # Don't raise - allow training to continue
 
 
 class GNNModel(nn.Module):
