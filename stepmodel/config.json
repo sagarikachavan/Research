@@ -2,8 +2,8 @@
   "model": {
     "llm_name": "Qwen/Qwen3-14B",
     "trust_remote_code": true,
-    "load_in_4bit": false,
-    "use_lora": false,
+    "load_in_4bit": true,
+    "use_lora": true,
     "lora_r": 32,
     "lora_alpha": 64,
     "lora_dropout": 0.1,
@@ -16,7 +16,7 @@
       "up_proj",
       "down_proj"
     ],
-    "torch_dtype": "bfloat16",
+    "torch_dtype": "float16",
     "text_embedding_model": "all-MiniLM-L6-v2",
     "gnn_hidden_dim": 512,
     "gnn_out_dim": 256,
