@@ -60,7 +60,6 @@
   },
   "paths": {
     "data_dir": "data",
-    "embeddings_dir": "embeddings_data",
     "output_dir": "/tmp/stepmodel_checkpoints",
     "log_dir": "/tmp/stepmodel_logs"
   }

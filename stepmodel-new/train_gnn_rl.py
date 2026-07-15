@@ -220,30 +220,22 @@ class PenTestDataset(Dataset):
         text_model: SentenceTransformer,
         max_seq_length=1024,
         prompt_style: str = "full",
-        graph_token_count: int = 1,
     ):
         self.data = data
         self.text_model = text_model
         self.max_seq_length = max_seq_length
         self.prompt_style = str(prompt_style or "full").lower()
-        self.graph_token_count = int(graph_token_count)
         self.samples = []
         self.skipped_unknown_step = 0
         self._prepare_samples()
 
     def _prepare_samples(self):
-        for machine in self.data:
-            machine_nodes = machine.get('nodes', [])
-            machine_edges = machine.get('edges', [])
-            for step_pair in machine['step_pairs']:
-                if step_label_to_id(step_pair.get('next_step')) is None:
-                    self.skipped_unknown_step += 1
-                    continue
-                self.samples.append({
-                    'nodes': step_pair.get('nodes', machine_nodes),
-                    'edges': step_pair.get('edges', machine_edges),
-                    'step_pair': step_pair
-                })
+        for sample in self.data:
+            step_pair = sample['step_pair']
+            if step_label_to_id(step_pair.get('next_step')) is None:
+                self.skipped_unknown_step += 1
+                continue
+            self.samples.append(sample)
 
     def __len__(self):
         return len(self.samples)
@@ -260,7 +252,6 @@ class PenTestDataset(Dataset):
             'prompt_text': build_prompt_text(
                 step_pair,
                 prompt_style=self.prompt_style,
-                graph_token_count=self.graph_token_count,
             ),
             'previous_text': build_previous_text(step_pair, prompt_style=self.prompt_style),
             'step_pair': step_pair,
@@ -351,9 +342,35 @@ def build_prompt_text(
     )
 
 
-def load_processed_data(embeddings_path: str):
-    with open(embeddings_path, 'r') as f:
-        return json.load(f)
+def load_processed_data(csv_path: str):
+    """Load data from CSV file and convert to expected format."""
+    import pandas as pd
+    df = pd.read_csv(csv_path)
+    
+    # Convert CSV to list of dicts matching expected format
+    data = []
+    for _, row in df.iterrows():
+        # Map CSV columns to expected field names
+        step_pair = {
+            'previous_strategy': row.get('Previous strategy', ''),
+            'previous_step': row.get('Previous step', ''),
+            'previous_step_result': row.get('Previous step result', ''),
+            'next_strategy': row.get('New strategy', ''),
+            'next_strategy_explanation': row.get('Strategy explanation', ''),
+            'next_step': row.get('New step', ''),
+            'next_step_explanation': row.get('Step explanation', ''),
+            'next_mcp_tasks': row.get('MCP_tasks', ''),
+        }
+        
+        # Create sample with graph data (empty for now - will be generated)
+        sample = {
+            'step_pair': step_pair,
+            'nodes': [],  # Will be populated by generate_graphs.py
+            'edges': [],  # Will be populated by generate_graphs.py
+        }
+        data.append(sample)
+    
+    return data
 
 
 def split_train_val(train_data: List[Dict], val_split: float = 0.1, seed: int = 42):
@@ -997,7 +1014,6 @@ def main():
 
     base_dir = os.path.dirname(os.path.abspath(__file__))
     data_dir = os.path.join(base_dir, config['paths']['data_dir'])
-    embeddings_dir = os.path.join(base_dir, config['paths']['embeddings_dir'])
     output_dir = os.path.join(base_dir, config['paths']['output_dir'])
     log_dir = os.path.join(base_dir, config['paths']['log_dir'])
     os.makedirs(output_dir, exist_ok=True)
@@ -1021,8 +1037,9 @@ def main():
     text_emb_dim = text_model.get_embedding_dimension()
 
     # Load data
-    full_train_data = load_processed_data(os.path.join(embeddings_dir, "train", "all_processed.json"))
-    test_data = load_processed_data(os.path.join(embeddings_dir, "test", "all_processed.json"))
+    data_dir = os.path.join(base_dir, config['paths']['data_dir'])
+    full_train_data = load_processed_data(os.path.join(data_dir, "training_data.csv"))
+    test_data = load_processed_data(os.path.join(data_dir, "test_data.csv"))
     train_data, val_data = split_train_val(full_train_data, val_split=config['training']['validation_split'])
 
     # Load tokenizer and LLM
@@ -1032,9 +1049,7 @@ def main():
     tokenizer = AutoTokenizer.from_pretrained(llm_name, trust_remote_code=trust_remote_code)
     tokenizer.pad_token = tokenizer.eos_token
     tokenizer.padding_side = "right"
-    special_tokens_dict = {'additional_special_tokens': ['[GRAPH]']}
-    num_added_toks = tokenizer.add_special_tokens(special_tokens_dict)
-    print(f"Added {num_added_toks} special tokens")
+    print("Tokenizer loaded")
 
     torch_dtype_name = str(config.get('model', {}).get('torch_dtype', 'float16')).lower()
     if torch_dtype_name in {"bf16", "bfloat16"}:
