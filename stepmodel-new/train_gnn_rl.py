@@ -12,6 +12,7 @@ import numpy as np
 import time
 import urllib.request
 import argparse
+from importlib import metadata as importlib_metadata
 from typing import List, Dict, Any, Optional
 
 import torch
@@ -30,9 +31,19 @@ from sentence_transformers import SentenceTransformer
 from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM,
+    BitsAndBytesConfig,
     get_linear_schedule_with_warmup
 )
 from torch_geometric.nn import GCNConv, GATConv, SAGEConv, global_mean_pool
+
+try:
+    from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+    PEFT_AVAILABLE = True
+except ImportError:
+    LoraConfig = None
+    get_peft_model = None
+    prepare_model_for_kbit_training = None
+    PEFT_AVAILABLE = False
 
 from label_space import (
     STEP_LABELS,
@@ -50,89 +61,52 @@ def set_seed(seed: int = 42):
     random.seed(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
-    if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
 
-def create_curriculum_dataset(dataset, stage: int, total_stages: int, quality_threshold: float = 0.7):
-    """
-    Create curriculum learning dataset based on training stage.
-    
-    Args:
-        dataset: Full dataset
-        stage: Current curriculum stage (0 to total_stages-1)
-        total_stages: Total number of curriculum stages
-        quality_threshold: Minimum quality score for samples
-    
-    Returns:
-        Subset of dataset for current stage
-    """
-    if total_stages <= 1:
-        return dataset
-    
-    # Calculate progress through curriculum
-    progress = (stage + 1) / total_stages
-    
-    # For early stages, use only high-quality samples
-    # For later stages, gradually include more samples
-    if stage == 0:
-        # Stage 0: Only highest quality samples
-        threshold = quality_threshold + 0.2
-    elif stage < total_stages - 1:
-        # Middle stages: Progressive quality threshold
-        threshold = quality_threshold + (0.2 * (1 - progress))
-    else:
-        # Final stage: All samples above base threshold
-        threshold = quality_threshold
-    
-    # Filter dataset based on quality scores if available
-    filtered_indices = []
-    for idx, sample in enumerate(dataset):
-        # If sample has quality score, use it
-        if hasattr(sample, 'quality_score'):
-            if sample.quality_score >= threshold:
-                filtered_indices.append(idx)
+def _parse_version_tuple(version_str: str):
+    parts = []
+    for token in str(version_str).replace("-", ".").split("."):
+        digits = "".join(ch for ch in token if ch.isdigit())
+        if digits:
+            parts.append(int(digits))
         else:
-            # If no quality score, include all samples in later stages
-            if stage >= total_stages - 2:
-                filtered_indices.append(idx)
-    
-    if len(filtered_indices) == 0:
-        # Fallback: return random subset if no quality scores
-        subset_size = int(len(dataset) * progress)
-        filtered_indices = random.sample(range(len(dataset)), min(subset_size, len(dataset)))
-    
-    # Create subset
-    from torch.utils.data import Subset
-    return Subset(dataset, filtered_indices)
+            break
+    return tuple(parts)
 
 
-def freeze_module(module: nn.Module):
-    module.eval()
-    for param in module.parameters():
-        param.requires_grad_(False)
+def get_bitsandbytes_4bit_status():
+    try:
+        version = importlib_metadata.version("bitsandbytes")
+    except importlib_metadata.PackageNotFoundError:
+        return False, (
+            "4-bit quantization is enabled in config.json, but `bitsandbytes` is not installed. "
+            "Falling back to non-4bit loading. Install it with `pip install -U bitsandbytes>=0.46.1` "
+            "to re-enable 4-bit quantization."
+        )
+
+    if _parse_version_tuple(version) < (0, 46, 1):
+        return False, (
+            f"4-bit quantization requires `bitsandbytes>=0.46.1`, but found {version}. "
+            "Falling back to non-4bit loading. Upgrade it with `pip install -U bitsandbytes>=0.46.1` "
+            "to re-enable 4-bit quantization."
+        )
+    return True, f"bitsandbytes {version} detected; using 4-bit quantization."
 
 
-def snapshot_trainable_state(module: nn.Module) -> Dict[str, torch.Tensor]:
-    return {
-        name: tensor.detach().clone()
-        for name, tensor in module.state_dict().items()
-        if torch.is_floating_point(tensor)
-    }
+def extract_llm_checkpoint_state(llm):
+    has_peft = bool(getattr(llm, "peft_config", None))
+    if has_peft:
+        llm_state = {}
+        for name, param in llm.named_parameters():
+            if param.requires_grad or "lora_" in name or "modules_to_save" in name:
+                llm_state[name] = param.detach().cpu()
+        return llm_state, "trainable_only"
 
-
-def drift_guard_loss(module: nn.Module, reference_state: Dict[str, torch.Tensor], device) -> torch.Tensor:
-    if not reference_state:
-        return torch.zeros((), device=device)
-    terms = []
-    current_state = module.state_dict()
-    for name, ref in reference_state.items():
-        cur = current_state.get(name)
-        if cur is not None and torch.is_floating_point(cur):
-            terms.append(F.mse_loss(cur, ref.to(device)))
-    if not terms:
-        return torch.zeros((), device=device)
-    return torch.stack(terms).mean()
+    llm_state = {name: tensor.detach().cpu() for name, tensor in llm.state_dict().items()}
+    return llm_state, "full"
 
 
 def build_checkpoint_payload(
@@ -144,10 +118,11 @@ def build_checkpoint_payload(
     scheduler=None,
     extra: Optional[Dict[str, Any]] = None,
 ):
-    del llm
+    llm_state, llm_checkpoint_mode = extract_llm_checkpoint_state(llm)
     payload = {
         "policy": {name: tensor.detach().cpu() for name, tensor in policy.state_dict().items()},
-        "llm_checkpoint_mode": "frozen_external",
+        "llm": llm_state,
+        "llm_checkpoint_mode": llm_checkpoint_mode,
         "llm_name": llm_name,
         "llm_hidden_size": llm_hidden_size,
         "step_labels": STEP_LABELS,
@@ -167,50 +142,15 @@ def atomic_torch_save(obj, path: str):
     try:
         torch.save(obj, tmp_path)
         os.replace(tmp_path, path)
-    except Exception:
+    except Exception as e:
         if os.path.exists(tmp_path):
             try:
                 os.remove(tmp_path)
             except OSError:
                 pass
-        raise
-
-
-class GNNModel(nn.Module):
-    def __init__(
-        self,
-        node_dim: int,
-        hidden_dim: int,
-        output_dim: int,
-        gnn_type: str = "gcn",
-        use_gat: bool = False,
-    ):
-        super().__init__()
-        if use_gat:
-            gnn_type = "gat"
-        self.gnn_type = str(gnn_type or "gcn").lower()
-        if self.gnn_type == "gat":
-            self.conv1 = GATConv(node_dim, hidden_dim, heads=4, concat=True)
-            self.conv2 = GATConv(hidden_dim * 4, hidden_dim, heads=4, concat=True)
-            self.fc = nn.Linear(hidden_dim * 4, output_dim)
-        elif self.gnn_type == "gcn":
-            self.conv1 = GCNConv(node_dim, hidden_dim)
-            self.conv2 = GCNConv(hidden_dim, hidden_dim)
-            self.fc = nn.Linear(hidden_dim, output_dim)
-        elif self.gnn_type == "sage":
-            self.conv1 = SAGEConv(node_dim, hidden_dim)
-            self.conv2 = SAGEConv(hidden_dim, hidden_dim)
-            self.fc = nn.Linear(hidden_dim, output_dim)
-        else:
-            raise ValueError(f"Unsupported gnn_type: {gnn_type}")
-        self.relu = nn.ReLU()
-
-    def forward(self, x: torch.Tensor, edge_index: torch.Tensor, batch: torch.Tensor):
-        x = self.relu(self.conv1(x, edge_index))
-        x = self.relu(self.conv2(x, edge_index))
-        x = global_mean_pool(x, batch)
-        x = self.fc(x)
-        return x
+        print(f"Warning: Failed to save checkpoint to {path}: {e}")
+        print("Training will continue without saving this checkpoint")
+        # Don't raise - allow training to continue
 
 
 class GNNLLMPolicy(nn.Module):
@@ -219,40 +159,12 @@ class GNNLLMPolicy(nn.Module):
         gnn_out_dim: int,
         text_emb_dim: int,
         llm_hidden_size: int,
-        gnn_type: str = "gcn",
-        use_gat: bool = False,
         pooling_strategy: str = "mean",
-        graph_token_count: int = 4,
     ):
         super().__init__()
         self.pooling_strategy = str(pooling_strategy or "mean").lower()
-        self.graph_token_count = int(graph_token_count)
-        self.gnn = GNNModel(
-            node_dim=text_emb_dim,
-            hidden_dim=256,
-            output_dim=gnn_out_dim,
-            gnn_type=gnn_type,
-            use_gat=use_gat,
-        )
-        self.project_step_text = nn.Sequential(
-            nn.Linear(text_emb_dim, 256),
-            nn.ReLU(),
-            nn.Linear(256, gnn_out_dim)
-        )
-        self.combine = nn.Sequential(
-            nn.Linear(gnn_out_dim * 2, gnn_out_dim),
-            nn.ReLU()
-        )
-        self.graph_token_projector = nn.Linear(gnn_out_dim, llm_hidden_size * self.graph_token_count)
-        self.use_direct_policy_features = True
-        self.policy_feature_projection = nn.Sequential(
-            nn.LayerNorm(gnn_out_dim),
-            nn.Linear(gnn_out_dim, llm_hidden_size),
-            nn.ReLU(),
-            nn.Dropout(0.1),
-        )
         self.classifier_norm = nn.LayerNorm(llm_hidden_size)
-        self.classifier_dropout = nn.Dropout(0.1)
+        self.classifier_dropout = nn.Dropout(0.2)
         if self.pooling_strategy == "hybrid":
             self.readout_projection = nn.Sequential(
                 nn.LayerNorm(llm_hidden_size * 2),
@@ -263,93 +175,23 @@ class GNNLLMPolicy(nn.Module):
             self.readout_projection = nn.Identity()
         else:
             raise ValueError(f"Unsupported pooling_strategy: {pooling_strategy}")
-        self.step_head = nn.Linear(llm_hidden_size, len(STEP_LABELS))
-        self.mcp_head = nn.Linear(llm_hidden_size, len(MCP_LABELS))
-
-    def get_graph_embedding(self, nodes, edges, device):
-        """
-        Converts raw penetration testing environment graph data (nodes + edges)
-        into a fixed-size embedding vector using the GNN model.
         
-        This function:
-        1. Validates input (handles empty node lists gracefully)
-        2. Converts raw node data into PyTorch tensor embeddings
-        3. Maps string node IDs from raw data to integer indices for PyG
-        4. Converts raw edge data into PyTorch Geometric's edge_index format
-        5. Creates batch tensor (single graph, all nodes in one batch)
-        6. Passes everything to GNNModel to get final graph embedding
+        # Enhanced classifier heads with better regularization
+        self.step_head = nn.Sequential(
+            nn.Linear(llm_hidden_size, llm_hidden_size // 2),
+            nn.LayerNorm(llm_hidden_size // 2),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(llm_hidden_size // 2, len(STEP_LABELS))
+        )
         
-        Args:
-            nodes (List[Dict]): List of nodes, each node is a dict with:
-                - 'id': Unique string identifier for the node (e.g., machine name/service ID)
-                - 'embedding': Pre-computed Sentence-BERT embedding vector for the node
-            edges (List[Dict]): List of edges, each edge is a dict with:
-                - 'from': Source node ID (string, matches node['id'])
-                - 'to': Target node ID (string, matches node['id'])
-            device (torch.device): Device to move tensors to (CPU or CUDA)
-        
-        Returns:
-            torch.Tensor: Fixed-size graph embedding vector of shape (1, gnn_out_dim)
-        """
-        # --- Handle empty nodes case gracefully ---
-        # If there are no nodes in the graph, we create a dummy graph with a single zero embedding
-        # node and no edges to avoid errors from the GNN expecting non-empty input
-        if not nodes:
-            # Get the expected input dimension for the GNN's first convolutional layer
-            node_dim = self.gnn.conv1.in_channels
-            # Create a dummy node embedding: shape (1, node_dim), all zeros
-            dummy_node_emb = torch.zeros((1, node_dim), dtype=torch.float32).to(device)
-            # Create dummy edge index: shape (2, 0), which means "no edges" in PyG
-            dummy_edge_index = torch.empty((2, 0), dtype=torch.long).to(device)
-            # Create dummy batch tensor: shape (1,), all zeros (single graph, one node)
-            dummy_batch = torch.zeros(1, dtype=torch.long).to(device)
-            # Pass dummy graph through GNN and return the result
-            return self.gnn(dummy_node_emb, dummy_edge_index, dummy_batch)
-        
-        # --- Process non-empty graph ---
-        # 1. Convert node embeddings from Python lists to PyTorch tensor
-        # Shape: (num_nodes, text_emb_dim)
-        node_embs = torch.tensor([n['embedding'] for n in nodes], dtype=torch.float32).to(device)
-        
-        # 2. Create a mapping from raw string node IDs to 0-based integer indices
-        # (PyTorch Geometric requires integer node indices)
-        node_id_map = {n['id']: i for i, n in enumerate(nodes)}
-        
-        # 3. Process edges and build edge_index
-        edge_index_list = []
-        for e in edges:
-            # Only keep edges where both source and target nodes exist in our node list
-            if e['from'] in node_id_map and e['to'] in node_id_map:
-                # Convert string IDs to integer indices and add to list
-                edge_index_list.append([node_id_map[e['from']], node_id_map[e['to']]])
-        
-        # 4. Convert edge list to PyTorch Geometric's edge_index format:
-        # Shape (2, num_edges), where first row = source indices, second row = target indices
-        if edge_index_list:
-            edge_index = torch.tensor(edge_index_list, dtype=torch.long).t().contiguous().to(device)
-        else:
-            # If no valid edges, use empty edge_index tensor (shape (2,0))
-            edge_index = torch.empty((2, 0), dtype=torch.long).to(device)
-        
-        # 5. Create batch tensor: all nodes belong to same graph (all zeros)
-        # Shape: (num_nodes,)
-        batch = torch.zeros(node_embs.size(0), dtype=torch.long).to(device)
-        
-        # 6. Pass processed graph data to GNNModel to get final fixed-size graph embedding
-        return self.gnn(node_embs, edge_index, batch)
-
-    def forward(self, nodes, edges, step_text_embeddings, device):
-        graph_tokens, _ = self.encode_context(nodes, edges, step_text_embeddings, device)
-        return graph_tokens
-
-    def encode_context(self, nodes, edges, step_text_embeddings, device):
-        graph_emb = self.get_graph_embedding(nodes, edges, device)
-        step_proj = self.project_step_text(step_text_embeddings)
-        combined = self.combine(torch.cat([graph_emb, step_proj], dim=-1))
-        graph_tokens = self.graph_token_projector(combined)
-        graph_tokens = graph_tokens.view(combined.size(0), self.graph_token_count, -1)
-        policy_features = self.policy_feature_projection(combined)
-        return graph_tokens, policy_features
+        self.mcp_head = nn.Sequential(
+            nn.Linear(llm_hidden_size, llm_hidden_size // 2),
+            nn.LayerNorm(llm_hidden_size // 2),
+            nn.ReLU(),
+            nn.Dropout(0.3),
+            nn.Linear(llm_hidden_size // 2, len(MCP_LABELS))
+        )
 
     def pool_hidden_states(self, hidden: torch.Tensor, attention_mask: torch.Tensor) -> torch.Tensor:
         mask = attention_mask.unsqueeze(-1).float()
@@ -366,7 +208,9 @@ class GNNLLMPolicy(nn.Module):
 
     def classify(self, pooled_hidden: torch.Tensor):
         hidden = self.classifier_dropout(self.classifier_norm(pooled_hidden))
-        return self.step_head(hidden), self.mcp_head(hidden)
+        step_logits = self.step_head(hidden)
+        mcp_logits = self.mcp_head(hidden)
+        return step_logits, mcp_logits
 
 
 class PenTestDataset(Dataset):
@@ -421,6 +265,7 @@ class PenTestDataset(Dataset):
             'previous_text': build_previous_text(step_pair, prompt_style=self.prompt_style),
             'step_pair': step_pair,
             'step_label': step_id,
+            'step_explanation': step_pair.get('next_step_explanation', ''),
             'mcp_multihot': raw_mcp_to_multihot(step_pair['next_mcp_tasks']),
         }
 
@@ -432,23 +277,52 @@ def collate_fn(batch):
     return batch
 
 
+def graph_to_text(nodes, edges) -> str:
+    """Convert graph structure to textual representation."""
+    if not nodes:
+        return "No graph information available."
+    
+    # Build node descriptions
+    node_descriptions = []
+    for node in nodes:
+        node_id = node.get('id', 'unknown')
+        node_type = node.get('type', 'unknown')
+        node_label = node.get('label', 'unknown')
+        node_title = node.get('title', '')
+        desc = f"Node {node_id}: type={node_type}, label={node_label}"
+        if node_title:
+            desc += f", title={node_title}"
+        node_descriptions.append(desc)
+    
+    # Build edge descriptions
+    edge_descriptions = []
+    for edge in edges:
+        from_node = edge.get('from', 'unknown')
+        to_node = edge.get('to', 'unknown')
+        edge_descriptions.append(f"{from_node} -> {to_node}")
+    
+    # Combine into graph description
+    graph_text = "Graph Structure:\n"
+    graph_text += "Nodes:\n" + "\n".join(f"  - {desc}" for desc in node_descriptions) + "\n"
+    if edge_descriptions:
+        graph_text += "Edges:\n" + "\n".join(f"  - {edge}" for edge in edge_descriptions)
+    else:
+        graph_text += "Edges: None"
+    
+    return graph_text
+
+
 def _prompt_fields(step_pair: Dict[str, Any], prompt_style: str = "full"):
     prompt_style = str(prompt_style or "full").lower()
     if prompt_style == "compact":
         return [
-            ("Strategy", step_pair.get('previous_strategy', '')),
-            ("Step", step_pair.get('previous_step', '')),
-            ("Result", step_pair.get('previous_step_result', '')),
-            ("MCP Tasks", step_pair.get('previous_mcp_tasks', '')),
+            ("Strategy", step_pair.get('next_strategy', '')),
+            ("Strategy Explanation", step_pair.get('next_strategy_explanation', '')),
         ]
 
     return [
-        ("Strategy", step_pair.get('previous_strategy', '')),
-        ("Strategy Explanation", step_pair.get('previous_strategy_explanation', '')),
-        ("Step", step_pair.get('previous_step', '')),
-        ("Step Explanation", step_pair.get('previous_step_explanation', '')),
-        ("Result", step_pair.get('previous_step_result', '')),
-        ("MCP Tasks", step_pair.get('previous_mcp_tasks', '')),
+        ("Strategy", step_pair.get('next_strategy', '')),
+        ("Strategy Explanation", step_pair.get('next_strategy_explanation', '')),
     ]
 
 
@@ -466,13 +340,14 @@ def build_prompt_text(
         f"{label}: {value}"
         for label, value in _prompt_fields(step_pair, prompt_style=prompt_style)
     )
-    graph_prefix = " ".join(["[GRAPH]"] * max(int(graph_token_count), 1))
+    graph_text = graph_to_text(step_pair.get('nodes', []), step_pair.get('edges', []))
     return (
-        f"{graph_prefix}\n"
-        "### Previous Penetration Testing Context ###\n"
+        "### Graph Information ###\n"
+        f"{graph_text}\n\n"
+        "### Current Strategy ###\n"
         f"{context_lines}\n\n"
         "### Prediction Task ###\n"
-        "Predict the next Step label and the MCP tool labels from the fixed ontology."
+        "Predict the next Step label, Step explanation, and MCP tool labels from the fixed ontology."
     )
 
 
@@ -560,6 +435,12 @@ def compute_reward(
     )
 
 
+def predict_mcp_multihot(mcp_logits: torch.Tensor, threshold: float = 0.5) -> np.ndarray:
+    probs = torch.sigmoid(mcp_logits).detach().cpu().numpy()
+    thresholds = _threshold_array(threshold, probs.shape[-1])
+    return (probs >= thresholds).astype(np.float32)
+
+
 def _threshold_array(threshold, size: int) -> np.ndarray:
     if isinstance(threshold, (list, tuple, np.ndarray)):
         values = np.asarray(threshold, dtype=np.float32)
@@ -569,10 +450,10 @@ def _threshold_array(threshold, size: int) -> np.ndarray:
     return np.full(size, float(threshold), dtype=np.float32)
 
 
-def predict_mcp_multihot(mcp_logits: torch.Tensor, threshold=0.5) -> np.ndarray:
-    probs = torch.sigmoid(mcp_logits).detach().cpu().numpy()
-    thresholds = _threshold_array(threshold, probs.shape[-1])
-    return (probs >= thresholds).astype(np.float32)
+def format_threshold(threshold) -> str:
+    if isinstance(threshold, (list, tuple, np.ndarray)):
+        return "[" + ", ".join(f"{float(value):.2f}" for value in threshold) + "]"
+    return f"{float(threshold):.2f}"
 
 
 def compute_step_label_counts(dataset) -> torch.Tensor:
@@ -659,12 +540,6 @@ def compute_selection_score(
     )
 
 
-def format_threshold(threshold) -> str:
-    if isinstance(threshold, (list, tuple, np.ndarray)):
-        return "[" + ", ".join(f"{float(value):.2f}" for value in threshold) + "]"
-    return f"{float(threshold):.2f}"
-
-
 def classify_sample(
     policy,
     llm,
@@ -674,41 +549,22 @@ def classify_sample(
     device,
     max_seq_length: int = 1024,
 ):
-    previous_emb = torch.tensor(
-        text_model.encode([sample['previous_text']], convert_to_numpy=True),
-        dtype=torch.float32,
-        device=device,
-    )
-    previous_emb = _ensure_finite_tensor(previous_emb, "previous_emb")
-    if hasattr(policy, "encode_context"):
-        graph_tokens, policy_features = policy.encode_context(sample['nodes'], sample['edges'], previous_emb, device)
-        if not getattr(policy, "use_direct_policy_features", True):
-            policy_features = None
-    else:
-        graph_tokens = policy(sample['nodes'], sample['edges'], previous_emb, device)
-        policy_features = None
-    graph_tokens = _ensure_finite_tensor(graph_tokens, "graph_tokens")
+    # Graph is now passed as text in the prompt, no graph tokens needed
     tokenized_prompt = tokenizer(
         [sample['prompt_text']],
         return_tensors='pt',
         truncation=True,
         max_length=max_seq_length,
     ).to(device)
-    inputs_embeds = llm.get_input_embeddings()(tokenized_prompt['input_ids']).clone()
-    num_graph_tokens = min(policy.graph_token_count, inputs_embeds.size(1))
-    inputs_embeds[:, :num_graph_tokens, :] = graph_tokens[:, :num_graph_tokens, :]
 
     outputs = llm(
-        inputs_embeds=inputs_embeds,
+        input_ids=tokenized_prompt['input_ids'],
         attention_mask=tokenized_prompt['attention_mask'],
         output_hidden_states=True,
         use_cache=False,
     )
     hidden = _ensure_finite_tensor(outputs.hidden_states[-1], "llm_hidden")
     pooled_hidden = policy.pool_hidden_states(hidden, tokenized_prompt['attention_mask'])
-    if policy_features is not None:
-        policy_features = _ensure_finite_tensor(policy_features, "policy_features")
-        pooled_hidden = pooled_hidden + policy_features.to(dtype=pooled_hidden.dtype)
     pooled_hidden = _ensure_finite_tensor(pooled_hidden, "pooled_hidden")
     step_logits, mcp_logits = policy.classify(pooled_hidden)
     return _ensure_finite_tensor(step_logits, "step_logits"), _ensure_finite_tensor(mcp_logits, "mcp_logits")
@@ -723,6 +579,7 @@ def compute_supervised_loss_for_sample(
     device,
     step_loss_weight: float = 1.0,
     mcp_loss_weight: float = 1.5,
+    explanation_loss_weight: float = 0.5,
     step_class_weights: Optional[torch.Tensor] = None,
     mcp_pos_weights: Optional[torch.Tensor] = None,
 ):
@@ -733,7 +590,46 @@ def compute_supervised_loss_for_sample(
     mcp_target = torch.tensor(sample['mcp_multihot'], dtype=torch.float32, device=device).unsqueeze(0)
     step_loss = F.cross_entropy(step_logits, step_target, weight=step_class_weights)
     mcp_loss = F.binary_cross_entropy_with_logits(mcp_logits, mcp_target, pos_weight=mcp_pos_weights)
-    total_loss = step_loss_weight * step_loss + mcp_loss_weight * mcp_loss
+    
+    # Explanation generation loss (for training only, not evaluated)
+    explanation_loss = torch.tensor(0.0, device=device)
+    if explanation_loss_weight > 0.0 and sample.get('step_explanation'):
+        explanation_text = sample['step_explanation']
+        if explanation_text.strip():
+            explanation_tokens = tokenizer(
+                explanation_text,
+                return_tensors='pt',
+                truncation=True,
+                max_length=256,
+            ).to(device)
+            explanation_input_ids = explanation_tokens['input_ids']
+            explanation_attention_mask = explanation_tokens['attention_mask']
+            
+            # Create a simple prompt for explanation generation
+            explanation_prompt = f"Step: {step_id_to_label(sample['step_label'])}\nExplanation:"
+            prompt_tokens = tokenizer(
+                explanation_prompt,
+                return_tensors='pt',
+                truncation=True,
+                max_length=128,
+            ).to(device)
+            
+            # Concatenate prompt with target explanation for language modeling
+            combined_input_ids = torch.cat([prompt_tokens['input_ids'], explanation_input_ids], dim=1)
+            combined_attention_mask = torch.cat([prompt_tokens['attention_mask'], explanation_attention_mask], dim=1)
+            
+            # Shift for causal language modeling
+            labels = combined_input_ids.clone()
+            labels[:, :prompt_tokens['input_ids'].size(1)] = -100  # Ignore prompt tokens in loss
+            
+            outputs = llm(
+                input_ids=combined_input_ids,
+                attention_mask=combined_attention_mask,
+                labels=labels,
+            )
+            explanation_loss = outputs.loss
+    
+    total_loss = step_loss_weight * step_loss + mcp_loss_weight * mcp_loss + explanation_loss_weight * explanation_loss
     return total_loss, step_loss.detach(), mcp_loss.detach()
 
 
@@ -817,11 +713,6 @@ def compute_grpo_loss(
         clipped_ratio = torch.clamp(ratio, 1 - clip_eps, 1 + clip_eps)
         advantage = advantages[i]
         total_loss = total_loss + (-torch.min(ratio * advantage, clipped_ratio * advantage))
-        
-        # Clear intermediate tensors to free memory
-        del step_logits, mcp_logits, step_dist, mcp_probs
-        if device.type == 'cuda':
-            torch.cuda.empty_cache()
 
     return total_loss / max(len(rollouts), 1)
 
@@ -1008,6 +899,7 @@ def find_best_mcp_threshold(
 ):
     was_training = policy.training
     policy.eval()
+    llm.eval()
     candidate_thresholds = [round(x, 2) for x in np.arange(0.10, 0.91, 0.05)]
     best_metrics = None
     for threshold in candidate_thresholds:
@@ -1037,56 +929,60 @@ def find_best_mcp_threshold(
             )
         ):
             best_metrics = metrics
-    per_label_thresholds = []
-    for label_idx in range(len(MCP_LABELS)):
-        best_label_threshold = 0.5
-        best_label_f1 = -1.0
-        for threshold in candidate_thresholds:
-            tp = fp = fn = 0.0
-            with torch.no_grad():
-                for idx in range(len(dataset)):
-                    sample = dataset[idx]
-                    _, mcp_logits = classify_sample(
-                        policy, llm, tokenizer, text_model, sample, device
-                    )
-                    prob = float(torch.sigmoid(mcp_logits.squeeze(0))[label_idx].detach().cpu().item())
-                    pred = 1.0 if prob >= threshold else 0.0
-                    true = float(np.asarray(sample['mcp_multihot'], dtype=np.float32)[label_idx])
-                    tp += 1.0 if pred == 1.0 and true == 1.0 else 0.0
-                    fp += 1.0 if pred == 1.0 and true == 0.0 else 0.0
-                    fn += 1.0 if pred == 0.0 and true == 1.0 else 0.0
-            precision = tp / max(tp + fp, 1.0)
-            recall = tp / max(tp + fn, 1.0)
-            denom = precision + recall
-            label_f1 = 0.0 if denom == 0.0 else 2.0 * precision * recall / denom
-            if label_f1 > best_label_f1:
-                best_label_f1 = label_f1
-                best_label_threshold = threshold
-        per_label_thresholds.append(best_label_threshold)
+    label_probs = []
+    label_targets = []
+    with torch.no_grad():
+        for idx in range(len(dataset)):
+            sample = dataset[idx]
+            _, mcp_logits = classify_sample(policy, llm, tokenizer, text_model, sample, device)
+            label_probs.append(torch.sigmoid(mcp_logits.squeeze(0)).detach().cpu().numpy())
+            label_targets.append(np.asarray(sample['mcp_multihot'], dtype=np.float32))
+    if label_probs:
+        prob_matrix = np.stack(label_probs, axis=0)
+        target_matrix = np.stack(label_targets, axis=0)
+        per_label_thresholds = []
+        for label_idx in range(len(MCP_LABELS)):
+            best_label_threshold = 0.5
+            best_label_f1 = -1.0
+            for threshold in candidate_thresholds:
+                pred = (prob_matrix[:, label_idx] >= threshold).astype(np.float32)
+                true = target_matrix[:, label_idx]
+                tp = float((pred * true).sum())
+                fp = float((pred * (1.0 - true)).sum())
+                fn = float(((1.0 - pred) * true).sum())
+                precision = tp / max(tp + fp, 1.0)
+                recall = tp / max(tp + fn, 1.0)
+                denom = precision + recall
+                label_f1 = 0.0 if denom == 0.0 else 2.0 * precision * recall / denom
+                if label_f1 > best_label_f1:
+                    best_label_f1 = label_f1
+                    best_label_threshold = threshold
+            per_label_thresholds.append(best_label_threshold)
 
-    per_label_metrics = evaluate_metrics_on_dataset(
-        dataset,
-        policy,
-        llm,
-        tokenizer,
-        text_model,
-        device,
-        threshold=per_label_thresholds,
-        selection_step_weight=selection_step_weight,
-        selection_mcp_weight=selection_mcp_weight,
-        selection_both_exact_weight=selection_both_exact_weight,
-    )
-    per_label_metrics["threshold"] = per_label_thresholds
-    if (
-        best_metrics is None
-        or per_label_metrics["selection_score"] > best_metrics["selection_score"]
-        or (
-            per_label_metrics["selection_score"] == best_metrics["selection_score"]
-            and per_label_metrics["mcp_micro_f1"] > best_metrics["mcp_micro_f1"]
+        per_label_metrics = evaluate_metrics_on_dataset(
+            dataset,
+            policy,
+            llm,
+            tokenizer,
+            text_model,
+            device,
+            threshold=per_label_thresholds,
+            selection_step_weight=selection_step_weight,
+            selection_mcp_weight=selection_mcp_weight,
+            selection_both_exact_weight=selection_both_exact_weight,
         )
-    ):
-        best_metrics = per_label_metrics
+        per_label_metrics["threshold"] = per_label_thresholds
+        if (
+            best_metrics is None
+            or per_label_metrics["selection_score"] > best_metrics["selection_score"]
+            or (
+                per_label_metrics["selection_score"] == best_metrics["selection_score"]
+                and per_label_metrics["mcp_micro_f1"] > best_metrics["mcp_micro_f1"]
+            )
+        ):
+            best_metrics = per_label_metrics
     policy.train(was_training)
+    llm.eval()
     return best_metrics
 
 
@@ -1150,88 +1046,70 @@ def main():
 
     load_in_4bit = bool(config.get('model', {}).get('load_in_4bit', False))
     use_lora = bool(config.get('model', {}).get('use_lora', False))
-    
-    if load_in_4bit:
-        try:
-            from transformers import BitsAndBytesConfig
-            bnb_config = BitsAndBytesConfig(
-                load_in_4bit=True,
-                bnb_4bit_compute_dtype=torch.float16,
-                bnb_4bit_use_double_quant=True,
-            )
-            llm = AutoModelForCausalLM.from_pretrained(
-                llm_name,
-                trust_remote_code=trust_remote_code,
-                quantization_config=bnb_config,
-                low_cpu_mem_usage=True,
-                device_map="auto",
-            )
-        except ImportError:
-            print("bitsandbytes not installed, loading model in float16")
-            llm = AutoModelForCausalLM.from_pretrained(
-                llm_name,
-                trust_remote_code=trust_remote_code,
-                torch_dtype=torch.float16,
-                low_cpu_mem_usage=True,
-                device_map="auto",
-                max_memory={0: "20GB", "cpu": "30GB"},
-            )
-    else:
-        llm = AutoModelForCausalLM.from_pretrained(
-            llm_name,
-            trust_remote_code=trust_remote_code,
-            torch_dtype=torch.float16,
-            low_cpu_mem_usage=True,
-            device_map="auto",
-            max_memory={0: "20GB", "cpu": "30GB"},
+
+    if use_lora and not PEFT_AVAILABLE:
+        raise ImportError(
+            "LoRA is enabled in config.json, but the `peft` package is not installed. "
+            "Install it with `pip install peft` or set `model.use_lora` to false."
         )
-    
+
+    quant_config = None
+    device_map = None
+    if load_in_4bit:
+        bnb_ok, bnb_msg = get_bitsandbytes_4bit_status()
+        if not bnb_ok:
+            print(f"Warning: {bnb_msg}")
+            load_in_4bit = False
+        else:
+            print(bnb_msg)
+    if load_in_4bit:
+        compute_dtype = torch.bfloat16 if (device.type == "cuda" and torch.cuda.is_bf16_supported()) else torch.float16
+        quant_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=compute_dtype,
+        )
+        device_map = "auto"
+
+    llm = AutoModelForCausalLM.from_pretrained(
+        llm_name,
+        trust_remote_code=trust_remote_code,
+        dtype=torch_dtype,
+        low_cpu_mem_usage=True,
+        device_map=device_map,
+        quantization_config=quant_config,
+    )
+    llm.resize_token_embeddings(len(tokenizer))
+    llm.gradient_checkpointing_enable()
+    if device_map is None:
+        llm.to(device)
+
     if use_lora:
-        from peft import LoraConfig, get_peft_model
+        if load_in_4bit:
+            llm = prepare_model_for_kbit_training(llm, use_gradient_checkpointing=True)
+        lora_target_modules = list(config.get('model', {}).get('lora_target_modules', []))
         lora_config = LoraConfig(
             r=int(config.get('model', {}).get('lora_r', 16)),
             lora_alpha=int(config.get('model', {}).get('lora_alpha', 32)),
             lora_dropout=float(config.get('model', {}).get('lora_dropout', 0.05)),
-            target_modules=config.get('model', {}).get('lora_target_modules', ['q_proj', 'k_proj', 'v_proj', 'o_proj']),
+            target_modules=lora_target_modules if lora_target_modules else None,
+            bias="none",
             task_type="CAUSAL_LM",
         )
         llm = get_peft_model(llm, lora_config)
-    
-    llm.resize_token_embeddings(len(tokenizer))
-    freeze_module(llm)
 
     llm_hidden_size = llm.config.hidden_size
-    gnn_type = str(config.get('model', {}).get('gnn_type', 'gcn')).lower()
     pooling_strategy = str(config.get('model', {}).get('pooling_strategy', 'hybrid')).lower()
-    graph_token_count = int(config.get('model', {}).get('graph_token_count', 4))
     prompt_style = str(config.get('training', {}).get('prompt_style', 'compact')).lower()
 
-    # Initialize policy
+    # Initialize policy (simplified without GNN)
     policy = GNNLLMPolicy(
         gnn_out_dim=config['model']['gnn_out_dim'],
         text_emb_dim=text_emb_dim,
         llm_hidden_size=llm_hidden_size,
-        gnn_type=gnn_type,
-        use_gat=config['model']['use_gat'],
         pooling_strategy=pooling_strategy,
-        graph_token_count=graph_token_count,
     ).to(device)
-
-    pretrain_checkpoint_path = config.get('training', {}).get(
-        'phase0_checkpoint',
-        os.path.join(output_dir, "phase0_gnn_projector.pt"),
-    )
-    pretrained_gnn_reference = None
-    if pretrain_checkpoint_path and os.path.exists(pretrain_checkpoint_path):
-        phase0 = torch.load(pretrain_checkpoint_path, map_location=device)
-        if "gnn" in phase0:
-            policy.gnn.load_state_dict(phase0["gnn"], strict=False)
-        if "graph_token_projector" in phase0:
-            policy.graph_token_projector.load_state_dict(phase0["graph_token_projector"], strict=False)
-        pretrained_gnn_reference = snapshot_trainable_state(policy.gnn)
-        print(f"Loaded Phase 0 GNN/projector checkpoint: {pretrain_checkpoint_path}")
-    else:
-        print(f"Phase 0 checkpoint not found at {pretrain_checkpoint_path}; training from random GNN/projector init.")
 
     # Training setup first (define batch_size before creating loader)
     num_supervised_epochs = config['training']['num_supervised_epochs']
@@ -1245,21 +1123,18 @@ def main():
         text_model,
         max_seq_length=max_seq_length,
         prompt_style=prompt_style,
-        graph_token_count=graph_token_count,
     )
     val_dataset = PenTestDataset(
         val_data,
         text_model,
         max_seq_length=max_seq_length,
         prompt_style=prompt_style,
-        graph_token_count=graph_token_count,
     )
     test_dataset = PenTestDataset(
         test_data,
         text_model,
         max_seq_length=max_seq_length,
         prompt_style=prompt_style,
-        graph_token_count=graph_token_count,
     )
     if train_dataset.skipped_unknown_step or val_dataset.skipped_unknown_step or test_dataset.skipped_unknown_step:
         print(
@@ -1277,7 +1152,6 @@ def main():
     clip_eps = config['training']['clip_eps']
     generate_max_new_tokens = config['training']['generate_max_new_tokens']
     generate_temperature = config['training']['generate_temperature']
-    grpo_generate_temperature = float(config['training'].get('grpo_generate_temperature', max(generate_temperature, 1.1)))
     generate_top_p = config['training']['generate_top_p']
     patience = config['training']['patience']
     step_loss_weight = config['training'].get('step_loss_weight', 1.5)
@@ -1294,10 +1168,6 @@ def main():
     selection_step_weight = float(config['training'].get('selection_step_weight', 0.75))
     selection_mcp_weight = float(config['training'].get('selection_mcp_weight', 0.25))
     selection_both_exact_weight = float(config['training'].get('selection_both_exact_weight', 0.0))
-    gnn_learning_rate = float(config['training'].get('gnn_learning_rate', learning_rate / 10.0))
-    projector_learning_rate = float(config['training'].get('projector_learning_rate', gnn_learning_rate))
-    drift_guard_weight = float(config['training'].get('drift_guard_weight', 0.0))
-    grpo_reward_std_epsilon = float(config['training'].get('grpo_reward_std_epsilon', 1e-6))
     step_class_weights = None
     step_label_counts = compute_step_label_counts(train_dataset)
     zero_step_labels = [STEP_LABELS[i] for i, count in enumerate(step_label_counts.tolist()) if count == 0]
@@ -1341,23 +1211,12 @@ def main():
     total_grpo_steps = num_grpo_epochs * len(train_loader)
     total_steps = total_supervised_steps + total_grpo_steps
 
-    # Optimizer and scheduler. Qwen is frozen; only policy components receive gradients.
+    # Optimizer and scheduler
+    llm_trainable_params = [p for p in llm.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(
-        [
-            {"params": policy.gnn.parameters(), "lr": gnn_learning_rate},
-            {"params": policy.graph_token_projector.parameters(), "lr": projector_learning_rate},
-            {
-                "params": list(policy.project_step_text.parameters())
-                + list(policy.combine.parameters())
-                + list(policy.policy_feature_projection.parameters())
-                + list(policy.classifier_norm.parameters())
-                + list(policy.readout_projection.parameters())
-                + list(policy.step_head.parameters())
-                + list(policy.mcp_head.parameters()),
-                "lr": learning_rate,
-            },
-        ],
-        weight_decay=weight_decay,
+        list(policy.parameters()) + llm_trainable_params,
+        lr=learning_rate,
+        weight_decay=weight_decay
     )
     scheduler = get_linear_schedule_with_warmup(
         optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=total_steps
@@ -1379,7 +1238,7 @@ def main():
     print("PHASE 1: SUPERVISED WARMUP TRAINING")
     print("="*60 + "\n")
     policy.train()
-    freeze_module(llm)
+    llm.train()
 
     for epoch in range(num_supervised_epochs):
         total_loss = 0.0
@@ -1391,16 +1250,15 @@ def main():
             for sample in batch_samples:
                 optimizer.zero_grad()
 
-                with torch.amp.autocast('cuda', enabled=amp_enabled):
+                with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
                     loss, step_loss, mcp_loss = compute_supervised_loss_for_sample(
                         policy, llm, tokenizer, text_model, sample, device,
                         step_loss_weight=step_loss_weight,
                         mcp_loss_weight=mcp_loss_weight,
+                        explanation_loss_weight=explanation_loss_weight,
                         step_class_weights=step_class_weights,
                         mcp_pos_weights=mcp_pos_weights,
                     )
-                    if drift_guard_weight > 0.0 and pretrained_gnn_reference:
-                        loss = loss + drift_guard_weight * drift_guard_loss(policy.gnn, pretrained_gnn_reference, device)
                 if not torch.isfinite(loss):
                     _debug_report(
                         "F",
@@ -1414,7 +1272,7 @@ def main():
                 scaler.scale(loss).backward()
                 scaler.unscale_(optimizer)
                 torch.nn.utils.clip_grad_norm_(
-                    policy.parameters(), max_norm=max_grad_norm
+                    list(policy.parameters()) + llm_trainable_params, max_norm=max_grad_norm
                 )
                 scaler.step(optimizer)
                 scaler.update()
@@ -1504,7 +1362,6 @@ def main():
                         "val_combined_score": val_metrics["combined_score"],
                         "val_selection_score": val_metrics["selection_score"],
                         "mcp_threshold": val_metrics["threshold"],
-                        "mcp_thresholds": val_metrics["threshold"],
                         "phase": "supervised",
                         "gnn_type": gnn_type,
                         "graph_token_count": graph_token_count,
@@ -1543,7 +1400,7 @@ def main():
     print("="*60 + "\n")
     print(f"RL auxiliary supervised weight: {rl_aux_supervised_weight:.3f}")
     policy.train()
-    freeze_module(llm)
+    llm.train()
     patience_counter = 0  # Reset patience
 
     for epoch in range(num_grpo_epochs):
@@ -1561,13 +1418,12 @@ def main():
                     policy, llm, tokenizer, text_model, sample, device,
                     num_generations_per_sample=num_generations_per_sample,
                     max_new_tokens=generate_max_new_tokens,
-                    temperature=grpo_generate_temperature,
+                    temperature=generate_temperature,
                     top_p=generate_top_p
                 )
                 all_rollouts.extend(sample_rollouts)
 
             avg_reward = np.mean([r['reward'] for r in all_rollouts])
-            reward_std = float(np.std([r['reward'] for r in all_rollouts])) if all_rollouts else 0.0
             total_reward += avg_reward
             # #region debug-point D:grpo-update-summary
             reward_values = [float(r['reward']) for r in all_rollouts]
@@ -1582,25 +1438,16 @@ def main():
                     "avg_reward": float(avg_reward),
                     "min_reward": min(reward_values) if reward_values else None,
                     "max_reward": max(reward_values) if reward_values else None,
-                    "reward_std": reward_std,
                     "sample_rewards": reward_values[:4],
                 },
             )
             # #endregion
 
             print(f"GRPO Epoch {epoch+1}/{num_grpo_epochs}, Update {num_updates + 1}, Avg Reward: {avg_reward:.4f}")
-            if reward_std < grpo_reward_std_epsilon:
-                if writer is not None:
-                    writer.add_scalar("GRPO/skipped_zero_variance_group", 1.0, global_step)
-                print(
-                    f"Skipping GRPO update {num_updates + 1}: reward std {reward_std:.6g} "
-                    f"< epsilon {grpo_reward_std_epsilon:.6g}"
-                )
-                continue
 
             optimizer.zero_grad()
 
-            with torch.amp.autocast('cuda', enabled=amp_enabled):
+            with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
                 grpo_loss = compute_grpo_loss(
                     policy, llm, tokenizer, text_model, all_rollouts, device, clip_eps=clip_eps
                 )
@@ -1608,22 +1455,20 @@ def main():
                 if rl_aux_supervised_weight > 0.0:
                     aux_loss_terms = []
                     for sample in batch_samples:
-                        with torch.amp.autocast('cuda', enabled=amp_enabled):
-                            sup_loss, _, _ = compute_supervised_loss_for_sample(
-                                policy,
-                                llm,
-                                tokenizer,
-                                text_model,
-                                sample,
-                                device,
-                                step_loss_weight=step_loss_weight,
-                                mcp_loss_weight=mcp_loss_weight,
-                                step_class_weights=step_class_weights,
-                                mcp_pos_weights=mcp_pos_weights,
-                            )
+                        sup_loss, _, _ = compute_supervised_loss_for_sample(
+                            policy,
+                            llm,
+                            tokenizer,
+                            text_model,
+                            sample,
+                            device,
+                            step_loss_weight=step_loss_weight,
+                            mcp_loss_weight=mcp_loss_weight,
+                            explanation_loss_weight=explanation_loss_weight,
+                            step_class_weights=step_class_weights,
+                            mcp_pos_weights=mcp_pos_weights,
+                        )
                         aux_loss_terms.append(sup_loss)
-                        if device.type == 'cuda':
-                            torch.cuda.empty_cache()
                     if aux_loss_terms:
                         aux_sup_loss = torch.stack(aux_loss_terms).mean()
                 loss = grpo_loss + rl_aux_supervised_weight * aux_sup_loss
@@ -1640,7 +1485,7 @@ def main():
             scaler.scale(loss).backward()
             scaler.unscale_(optimizer)
             torch.nn.utils.clip_grad_norm_(
-                policy.parameters(), max_norm=max_grad_norm
+                list(policy.parameters()) + llm_trainable_params, max_norm=max_grad_norm
             )
             scaler.step(optimizer)
             scaler.update()
@@ -1722,7 +1567,6 @@ def main():
                         "val_combined_score": val_metrics["combined_score"],
                         "val_selection_score": val_metrics["selection_score"],
                         "mcp_threshold": val_metrics["threshold"],
-                        "mcp_thresholds": val_metrics["threshold"],
                         "phase": "grpo",
                         "gnn_type": gnn_type,
                         "graph_token_count": graph_token_count,
@@ -1761,19 +1605,31 @@ def main():
     print("FINAL TEST EVALUATION")
     print("="*60 + "\n")
 
-    best_checkpoint_path = os.path.join(output_dir, "best_checkpoint.pt")
-    if not os.path.exists(best_checkpoint_path):
-        best_checkpoint_path = os.path.join(output_dir, "best_supervised_checkpoint.pt")
-    checkpoint = torch.load(best_checkpoint_path, map_location=device)
-    policy.load_state_dict(checkpoint["policy"])
-    best_mcp_threshold = checkpoint.get("mcp_thresholds", checkpoint.get("mcp_threshold", best_mcp_threshold))
+    final_eval_checkpoint = os.path.join(output_dir, "best_checkpoint.pt")
+    if not os.path.exists(final_eval_checkpoint):
+        final_eval_checkpoint = os.path.join(output_dir, "best_supervised_checkpoint.pt")
+    checkpoint = torch.load(final_eval_checkpoint, map_location=device)
+    missing, unexpected = policy.load_state_dict(checkpoint["policy"], strict=False)
+    if missing:
+        print(f"Policy checkpoint missing {len(missing)} newly initialized keys.")
+    if unexpected:
+        print(f"Policy checkpoint had {len(unexpected)} unexpected keys.")
+    llm_checkpoint_mode = checkpoint.get("llm_checkpoint_mode", "full")
+    if llm_checkpoint_mode == "full":
+        llm.load_state_dict(checkpoint["llm"])
+    else:
+        llm.load_state_dict(checkpoint["llm"], strict=False)
+    best_mcp_threshold = checkpoint.get("mcp_threshold", best_mcp_threshold)
 
     test_metrics = evaluate_metrics_on_dataset(
         test_dataset, policy, llm, tokenizer, text_model, device, threshold=best_mcp_threshold
     )
     print(f"Test Average Reward: {test_metrics['avg_reward']:.4f}")
     print(f"Test Step Accuracy: {test_metrics['step_acc']:.4f}")
+    print(f"Test Step Micro F1: {test_metrics['step_micro_f1']:.4f}")
+    print(f"Test MCP Accuracy: {test_metrics['mcp_acc']:.4f}")
     print(f"Test MCP F1: {test_metrics['mcp_f1']:.4f}")
+    print(f"Test MCP Micro F1: {test_metrics['mcp_micro_f1']:.4f}")
     print(f"Test MCP Exact: {test_metrics['mcp_exact']:.4f}")
     print(f"Test Both Exact: {test_metrics['both_exact']:.4f}")
     print(f"Test MCP Threshold: {format_threshold(best_mcp_threshold)}\n")
@@ -1792,11 +1648,10 @@ def main():
                 "test_step_acc": test_metrics["step_acc"],
                 "test_step_micro_f1": test_metrics["step_micro_f1"],
                 "test_mcp_acc": test_metrics["mcp_acc"],
-                "test_mcp_micro_f1": test_metrics["mcp_micro_f1"],
                 "test_mcp_f1": test_metrics["mcp_f1"],
+                "test_mcp_micro_f1": test_metrics["mcp_micro_f1"],
                 "test_mcp_exact": test_metrics["mcp_exact"],
                 "mcp_threshold": best_mcp_threshold,
-                "mcp_thresholds": best_mcp_threshold,
                 "gnn_type": gnn_type,
                 "graph_token_count": graph_token_count,
                 "pooling_strategy": pooling_strategy,
@@ -1805,6 +1660,7 @@ def main():
         ),
         os.path.join(output_dir, "final_checkpoint.pt"),
     )
+    llm.save_pretrained(output_dir)
     tokenizer.save_pretrained(output_dir)
 
     if writer is not None:

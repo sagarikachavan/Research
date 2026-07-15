@@ -6,13 +6,23 @@ Evaluation script for the label-only Step/MCP version of stepmodel.
 import os
 import json
 import re
+from importlib import metadata as importlib_metadata
 from pathlib import Path
 
 import torch
 from sentence_transformers import SentenceTransformer
 from tokenizers import Tokenizer
 from tokenizers.models import Model as TokenizersModel
-from transformers import AutoTokenizer, AutoModelForCausalLM, GPT2Tokenizer
+from transformers import AutoTokenizer, AutoModelForCausalLM, GPT2Tokenizer, BitsAndBytesConfig
+
+try:
+    from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
+    PEFT_AVAILABLE = True
+except ImportError:
+    LoraConfig = None
+    get_peft_model = None
+    prepare_model_for_kbit_training = None
+    PEFT_AVAILABLE = False
 
 from label_space import (
     STEP_LABELS,
@@ -25,8 +35,14 @@ from train_gnn_rl import (
     PenTestDataset,
     classify_sample,
     evaluate_metrics_on_dataset,
-    format_threshold,
 )
+
+
+def first_existing(policy_state_dict, *keys):
+    for key in keys:
+        if key in policy_state_dict:
+            return policy_state_dict[key]
+    return None
 
 
 def infer_llm_name_from_state_dict(llm_state_dict):
@@ -59,11 +75,21 @@ def infer_llm_name_from_state_dict(llm_state_dict):
 
 
 def infer_policy_hidden_size(policy_state_dict):
-    step_head_weight = policy_state_dict.get("step_head.weight")
+    step_head_weight = first_existing(
+        policy_state_dict,
+        "step_head.weight",
+        "step_head.0.weight",
+        "step_head.4.weight",
+    )
     if step_head_weight is not None:
         return step_head_weight.shape[1]
 
-    mcp_head_weight = policy_state_dict.get("mcp_head.weight")
+    mcp_head_weight = first_existing(
+        policy_state_dict,
+        "mcp_head.weight",
+        "mcp_head.0.weight",
+        "mcp_head.4.weight",
+    )
     if mcp_head_weight is not None:
         return mcp_head_weight.shape[1]
 
@@ -91,11 +117,21 @@ def infer_graph_token_count(policy_state_dict):
 
 
 def infer_policy_hidden_size_from_heads(policy_state_dict):
-    step_head_weight = policy_state_dict.get("step_head.weight")
+    step_head_weight = first_existing(
+        policy_state_dict,
+        "step_head.weight",
+        "step_head.0.weight",
+        "step_head.4.weight",
+    )
     if step_head_weight is not None:
         return step_head_weight.shape[1]
 
-    mcp_head_weight = policy_state_dict.get("mcp_head.weight")
+    mcp_head_weight = first_existing(
+        policy_state_dict,
+        "mcp_head.weight",
+        "mcp_head.0.weight",
+        "mcp_head.4.weight",
+    )
     if mcp_head_weight is not None:
         return mcp_head_weight.shape[1]
 
@@ -109,13 +145,64 @@ def infer_pooling_strategy(policy_state_dict):
 
 
 def checkpoint_has_label_heads(policy_state_dict):
-    required = {
+    keys = set(policy_state_dict.keys())
+    linear_heads = {
         "step_head.weight",
         "step_head.bias",
         "mcp_head.weight",
         "mcp_head.bias",
     }
-    return required.issubset(set(policy_state_dict.keys()))
+    mlp_heads = {
+        "step_head.4.weight",
+        "step_head.4.bias",
+        "mcp_head.4.weight",
+        "mcp_head.4.bias",
+    }
+    return linear_heads.issubset(keys) or mlp_heads.issubset(keys)
+
+
+def format_threshold(threshold) -> str:
+    if isinstance(threshold, (list, tuple)):
+        return "[" + ", ".join(f"{float(value):.2f}" for value in threshold) + "]"
+    return f"{float(threshold):.2f}"
+
+
+def checkpoint_uses_lora(llm_state_dict):
+    return any("lora_" in key for key in llm_state_dict.keys())
+
+
+def llm_name_supports_qwen_kbit(llm_name: str) -> bool:
+    return "qwen" in str(llm_name or "").lower()
+
+
+def _parse_version_tuple(version_str: str):
+    parts = []
+    for token in str(version_str).replace("-", ".").split("."):
+        digits = "".join(ch for ch in token if ch.isdigit())
+        if digits:
+            parts.append(int(digits))
+        else:
+            break
+    return tuple(parts)
+
+
+def get_bitsandbytes_4bit_status():
+    try:
+        version = importlib_metadata.version("bitsandbytes")
+    except importlib_metadata.PackageNotFoundError:
+        return False, (
+            "4-bit quantization is enabled in config.json, but `bitsandbytes` is not installed. "
+            "Falling back to non-4bit loading. Install it with `pip install -U bitsandbytes>=0.46.1` "
+            "to re-enable 4-bit quantization."
+        )
+
+    if _parse_version_tuple(version) < (0, 46, 1):
+        return False, (
+            f"4-bit quantization requires `bitsandbytes>=0.46.1`, but found {version}. "
+            "Falling back to non-4bit loading. Upgrade it with `pip install -U bitsandbytes>=0.46.1` "
+            "to re-enable 4-bit quantization."
+        )
+    return True, f"bitsandbytes {version} detected; using 4-bit quantization."
 
 
 def find_compatible_checkpoint(checkpoints_dir: str, device):
@@ -221,17 +308,73 @@ def main():
     else:
         torch_dtype = torch.float32
 
+    llm_state_dict = checkpoint.get("llm", {}) if checkpoint is not None else {}
+    llm_checkpoint_mode = checkpoint.get("llm_checkpoint_mode", "full") if checkpoint is not None else "full"
+    checkpoint_has_lora = checkpoint_uses_lora(llm_state_dict)
+    load_in_4bit = (
+        bool(config.get('model', {}).get('load_in_4bit', False))
+        and llm_name_supports_qwen_kbit(checkpoint_llm_name)
+    )
+    use_lora = (
+        bool(config.get('model', {}).get('use_lora', False))
+        and checkpoint_has_lora
+    )
+
+    if bool(config.get('model', {}).get('load_in_4bit', False)) and not load_in_4bit:
+        print(f"Disabling 4-bit loading for checkpoint backbone `{checkpoint_llm_name}`.")
+    if bool(config.get('model', {}).get('use_lora', False)) and not use_lora:
+        print("Disabling LoRA adapter injection because the checkpoint does not contain LoRA weights.")
+    if checkpoint_has_lora and not PEFT_AVAILABLE:
+        raise ImportError(
+            "This checkpoint contains LoRA weights, but the `peft` package is not installed. "
+            "Install it with `pip install peft` before running evaluation."
+        )
+
+    quant_config = None
+    device_map = None
+    if load_in_4bit:
+        bnb_ok, bnb_msg = get_bitsandbytes_4bit_status()
+        if not bnb_ok:
+            print(f"Warning: {bnb_msg}")
+            load_in_4bit = False
+        else:
+            print(bnb_msg)
+    if load_in_4bit:
+        compute_dtype = torch.bfloat16 if (device.type == "cuda" and torch.cuda.is_bf16_supported()) else torch.float16
+        quant_config = BitsAndBytesConfig(
+            load_in_4bit=True,
+            bnb_4bit_quant_type="nf4",
+            bnb_4bit_use_double_quant=True,
+            bnb_4bit_compute_dtype=compute_dtype,
+        )
+        device_map = "auto"
+
     llm = AutoModelForCausalLM.from_pretrained(
         checkpoint_llm_name,
         trust_remote_code=trust_remote_code,
         dtype=torch_dtype,
         low_cpu_mem_usage=True,
+        device_map=device_map,
+        quantization_config=quant_config,
     )
     llm.resize_token_embeddings(len(tokenizer))
-    llm.to(device)
-    for param in llm.parameters():
-        param.requires_grad_(False)
+    if device_map is None:
+        llm.to(device)
     llm.eval()
+
+    if use_lora:
+        if load_in_4bit:
+            llm = prepare_model_for_kbit_training(llm, use_gradient_checkpointing=True)
+        lora_target_modules = list(config.get('model', {}).get('lora_target_modules', []))
+        lora_config = LoraConfig(
+            r=int(config.get('model', {}).get('lora_r', 16)),
+            lora_alpha=int(config.get('model', {}).get('lora_alpha', 32)),
+            lora_dropout=float(config.get('model', {}).get('lora_dropout', 0.05)),
+            target_modules=lora_target_modules if lora_target_modules else None,
+            bias="none",
+            task_type="CAUSAL_LM",
+        )
+        llm = get_peft_model(llm, lora_config)
 
     policy_hidden_size = llm.config.hidden_size
     if checkpoint is not None:
@@ -247,21 +390,18 @@ def main():
         use_gat=config['model']['use_gat'],
         pooling_strategy=checkpoint_pooling_strategy,
         graph_token_count=checkpoint_graph_token_count,
+        gnn_hidden_dim=config['model'].get('gnn_hidden_dim', 256),
     ).to(device)
 
     if checkpoint is not None:
-        load_result = policy.load_state_dict(policy_state, strict=False)
-        if load_result.missing_keys:
-            print(f"Initialized new policy keys not present in checkpoint: {load_result.missing_keys}")
-            if any(key.startswith("policy_feature_projection.") for key in load_result.missing_keys):
-                policy.use_direct_policy_features = False
-                print("Disabled direct policy-feature path for this older checkpoint.")
-        if load_result.unexpected_keys:
-            print(f"Ignored unexpected checkpoint keys: {load_result.unexpected_keys}")
-        llm_checkpoint_mode = checkpoint.get("llm_checkpoint_mode", "frozen_external")
-        if llm_checkpoint_mode == "full" and checkpoint.get("llm"):
+        missing, unexpected = policy.load_state_dict(policy_state, strict=False)
+        if missing:
+            print(f"Policy checkpoint missing {len(missing)} newly initialized keys.")
+        if unexpected:
+            print(f"Policy checkpoint had {len(unexpected)} unexpected keys.")
+        if llm_checkpoint_mode == "full":
             llm.load_state_dict(checkpoint["llm"])
-        elif checkpoint.get("llm"):
+        else:
             llm.load_state_dict(checkpoint["llm"], strict=False)
         print(f"Loaded compatible checkpoint: {checkpoint_path}")
 
@@ -274,9 +414,9 @@ def main():
         graph_token_count=checkpoint_graph_token_count,
     )
 
-    mcp_threshold = checkpoint.get("mcp_thresholds", checkpoint.get("mcp_threshold", 0.5)) if checkpoint is not None else 0.5
+    mcp_threshold = checkpoint.get("mcp_threshold", 0.5) if checkpoint is not None else 0.5
 
-    print(f"Evaluating on full test dataset with MCP threshold(s): {format_threshold(mcp_threshold)}")
+    print("Evaluating on full test dataset...")
     metrics = evaluate_metrics_on_dataset(
         test_dataset, policy, llm, tokenizer, text_model, device, threshold=mcp_threshold
     )
@@ -289,6 +429,7 @@ def main():
     print(f"Step Micro F1: {metrics['step_micro_f1']:.4f}")
     print(f"MCP Accuracy: {metrics['mcp_acc']:.4f}")
     print(f"MCP Micro F1 (global): {metrics['mcp_micro_f1']:.4f}")
+    print(f"MCP Threshold: {format_threshold(mcp_threshold)}")
     print("=" * 60 + "\n")
 
 
