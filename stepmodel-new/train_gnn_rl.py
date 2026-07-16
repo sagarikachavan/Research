@@ -1171,6 +1171,7 @@ def main():
     patience = config['training']['patience']
     step_loss_weight = config['training'].get('step_loss_weight', 1.5)
     mcp_loss_weight = config['training'].get('mcp_loss_weight', 1.5)
+    explanation_loss_weight = config['training'].get('explanation_loss_weight', 0.5)
     rl_aux_supervised_weight = float(config['training'].get('rl_aux_supervised_weight', 0.1))
     step_class_weighting = bool(config['training'].get('step_class_weighting', True))
     step_class_weight_power = float(config['training'].get('step_class_weight_power', 0.5))
