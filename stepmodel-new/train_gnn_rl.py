@@ -1307,19 +1307,23 @@ def main():
                     if device.type == "cuda":
                         torch.cuda.empty_cache()
 
-                if writer is not None:
-                    writer.add_scalar("Supervised/loss", loss.item(), global_step)
+                if writer is not None and num_samples % gradient_accumulation_steps == 0:
+                    writer.add_scalar("Supervised/loss", loss.item() * gradient_accumulation_steps, global_step)
                     writer.add_scalar("Supervised/step_loss", step_loss.item(), global_step)
                     writer.add_scalar("Supervised/mcp_loss", mcp_loss.item(), global_step)
-                if num_samples % 100 == 0:
+                if num_samples % 10 == 0:
                     avg_loss = total_loss / num_samples
                     print(
-                        f"Epoch {epoch+1}/{num_supervised_epochs}, "
-                        f"Sample {num_samples}/{len(train_dataset)}, "
-                        f"Avg Loss: {avg_loss:.4f}, "
-                        f"Step CE: {total_step_loss / num_samples:.4f}, "
+                        f"Epoch {epoch+1}/{num_supervised_epochs} | "
+                        f"Sample {num_samples}/{len(train_dataset)} | "
+                        f"Avg Loss: {avg_loss:.4f} | "
+                        f"Step CE: {total_step_loss / num_samples:.4f} | "
                         f"MCP BCE: {total_mcp_loss / num_samples:.4f}"
                     )
+
+        if num_samples == 0:
+            print(f"Warning: No valid samples processed in epoch {epoch+1}")
+            continue
 
         avg_epoch_loss = total_loss / num_samples
         avg_epoch_step_loss = total_step_loss / num_samples
