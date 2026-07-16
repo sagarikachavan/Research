@@ -1305,6 +1305,20 @@ def main():
     llm.train()
 
     for epoch in range(num_supervised_epochs):
+        # Recreate sampler for each epoch if using WeightedRandomSampler
+        if train_sampler is not None:
+            train_sampler, _ = build_step_weighted_sampler(
+                train_dataset,
+                power=sampler_power,
+            )
+            train_loader = DataLoader(
+                train_dataset,
+                batch_size=batch_size,
+                shuffle=False,
+                sampler=train_sampler,
+                collate_fn=collate_fn,
+            )
+        
         total_loss = 0.0
         total_step_loss = 0.0
         total_mcp_loss = 0.0
@@ -1360,13 +1374,13 @@ def main():
                     writer.add_scalar("Supervised/loss", loss.item() * gradient_accumulation_steps, global_step)
                     writer.add_scalar("Supervised/step_loss", step_loss.item(), global_step)
                     writer.add_scalar("Supervised/mcp_loss", mcp_loss.item(), global_step)
-                if num_samples % 10 == 0:
+                if num_samples % 100 == 0:
                     avg_loss = total_loss / num_samples
                     print(
-                        f"Epoch {epoch+1}/{num_supervised_epochs} | "
-                        f"Sample {num_samples}/{len(train_dataset)} | "
-                        f"Avg Loss: {avg_loss:.4f} | "
-                        f"Step CE: {total_step_loss / num_samples:.4f} | "
+                        f"Epoch {epoch+1}/{num_supervised_epochs}, "
+                        f"Sample {num_samples}/{len(train_dataset)}, "
+                        f"Avg Loss: {avg_loss:.4f}, "
+                        f"Step CE: {total_step_loss / num_samples:.4f}, "
                         f"MCP BCE: {total_mcp_loss / num_samples:.4f}"
                     )
 
