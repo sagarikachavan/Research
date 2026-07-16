@@ -1298,9 +1298,6 @@ def main():
     # --------------------------
     # Phase 1: Supervised Warmup
     # --------------------------
-    print("\n" + "="*60)
-    print("PHASE 1: SUPERVISED WARMUP TRAINING")
-    print("="*60 + "\n")
     policy.train()
     llm.train()
 
@@ -1481,10 +1478,7 @@ def main():
     # --------------------------
     # Phase 2: GRPO Fine-tuning
     # --------------------------
-    print("\n" + "="*60)
-    print("PHASE 2: GRPO REINFORCEMENT LEARNING FINE-TUNING")
-    print("="*60 + "\n")
-    print(f"RL auxiliary supervised weight: {rl_aux_supervised_weight:.3f}")
+    print(f"\nRL auxiliary supervised weight: {rl_aux_supervised_weight:.3f}")
     policy.train()
     llm.train()
     patience_counter = 0  # Reset patience
