@@ -1268,6 +1268,15 @@ def main():
     )
     print(f"Train size: {len(train_dataset)}, Val size: {len(val_dataset)}, Test size: {len(test_dataset)}")
     
+    # Calculate total steps and amp_enabled BEFORE printing configuration
+    supervised_updates_per_epoch = len(train_loader)
+    total_supervised_steps = num_supervised_epochs * supervised_updates_per_epoch
+    total_grpo_steps = num_grpo_epochs * len(train_loader)
+    total_steps = total_supervised_steps + total_grpo_steps
+    
+    # Determine if AMP is enabled (needed for config display)
+    amp_enabled = device.type == "cuda" and not load_in_4bit and torch_dtype != torch.float16
+    
     # Print training configuration
     print("\n" + "="*60)
     print("TRAINING CONFIGURATION")
@@ -1301,12 +1310,6 @@ def main():
     print(f"  LoRA: {use_lora}")
     print("="*60 + "\n")
 
-    # Fix total steps calculation: both phases use batch steps (Phase1 uses batch_size=1 effectively for now)
-    supervised_updates_per_epoch = len(train_loader)
-    total_supervised_steps = num_supervised_epochs * supervised_updates_per_epoch
-    total_grpo_steps = num_grpo_epochs * len(train_loader)
-    total_steps = total_supervised_steps + total_grpo_steps
-
     # Optimizer and scheduler
     llm_trainable_params = [p for p in llm.parameters() if p.requires_grad]
     optimizer = torch.optim.AdamW(
@@ -1317,8 +1320,6 @@ def main():
     scheduler = get_linear_schedule_with_warmup(
         optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=total_steps
     )
-    # Disable AMP when using 4-bit quantization or FP16 model
-    amp_enabled = device.type == "cuda" and not load_in_4bit and torch_dtype != torch.float16
     scaler = torch.amp.GradScaler(device.type, enabled=amp_enabled)
 
     # Training

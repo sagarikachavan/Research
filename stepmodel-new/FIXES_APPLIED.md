@@ -16,6 +16,12 @@
    - Changed: `if num_samples % 100 == 0:`
    - To: `if num_samples > 0 and num_samples % 100 == 0:`
 
+3. **UnboundLocalError Fix**
+   - Fixed `UnboundLocalError` for `total_steps` variable
+   - Moved calculation before configuration print statement
+   - Also moved `amp_enabled` calculation before print
+   - Ensures all variables are defined before being displayed
+
 ### Logging Improvements
 
 1. **Training Phase Announcements**
