@@ -1335,17 +1335,25 @@ def main():
     print("\n" + "="*60)
     print("PHASE 1: SUPERVISED WARMUP TRAINING")
     print("="*60 + "\n")
+    print(f"Starting training with {len(train_dataset)} samples...")
+    print(f"Progress will be shown every 10 samples (initially) and every 50 samples thereafter.\n")
     policy.train()
     llm.train()
 
     for epoch in range(num_supervised_epochs):
+        print(f"Starting Supervised Epoch {epoch+1}/{num_supervised_epochs}...")
+        epoch_start_time = time.time()
         total_loss = 0.0
         total_step_loss = 0.0
         total_mcp_loss = 0.0
         num_samples = 0
 
-        for batch_samples in train_loader:
+        for batch_idx, batch_samples in enumerate(train_loader):
             for sample in batch_samples:
+                # Show progress for first few samples and periodically
+                if num_samples < 10 or num_samples % 10 == 0:
+                    print(f"  Processing sample {num_samples + 1}/{len(train_dataset)}...", end='\r', flush=True)
+                
                 with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
                     loss, step_loss, mcp_loss = compute_supervised_loss_for_sample(
                         policy, llm, tokenizer, text_model, sample, device,
@@ -1356,6 +1364,7 @@ def main():
                         mcp_pos_weights=mcp_pos_weights,
                     )
                 if not torch.isfinite(loss):
+                    print(f"\n  WARNING: Non-finite loss at sample {num_samples + 1}, skipping...")
                     _debug_report(
                         "F",
                         "train_llm_rl.py:supervised-loss",
@@ -1395,15 +1404,21 @@ def main():
                     writer.add_scalar("Supervised/step_loss", step_loss.item(), global_step)
                     writer.add_scalar("Supervised/mcp_loss", mcp_loss.item(), global_step)
                 if num_samples > 0 and num_samples % 50 == 0:
+                    elapsed = time.time() - epoch_start_time
+                    samples_per_sec = num_samples / elapsed if elapsed > 0 else 0
+                    eta_seconds = (len(train_dataset) - num_samples) / samples_per_sec if samples_per_sec > 0 else 0
+                    eta_minutes = eta_seconds / 60
                     avg_loss = total_loss / num_samples
-                    print(
-                        f"[Supervised] Epoch {epoch+1}/{num_supervised_epochs}, "
+                    print(f"\n[Supervised] Epoch {epoch+1}/{num_supervised_epochs}, "
                         f"Sample {num_samples}/{len(train_dataset)}, "
                         f"Avg Loss: {avg_loss:.4f}, "
                         f"Step CE: {total_step_loss / num_samples:.4f}, "
-                        f"MCP BCE: {total_mcp_loss / num_samples:.4f}"
+                        f"MCP BCE: {total_mcp_loss / num_samples:.4f}, "
+                        f"Speed: {samples_per_sec:.2f} samples/sec, "
+                        f"ETA: {eta_minutes:.1f}m"
                     )
 
+        print(f"\n  Epoch {epoch+1} training completed in {(time.time() - epoch_start_time) / 60:.1f} minutes")
         avg_epoch_loss = total_loss / max(num_samples, 1)
         avg_epoch_step_loss = total_step_loss / max(num_samples, 1)
         avg_epoch_mcp_loss = total_mcp_loss / max(num_samples, 1)
@@ -1513,18 +1528,22 @@ def main():
     print("PHASE 2: GRPO REINFORCEMENT LEARNING FINE-TUNING")
     print("="*60 + "\n")
     print(f"RL auxiliary supervised weight: {rl_aux_supervised_weight:.3f}")
+    print(f"Starting GRPO training with {len(train_loader)} batches per epoch...\n")
     policy.train()
     llm.train()
     patience_counter = 0  # Reset patience
 
     for epoch in range(num_grpo_epochs):
+        print(f"Starting GRPO Epoch {epoch+1}/{num_grpo_epochs}...")
+        epoch_start_time = time.time()
         total_loss = 0.0
         total_grpo_loss = 0.0
         total_aux_sup_loss = 0.0
         total_reward = 0.0
         num_updates = 0
 
-        for batch_samples in train_loader:
+        for batch_idx, batch_samples in enumerate(train_loader):
+            print(f"  Processing batch {batch_idx + 1}/{len(train_loader)}, generating rollouts...", end='\r', flush=True)
 
             all_rollouts = []
             for sample in batch_samples:
@@ -1557,7 +1576,15 @@ def main():
             )
             # #endregion
 
-            print(f"[GRPO] Epoch {epoch+1}/{num_grpo_epochs}, Update {num_updates + 1}/{len(train_loader)}, Avg Reward: {avg_reward:.4f}")
+            elapsed = time.time() - epoch_start_time
+            updates_per_sec = (num_updates + 1) / elapsed if elapsed > 0 else 0
+            eta_seconds = (len(train_loader) - num_updates - 1) / updates_per_sec if updates_per_sec > 0 else 0
+            eta_minutes = eta_seconds / 60
+            print(f"\n[GRPO] Epoch {epoch+1}/{num_grpo_epochs}, "
+                  f"Update {num_updates + 1}/{len(train_loader)}, "
+                  f"Avg Reward: {avg_reward:.4f}, "
+                  f"Speed: {updates_per_sec:.2f} updates/sec, "
+                  f"ETA: {eta_minutes:.1f}m")
 
             optimizer.zero_grad()
 
