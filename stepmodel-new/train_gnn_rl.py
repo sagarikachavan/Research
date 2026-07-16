@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Training script for GNN + LLM + GRPO (Group Relative Policy Optimization).
+Training script for LLM + GRPO (Group Relative Policy Optimization).
 First trains with supervised teacher-forcing, then fine-tunes with GRPO RL!
-Uses special [GRAPH] token approach to condition LLM on graph info.
+Uses text-based graph representation to condition LLM on graph information.
 """
 
 import os
@@ -153,11 +153,9 @@ def atomic_torch_save(obj, path: str):
         # Don't raise - allow training to continue
 
 
-class GNNLLMPolicy(nn.Module):
+class LLMPolicy(nn.Module):
     def __init__(
         self,
-        gnn_out_dim: int,
-        text_emb_dim: int,
         llm_hidden_size: int,
         pooling_strategy: str = "mean",
     ):
@@ -325,7 +323,6 @@ def build_previous_text(step_pair: Dict[str, Any], prompt_style: str = "full") -
 def build_prompt_text(
     step_pair: Dict[str, Any],
     prompt_style: str = "full",
-    graph_token_count: int = 1,
 ) -> str:
     context_lines = "\n".join(
         f"{label}: {value}"
@@ -1121,9 +1118,7 @@ def main():
     prompt_style = str(config.get('training', {}).get('prompt_style', 'compact')).lower()
 
     # Initialize policy (simplified without GNN)
-    policy = GNNLLMPolicy(
-        gnn_out_dim=config['model']['gnn_out_dim'],
-        text_emb_dim=text_emb_dim,
+    policy = LLMPolicy(
         llm_hidden_size=llm_hidden_size,
         pooling_strategy=pooling_strategy,
     ).to(device)
@@ -1391,8 +1386,6 @@ def main():
                         "val_selection_score": val_metrics["selection_score"],
                         "mcp_threshold": val_metrics["threshold"],
                         "phase": "supervised",
-                        "gnn_type": gnn_type,
-                        "graph_token_count": graph_token_count,
                         "pooling_strategy": pooling_strategy,
                         "prompt_style": prompt_style,
                     },
@@ -1411,8 +1404,6 @@ def main():
                 optimizer=optimizer,
                 scheduler=scheduler,
                 extra={
-                    "gnn_type": gnn_type,
-                    "graph_token_count": graph_token_count,
                     "pooling_strategy": pooling_strategy,
                     "prompt_style": prompt_style,
                 },
@@ -1596,8 +1587,6 @@ def main():
                         "val_selection_score": val_metrics["selection_score"],
                         "mcp_threshold": val_metrics["threshold"],
                         "phase": "grpo",
-                        "gnn_type": gnn_type,
-                        "graph_token_count": graph_token_count,
                         "pooling_strategy": pooling_strategy,
                         "prompt_style": prompt_style,
                     },
@@ -1619,8 +1608,6 @@ def main():
                 optimizer=optimizer,
                 scheduler=scheduler,
                 extra={
-                    "gnn_type": gnn_type,
-                    "graph_token_count": graph_token_count,
                     "pooling_strategy": pooling_strategy,
                     "prompt_style": prompt_style,
                 },
@@ -1680,8 +1667,6 @@ def main():
                 "test_mcp_micro_f1": test_metrics["mcp_micro_f1"],
                 "test_mcp_exact": test_metrics["mcp_exact"],
                 "mcp_threshold": best_mcp_threshold,
-                "gnn_type": gnn_type,
-                "graph_token_count": graph_token_count,
                 "pooling_strategy": pooling_strategy,
                 "prompt_style": prompt_style,
             },
