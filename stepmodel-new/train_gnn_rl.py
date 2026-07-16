@@ -1130,6 +1130,7 @@ def main():
     num_supervised_epochs = config['training']['num_supervised_epochs']
     num_grpo_epochs = config['training']['num_grpo_epochs']
     batch_size = config['training']['batch_size']
+    gradient_accumulation_steps = config['training'].get('gradient_accumulation_steps', 4)
     
     # Create datasets and dataloaders
     max_seq_length = config.get('training', {}).get('max_seq_length', 1024)
@@ -1265,8 +1266,6 @@ def main():
 
         for batch_samples in train_loader:
             for sample in batch_samples:
-                optimizer.zero_grad()
-
                 with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
                     loss, step_loss, mcp_loss = compute_supervised_loss_for_sample(
                         policy, llm, tokenizer, text_model, sample, device,
@@ -1286,20 +1285,30 @@ def main():
                     optimizer.zero_grad(set_to_none=True)
                     continue
 
+                # Scale loss for gradient accumulation
+                loss = loss / gradient_accumulation_steps
                 scaler.scale(loss).backward()
-                scaler.unscale_(optimizer)
-                torch.nn.utils.clip_grad_norm_(
-                    list(policy.parameters()) + llm_trainable_params, max_norm=max_grad_norm
-                )
-                scaler.step(optimizer)
-                scaler.update()
-                scheduler.step()
-                global_step += 1
 
-                total_loss += loss.item()
+                total_loss += loss.item() * gradient_accumulation_steps
                 total_step_loss += step_loss.item()
                 total_mcp_loss += mcp_loss.item()
                 num_samples += 1
+
+                # Step optimizer after accumulating gradients
+                if (num_samples % gradient_accumulation_steps == 0):
+                    scaler.unscale_(optimizer)
+                    torch.nn.utils.clip_grad_norm_(
+                        list(policy.parameters()) + llm_trainable_params, max_norm=max_grad_norm
+                    )
+                    scaler.step(optimizer)
+                    scaler.update()
+                    scheduler.step()
+                    optimizer.zero_grad(set_to_none=True)
+                    global_step += 1
+                    
+                    # Clear GPU cache
+                    if device.type == "cuda":
+                        torch.cuda.empty_cache()
 
                 if writer is not None:
                     writer.add_scalar("Supervised/loss", loss.item(), global_step)
