@@ -1237,7 +1237,8 @@ def main():
     scheduler = get_linear_schedule_with_warmup(
         optimizer, num_warmup_steps=num_warmup_steps, num_training_steps=total_steps
     )
-    amp_enabled = device.type == "cuda"
+    # Disable AMP when using 4-bit quantization or FP16 model
+    amp_enabled = device.type == "cuda" and not load_in_4bit and torch_dtype != torch.float16
     scaler = torch.amp.GradScaler(device.type, enabled=amp_enabled)
 
     # Training
