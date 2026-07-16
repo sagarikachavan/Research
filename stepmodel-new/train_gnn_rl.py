@@ -645,89 +645,36 @@ def compute_supervised_loss_for_sample(
     device,
     step_loss_weight: float = 1.0,
     mcp_loss_weight: float = 1.5,
-    explanation_loss_weight: float = 0.5,
+    explanation_loss_weight: float = 0.0,  # Disabled - unstable with gradient checkpointing
     step_class_weights: Optional[torch.Tensor] = None,
     mcp_pos_weights: Optional[torch.Tensor] = None,
 ):
     step_logits, mcp_logits = classify_sample(
         policy, llm, tokenizer, text_model, sample, device
     )
-    
-    # Check for non-finite logits before computing loss
+
+    # Sanitize logits before computing loss
     if not torch.isfinite(step_logits).all():
-        print(f"    ERROR: Non-finite step_logits detected! min={step_logits.min():.4f}, max={step_logits.max():.4f}")
         step_logits = torch.nan_to_num(step_logits, nan=0.0, posinf=10.0, neginf=-10.0)
-    
     if not torch.isfinite(mcp_logits).all():
-        print(f"    ERROR: Non-finite mcp_logits detected! min={mcp_logits.min():.4f}, max={mcp_logits.max():.4f}")
         mcp_logits = torch.nan_to_num(mcp_logits, nan=0.0, posinf=10.0, neginf=-10.0)
-    
+
     step_target = torch.tensor([sample['step_label']], dtype=torch.long, device=device)
     mcp_target = torch.tensor(sample['mcp_multihot'], dtype=torch.float32, device=device).unsqueeze(0)
-    
+
     step_loss = F.cross_entropy(step_logits, step_target, weight=step_class_weights)
     if not torch.isfinite(step_loss):
-        print(f"    ERROR: Non-finite step_loss! Setting to 0.0")
-        step_loss = torch.tensor(0.0, device=device, requires_grad=True)
-    
+        step_loss = torch.zeros((), device=device, requires_grad=True)
+
     mcp_loss = F.binary_cross_entropy_with_logits(mcp_logits, mcp_target, pos_weight=mcp_pos_weights)
     if not torch.isfinite(mcp_loss):
-        print(f"    ERROR: Non-finite mcp_loss! Setting to 0.0")
-        mcp_loss = torch.tensor(0.0, device=device, requires_grad=True)
-    
-    # Explanation generation loss (for training only, not evaluated)
-    explanation_loss = torch.tensor(0.0, device=device)
-    if explanation_loss_weight > 0.0 and sample.get('step_explanation'):
-        explanation_text = sample['step_explanation']
-        if explanation_text.strip():
-            try:
-                explanation_tokens = tokenizer(
-                    explanation_text,
-                    return_tensors='pt',
-                    truncation=True,
-                    max_length=256,
-                ).to(device)
-                explanation_input_ids = explanation_tokens['input_ids']
-                explanation_attention_mask = explanation_tokens['attention_mask']
-                
-                # Create a simple prompt for explanation generation
-                explanation_prompt = f"Step: {step_id_to_label(sample['step_label'])}\nExplanation:"
-                prompt_tokens = tokenizer(
-                    explanation_prompt,
-                    return_tensors='pt',
-                    truncation=True,
-                    max_length=128,
-                ).to(device)
-                
-                # Concatenate prompt with target explanation for language modeling
-                combined_input_ids = torch.cat([prompt_tokens['input_ids'], explanation_input_ids], dim=1)
-                combined_attention_mask = torch.cat([prompt_tokens['attention_mask'], explanation_attention_mask], dim=1)
-                
-                # Shift for causal language modeling
-                labels = combined_input_ids.clone()
-                labels[:, :prompt_tokens['input_ids'].size(1)] = -100  # Ignore prompt tokens in loss
-                
-                outputs = llm(
-                    input_ids=combined_input_ids,
-                    attention_mask=combined_attention_mask,
-                    labels=labels,
-                )
-                explanation_loss = outputs.loss
-                
-                if not torch.isfinite(explanation_loss):
-                    print(f"    ERROR: Non-finite explanation_loss! Setting to 0.0")
-                    explanation_loss = torch.tensor(0.0, device=device)
-            except Exception as e:
-                print(f"    ERROR: Exception in explanation loss computation: {e}")
-                explanation_loss = torch.tensor(0.0, device=device)
-    
-    total_loss = step_loss_weight * step_loss + mcp_loss_weight * mcp_loss + explanation_loss_weight * explanation_loss
-    
-    # Final sanity check
+        mcp_loss = torch.zeros((), device=device, requires_grad=True)
+
+    total_loss = step_loss_weight * step_loss + mcp_loss_weight * mcp_loss
+
     if not torch.isfinite(total_loss):
-        print(f"    ERROR: Non-finite total_loss! step={step_loss.item():.4f}, mcp={mcp_loss.item():.4f}, expl={explanation_loss.item():.4f}")
-        total_loss = torch.tensor(0.0, device=device, requires_grad=True)
-    
+        total_loss = torch.zeros((), device=device, requires_grad=True)
+
     return total_loss, step_loss.detach(), mcp_loss.detach()
 
 
@@ -1392,7 +1339,6 @@ def main():
                         policy, llm, tokenizer, text_model, sample, device,
                         step_loss_weight=step_loss_weight,
                         mcp_loss_weight=mcp_loss_weight,
-                        explanation_loss_weight=explanation_loss_weight,
                         step_class_weights=step_class_weights,
                         mcp_pos_weights=mcp_pos_weights,
                     )
@@ -1430,10 +1376,6 @@ def main():
                     scheduler.step()
                     optimizer.zero_grad(set_to_none=True)
                     global_step += 1
-                    
-                    # Clear GPU cache
-                    if device.type == "cuda":
-                        torch.cuda.empty_cache()
 
                 if writer is not None and num_samples % gradient_accumulation_steps == 0:
                     writer.add_scalar("Supervised/loss", loss.item() * gradient_accumulation_steps, global_step)
@@ -1633,7 +1575,6 @@ def main():
                             device,
                             step_loss_weight=step_loss_weight,
                             mcp_loss_weight=mcp_loss_weight,
-                            explanation_loss_weight=explanation_loss_weight,
                             step_class_weights=step_class_weights,
                             mcp_pos_weights=mcp_pos_weights,
                         )
