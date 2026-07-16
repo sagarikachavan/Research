@@ -1032,9 +1032,11 @@ def main():
         except Exception as e:
             print(f"Warning: Failed to initialize TensorBoard writer: {e}")
 
-    # Load models
-    text_model = SentenceTransformer(config['model']['text_embedding_model'])
-    text_emb_dim = text_model.get_embedding_dimension()
+    # Load models (text model not needed for text-only approach)
+    # text_model = SentenceTransformer(config['model']['text_embedding_model'])
+    # text_emb_dim = text_model.get_embedding_dimension()
+    text_model = None
+    text_emb_dim = 768  # Dummy value, not used
 
     # Load data
     data_dir = os.path.join(base_dir, config['paths']['data_dir'])
