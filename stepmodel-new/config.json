@@ -17,13 +17,7 @@
       "down_proj"
     ],
     "torch_dtype": "float16",
-    "text_embedding_model": "all-MiniLM-L6-v2",
-    "gnn_hidden_dim": 512,
-    "gnn_out_dim": 256,
-    "gnn_type": "gat",
-    "use_gat": true,
-    "graph_token_count": 8,
-    "pooling_strategy": "hybrid"
+    "pooling_strategy": "mean"
   },
   "training": {
     "num_supervised_epochs": 5,

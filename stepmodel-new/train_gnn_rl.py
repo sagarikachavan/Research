@@ -27,14 +27,14 @@ try:
 except (ImportError, Exception) as e:
     TENSORBOARD_AVAILABLE = False
     print(f"Warning: TensorBoard not available ({type(e).__name__}: {e}), skipping logging.")
-from sentence_transformers import SentenceTransformer
+# from sentence_transformers import SentenceTransformer  # Not used anymore
 from transformers import (
     AutoTokenizer,
     AutoModelForCausalLM,
     BitsAndBytesConfig,
     get_linear_schedule_with_warmup
 )
-from torch_geometric.nn import GCNConv, GATConv, SAGEConv, global_mean_pool
+# from torch_geometric.nn import GCNConv, GATConv, SAGEConv, global_mean_pool  # Not used anymore
 
 try:
     from peft import LoraConfig, get_peft_model, prepare_model_for_kbit_training
@@ -215,12 +215,12 @@ class PenTestDataset(Dataset):
     def __init__(
         self,
         data: List[Dict[str, Any]],
-        text_model: SentenceTransformer,
+        text_model=None,  # Not used anymore, kept for compatibility
         max_seq_length=1024,
         prompt_style: str = "full",
     ):
         self.data = data
-        self.text_model = text_model
+        self.text_model = text_model  # Not used, kept for compatibility
         self.max_seq_length = max_seq_length
         self.prompt_style = str(prompt_style or "full").lower()
         self.samples = []
@@ -305,12 +305,12 @@ def _prompt_fields(step_pair: Dict[str, Any], prompt_style: str = "full"):
     prompt_style = str(prompt_style or "full").lower()
     if prompt_style == "compact":
         return [
-            ("Strategy", step_pair.get('next_strategy', '')),
+            ("New Strategy", step_pair.get('next_strategy', '')),
             ("Strategy Explanation", step_pair.get('next_strategy_explanation', '')),
         ]
 
     return [
-        ("Strategy", step_pair.get('next_strategy', '')),
+        ("New Strategy", step_pair.get('next_strategy', '')),
         ("Strategy Explanation", step_pair.get('next_strategy_explanation', '')),
     ]
 
@@ -332,21 +332,68 @@ def build_prompt_text(
     return (
         "### Graph Information ###\n"
         f"{graph_text}\n\n"
-        "### Current Strategy ###\n"
+        "### New Strategy and Explanation ###\n"
         f"{context_lines}\n\n"
         "### Prediction Task ###\n"
         "Predict the next Step label, Step explanation, and MCP tool labels from the fixed ontology."
     )
 
 
-def load_processed_data(csv_path: str):
-    """Load data from CSV file and convert to expected format."""
+def load_processed_data(csv_path: str, graph_data_dir: str = None):
+    """Load data from CSV file and merge with graph data from JSON files."""
     import pandas as pd
     df = pd.read_csv(csv_path)
+    
+    if graph_data_dir is None:
+        base_dir = os.path.dirname(os.path.abspath(__file__))
+        graph_data_dir = os.path.join(base_dir, "embeddings_data")
+    
+    # Determine if this is train or test data
+    if "training" in csv_path:
+        graph_subdir = "train"
+    else:
+        graph_subdir = "test"
+    
+    graph_dir = os.path.join(graph_data_dir, graph_subdir)
+    
+    # Load graph data from JSON files
+    graph_data = {}
+    if os.path.exists(graph_dir):
+        for json_file in os.listdir(graph_dir):
+            if json_file.endswith("_processed.json"):
+                machine_name = json_file.replace("_processed.json", "")
+                json_path = os.path.join(graph_dir, json_file)
+                try:
+                    with open(json_path, 'r') as f:
+                        data = json.load(f)
+                        # Extract nodes and edges (text representation only)
+                        nodes = []
+                        for node in data.get('nodes', []):
+                            nodes.append({
+                                'id': node.get('id', ''),
+                                'label': node.get('label', ''),
+                                'type': node.get('type', ''),
+                                'title': node.get('title', ''),
+                            })
+                        edges = []
+                        for edge in data.get('edges', []):
+                            edges.append({
+                                'source': edge.get('source', ''),
+                                'target': edge.get('target', ''),
+                                'label': edge.get('label', ''),
+                            })
+                        graph_data[machine_name] = {
+                            'nodes': nodes,
+                            'edges': edges
+                        }
+                except Exception as e:
+                    print(f"Warning: Failed to load graph data for {machine_name}: {e}")
     
     # Convert CSV to list of dicts matching expected format
     data = []
     for _, row in df.iterrows():
+        machine_name = row.get('Machine', '')
+        
         # Map CSV columns to expected field names
         step_pair = {
             'previous_strategy': row.get('Previous strategy', ''),
@@ -359,14 +406,19 @@ def load_processed_data(csv_path: str):
             'next_mcp_tasks': row.get('MCP_tasks', ''),
         }
         
-        # Create sample with graph data (empty for now - will be generated)
+        # Get graph data for this machine
+        graph_info = graph_data.get(machine_name, {'nodes': [], 'edges': []})
+        
+        # Create sample with graph data
         sample = {
             'step_pair': step_pair,
-            'nodes': [],  # Will be populated by generate_graphs.py
-            'edges': [],  # Will be populated by generate_graphs.py
+            'nodes': graph_info['nodes'],
+            'edges': graph_info['edges'],
         }
         data.append(sample)
     
+    print(f"Loaded {len(data)} samples from {csv_path}")
+    print(f"Graph data available for {len(graph_data)} machines")
     return data
 
 
@@ -421,7 +473,7 @@ def _ensure_finite_tensor(tensor: torch.Tensor, name: str, clip_value: float = 5
     non_finite = (~torch.isfinite(tensor)).sum().item()
     _debug_report(
         "F",
-        "train_gnn_rl.py:ensure-finite",
+        "train_llm_rl.py:ensure-finite",
         "[DEBUG] Non-finite tensor sanitized",
         {
             "name": name,
@@ -679,7 +731,7 @@ def generate_samples_with_policy(
 
             _debug_report(
                 "E",
-                "train_gnn_rl.py:classification-rollout",
+                "train_llm_rl.py:classification-rollout",
                 "[DEBUG] Sampled classification rollout",
                 {
                     "step_action": step_id_to_label(int(step_action.item())),
@@ -1029,11 +1081,8 @@ def main():
         except Exception as e:
             print(f"Warning: Failed to initialize TensorBoard writer: {e}")
 
-    # Load models (text model not needed for text-only approach)
-    # text_model = SentenceTransformer(config['model']['text_embedding_model'])
-    # text_emb_dim = text_model.get_embedding_dimension()
+    # Text model not needed for text-only approach
     text_model = None
-    text_emb_dim = 768  # Dummy value, not used
 
     # Load data
     data_dir = os.path.join(base_dir, config['paths']['data_dir'])
@@ -1117,7 +1166,7 @@ def main():
     pooling_strategy = str(config.get('model', {}).get('pooling_strategy', 'hybrid')).lower()
     prompt_style = str(config.get('training', {}).get('prompt_style', 'compact')).lower()
 
-    # Initialize policy (simplified without GNN)
+    # Initialize policy
     policy = LLMPolicy(
         llm_hidden_size=llm_hidden_size,
         pooling_strategy=pooling_strategy,
@@ -1275,7 +1324,7 @@ def main():
                 if not torch.isfinite(loss):
                     _debug_report(
                         "F",
-                        "train_gnn_rl.py:supervised-loss",
+                        "train_llm_rl.py:supervised-loss",
                         "[DEBUG] Skipping non-finite supervised loss",
                         {"epoch": epoch + 1, "sample_index": num_samples + 1},
                     )
@@ -1452,7 +1501,7 @@ def main():
             reward_values = [float(r['reward']) for r in all_rollouts]
             _debug_report(
                 "D",
-                "train_gnn_rl.py:822",
+                "train_llm_rl.py:grpo-reward",
                 "[DEBUG] GRPO update reward summary",
                 {
                     "epoch": epoch + 1,
@@ -1498,7 +1547,7 @@ def main():
             if not torch.isfinite(loss):
                 _debug_report(
                     "F",
-                    "train_gnn_rl.py:grpo-loss",
+                    "train_llm_rl.py:grpo-loss",
                     "[DEBUG] Skipping non-finite GRPO loss",
                     {"epoch": epoch + 1, "update": num_updates + 1},
                 )
@@ -1627,7 +1676,7 @@ def main():
     final_eval_checkpoint = os.path.join(output_dir, "best_checkpoint.pt")
     if not os.path.exists(final_eval_checkpoint):
         final_eval_checkpoint = os.path.join(output_dir, "best_supervised_checkpoint.pt")
-    checkpoint = torch.load(final_eval_checkpoint, map_location=device)
+    checkpoint = torch.load(final_eval_checkpoint, map_location=device, weights_only=False)
     missing, unexpected = policy.load_state_dict(checkpoint["policy"], strict=False)
     if missing:
         print(f"Policy checkpoint missing {len(missing)} newly initialized keys.")
