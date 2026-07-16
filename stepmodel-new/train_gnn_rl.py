@@ -1267,6 +1267,39 @@ def main():
         collate_fn=collate_fn,
     )
     print(f"Train size: {len(train_dataset)}, Val size: {len(val_dataset)}, Test size: {len(test_dataset)}")
+    
+    # Print training configuration
+    print("\n" + "="*60)
+    print("TRAINING CONFIGURATION")
+    print("="*60)
+    print(f"Model: {llm_name}")
+    print(f"Device: {device}")
+    print(f"Pooling Strategy: {pooling_strategy}")
+    print(f"Prompt Style: {prompt_style}")
+    print(f"Max Sequence Length: {max_seq_length}")
+    print(f"\nSupervised Training:")
+    print(f"  Epochs: {num_supervised_epochs}")
+    print(f"  Batch Size: {batch_size}")
+    print(f"  Gradient Accumulation Steps: {gradient_accumulation_steps}")
+    print(f"  Learning Rate: {learning_rate}")
+    print(f"  Step Loss Weight: {step_loss_weight}")
+    print(f"  MCP Loss Weight: {mcp_loss_weight}")
+    print(f"  Explanation Loss Weight: {explanation_loss_weight}")
+    print(f"\nGRPO Training:")
+    print(f"  Epochs: {num_grpo_epochs}")
+    print(f"  Generations per Sample: {num_generations_per_sample}")
+    print(f"  Temperature: {generate_temperature}")
+    print(f"  Clip Epsilon: {clip_eps}")
+    print(f"  RL Aux Supervised Weight: {rl_aux_supervised_weight}")
+    print(f"\nOther:")
+    print(f"  Total Steps: {total_steps}")
+    print(f"  Warmup Steps: {num_warmup_steps}")
+    print(f"  Max Grad Norm: {max_grad_norm}")
+    print(f"  Patience: {patience}")
+    print(f"  AMP Enabled: {amp_enabled}")
+    print(f"  4-bit Quantization: {load_in_4bit}")
+    print(f"  LoRA: {use_lora}")
+    print("="*60 + "\n")
 
     # Fix total steps calculation: both phases use batch steps (Phase1 uses batch_size=1 effectively for now)
     supervised_updates_per_epoch = len(train_loader)
@@ -1298,6 +1331,9 @@ def main():
     # --------------------------
     # Phase 1: Supervised Warmup
     # --------------------------
+    print("\n" + "="*60)
+    print("PHASE 1: SUPERVISED WARMUP TRAINING")
+    print("="*60 + "\n")
     policy.train()
     llm.train()
 
@@ -1357,19 +1393,24 @@ def main():
                     writer.add_scalar("Supervised/loss", loss.item() * gradient_accumulation_steps, global_step)
                     writer.add_scalar("Supervised/step_loss", step_loss.item(), global_step)
                     writer.add_scalar("Supervised/mcp_loss", mcp_loss.item(), global_step)
-                if num_samples % 100 == 0:
+                if num_samples > 0 and num_samples % 50 == 0:
                     avg_loss = total_loss / num_samples
                     print(
-                        f"Epoch {epoch+1}/{num_supervised_epochs}, "
+                        f"[Supervised] Epoch {epoch+1}/{num_supervised_epochs}, "
                         f"Sample {num_samples}/{len(train_dataset)}, "
                         f"Avg Loss: {avg_loss:.4f}, "
                         f"Step CE: {total_step_loss / num_samples:.4f}, "
                         f"MCP BCE: {total_mcp_loss / num_samples:.4f}"
                     )
 
-        avg_epoch_loss = total_loss / num_samples
-        avg_epoch_step_loss = total_step_loss / num_samples
-        avg_epoch_mcp_loss = total_mcp_loss / num_samples
+        avg_epoch_loss = total_loss / max(num_samples, 1)
+        avg_epoch_step_loss = total_step_loss / max(num_samples, 1)
+        avg_epoch_mcp_loss = total_mcp_loss / max(num_samples, 1)
+        
+        if num_samples == 0:
+            print(f"WARNING: All samples in supervised epoch {epoch+1} were skipped due to non-finite losses!")
+        
+        print(f"  Evaluating on validation set...")
         val_metrics = find_best_mcp_threshold(
             val_dataset,
             policy,
@@ -1395,17 +1436,22 @@ def main():
             writer.add_scalar("Supervised/val_selection_score", val_metrics["selection_score"], epoch+1)
 
         print(
-            f"\nSupervised Epoch {epoch+1} Complete! "
-            f"Avg Loss: {avg_epoch_loss:.4f}, "
-            f"Step CE: {avg_epoch_step_loss:.4f}, "
-            f"MCP BCE: {avg_epoch_mcp_loss:.4f}, "
-            f"Loss Weights (step={step_loss_weight:.2f}, mcp={mcp_loss_weight:.2f}), "
-            f"Val Reward: {val_reward:.4f}, "
-            f"Val Step Acc: {val_metrics['step_acc']:.4f}, "
-            f"Val MCP F1: {val_metrics['mcp_f1']:.4f}, "
-            f"Val MCP Exact: {val_metrics['mcp_exact']:.4f}, "
-            f"Selection Score: {val_metrics['selection_score']:.4f}, "
-            f"Best Thr: {format_threshold(val_metrics['threshold'])}\n"
+            f"\n{'='*60}\n"
+            f"Supervised Epoch {epoch+1}/{num_supervised_epochs} Complete!\n"
+            f"{'='*60}\n"
+            f"  Training Metrics:\n"
+            f"    Avg Loss: {avg_epoch_loss:.4f}\n"
+            f"    Step CE Loss: {avg_epoch_step_loss:.4f}\n"
+            f"    MCP BCE Loss: {avg_epoch_mcp_loss:.4f}\n"
+            f"    Loss Weights: step={step_loss_weight:.2f}, mcp={mcp_loss_weight:.2f}\n"
+            f"  Validation Metrics:\n"
+            f"    Val Reward: {val_reward:.4f}\n"
+            f"    Val Step Accuracy: {val_metrics['step_acc']:.4f}\n"
+            f"    Val MCP F1: {val_metrics['mcp_f1']:.4f}\n"
+            f"    Val MCP Exact: {val_metrics['mcp_exact']:.4f}\n"
+            f"    Selection Score: {val_metrics['selection_score']:.4f}\n"
+            f"    Best Threshold: {format_threshold(val_metrics['threshold'])}\n"
+            f"{'='*60}\n"
         )
 
         # Early stopping check
@@ -1414,6 +1460,7 @@ def main():
             best_val_reward = val_reward
             best_mcp_threshold = val_metrics["threshold"]
             patience_counter = 0
+            print(f"✓ New best model! Saving checkpoint (Selection Score: {val_metrics['selection_score']:.4f})")
             atomic_torch_save(
                 build_checkpoint_payload(
                     policy,
@@ -1440,6 +1487,7 @@ def main():
             )
         else:
             patience_counter += 1
+            print(f"  No improvement (patience: {patience_counter}/{patience})")
 
         atomic_torch_save(
             build_checkpoint_payload(
@@ -1460,7 +1508,10 @@ def main():
     # --------------------------
     # Phase 2: GRPO Fine-tuning
     # --------------------------
-    print(f"\nRL auxiliary supervised weight: {rl_aux_supervised_weight:.3f}")
+    print("\n" + "="*60)
+    print("PHASE 2: GRPO REINFORCEMENT LEARNING FINE-TUNING")
+    print("="*60 + "\n")
+    print(f"RL auxiliary supervised weight: {rl_aux_supervised_weight:.3f}")
     policy.train()
     llm.train()
     patience_counter = 0  # Reset patience
@@ -1505,7 +1556,7 @@ def main():
             )
             # #endregion
 
-            print(f"GRPO Epoch {epoch+1}/{num_grpo_epochs}, Update {num_updates + 1}, Avg Reward: {avg_reward:.4f}")
+            print(f"[GRPO] Epoch {epoch+1}/{num_grpo_epochs}, Update {num_updates + 1}/{len(train_loader)}, Avg Reward: {avg_reward:.4f}")
 
             optimizer.zero_grad()
 
@@ -1569,6 +1620,8 @@ def main():
         avg_epoch_grpo_loss = total_grpo_loss / max(num_updates, 1)
         avg_epoch_aux_sup_loss = total_aux_sup_loss / max(num_updates, 1)
         avg_epoch_reward = total_reward / max(num_updates, 1)
+        
+        print(f"  Evaluating on validation set...")
         val_metrics = find_best_mcp_threshold(
             val_dataset,
             policy,
@@ -1593,18 +1646,23 @@ def main():
             writer.add_scalar("GRPO/val_combined_score", val_metrics["combined_score"], epoch+1)
             writer.add_scalar("GRPO/val_selection_score", val_metrics["selection_score"], epoch+1)
 
-        print(f"\nGRPO Epoch {epoch+1} Complete!")
         print(
-            f"Avg Loss: {avg_epoch_loss:.4f}, "
-            f"Avg GRPO Loss: {avg_epoch_grpo_loss:.4f}, "
-            f"Avg Aux Sup Loss: {avg_epoch_aux_sup_loss:.4f}, "
-            f"Avg Train Reward: {avg_epoch_reward:.4f}, "
-            f"Val Reward: {val_reward:.4f}, "
-            f"Val Step Acc: {val_metrics['step_acc']:.4f}, "
-            f"Val MCP F1: {val_metrics['mcp_f1']:.4f}, "
-            f"Val MCP Exact: {val_metrics['mcp_exact']:.4f}, "
-            f"Selection Score: {val_metrics['selection_score']:.4f}, "
-            f"Best Thr: {format_threshold(val_metrics['threshold'])}\n"
+            f"\n{'='*60}\n"
+            f"GRPO Epoch {epoch+1}/{num_grpo_epochs} Complete!\n"
+            f"{'='*60}\n"
+            f"  Training Metrics:\n"
+            f"    Avg Loss: {avg_epoch_loss:.4f}\n"
+            f"    Avg GRPO Loss: {avg_epoch_grpo_loss:.4f}\n"
+            f"    Avg Aux Sup Loss: {avg_epoch_aux_sup_loss:.4f}\n"
+            f"    Avg Train Reward: {avg_epoch_reward:.4f}\n"
+            f"  Validation Metrics:\n"
+            f"    Val Reward: {val_reward:.4f}\n"
+            f"    Val Step Accuracy: {val_metrics['step_acc']:.4f}\n"
+            f"    Val MCP F1: {val_metrics['mcp_f1']:.4f}\n"
+            f"    Val MCP Exact: {val_metrics['mcp_exact']:.4f}\n"
+            f"    Selection Score: {val_metrics['selection_score']:.4f}\n"
+            f"    Best Threshold: {format_threshold(val_metrics['threshold'])}\n"
+            f"{'='*60}\n"
         )
 
         if val_metrics["selection_score"] > best_val_combined:
@@ -1612,6 +1670,7 @@ def main():
             best_val_reward = val_reward
             best_mcp_threshold = val_metrics["threshold"]
             patience_counter = 0
+            print(f"✓ New best model! Saving checkpoint (Selection Score: {val_metrics['selection_score']:.4f})")
             atomic_torch_save(
                 build_checkpoint_payload(
                     policy,
@@ -1638,8 +1697,9 @@ def main():
             )
         else:
             patience_counter += 1
+            print(f"  No improvement (patience: {patience_counter}/{patience})")
             if patience_counter >= patience:
-                print(f"Early stopping triggered after {epoch+1} GRPO epochs!")
+                print(f"\n⚠ Early stopping triggered after {epoch+1} GRPO epochs (no improvement for {patience} epochs)")
                 break
 
         atomic_torch_save(
@@ -1682,15 +1742,22 @@ def main():
     test_metrics = evaluate_metrics_on_dataset(
         test_dataset, policy, llm, tokenizer, text_model, device, threshold=best_mcp_threshold
     )
-    print(f"Test Average Reward: {test_metrics['avg_reward']:.4f}")
-    print(f"Test Step Accuracy: {test_metrics['step_acc']:.4f}")
-    print(f"Test Step Micro F1: {test_metrics['step_micro_f1']:.4f}")
-    print(f"Test MCP Accuracy: {test_metrics['mcp_acc']:.4f}")
-    print(f"Test MCP F1: {test_metrics['mcp_f1']:.4f}")
-    print(f"Test MCP Micro F1: {test_metrics['mcp_micro_f1']:.4f}")
-    print(f"Test MCP Exact: {test_metrics['mcp_exact']:.4f}")
-    print(f"Test Both Exact: {test_metrics['both_exact']:.4f}")
-    print(f"Test MCP Threshold: {format_threshold(best_mcp_threshold)}\n")
+    print(f"{'='*60}")
+    print(f"TEST RESULTS")
+    print(f"{'='*60}")
+    print(f"  Step Metrics:")
+    print(f"    Accuracy: {test_metrics['step_acc']:.4f}")
+    print(f"    Micro F1: {test_metrics['step_micro_f1']:.4f}")
+    print(f"\n  MCP Metrics:")
+    print(f"    F1 Score: {test_metrics['mcp_f1']:.4f}")
+    print(f"    Micro F1: {test_metrics['mcp_micro_f1']:.4f}")
+    print(f"    Accuracy: {test_metrics['mcp_acc']:.4f}")
+    print(f"    Exact Match: {test_metrics['mcp_exact']:.4f}")
+    print(f"\n  Combined:")
+    print(f"    Average Reward: {test_metrics['avg_reward']:.4f}")
+    print(f"    Both Exact: {test_metrics['both_exact']:.4f}")
+    print(f"    MCP Threshold: {format_threshold(best_mcp_threshold)}")
+    print(f"{'='*60}\n")
 
     # Save final
     atomic_torch_save(
@@ -1721,7 +1788,13 @@ def main():
 
     if writer is not None:
         writer.close()
-    print("Training Complete!")
+    print("\n" + "="*60)
+    print("✓ TRAINING COMPLETE!")
+    print("="*60)
+    print(f"Best checkpoint saved to: {output_dir}/best_checkpoint.pt")
+    print(f"Final checkpoint saved to: {output_dir}/final_checkpoint.pt")
+    print(f"Model saved to: {output_dir}")
+    print("="*60 + "\n")
 
 
 if __name__ == "__main__":

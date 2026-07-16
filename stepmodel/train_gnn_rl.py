@@ -1472,7 +1472,7 @@ def main():
                     writer.add_scalar("Supervised/loss", loss.item(), global_step)
                     writer.add_scalar("Supervised/step_loss", step_loss.item(), global_step)
                     writer.add_scalar("Supervised/mcp_loss", mcp_loss.item(), global_step)
-                if num_samples % 100 == 0:
+                if num_samples > 0 and num_samples % 100 == 0:
                     avg_loss = total_loss / num_samples
                     print(
                         f"Epoch {epoch+1}/{num_supervised_epochs}, "
