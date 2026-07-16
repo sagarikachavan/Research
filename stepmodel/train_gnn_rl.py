@@ -1482,9 +1482,12 @@ def main():
                         f"MCP BCE: {total_mcp_loss / num_samples:.4f}"
                     )
 
-        avg_epoch_loss = total_loss / num_samples
-        avg_epoch_step_loss = total_step_loss / num_samples
-        avg_epoch_mcp_loss = total_mcp_loss / num_samples
+        avg_epoch_loss = total_loss / max(num_samples, 1)
+        avg_epoch_step_loss = total_step_loss / max(num_samples, 1)
+        avg_epoch_mcp_loss = total_mcp_loss / max(num_samples, 1)
+        
+        if num_samples == 0:
+            print(f"WARNING: All samples in supervised epoch {epoch+1} were skipped due to non-finite losses!")
         val_metrics = find_best_mcp_threshold(
             val_dataset,
             policy,
