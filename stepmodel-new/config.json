@@ -47,7 +47,7 @@
     "mcp_class_weighting": true,
     "mcp_class_weight_power": 0.5,
     "max_mcp_class_weight": 6.0,
-    "use_weighted_sampler": true,
+    "use_weighted_sampler": false,
     "sampler_power": 1.0,
     "selection_step_weight": 0.9,
     "selection_mcp_weight": 0.1,

@@ -1302,20 +1302,6 @@ def main():
     llm.train()
 
     for epoch in range(num_supervised_epochs):
-        # Recreate sampler for each epoch if using WeightedRandomSampler
-        if train_sampler is not None:
-            train_sampler, _ = build_step_weighted_sampler(
-                train_dataset,
-                power=sampler_power,
-            )
-            train_loader = DataLoader(
-                train_dataset,
-                batch_size=batch_size,
-                shuffle=False,
-                sampler=train_sampler,
-                collate_fn=collate_fn,
-            )
-        
         total_loss = 0.0
         total_step_loss = 0.0
         total_mcp_loss = 0.0
@@ -1380,10 +1366,6 @@ def main():
                         f"Step CE: {total_step_loss / num_samples:.4f}, "
                         f"MCP BCE: {total_mcp_loss / num_samples:.4f}"
                     )
-
-        if num_samples == 0:
-            print(f"Warning: No valid samples processed in epoch {epoch+1}")
-            continue
 
         avg_epoch_loss = total_loss / num_samples
         avg_epoch_step_loss = total_step_loss / num_samples
