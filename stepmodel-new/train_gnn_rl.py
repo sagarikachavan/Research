@@ -1576,16 +1576,6 @@ def main():
             )
             # #endregion
 
-            elapsed = time.time() - epoch_start_time
-            updates_per_sec = (num_updates + 1) / elapsed if elapsed > 0 else 0
-            eta_seconds = (len(train_loader) - num_updates - 1) / updates_per_sec if updates_per_sec > 0 else 0
-            eta_minutes = eta_seconds / 60
-            print(f"\n[GRPO] Epoch {epoch+1}/{num_grpo_epochs}, "
-                  f"Update {num_updates + 1}/{len(train_loader)}, "
-                  f"Avg Reward: {avg_reward:.4f}, "
-                  f"Speed: {updates_per_sec:.2f} updates/sec, "
-                  f"ETA: {eta_minutes:.1f}m")
-
             optimizer.zero_grad()
 
             with torch.amp.autocast(device_type=device.type, enabled=amp_enabled):
@@ -1614,6 +1604,7 @@ def main():
                         aux_sup_loss = torch.stack(aux_loss_terms).mean()
                 loss = grpo_loss + rl_aux_supervised_weight * aux_sup_loss
             if not torch.isfinite(loss):
+                print(f"\n  WARNING: Non-finite GRPO loss at update {num_updates + 1}, skipping...")
                 _debug_report(
                     "F",
                     "train_llm_rl.py:grpo-loss",
@@ -1643,7 +1634,20 @@ def main():
             total_grpo_loss += grpo_loss.item()
             total_aux_sup_loss += aux_sup_loss.item()
             num_updates += 1
+            
+            # Print progress AFTER update is complete
+            elapsed = time.time() - epoch_start_time
+            updates_per_sec = num_updates / elapsed if elapsed > 0 else 0
+            eta_seconds = (len(train_loader) - num_updates) / updates_per_sec if updates_per_sec > 0 else 0
+            eta_minutes = eta_seconds / 60
+            print(f"\n[GRPO] Epoch {epoch+1}/{num_grpo_epochs}, "
+                  f"Update {num_updates}/{len(train_loader)}, "
+                  f"Avg Reward: {avg_reward:.4f}, "
+                  f"Loss: {loss.item():.4f}, "
+                  f"Speed: {updates_per_sec:.2f} updates/sec, "
+                  f"ETA: {eta_minutes:.1f}m")
 
+        print(f"\n  GRPO Epoch {epoch+1} training completed in {(time.time() - epoch_start_time) / 60:.1f} minutes")
         avg_epoch_loss = total_loss / max(num_updates, 1)
         avg_epoch_grpo_loss = total_grpo_loss / max(num_updates, 1)
         avg_epoch_aux_sup_loss = total_aux_sup_loss / max(num_updates, 1)
