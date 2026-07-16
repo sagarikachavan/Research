@@ -1,6 +1,6 @@
 {
   "model": {
-    "llm_name": "Qwen/Qwen3-14B",
+    "llm_name": "Qwen/Qwen2.5-7B-Instruct",
     "trust_remote_code": true,
     "load_in_4bit": true,
     "use_lora": false,
