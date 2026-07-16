@@ -697,29 +697,29 @@ def compute_supervised_loss_for_sample(
                     return_tensors='pt',
                     truncation=True,
                     max_length=128,
-            ).to(device)
-            
-            # Concatenate prompt with target explanation for language modeling
-            combined_input_ids = torch.cat([prompt_tokens['input_ids'], explanation_input_ids], dim=1)
-            combined_attention_mask = torch.cat([prompt_tokens['attention_mask'], explanation_attention_mask], dim=1)
-            
-            # Shift for causal language modeling
-            labels = combined_input_ids.clone()
-            labels[:, :prompt_tokens['input_ids'].size(1)] = -100  # Ignore prompt tokens in loss
-            
-            outputs = llm(
-                input_ids=combined_input_ids,
-                attention_mask=combined_attention_mask,
-                labels=labels,
-            )
-            explanation_loss = outputs.loss
-            
-            if not torch.isfinite(explanation_loss):
-                print(f"    ERROR: Non-finite explanation_loss! Setting to 0.0")
+                ).to(device)
+                
+                # Concatenate prompt with target explanation for language modeling
+                combined_input_ids = torch.cat([prompt_tokens['input_ids'], explanation_input_ids], dim=1)
+                combined_attention_mask = torch.cat([prompt_tokens['attention_mask'], explanation_attention_mask], dim=1)
+                
+                # Shift for causal language modeling
+                labels = combined_input_ids.clone()
+                labels[:, :prompt_tokens['input_ids'].size(1)] = -100  # Ignore prompt tokens in loss
+                
+                outputs = llm(
+                    input_ids=combined_input_ids,
+                    attention_mask=combined_attention_mask,
+                    labels=labels,
+                )
+                explanation_loss = outputs.loss
+                
+                if not torch.isfinite(explanation_loss):
+                    print(f"    ERROR: Non-finite explanation_loss! Setting to 0.0")
+                    explanation_loss = torch.tensor(0.0, device=device)
+            except Exception as e:
+                print(f"    ERROR: Exception in explanation loss computation: {e}")
                 explanation_loss = torch.tensor(0.0, device=device)
-        except Exception as e:
-            print(f"    ERROR: Exception in explanation loss computation: {e}")
-            explanation_loss = torch.tensor(0.0, device=device)
     
     total_loss = step_loss_weight * step_loss + mcp_loss_weight * mcp_loss + explanation_loss_weight * explanation_loss
     
