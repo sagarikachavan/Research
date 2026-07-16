@@ -652,32 +652,51 @@ def compute_supervised_loss_for_sample(
     step_logits, mcp_logits = classify_sample(
         policy, llm, tokenizer, text_model, sample, device
     )
+    
+    # Check for non-finite logits before computing loss
+    if not torch.isfinite(step_logits).all():
+        print(f"    ERROR: Non-finite step_logits detected! min={step_logits.min():.4f}, max={step_logits.max():.4f}")
+        step_logits = torch.nan_to_num(step_logits, nan=0.0, posinf=10.0, neginf=-10.0)
+    
+    if not torch.isfinite(mcp_logits).all():
+        print(f"    ERROR: Non-finite mcp_logits detected! min={mcp_logits.min():.4f}, max={mcp_logits.max():.4f}")
+        mcp_logits = torch.nan_to_num(mcp_logits, nan=0.0, posinf=10.0, neginf=-10.0)
+    
     step_target = torch.tensor([sample['step_label']], dtype=torch.long, device=device)
     mcp_target = torch.tensor(sample['mcp_multihot'], dtype=torch.float32, device=device).unsqueeze(0)
+    
     step_loss = F.cross_entropy(step_logits, step_target, weight=step_class_weights)
+    if not torch.isfinite(step_loss):
+        print(f"    ERROR: Non-finite step_loss! Setting to 0.0")
+        step_loss = torch.tensor(0.0, device=device, requires_grad=True)
+    
     mcp_loss = F.binary_cross_entropy_with_logits(mcp_logits, mcp_target, pos_weight=mcp_pos_weights)
+    if not torch.isfinite(mcp_loss):
+        print(f"    ERROR: Non-finite mcp_loss! Setting to 0.0")
+        mcp_loss = torch.tensor(0.0, device=device, requires_grad=True)
     
     # Explanation generation loss (for training only, not evaluated)
     explanation_loss = torch.tensor(0.0, device=device)
     if explanation_loss_weight > 0.0 and sample.get('step_explanation'):
         explanation_text = sample['step_explanation']
         if explanation_text.strip():
-            explanation_tokens = tokenizer(
-                explanation_text,
-                return_tensors='pt',
-                truncation=True,
-                max_length=256,
-            ).to(device)
-            explanation_input_ids = explanation_tokens['input_ids']
-            explanation_attention_mask = explanation_tokens['attention_mask']
-            
-            # Create a simple prompt for explanation generation
-            explanation_prompt = f"Step: {step_id_to_label(sample['step_label'])}\nExplanation:"
-            prompt_tokens = tokenizer(
-                explanation_prompt,
-                return_tensors='pt',
-                truncation=True,
-                max_length=128,
+            try:
+                explanation_tokens = tokenizer(
+                    explanation_text,
+                    return_tensors='pt',
+                    truncation=True,
+                    max_length=256,
+                ).to(device)
+                explanation_input_ids = explanation_tokens['input_ids']
+                explanation_attention_mask = explanation_tokens['attention_mask']
+                
+                # Create a simple prompt for explanation generation
+                explanation_prompt = f"Step: {step_id_to_label(sample['step_label'])}\nExplanation:"
+                prompt_tokens = tokenizer(
+                    explanation_prompt,
+                    return_tensors='pt',
+                    truncation=True,
+                    max_length=128,
             ).to(device)
             
             # Concatenate prompt with target explanation for language modeling
@@ -694,8 +713,21 @@ def compute_supervised_loss_for_sample(
                 labels=labels,
             )
             explanation_loss = outputs.loss
+            
+            if not torch.isfinite(explanation_loss):
+                print(f"    ERROR: Non-finite explanation_loss! Setting to 0.0")
+                explanation_loss = torch.tensor(0.0, device=device)
+        except Exception as e:
+            print(f"    ERROR: Exception in explanation loss computation: {e}")
+            explanation_loss = torch.tensor(0.0, device=device)
     
     total_loss = step_loss_weight * step_loss + mcp_loss_weight * mcp_loss + explanation_loss_weight * explanation_loss
+    
+    # Final sanity check
+    if not torch.isfinite(total_loss):
+        print(f"    ERROR: Non-finite total_loss! step={step_loss.item():.4f}, mcp={mcp_loss.item():.4f}, expl={explanation_loss.item():.4f}")
+        total_loss = torch.tensor(0.0, device=device, requires_grad=True)
+    
     return total_loss, step_loss.detach(), mcp_loss.detach()
 
 
@@ -1347,6 +1379,7 @@ def main():
         total_step_loss = 0.0
         total_mcp_loss = 0.0
         num_samples = 0
+        num_skipped = 0  # Track skipped samples
 
         for batch_idx, batch_samples in enumerate(train_loader):
             for sample in batch_samples:
@@ -1363,8 +1396,11 @@ def main():
                         step_class_weights=step_class_weights,
                         mcp_pos_weights=mcp_pos_weights,
                     )
+                
+                # Check if loss is still non-finite after safeguards
                 if not torch.isfinite(loss):
-                    print(f"\n  WARNING: Non-finite loss at sample {num_samples + 1}, skipping...")
+                    print(f"\n  WARNING: Non-finite loss at sample {num_samples + 1} even after safeguards, skipping...")
+                    num_skipped += 1
                     _debug_report(
                         "F",
                         "train_llm_rl.py:supervised-loss",
@@ -1419,6 +1455,8 @@ def main():
                     )
 
         print(f"\n  Epoch {epoch+1} training completed in {(time.time() - epoch_start_time) / 60:.1f} minutes")
+        if num_skipped > 0:
+            print(f"  WARNING: Skipped {num_skipped}/{num_samples + num_skipped} samples due to non-finite losses ({100*num_skipped/(num_samples+num_skipped):.1f}%)")
         avg_epoch_loss = total_loss / max(num_samples, 1)
         avg_epoch_step_loss = total_step_loss / max(num_samples, 1)
         avg_epoch_mcp_loss = total_mcp_loss / max(num_samples, 1)
