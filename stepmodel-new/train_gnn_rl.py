@@ -302,17 +302,26 @@ def graph_to_text(nodes, edges) -> str:
 
 
 def _prompt_fields(step_pair: Dict[str, Any], prompt_style: str = "full"):
+    """Build the INPUT context the model should reason from.
+    
+    Key insight: the model predicts (next_step, next_mcp) FROM the context.
+    The input must be what's KNOWN before the prediction, not what's being predicted.
+    """
     prompt_style = str(prompt_style or "full").lower()
-    if prompt_style == "compact":
-        return [
-            ("New Strategy", step_pair.get('next_strategy', '')),
-            ("Strategy Explanation", step_pair.get('next_strategy_explanation', '')),
-        ]
 
-    return [
-        ("New Strategy", step_pair.get('next_strategy', '')),
-        ("Strategy Explanation", step_pair.get('next_strategy_explanation', '')),
-    ]
+    # Core context: what happened before and what strategy was chosen
+    fields = []
+    if step_pair.get('previous_step', ''):
+        fields.append(("Previous Step", step_pair.get('previous_step', '')))
+    if step_pair.get('previous_step_result', ''):
+        fields.append(("Previous Step Result", step_pair.get('previous_step_result', '')))
+    if step_pair.get('previous_strategy', ''):
+        fields.append(("Previous Strategy", step_pair.get('previous_strategy', '')))
+    if step_pair.get('next_strategy', ''):
+        fields.append(("New Strategy", step_pair.get('next_strategy', '')))
+    if step_pair.get('next_strategy_explanation', ''):
+        fields.append(("Strategy Explanation", step_pair.get('next_strategy_explanation', '')))
+    return fields
 
 
 def build_previous_text(step_pair: Dict[str, Any], prompt_style: str = "full") -> str:
@@ -327,16 +336,25 @@ def build_prompt_text(
     context_lines = "\n".join(
         f"{label}: {value}"
         for label, value in _prompt_fields(step_pair, prompt_style=prompt_style)
+        if str(value).strip()
     )
-    graph_text = graph_to_text(step_pair.get('nodes', []), step_pair.get('edges', []))
-    return (
-        "### Graph Information ###\n"
-        f"{graph_text}\n\n"
-        "### New Strategy and Explanation ###\n"
-        f"{context_lines}\n\n"
+
+    # Include PTT (overall task progress) if available — gives strong sequential signal
+    ptt = str(step_pair.get('ptt', '') or step_pair.get('PTT', '')).strip()
+
+    parts = []
+    if ptt:
+        parts.append(f"### Task Progress (PTT) ###\n{ptt}")
+    if context_lines:
+        parts.append(f"### Context ###\n{context_lines}")
+    parts.append(
         "### Prediction Task ###\n"
-        "Predict the next Step label, Step explanation, and MCP tool labels from the fixed ontology."
+        "Based on the context above, predict:\n"
+        "1. The next Step label (choose from the fixed ontology)\n"
+        "2. The MCP tool labels needed (choose from the fixed ontology)"
     )
+
+    return "\n\n".join(parts)
 
 
 def load_processed_data(csv_path: str, graph_data_dir: str = None):
@@ -396,6 +414,7 @@ def load_processed_data(csv_path: str, graph_data_dir: str = None):
         
         # Map CSV columns to expected field names
         step_pair = {
+            'ptt': row.get('PTT', ''),
             'previous_strategy': row.get('Previous strategy', ''),
             'previous_step': row.get('Previous step', ''),
             'previous_step_result': row.get('Previous step result', ''),
