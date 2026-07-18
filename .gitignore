@@ -9,6 +9,10 @@ stepmodel-new/embeddings_data/
 # Processed data
 stepmodel/processed_data/
 stepmodel-new/processed_data/
+stepmodelv2/processed_data/
+
+# input
+stepmodelv2/input
 
 # Logs
 stepmodel/logs/
