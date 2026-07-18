@@ -1,6 +1,7 @@
 # Model checkpoints
 stepmodel/checkpoints/
 stepmodel-new/checkpoints/
+stepmodelv2/checkpoints/
 
 # Processed embeddings
 stepmodel/embeddings_data/
