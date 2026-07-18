@@ -130,32 +130,43 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
 
     tokenizer = AutoTokenizer.from_pretrained(STAGE2_ADAPTER_DIR)
-    base = AutoModelForCausalLM.from_pretrained(QWEN_MODEL_NAME, torch_dtype=torch.bfloat16).to(device)
+    base = AutoModelForCausalLM.from_pretrained(QWEN_MODEL_NAME, dtype=torch.bfloat16).to(device)
     policy = PeftModel.from_pretrained(base, STAGE2_ADAPTER_DIR, is_trainable=True)
 
     # Judge model: reuse the same base weights (frozen) as a cheap stand-in;
     # swap for a stronger external judge if available.
-    judge_base = AutoModelForCausalLM.from_pretrained(QWEN_MODEL_NAME, torch_dtype=torch.bfloat16).to(device).eval()
+    judge_base = AutoModelForCausalLM.from_pretrained(QWEN_MODEL_NAME, dtype=torch.bfloat16).to(device).eval()
     judge_fn = make_judge_fn(judge_base, tokenizer, device)
 
     examples = load_and_clean(TRAIN_CSV, "train")
-    # Graph summary is distilled offline once via the Stage-1 classifier's
-    # argmax predictions on the *training* graphs (see README: swap in a
-    # real inference call to Stage-1 here instead of the gold label if you
-    # want the RL prompt to reflect the model's own graph reasoning rather
-    # than an oracle summary).
-    prompts = [
-        make_prompt_with_graph_summary(
-            ex, f"predicted step-type leaning='{ex['step_label']}', "
-                f"detected services/tools context='{', '.join(ex['mcp_labels']) or 'none'}'"
-        )
-        for ex in examples
-    ]
 
-    def reward_wrapper(prompts_batch, completions_batch, **kwargs):
-        idx = kwargs["indices"]  # supplied by dataset wrapper below
-        golds = [examples[i] for i in idx]
-        return reward_fn(prompts_batch, completions_batch, golds, judge_fn)
+    # Build the dataset: each row has "prompt" (required by GRPOTrainer) plus
+    # "gold_json" which carries the gold labels through the trainer's collator
+    # so the reward function can access them without a global index lookup.
+    train_dataset = []
+    for ex in examples:
+        prompt_text = make_prompt_with_graph_summary(
+            ex,
+            f"predicted step-type leaning='{ex['step_label']}', "
+            f"detected services/tools context='{', '.join(ex['mcp_labels']) or 'none'}'"
+        )
+        train_dataset.append({
+            "prompt": f"<|system|>\n{SYSTEM_PROMPT}\n<|user|>\n{prompt_text}\n<|assistant|>\n",
+            # Serialise gold fields as a JSON string so they survive the
+            # trainer's dict/tensor collation unchanged.
+            "gold_json": json.dumps({
+                "step_label": ex["step_label"],
+                "mcp_labels": ex["mcp_labels"],
+                "gold_step_explanation": ex["gold_step_explanation"],
+            }, ensure_ascii=False),
+        })
+
+    # GRPOTrainer calls: reward_func(prompts, completions, **batch_columns)
+    # where batch_columns contains one key per extra column in the dataset
+    # (here "gold_json") as a list of strings, one per sample in the batch.
+    def reward_wrapper(prompts, completions, gold_json, **kwargs):
+        gold_examples = [json.loads(g) for g in gold_json]
+        return reward_fn(prompts, completions, gold_examples, judge_fn)
 
     grpo_config = GRPOConfig(
         output_dir=STAGE3_ADAPTER_DIR,
@@ -172,8 +183,7 @@ def main():
     trainer = GRPOTrainer(
         model=policy,
         args=grpo_config,
-        train_dataset=[{"prompt": f"<|system|>\n{SYSTEM_PROMPT}\n<|user|>\n{p}\n<|assistant|>\n",
-                         "indices": i} for i, p in enumerate(prompts)],
+        train_dataset=train_dataset,
         reward_funcs=[reward_wrapper],
         processing_class=tokenizer,
     )
