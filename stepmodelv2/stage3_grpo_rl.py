@@ -80,7 +80,8 @@ def reward_fn(prompts, completions, gold_examples, judge_fn,
         fmt_r = 1.0
         step_r = 1.0 if obj["New step"].strip() == gold["step_label"] else 0.0
 
-        pred_mcp = set(obj.get("MCP_tasks", {}).keys()) & set(MCP_LABELS)
+        mcp_val = obj.get("MCP_tasks", {})
+        pred_mcp = set(mcp_val.keys() if isinstance(mcp_val, dict) else []) & set(MCP_LABELS)
         gold_mcp = set(gold["mcp_labels"])
         if not pred_mcp and not gold_mcp:
             mcp_r = 1.0
