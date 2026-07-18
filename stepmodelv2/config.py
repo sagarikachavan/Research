@@ -43,8 +43,8 @@ IDX2MCP = {i: l for i, l in enumerate(MCP_LABELS)}
 # ----------------------------------------------------------------------------
 ROOT = os.environ.get("PIPELINE_ROOT", os.path.dirname(os.path.abspath(__file__)))
 
-TRAIN_CSV = os.environ.get("TRAIN_CSV", "/mnt/user-data/uploads/training_data.csv")
-TEST_CSV = os.environ.get("TEST_CSV", "/mnt/user-data/uploads/test_data.csv")
+TRAIN_CSV = os.environ.get("TRAIN_CSV", os.path.join(ROOT, "data", "training_data.csv"))
+TEST_CSV = os.environ.get("TEST_CSV", os.path.join(ROOT, "data", "test_data.csv"))
 
 # Directory holding per-machine / per-row pre-built graph objects.
 # Expected file naming convention (adjust to match your actual export):
