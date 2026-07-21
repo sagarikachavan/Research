@@ -14,10 +14,13 @@ Metrics reported for every model:
   STEP EXPLANATION QUALITY  (LLM stages only — GNN doesn't generate text)
     BLEU-1/2/4          — n-gram overlap with gold explanation
     ROUGE-L             — longest common subsequence recall
-    BERTScore F1        — semantic similarity via sentence embeddings
-                          (uses the same frozen encoder already loaded,
-                           no extra model download needed)
-    Avg token length    — sanity check that the model isn't truncating
+    BERTScore F1        — semantic similarity via frozen sentence encoder
+                          (BAAI/bge-small-en-v1.5, reused from training)
+    Step Alignment      — do explanation keywords match the predicted step?
+    Context Grounding   — does the explanation reference observed findings?
+    Reasoning Density   — causal/justification language fraction
+    Avg / P25 / P75 token length — completeness sanity checks
+    Empty rate          — fraction of blank/missing explanations
 
 Usage:
     python evaluate.py                         # evaluate all available models
@@ -26,6 +29,7 @@ Usage:
     python evaluate.py --model llm \\
         --adapter-dir checkpoints/stage3_qwen_grpo
     python evaluate.py --threshold 0.5         # override MCP threshold
+    python evaluate.py --save-explanations out.csv   # dump predictions to CSV
 """
 from __future__ import annotations
 
@@ -44,11 +48,11 @@ from sklearn.metrics import (
 )
 
 from config import (
-    TEST_CSV, STAGE1_CKPT, STEP_LABELS, MCP_LABELS, MCP_DECISION_THRESHOLD,
+    INPUT_TEST_JSON, STAGE1_CKPT, STEP_LABELS, MCP_LABELS, MCP_DECISION_THRESHOLD,
     QWEN_MODEL_NAME,
 )
 from data_utils import (
-    load_and_clean, load_graph, _embed_texts, CONTEXT_COLUMNS,
+    load_from_input_json, _embed_texts, CONTEXT_COLUMNS,
     mcp_multihot, StepLabelNormalizer, extract_mcp_labels,
 )
 from graph_encoder import Stage1Classifier
@@ -119,7 +123,7 @@ def bleu_n(hypothesis: list[str], reference: list[str], n: int) -> float:
 
 
 def rouge_l(hypothesis: list[str], reference: list[str]) -> float:
-    """ROUGE-L recall via LCS dynamic programming."""
+    """ROUGE-L F1 via LCS dynamic programming."""
     m, n = len(reference), len(hypothesis)
     if m == 0 or n == 0:
         return 0.0
@@ -131,7 +135,7 @@ def rouge_l(hypothesis: list[str], reference: list[str]) -> float:
             else:
                 dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
     lcs = dp[m][n]
-    recall = lcs / m
+    recall    = lcs / m
     precision = lcs / max(n, 1)
     if precision + recall == 0:
         return 0.0
@@ -144,69 +148,187 @@ def bertscore_f1_batch(
     batch_size: int = 64,
 ) -> list[float]:
     """
-    Compute BERTScore-style F1 using the already-loaded sentence encoder
-    (BAAI/bge-small-en-v1.5).  This avoids downloading a separate BERTScore
-    model and is fast because it reuses the encoder already in memory.
-
-    Score = cosine similarity between the sentence embeddings of hypothesis
-    and reference.  This is equivalent to BERTScore with sentence-level
-    pooling (not token-level), which is faster and sufficient for ranking.
+    Sentence-level BERTScore using BAAI/bge-small-en-v1.5 (already loaded).
+    Returns cosine similarity between sentence embeddings — fast, no extra
+    model download needed.
     """
     scores = []
     for i in range(0, len(hypotheses), batch_size):
-        hyp_batch = hypotheses[i : i + batch_size]
-        ref_batch = references[i : i + batch_size]
-        # Filter empty strings to avoid NaN embeddings
-        hyp_safe = [h if h.strip() else "empty" for h in hyp_batch]
-        ref_safe = [r if r.strip() else "empty" for r in ref_batch]
-        hyp_emb = _embed_texts(hyp_safe)   # (B, D) normalised
-        ref_emb = _embed_texts(ref_safe)   # (B, D) normalised
-        cos_sims = (hyp_emb * ref_emb).sum(axis=1).tolist()  # dot of unit vecs = cosine
-        scores.extend(cos_sims)
+        hyp_batch = [h if h.strip() else "empty" for h in hypotheses[i : i + batch_size]]
+        ref_batch = [r if r.strip() else "empty" for r in references[i : i + batch_size]]
+        hyp_emb = _embed_texts(hyp_batch)
+        ref_emb = _embed_texts(ref_batch)
+        scores.extend((hyp_emb * ref_emb).sum(axis=1).tolist())
     return scores
+
+
+# ── Step-explanation-specific metrics ────────────────────────────────────────
+
+# Keywords associated with each STEP_LABEL index — used for step alignment.
+_STEP_KEYWORDS: list[list[str]] = [
+    ["google", "search", "googled"],                                    # 0 google search
+    ["enumerate", "enumerat", "version", "hidden", "directory", "service"],  # 1 enumerate further
+    ["explore", "suspicious", "file", "command", "summary", "finding"],  # 2 explore files
+    ["website", "web", "dirb", "gobuster", "directory", "link"],        # 3 enumerate website
+    ["domain", "dns", "subdomain", "ldap"],                             # 4 enumerate domain
+    ["exploit", "exploitation", "payload", "metasploit", "shell"],      # 5 exploit
+    ["analyz", "outcome", "attack", "path", "vector", "assess"],        # 6 analyze outcomes
+    ["human", "assist", "help", "stuck", "unclear"],                    # 7 ask human
+    ["source", "code", "review", "vuln", "injection", "xss", "sqli"],  # 8 source code
+    ["report", "end", "task", "complet", "finish"],                     # 9 end task
+]
+
+# Causal / reasoning connectors — presence signals genuine justification.
+_REASONING_TOKENS: set[str] = {
+    "because", "since", "therefore", "thus", "hence", "as", "so",
+    "indicates", "suggests", "shows", "reveals", "found", "identified",
+    "discovered", "confirm", "allows", "enables", "in order", "to", "which",
+    "given", "based", "due", "result", "led", "lead", "indicate",
+}
+
+
+def step_alignment_score(explanation: str, step_idx: int) -> float:
+    """
+    Fraction of step-specific keywords present in the explanation.
+    Measures whether the model actually explains the step it claimed to take.
+
+    Returns 0.0 – 1.0.  A score above ~0.3 is a reasonable signal.
+    """
+    if step_idx < 0 or step_idx >= len(_STEP_KEYWORDS):
+        return 0.0
+    tokens = set(_tokenize(explanation))
+    keywords = _STEP_KEYWORDS[step_idx]
+    if not keywords:
+        return 0.0
+    hits = sum(
+        1 for kw in keywords
+        if any(tok.startswith(kw) for tok in tokens)
+    )
+    return hits / len(keywords)
+
+
+def context_grounding_score(explanation: str, prev_step_result: str) -> float:
+    """
+    Measures how much the explanation references content from the previous
+    step result — i.e. factual grounding in what was actually observed.
+
+    Implementation: unigram recall of "content words" (length ≥ 4, not
+    stop-words) from prev_step_result that appear in the explanation.
+
+    Returns 0.0 – 1.0.
+    """
+    _STOP = {
+        "that", "this", "with", "from", "have", "been", "were", "they",
+        "their", "will", "would", "could", "should", "about", "into",
+        "which", "when", "also", "more", "some", "such", "than", "then",
+        "there", "these", "those", "your", "what", "where", "here",
+    }
+    if not prev_step_result or not prev_step_result.strip():
+        return 0.0
+    result_toks  = {t for t in _tokenize(prev_step_result) if len(t) >= 4 and t not in _STOP}
+    expl_toks    = set(_tokenize(explanation))
+    if not result_toks:
+        return 0.0
+    overlap = result_toks & expl_toks
+    return len(overlap) / len(result_toks)
+
+
+def reasoning_density_score(explanation: str) -> float:
+    """
+    Fraction of tokens in the explanation that are reasoning/causal connectors.
+    A completely generic filler sentence will score near 0; a well-justified
+    explanation that says "because X was found, Y is the next step" scores
+    higher.
+
+    Returns 0.0 – 1.0.
+    """
+    tokens = _tokenize(explanation)
+    if not tokens:
+        return 0.0
+    hits = sum(1 for t in tokens if t in _REASONING_TOKENS)
+    return hits / len(tokens)
 
 
 def compute_explanation_metrics(
     pred_explanations: list[str],
     gold_explanations: list[str],
+    step_preds: list[int] | None = None,
+    prev_step_results: list[str] | None = None,
 ) -> dict:
     """
-    Aggregate BLEU-1/2/4, ROUGE-L, BERTScore-F1, and avg length over all
-    (prediction, reference) pairs.  Pairs where gold is empty are skipped.
+    Compute all explanation quality metrics.
+
+    Core metrics (require gold explanation):
+      BLEU-1/2/4, ROUGE-L, BERTScore-F1
+
+    Intrinsic metrics (computed on predictions only):
+      Step Alignment     — keyword overlap with predicted step type
+      Context Grounding  — reference to previous step result terms
+      Reasoning Density  — fraction of causal/justification tokens
+      Length (avg/p25/p75/empty_rate)
     """
-    bleu1_scores, bleu2_scores, bleu4_scores, rougeL_scores = [], [], [], []
+    bleu1, bleu2, bleu4, rougeL = [], [], [], []
     valid_preds, valid_refs = [], []
     lengths = []
+    alignment, grounding, reasoning = [], [], []
+    empty_count = 0
 
-    for pred, gold in zip(pred_explanations, gold_explanations):
-        lengths.append(len(pred.split()))
+    for idx, (pred, gold) in enumerate(zip(pred_explanations, gold_explanations)):
+        pred_str = pred.strip()
+
+        # ── Length & empty rate ───────────────────────────────────────────
+        tok_len = len(pred_str.split())
+        lengths.append(tok_len)
+        if tok_len == 0:
+            empty_count += 1
+
+        # ── Intrinsic metrics (no gold needed) ────────────────────────────
+        s_idx = step_preds[idx] if step_preds is not None else -1
+        alignment.append(step_alignment_score(pred_str, s_idx))
+
+        prev_res = prev_step_results[idx] if prev_step_results is not None else ""
+        grounding.append(context_grounding_score(pred_str, prev_res))
+
+        reasoning.append(reasoning_density_score(pred_str))
+
+        # ── Reference-based metrics (skip if gold empty) ──────────────────
         if not gold.strip():
             continue
-        hyp_tok = _tokenize(pred)
+        hyp_tok = _tokenize(pred_str)
         ref_tok = _tokenize(gold)
-        bleu1_scores.append(bleu_n(hyp_tok, ref_tok, 1))
-        bleu2_scores.append(bleu_n(hyp_tok, ref_tok, 2))
-        bleu4_scores.append(bleu_n(hyp_tok, ref_tok, 4))
-        rougeL_scores.append(rouge_l(hyp_tok, ref_tok))
-        valid_preds.append(pred)
+        bleu1.append(bleu_n(hyp_tok, ref_tok, 1))
+        bleu2.append(bleu_n(hyp_tok, ref_tok, 2))
+        bleu4.append(bleu_n(hyp_tok, ref_tok, 4))
+        rougeL.append(rouge_l(hyp_tok, ref_tok))
+        valid_preds.append(pred_str)
         valid_refs.append(gold)
 
-    bert_scores = (
-        bertscore_f1_batch(valid_preds, valid_refs) if valid_preds else []
-    )
+    bert_scores = bertscore_f1_batch(valid_preds, valid_refs) if valid_preds else []
 
-    def avg(lst):
+    def avg(lst: list) -> float:
         return float(np.mean(lst)) if lst else 0.0
 
+    lengths_arr = np.array(lengths) if lengths else np.array([0])
+
     return {
-        "bleu1":        avg(bleu1_scores),
-        "bleu2":        avg(bleu2_scores),
-        "bleu4":        avg(bleu4_scores),
-        "rouge_l":      avg(rougeL_scores),
-        "bertscore_f1": avg(bert_scores),
-        "avg_length":   avg(lengths),
-        "n_scored":     len(valid_preds),
-        "n_total":      len(pred_explanations),
+        # Reference-based
+        "bleu1":            avg(bleu1),
+        "bleu2":            avg(bleu2),
+        "bleu4":            avg(bleu4),
+        "rouge_l":          avg(rougeL),
+        "bertscore_f1":     avg(bert_scores),
+        # Intrinsic
+        "step_alignment":   avg(alignment),
+        "ctx_grounding":    avg(grounding),
+        "reasoning_density": avg(reasoning),
+        # Length / completeness
+        "avg_length":       avg(lengths),
+        "p25_length":       float(np.percentile(lengths_arr, 25)),
+        "p75_length":       float(np.percentile(lengths_arr, 75)),
+        "empty_rate":       empty_count / max(len(pred_explanations), 1),
+        # Coverage
+        "n_scored":         len(valid_preds),
+        "n_total":          len(pred_explanations),
     }
 
 
@@ -216,7 +338,8 @@ def compute_explanation_metrics(
 
 def eval_gnn(threshold_override=None) -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    examples = load_and_clean(TEST_CSV, "test")
+    print(f"[eval] Test input: {INPUT_TEST_JSON}")
+    examples = load_from_input_json(INPUT_TEST_JSON, "test")
 
     if not os.path.exists(STAGE1_CKPT):
         print(f"[eval] Checkpoint not found at {STAGE1_CKPT}. Run stage1_gnn_train.py first.")
@@ -231,9 +354,10 @@ def eval_gnn(threshold_override=None) -> None:
 
     graphs, field_embs_list, step_gold, mcp_gold = [], [], [], []
     for ex in examples:
-        graphs.append(load_graph(ex["machine"], ex["row_id"], ex["ptt"], "test"))
+        # Graph is already a torch_geometric Data object from load_from_input_json
+        graphs.append(ex["graph"])
         field_embs_list.append(
-            _embed_texts([ex["context"][c] or "empty" for c in CONTEXT_COLUMNS])
+            _embed_texts([ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS])
         )
         step_gold.append(ex["step_idx"])
         mcp_gold.append(ex["mcp_vec"])
@@ -275,7 +399,9 @@ def eval_gnn(threshold_override=None) -> None:
 # LLM evaluation  (classification + explanation quality)
 # ---------------------------------------------------------------------------
 
-def eval_llm(adapter_dir: str, threshold_override=None, max_new_tokens: int = 200) -> None:
+def eval_llm(adapter_dir: str, threshold_override=None,
+             max_new_tokens: int = 200,
+             save_explanations: str | None = None) -> None:
     try:
         from tqdm import tqdm
     except ImportError:
@@ -283,7 +409,11 @@ def eval_llm(adapter_dir: str, threshold_override=None, max_new_tokens: int = 20
 
     from peft import PeftModel
     from transformers import AutoTokenizer, AutoModelForCausalLM
-    from stage2_sft_qwen import build_prompt, SYSTEM_PROMPT
+    from torch_geometric.data import Batch as PyGBatch
+    from stage2_sft_qwen import (
+        build_prompt, SYSTEM_PROMPT, GraphPrefixAdapter,
+    )
+    from graph_encoder import Stage1Classifier
 
     # MCP thresholds — not used for LLM (tools come from parsed JSON text),
     # but loaded for reporting consistency.
@@ -296,21 +426,48 @@ def eval_llm(adapter_dir: str, threshold_override=None, max_new_tokens: int = 20
         use_thresholds = [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    dtype  = torch.bfloat16
+    print(f"[eval] Test input: {INPUT_TEST_JSON}")
+
     tokenizer = AutoTokenizer.from_pretrained(adapter_dir)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
     base = AutoModelForCausalLM.from_pretrained(
-        QWEN_MODEL_NAME, torch_dtype=torch.bfloat16
+        QWEN_MODEL_NAME, torch_dtype=dtype
     ).to(device)
     llm_model = PeftModel.from_pretrained(base, adapter_dir).eval()
 
-    examples = load_and_clean(TEST_CSV, "test")
+    # ── Graph prefix adapter ──────────────────────────────────────────────
+    stage1 = Stage1Classifier()
+    stage1.load_state_dict(torch.load(STAGE1_CKPT, map_location=device))
+    graph_encoder = stage1.graph_encoder.to(device).eval()
+    for p in graph_encoder.parameters():
+        p.requires_grad_(False)
+
+    from config import GNN_OUT_DIM, GRAPH_PREFIX_TOKENS
+    llm_hidden = llm_model.config.hidden_size
+    adapter = GraphPrefixAdapter(GNN_OUT_DIM, llm_hidden).to(device).to(dtype)
+    adapter_ckpt = os.path.join(adapter_dir, "graph_adapter.pt")
+    if os.path.exists(adapter_ckpt):
+        adapter.load_state_dict(torch.load(adapter_ckpt, map_location=device))
+        print(f"[eval] Loaded GraphPrefixAdapter from {adapter_ckpt}")
+    else:
+        print(f"[eval] WARNING: graph_adapter.pt not found in {adapter_dir} — "
+              f"using randomly initialised adapter (results will be worse)")
+    adapter.eval()
+
+    embed_layer = llm_model.get_input_embeddings()
+
+    examples = load_from_input_json(INPUT_TEST_JSON, "test")
     normalizer = StepLabelNormalizer()
 
-    step_preds, mcp_preds, step_gold, mcp_gold = [], [], [], []
-    pred_explanations, gold_explanations = [], []
-    parse_failures = 0
+    step_preds, mcp_preds, step_gold, mcp_gold       = [], [], [], []
+    pred_explanations, gold_explanations               = [], []
+    prev_step_results: list[str]                       = []
+    parse_failures                                     = 0
+    # rows saved to CSV if --save-explanations is set
+    csv_rows: list[dict]                               = []
 
     for ex in tqdm(examples, desc="Generating", unit="sample"):
         prompt = build_prompt(ex)
@@ -319,16 +476,27 @@ def eval_llm(adapter_dir: str, threshold_override=None, max_new_tokens: int = 20
             f"<|user|>\n{prompt}\n"
             f"<|assistant|>\n"
         )
-        ids = tokenizer(
-            full_prompt,
-            return_tensors="pt",
-            truncation=True,
-            max_length=1024,
-        ).to(device)
 
         with torch.no_grad():
+            pyg_batch = PyGBatch.from_data_list([ex["graph"]]).to(device)
+            graph_emb = graph_encoder(
+                pyg_batch.x, pyg_batch.edge_index, pyg_batch.batch
+            )
+            prefix_embeds = adapter(graph_emb.to(dtype))
+            ids = tokenizer(
+                full_prompt,
+                return_tensors="pt",
+                add_special_tokens=False,
+                truncation=True,
+                max_length=900,
+            ).input_ids.to(device)
+            token_embeds  = embed_layer(ids).to(dtype)
+            inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
+            attn = torch.ones(inputs_embeds.shape[:2], dtype=torch.long, device=device)
+
             out = llm_model.generate(
-                **ids,
+                inputs_embeds=inputs_embeds,
+                attention_mask=attn,
                 max_new_tokens=max_new_tokens,
                 do_sample=False,
                 temperature=1.0,
@@ -336,10 +504,7 @@ def eval_llm(adapter_dir: str, threshold_override=None, max_new_tokens: int = 20
                 pad_token_id=tokenizer.pad_token_id,
                 eos_token_id=tokenizer.eos_token_id,
             )
-
-        gen_text = tokenizer.decode(
-            out[0][ids["input_ids"].shape[1] :], skip_special_tokens=True
-        )
+        gen_text = tokenizer.decode(out[0], skip_special_tokens=True)
 
         # ── Parse JSON ────────────────────────────────────────────────────
         obj = {}
@@ -349,7 +514,6 @@ def eval_llm(adapter_dir: str, threshold_override=None, max_new_tokens: int = 20
             obj   = json.loads(gen_text[start:end])
         except Exception:
             parse_failures += 1
-            # Fallback: try to extract step label with a regex even without JSON
             m = re.search(r'"?New step"?\s*:\s*"([^"]+)"', gen_text)
             if m:
                 obj["New step"] = m.group(1)
@@ -360,16 +524,16 @@ def eval_llm(adapter_dir: str, threshold_override=None, max_new_tokens: int = 20
         # ── Step classification ───────────────────────────────────────────
         pred_step_raw  = obj.get("New step", "")
         pred_step_norm = normalizer.normalize(pred_step_raw) if pred_step_raw else None
-        step_idx = (
+        s_idx = (
             STEP_LABELS.index(pred_step_norm)
             if pred_step_norm in STEP_LABELS
             else -1
         )
-        step_preds.append(step_idx)
+        step_preds.append(s_idx)
         step_gold.append(ex["step_idx"])
 
         # ── MCP classification ────────────────────────────────────────────
-        pred_mcp_keys  = (
+        pred_mcp_keys   = (
             list(obj.get("MCP_tasks", {}).keys())
             if isinstance(obj.get("MCP_tasks"), dict)
             else []
@@ -381,8 +545,28 @@ def eval_llm(adapter_dir: str, threshold_override=None, max_new_tokens: int = 20
         # ── Explanation ───────────────────────────────────────────────────
         pred_expl = str(obj.get("Step explanation", "")).strip()
         gold_expl = ex.get("gold_step_explanation", "")
+        if not isinstance(gold_expl, str):
+            gold_expl = ""
         pred_explanations.append(pred_expl)
-        gold_explanations.append(gold_expl if isinstance(gold_expl, str) else "")
+        gold_explanations.append(gold_expl)
+
+        # Keep the previous step result for context-grounding metric
+        prev_step_results.append(
+            ex["context"].get("Previous step result", "") or ""
+        )
+
+        # Accumulate CSV row
+        if save_explanations:
+            csv_rows.append({
+                "machine":          ex["machine"],
+                "gold_step":        STEP_LABELS[ex["step_idx"]],
+                "pred_step":        pred_step_norm or "UNPARSEABLE",
+                "step_correct":     int(s_idx == ex["step_idx"]),
+                "gold_mcp":         "|".join(ex["mcp_labels"]),
+                "pred_mcp":         "|".join(pred_mcp_labels),
+                "gold_explanation": gold_expl,
+                "pred_explanation": pred_expl,
+            })
 
     if parse_failures:
         print(
@@ -390,21 +574,36 @@ def eval_llm(adapter_dir: str, threshold_override=None, max_new_tokens: int = 20
             f"parseable JSON — regex fallback applied where possible."
         )
 
-    step_preds = np.array(step_preds)
-    step_gold  = np.array(step_gold)
-    mcp_preds  = np.stack(mcp_preds)
-    mcp_gold   = np.stack(mcp_gold)
+    step_preds_arr = np.array(step_preds)
+    step_gold_arr  = np.array(step_gold)
+    mcp_preds_arr  = np.stack(mcp_preds)
+    mcp_gold_arr   = np.stack(mcp_gold)
 
     # ── Classification report ─────────────────────────────────────────────
-    report_classification(step_preds, step_gold, mcp_preds, mcp_gold)
+    report_classification(step_preds_arr, step_gold_arr, mcp_preds_arr, mcp_gold_arr)
 
     # ── Explanation quality report ────────────────────────────────────────
     print("\n\n" + "=" * 60)
     print("STEP EXPLANATION QUALITY")
     print("=" * 60)
-    print("Computing explanation metrics (BLEU / ROUGE-L / BERTScore) ...")
-    expl_metrics = compute_explanation_metrics(pred_explanations, gold_explanations)
+    print("Computing explanation metrics ...")
+    expl_metrics = compute_explanation_metrics(
+        pred_explanations,
+        gold_explanations,
+        step_preds=step_preds,
+        prev_step_results=prev_step_results,
+    )
     report_explanation(expl_metrics)
+
+    # ── Optional CSV dump ─────────────────────────────────────────────────
+    if save_explanations and csv_rows:
+        import csv
+        fieldnames = list(csv_rows[0].keys())
+        with open(save_explanations, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(csv_rows)
+        print(f"\n[eval] Explanation predictions saved to: {save_explanations}")
 
 
 # ---------------------------------------------------------------------------
@@ -468,41 +667,91 @@ def report_classification(
 def report_explanation(metrics: dict) -> None:
     n_scored = metrics["n_scored"]
     n_total  = metrics["n_total"]
-    coverage = f"{n_scored}/{n_total}"
+
     if n_scored < n_total:
         print(
-            f"  (Scored {coverage} pairs — {n_total - n_scored} skipped "
-            f"because gold explanation was empty)"
+            f"  (Reference-based metrics scored on {n_scored}/{n_total} pairs — "
+            f"{n_total - n_scored} skipped because gold explanation was empty)"
         )
 
-    print(f"\n  {'Metric':<20}  {'Score':>8}")
-    print("  " + "-" * 32)
-    print(f"  {'BLEU-1':<20}  {metrics['bleu1']:>8.4f}")
-    print(f"  {'BLEU-2':<20}  {metrics['bleu2']:>8.4f}")
-    print(f"  {'BLEU-4':<20}  {metrics['bleu4']:>8.4f}")
-    print(f"  {'ROUGE-L':<20}  {metrics['rouge_l']:>8.4f}")
-    print(f"  {'BERTScore-F1':<20}  {metrics['bertscore_f1']:>8.4f}")
-    print(f"  {'Avg pred length':<20}  {metrics['avg_length']:>8.1f}  tokens")
-    print()
+    # ── Reference-based ──────────────────────────────────────────────────────
+    print(f"\n  {'Metric':<26}  {'Score':>8}  Interpretation")
+    print("  " + "-" * 62)
 
-    # Interpretation guide
-    print("  Interpretation:")
+    def _bar(score: float, thresholds: tuple, icons: tuple = ("✗", "~", "✓")) -> str:
+        if score >= thresholds[1]:
+            return icons[2]
+        if score >= thresholds[0]:
+            return icons[1]
+        return icons[0]
+
     b1 = metrics["bleu1"]
+    b2 = metrics["bleu2"]
+    b4 = metrics["bleu4"]
     rl = metrics["rouge_l"]
     bs = metrics["bertscore_f1"]
-    if b1 >= 0.35:
-        print("  ✓ BLEU-1 ≥ 0.35 — good word-level overlap with gold explanations")
-    elif b1 >= 0.20:
-        print("  ~ BLEU-1 0.20–0.35 — moderate overlap; explanations are paraphrased")
-    else:
-        print("  ✗ BLEU-1 < 0.20 — low lexical overlap; explanations diverge from gold")
+    sa = metrics["step_alignment"]
+    cg = metrics["ctx_grounding"]
+    rd = metrics["reasoning_density"]
 
-    if bs >= 0.75:
-        print("  ✓ BERTScore ≥ 0.75 — explanations are semantically close to gold")
-    elif bs >= 0.60:
-        print("  ~ BERTScore 0.60–0.75 — moderate semantic similarity")
+    print(f"  {'BLEU-1':<26}  {b1:>8.4f}  {_bar(b1,(0.20,0.35))}  n-gram overlap with gold")
+    print(f"  {'BLEU-2':<26}  {b2:>8.4f}  {_bar(b2,(0.10,0.20))}")
+    print(f"  {'BLEU-4':<26}  {b4:>8.4f}  {_bar(b4,(0.03,0.10))}")
+    print(f"  {'ROUGE-L':<26}  {rl:>8.4f}  {_bar(rl,(0.20,0.35))}  longest common subsequence")
+    print(f"  {'BERTScore-F1':<26}  {bs:>8.4f}  {_bar(bs,(0.60,0.75))}  semantic similarity to gold")
+
+    # ── Intrinsic ─────────────────────────────────────────────────────────────
+    print()
+    print(f"  {'Step Alignment':<26}  {sa:>8.4f}  {_bar(sa,(0.20,0.35))}  "
+          f"explanation mentions step keywords")
+    print(f"  {'Context Grounding':<26}  {cg:>8.4f}  {_bar(cg,(0.05,0.15))}  "
+          f"references previous step findings")
+    print(f"  {'Reasoning Density':<26}  {rd:>8.4f}  {_bar(rd,(0.03,0.07))}  "
+          f"causal/justification language")
+
+    # ── Length / completeness ─────────────────────────────────────────────────
+    avg_l = metrics["avg_length"]
+    p25_l = metrics["p25_length"]
+    p75_l = metrics["p75_length"]
+    empty = metrics["empty_rate"]
+    print()
+    print(f"  {'Avg length (tokens)':<26}  {avg_l:>8.1f}")
+    print(f"  {'P25 length':<26}  {p25_l:>8.1f}")
+    print(f"  {'P75 length':<26}  {p75_l:>8.1f}")
+    print(f"  {'Empty rate':<26}  {empty:>8.1%}  "
+          f"{'⚠ high — JSON parsing likely failing' if empty > 0.1 else 'OK'}")
+
+    # ── Summary diagnosis ─────────────────────────────────────────────────────
+    print()
+    print("  Diagnosis:")
+    issues = []
+    if b1 < 0.20:
+        issues.append("  • BLEU-1 < 0.20 — low lexical overlap; model paraphrases heavily "
+                      "or generates off-topic text")
+    if bs < 0.60:
+        issues.append("  • BERTScore < 0.60 — explanations semantically distant from gold; "
+                      "consider more SFT epochs")
+    if sa < 0.20:
+        issues.append("  • Step Alignment < 0.20 — explanation doesn't mention the predicted "
+                      "step keywords; model may be ignoring its own step choice")
+    if cg < 0.05:
+        issues.append("  • Context Grounding < 0.05 — explanation barely references observed "
+                      "findings; model is not anchoring to evidence")
+    if rd < 0.03:
+        issues.append("  • Reasoning Density < 0.03 — very few causal connectors; "
+                      "explanations read as assertions, not justifications")
+    if empty > 0.1:
+        issues.append(f"  • Empty rate {empty:.0%} — many blank explanations; "
+                      "check JSON format compliance (parse_failures above)")
+    if avg_l < 20:
+        issues.append(f"  • Avg length {avg_l:.0f} tokens is very short; "
+                      "model may be truncating — increase max_new_tokens")
+
+    if not issues:
+        print("  ✓ All metrics within acceptable ranges")
     else:
-        print("  ✗ BERTScore < 0.60 — explanations are semantically distant from gold")
+        for issue in issues:
+            print(issue)
 
 
 # ---------------------------------------------------------------------------
@@ -549,6 +798,10 @@ if __name__ == "__main__":
         "--max-new-tokens", type=int, default=200,
         help="Max tokens to generate per sample in LLM mode (default: 200).",
     )
+    parser.add_argument(
+        "--save-explanations", default=None, metavar="PATH",
+        help="Save per-sample explanation predictions to a CSV file at PATH.",
+    )
     args = parser.parse_args()
 
     if args.model == "all":
@@ -575,6 +828,7 @@ if __name__ == "__main__":
                     adir,
                     threshold_override=args.threshold,
                     max_new_tokens=args.max_new_tokens,
+                    save_explanations=args.save_explanations,
                 )
 
     elif args.model == "gnn":
@@ -601,4 +855,5 @@ if __name__ == "__main__":
             adapter,
             threshold_override=args.threshold,
             max_new_tokens=args.max_new_tokens,
+            save_explanations=args.save_explanations,
         )

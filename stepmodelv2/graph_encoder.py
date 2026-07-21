@@ -23,7 +23,7 @@ from config import (
     TEXT_EMB_DIM, STEP_LABELS, MCP_LABELS,
 )
 
-NODE_FEAT_DIM = TEXT_EMB_DIM + 5  # sentence-embedding + one-hot status flag
+NODE_FEAT_DIM = TEXT_EMB_DIM + 3  # sentence-embedding + one-hot node type (Agent/Search/Track)
 
 
 class GraphEncoder(nn.Module):

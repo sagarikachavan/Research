@@ -3,6 +3,9 @@ Stage 1: Supervised training of the GNN + context-fusion classifier for
   - Next Step Type (single-label, 10-way)   -> Accuracy / Macro-F1
   - MCP tool type   (multi-label, 11-way)   -> subset accuracy, micro/macro-F1
 
+Training input: stepmodelv2/input/train.json
+Evaluation input: stepmodelv2/input/test.json
+
 Run:
     python stage1_gnn_train.py
 """
@@ -17,10 +20,10 @@ from sklearn.metrics import (
 )
 
 from config import (
-    TRAIN_CSV, STAGE1_CKPT, STAGE1_LR, STAGE1_EPOCHS, STAGE1_BATCH_SIZE,
-    STEP_LOSS_WEIGHT, MCP_LOSS_WEIGHT, RANDOM_SEED,
+    INPUT_TRAIN_JSON, INPUT_TEST_JSON, STAGE1_CKPT, STAGE1_LR, STAGE1_EPOCHS,
+    STAGE1_BATCH_SIZE, STEP_LOSS_WEIGHT, MCP_LOSS_WEIGHT, RANDOM_SEED,
 )
-from data_utils import load_and_clean, load_graph, _embed_texts, CONTEXT_COLUMNS
+from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS
 from graph_encoder import Stage1Classifier
 
 random.seed(RANDOM_SEED)
@@ -29,15 +32,15 @@ torch.manual_seed(RANDOM_SEED)
 
 
 class Stage1Dataset(Dataset):
-    def __init__(self, csv_path, split="train"):
-        self.examples = load_and_clean(csv_path, split)
+    def __init__(self, json_path, split="train"):
+        self.examples = load_from_input_json(json_path, split)
         self.split = split
         # pre-embed all context text once (frozen encoder, no grad needed)
         self._embed_cache()
 
     def _embed_cache(self):
         for ex in self.examples:
-            texts = [ex["context"][c] or "empty" for c in CONTEXT_COLUMNS]
+            texts = [ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]
             ex["field_embs"] = _embed_texts(texts)  # (5, TEXT_EMB_DIM)
 
     def __len__(self):
@@ -45,9 +48,9 @@ class Stage1Dataset(Dataset):
 
     def __getitem__(self, idx):
         ex = self.examples[idx]
-        graph = load_graph(ex["machine"], ex["row_id"], ex["ptt"], self.split)
+        # Graph is already a torch_geometric Data object built at load time
         return {
-            "graph": graph,
+            "graph": ex["graph"],
             "field_embs": torch.tensor(ex["field_embs"], dtype=torch.float32),
             "step_idx": torch.tensor(ex["step_idx"], dtype=torch.long),
             "mcp_vec": torch.tensor(ex["mcp_vec"], dtype=torch.float32),
@@ -99,8 +102,10 @@ def evaluate(model, loader, device, threshold=0.5):
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    print(f"[Stage 1] Training input : {INPUT_TRAIN_JSON}")
+    print(f"[Stage 1] Test input     : {INPUT_TEST_JSON}")
 
-    full_ds = Stage1Dataset(TRAIN_CSV, split="train")
+    full_ds = Stage1Dataset(INPUT_TRAIN_JSON, split="train")
     n = len(full_ds)
     val_n = max(1, int(0.1 * n))
     perm = np.random.permutation(n)

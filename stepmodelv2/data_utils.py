@@ -5,16 +5,21 @@ Data utilities:
   2. Robust extraction of tool names from the "MCP_tasks" column (which is
      sometimes a real python-dict string, sometimes free text) onto the
      fixed MCP_LABELS taxonomy -> multi-hot vector.
-  3. A loader for pre-built per-row graphs from stepmodelv2/processed_data,
-     with a fallback that parses the indentation-structured "PTT" text into
-     a torch_geometric graph when no pre-built graph file exists.
-  4. A GNN-stage PyTorch Dataset that returns (graph, context_text_fields,
+  3. Primary loader: load_from_input_json() reads input/train.json or
+     input/test.json (produced by build_input_json.py) and builds
+     torch_geometric Data objects directly from the embedded Graph JSON.
+     Node features: 387-dim = 384-dim bge-small-en-v1.5 title embedding +
+     3-dim one-hot type (Agent=0, Search=1, Track=2).
+  4. Fallback loader for pre-built per-row graphs from processed_data/,
+     with a PTT-text graph builder when no pre-built file exists.
+  5. A GNN-stage PyTorch Dataset that returns (graph, context_text_fields,
      step_label, mcp_multihot).
 """
 import ast
 import os
 import re
 import glob
+import json
 import pickle
 from functools import lru_cache
 
@@ -24,6 +29,7 @@ import pandas as pd
 from config import (
     STEP_LABELS, STEP2IDX, MCP_LABELS, MCP2IDX,
     GRAPH_DIR_TRAIN, GRAPH_DIR_TEST,
+    INPUT_TRAIN_JSON, INPUT_TEST_JSON,
 )
 
 CONTEXT_COLUMNS = [
@@ -150,7 +156,172 @@ def mcp_multihot(labels: list) -> np.ndarray:
 
 
 # ----------------------------------------------------------------------------
-# 3. Graph loading (pre-built) with PTT-text fallback builder
+# 3. NEW: Primary input loader — input/train.json, input/test.json
+# ----------------------------------------------------------------------------
+
+def build_graph_from_input_json_graph(graph_dict: dict):
+    """
+    Builds a torch_geometric.data.Data object from the Graph JSON (as exported
+    by build_input_json.py, which comes from generate_graphs.py).
+
+    Node features (387-dim):
+      - 384-dim: BAAI/bge-small-en-v1.5 embedding of node title  (cached)
+      - 3-dim: one-hot type encoding (Agent=0, Search=1, Track=2)
+
+    Edge index: constructed from the 'from' → 'to' field of each edge.
+
+    Node title embeddings are served from _TITLE_EMB_CACHE — each unique
+    title string is encoded at most once per process, regardless of how many
+    records share the same graph nodes.
+    """
+    import torch
+    from torch_geometric.data import Data
+
+    nodes = graph_dict.get("nodes", [])
+    edges = graph_dict.get("edges", [])
+
+    if not nodes:
+        # empty graph fallback — single dummy node
+        nodes = [{"id": "dummy", "title": "empty graph", "type": "Agent"}]
+        edges = []
+
+    # Node ID → index mapping
+    node_ids = [n["id"] for n in nodes]
+    id2idx = {nid: i for i, nid in enumerate(node_ids)}
+
+    # Embed node titles — uses process-level cache, no repeat encoder calls
+    titles = [n.get("title", n.get("label", "")).strip() or "unknown node"
+              for n in nodes]
+    title_embs = _embed_titles_cached(titles)  # (N, 384) — cached
+
+    # One-hot type encoding: Agent=0, Search=1, Track=2
+    type_map = {"Agent": 0, "Search": 1, "Track": 2}
+    type_onehot = np.zeros((len(nodes), 3), dtype=np.float32)
+    for i, n in enumerate(nodes):
+        ntype = n.get("type", "Agent")
+        type_onehot[i, type_map.get(ntype, 0)] = 1.0
+
+    # Combine: (N, 387)
+    x = np.concatenate([title_embs, type_onehot], axis=1)
+
+    # Build edge_index from edges list
+    edge_list = []
+    for e in edges:
+        src_id = e.get("from", "")
+        tgt_id = e.get("to", "")
+        if src_id in id2idx and tgt_id in id2idx:
+            edge_list.append([id2idx[src_id], id2idx[tgt_id]])
+
+    if not edge_list:
+        # single self-loop to avoid empty edge_index
+        edge_list = [[0, 0]]
+
+    edge_index = np.array(edge_list, dtype=np.int64).T  # (2, E)
+
+    data = Data(
+        x=torch.tensor(x, dtype=torch.float32),
+        edge_index=torch.tensor(edge_index, dtype=torch.long),
+    )
+    return data
+
+
+def load_from_input_json(json_path: str, split: str = "train"):
+    """
+    Primary loader: reads input/train.json or input/test.json (produced by
+    build_input_json.py) and returns a list of examples, where each example
+    has:
+      {
+        machine, row_id, graph (torch_geometric Data), context: {...},
+        step_label, step_idx, mcp_labels, mcp_vec,
+        gold_step_explanation, gold_mcp_raw
+      }
+
+    Records whose "Gold New step" cannot be normalized to STEP_LABELS are
+    dropped.
+
+    PERFORMANCE: All unique node titles across the entire file are collected
+    first and embedded in a single batched encoder call before any graphs are
+    built, populating _TITLE_EMB_CACHE. Subsequent calls to
+    build_graph_from_input_json_graph() are then pure cache hits — no further
+    encoder calls needed for titles seen in this file.
+    """
+    with open(json_path, "r", encoding="utf-8") as f:
+        data = json.load(f)
+
+    # ── Pre-warm the title cache with one batched encoder call ────────────────
+    # Collect every unique node title across the whole file
+    all_titles: set[str] = set()
+    for record in data:
+        for node in record.get("Graph", {}).get("nodes", []):
+            t = node.get("title", node.get("label", "")).strip() or "unknown node"
+            all_titles.add(t)
+
+    # Filter to only titles not already in cache
+    unseen = [t for t in all_titles if t not in _TITLE_EMB_CACHE]
+    if unseen:
+        print(f"[{split}] Pre-embedding {len(unseen)} unique node titles "
+              f"({len(all_titles) - len(unseen)} already cached) ...")
+        embs = _embed_texts(unseen)          # single batched call
+        for title, emb in zip(unseen, embs):
+            _TITLE_EMB_CACHE[title] = emb
+        print(f"[{split}] Title cache now holds {len(_TITLE_EMB_CACHE)} entries.")
+    else:
+        print(f"[{split}] All {len(all_titles)} node titles already cached — skipping encoder.")
+
+    # ── Build examples (all graph builds are now pure cache hits) ────────────
+    normalizer = StepLabelNormalizer()
+    examples = []
+    dropped = 0
+
+    for row_id, record in enumerate(data):
+        machine = record.get("Machine", "unknown")
+        graph_dict = record.get("Graph", {})
+
+        # Normalize step label
+        raw_step = record.get("Gold New step", "")
+        step_label = normalizer.normalize(raw_step)
+        if step_label is None:
+            dropped += 1
+            continue
+
+        # Extract MCP labels
+        mcp_raw = record.get("Gold MCP_tasks", "")
+        mcp_labels = extract_mcp_labels(mcp_raw)
+
+        # Build context dict
+        context = {
+            "Previous strategy":    record.get("Previous strategy", ""),
+            "Previous step":        record.get("Previous step", ""),
+            "Previous step result": record.get("Previous step result", ""),
+            "New strategy":         record.get("New strategy", ""),
+            "Strategy explanation": record.get("Strategy explanation", ""),
+        }
+
+        # Build graph — every _embed_titles_cached call here is a cache hit
+        graph = build_graph_from_input_json_graph(graph_dict)
+
+        examples.append({
+            "machine":               machine,
+            "row_id":                row_id,
+            "graph":                 graph,
+            "context":               context,
+            "step_label":            step_label,
+            "step_idx":              STEP2IDX[step_label],
+            "mcp_labels":            mcp_labels,
+            "mcp_vec":               mcp_multihot(mcp_labels),
+            "gold_step_explanation": record.get("Gold Step explanation", ""),
+            "gold_mcp_raw":          mcp_raw,
+            "ptt":                   "",  # not needed when using input JSON
+        })
+
+    print(f"[{split}] loaded {len(examples)} usable rows from {json_path}, "
+          f"dropped {dropped} unmappable 'Gold New step' rows "
+          f"({dropped / (len(data) or 1):.1%})")
+    return examples
+
+
+# ----------------------------------------------------------------------------
+# 4. FALLBACK: Graph loading (pre-built) with PTT-text fallback builder
 # ----------------------------------------------------------------------------
 def _find_prebuilt_graph(machine: str, row_id: int, split: str):
     graph_dir = GRAPH_DIR_TRAIN if split == "train" else GRAPH_DIR_TEST
@@ -194,26 +365,30 @@ def build_graph_from_ptt(ptt_text: str):
     directly from the PTT text when no pre-exported graph file is found.
 
     Node feature = frozen sentence-embedding of the node's text (+ a
-    one-hot status flag). Edges = parent -> child (tree structure) plus
-    "next sibling" temporal edges, both directions (undirected GNN).
+    3-dim one-hot type, all set to Agent since PTT has no type info).
+    This matches the 387-dim feature space expected by the GNN.
+    Edges = parent -> child (tree structure) plus "next sibling" temporal
+    edges, both directions (undirected GNN).
+
+    Title embeddings are served from _TITLE_EMB_CACHE — same cache as the
+    primary JSON loader, so PTT nodes that happen to share text with graph
+    JSON nodes are also free.
     """
     import torch
     from torch_geometric.data import Data
 
     nodes = parse_ptt_to_tree(ptt_text)
     if not nodes:
-        # single empty node to avoid crashing on rows with no PTT context
         nodes = [(0, "root", "unknown")]
 
     texts = [n[1] for n in nodes]
-    embs = _embed_texts(texts)  # (N, TEXT_EMB_DIM)
+    embs = _embed_titles_cached(texts)  # (N, 384) — uses cache
 
-    status_map = {"completed": 0, "in progress": 1, "pending": 2, "failed": 3, "unknown": 4}
-    status_onehot = np.zeros((len(nodes), 5), dtype=np.float32)
-    for i, (_, _, status) in enumerate(nodes):
-        status_onehot[i, status_map.get(status, 4)] = 1.0
+    # All PTT nodes treated as "Agent" type (index 0) — matches 387-dim node space
+    type_onehot = np.zeros((len(nodes), 3), dtype=np.float32)
+    type_onehot[:, 0] = 1.0  # Agent = index 0
 
-    x = np.concatenate([embs, status_onehot], axis=1)
+    x = np.concatenate([embs, type_onehot], axis=1)  # (N, 387)
 
     edges = []
     stack = []  # (depth, index)
@@ -250,6 +425,55 @@ def _get_embedder():
 def _embed_texts(texts):
     enc = _get_embedder()
     return enc.encode(texts, normalize_embeddings=True, show_progress_bar=False)
+
+
+# ---------------------------------------------------------------------------
+# Title embedding cache — process-level, persists across all dataset loads.
+#
+# Without this, build_graph_from_input_json_graph calls _embed_texts() once
+# per graph (~17 nodes × 1,894 records = ~32,000 encoder calls at Stage 1
+# init alone, repeated identically at Stage 2 and Stage 3). Many node titles
+# are shared across records of the same machine (e.g. the START node title
+# appears in every row for that machine), so the same string gets re-embedded
+# thousands of times.
+#
+# The cache maps title_string → np.ndarray(384, float32).
+# build_graph_from_input_json_graph batches all cache-miss titles into a
+# single encoder call, then stores results before building the Data object.
+# ---------------------------------------------------------------------------
+_TITLE_EMB_CACHE: dict[str, np.ndarray] = {}
+
+
+def _embed_titles_cached(titles: list[str]) -> np.ndarray:
+    """
+    Return (N, 384) embeddings for `titles`, using and populating
+    _TITLE_EMB_CACHE so each unique string is encoded at most once
+    per process lifetime.
+
+    Steps:
+      1. Identify titles not yet in cache.
+      2. Encode all misses in a single batched encoder call.
+      3. Store results in cache.
+      4. Build the output array from cache, preserving input order.
+    """
+    global _TITLE_EMB_CACHE
+
+    # Collect unique unseen titles (preserve first-seen order)
+    seen = set()
+    misses = []
+    for t in titles:
+        if t not in _TITLE_EMB_CACHE and t not in seen:
+            misses.append(t)
+            seen.add(t)
+
+    # One batched encoder call for all cache misses
+    if misses:
+        new_embs = _embed_texts(misses)          # (len(misses), 384)
+        for title, emb in zip(misses, new_embs):
+            _TITLE_EMB_CACHE[title] = emb
+
+    # Build output in original order from cache
+    return np.stack([_TITLE_EMB_CACHE[t] for t in titles])  # (N, 384)
 
 
 def load_graph(machine: str, row_id: int, ptt_text: str, split: str = "train"):

@@ -35,7 +35,7 @@ STAGES = [
     ("stage1",           "stage1_gnn_train.py",  []),
     ("stage2",           "stage2_sft_qwen.py",   []),
     ("stage3",           "stage3_grpo_rl.py",    []),
-    ("evaluate",         "evaluate.py",           ["--model", "gnn"]),
+    ("evaluate",         "evaluate.py",           []),
 ]
 
 STAGE_NAMES = [s[0] for s in STAGES]
