@@ -28,10 +28,10 @@ from sentence_transformers import SentenceTransformer
 INPUT_TRAIN_JSON = "input/train.json"
 INPUT_TEST_JSON = "input/test.json"
 QWEN_MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
-STAGE3_ADAPTER_DIR = "checkpoints/stage3_grpo_rl"
+STAGE3_ADAPTER_DIR = "checkpoints/stage1_grpo_rl"
 STAGE3_GROUP_SIZE = 4
 STAGE3_LR = 1e-5
-STAGE3_STEPS = 1000
+STAGE3_STEPS = 100  # Reduced for faster testing
 STAGE3_KL_COEF = 0.02
 MCP_LABELS = [
     "nmap", "ssh", "ftp", "smbclient", "hydra", "john", "hashcat", 
@@ -271,12 +271,21 @@ def main():
     print(f"[Stage 3] Training input : {INPUT_TRAIN_JSON}")
     print(f"[Stage 3] Device         : {device}")
 
+    # ── Load sentence encoder upfront (avoid hanging during training) ────────
+    print("[Stage 3] Loading sentence transformer for reward computation...")
+    global _sentence_encoder
+    _sentence_encoder = load_sentence_encoder()
+    print("[Stage 3] ✓ Sentence transformer loaded")
+
     # ── Tokenizer ────────────────────────────────────────────────────────────
+    print("[Stage 3] Loading tokenizer...")
     tokenizer = AutoTokenizer.from_pretrained(QWEN_MODEL_NAME)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
+    print("[Stage 3] ✓ Tokenizer loaded")
 
     # ── Policy model (base Qwen, trainable with LoRA) ───────────────────────
+    print("[Stage 3] Loading base model...")
     base = AutoModelForCausalLM.from_pretrained(
         QWEN_MODEL_NAME, torch_dtype=torch.bfloat16, device_map=None
     ).to(device)
@@ -291,11 +300,14 @@ def main():
         bias="none",
         task_type="CAUSAL_LM"
     )
+    print("[Stage 3] Applying LoRA adapters...")
     policy = get_peft_model(base, lora_config)
     policy.train()
     dtype = torch.bfloat16
+    print("[Stage 3] ✓ Policy model ready")
 
     # ── Reference model (base Qwen, frozen) ───────────────────────────────
+    print("[Stage 3] Loading reference model...")
     ref_base = AutoModelForCausalLM.from_pretrained(
         QWEN_MODEL_NAME, torch_dtype=torch.bfloat16, device_map=None
     ).to(device)
@@ -303,6 +315,7 @@ def main():
     ref_model.eval()
     for p in ref_model.parameters():
         p.requires_grad_(False)
+    print("[Stage 3] ✓ Reference model loaded")
 
     # ── Embedding layer (shared, read-only during generation) ────────────────
     embed_layer = policy.get_input_embeddings()
@@ -327,7 +340,12 @@ def main():
     optimizer.zero_grad()
     global_step = 0
 
+    print(f"[Stage 3] Starting training: {STAGE3_STEPS} steps, group size {G}")
+    print(f"[Stage 3] First progress update at step 10...")
+
     for step in range(1, STAGE3_STEPS + 1):
+        if step == 1:
+            print(f"[Stage 3] Step {step}: Starting first training iteration...")
 
         # ── 1. Sample one training example ───────────────────────────────────
         ex = random.choice(examples)
@@ -423,7 +441,7 @@ def main():
             global_step += 1
 
         # ── 8. Logging ────────────────────────────────────────────────────────
-        if step % 50 == 0:
+        if step % 10 == 0:
             avg_reward = rewards.mean().item()
             fmt_ok = sum(1 for c in completions if _parse_completion(c) is not None)
 
