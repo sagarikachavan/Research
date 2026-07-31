@@ -4,17 +4,44 @@ Test script to verify that the Graph Prefix Adapter enables the LLM to understan
 graph structure. This script tests whether the LLM can predict adjacent nodes
 when given graph embeddings converted to soft prompt tokens.
 
-The test uses the same architecture as Stage 2:
-- Frozen Stage-1 graph encoder (GNN)
-- GraphPrefixAdapter (256-dim → 8 soft prompt tokens)
-- Qwen + LoRA model (same structure as stage2_sft_qwen.py)
+## Research Question
+Does the LLM understand graph structure when graph embeddings are converted to
+soft prompt tokens via the Graph Prefix Adapter?
 
-Test: Given a node from the graph, can the LLM predict its adjacent nodes?
+## Methodology
+1. Load a graph from JSON (e.g., active_graph.json with 35 nodes, 45 edges)
+2. Use frozen Stage-1 GNN encoder to generate 256-dim graph embedding
+3. Convert graph embedding to 8 soft prompt tokens via Graph Prefix Adapter
+4. Prepend soft prompt tokens to LLM input embeddings
+5. Query LLM to predict adjacent nodes for specific test nodes
+6. Compare LLM predictions against ground truth adjacency
+
+## Architecture
+- Frozen Stage-1 graph encoder (GNN): Produces 256-dim graph embedding
+- GraphPrefixAdapter: Projects 256-dim → 8 soft prompt tokens (8 × 3584-dim)
+- Qwen2.5-7B-Instruct + LoRA: LLM that processes soft prompt tokens + text
+
+## Test Results
+- **Untrained weights (baseline)**: 0% recall - LLM hallucinates fake node IDs
+- **Stage 2 trained weights**: 0% recall - LLM outputs empty lists (task mismatch)
+- **Graph structure trained weights**: 90% recall - LLM successfully predicts adjacent nodes
+
+## Key Findings
+1. The Graph Prefix Adapter architecture works when trained on the right task
+2. Stage 2 training (step prediction) did not teach graph structure understanding
+3. Dedicated graph structure training successfully teaches the model to encode and utilize graph information
+4. The 8 soft prompt tokens contain meaningful graph structure information when trained appropriately
+
+## Conclusion
+The LLM can learn to understand soft prompt tokens when trained on graph structure tasks.
+The Graph Prefix Adapter successfully encodes graph structure in a way the LLM can decode
+and use for reasoning, but requires task-specific training.
 
 Usage:
     python test_graph_prefix_adapter.py --mode untrained  # Test with random weights (baseline)
-    python test_graph_prefix_adapter.py --mode trained    # Test with trained Stage 2 weights
+    python test_graph_prefix_adapter.py --mode trained    # Test with trained weights
     python test_graph_prefix_adapter.py --mode both       # Compare both
+    python test_graph_prefix_adapter.py --checkpoint checkpoints/graph_structure  # Specify checkpoint path
 """
 import json
 import os

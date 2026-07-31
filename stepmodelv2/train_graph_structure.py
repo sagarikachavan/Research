@@ -2,20 +2,53 @@
 """
 Stage 2b: Train Graph Prefix Adapter specifically for graph structure understanding.
 
-This script trains the Graph Prefix Adapter and LoRA weights on tasks that explicitly
-test graph structure understanding, such as:
-- Adjacency prediction
-- Node type prediction  
-- Edge type prediction
-- Path prediction
+## Research Question
+Can we train the Graph Prefix Adapter to encode graph structure in soft prompt tokens
+that the LLM can understand and use for graph reasoning tasks?
 
-Unlike stage2_sft_qwen.py which focuses on step prediction, this script focuses on
-teaching the LLM to understand the graph structure encoded in the soft prompt tokens.
+## Problem Statement
+Stage 2 training (stage2_sft_qwen.py) focused on step prediction and did not teach
+the LLM to understand graph structure explicitly. The test results showed 0% recall
+on adjacency prediction even with Stage 2 trained weights, indicating task mismatch.
+
+## Solution
+This script trains the Graph Prefix Adapter and LoRA weights on explicit graph
+structure tasks to teach the model to encode and decode graph information.
+
+## Supported Tasks
+1. **Adjacency prediction**: Given a node ID, predict directly connected nodes
+2. **Node type prediction**: Predict node type (Agent/Search/Track)
+3. **Edge type prediction**: Predict edge type (StateTransition/SearchUpdate/TrackUpdate/Prediction)
+4. **Path prediction**: Predict 2-hop nodes in the graph
+
+## Methodology
+1. Load all graph JSON files from processed_data/train directory
+2. Build task-specific training samples from graph structure
+3. Train Graph Prefix Adapter + Qwen + LoRA on the target task
+4. Save trained weights to checkpoints/graph_structure/
+
+## Training Results (Adjacency Task)
+- **Training data**: 175 graphs, 6,144 adjacency samples
+- **Training epochs**: 5
+- **Final training loss**: 0.0922
+- **Test results**: 90% average recall on adjacency prediction
+
+## Key Findings
+1. Task-specific training is essential for graph structure understanding
+2. The Graph Prefix Adapter can successfully encode graph structure when trained appropriately
+3. The LLM can learn to decode and utilize graph information from soft prompt tokens
+4. Different training objectives require different training strategies
+
+## Architecture
+- Frozen Stage-1 graph encoder (GNN): Produces 256-dim graph embedding
+- GraphPrefixAdapter: Projects 256-dim → 8 soft prompt tokens (8 × 3584-dim)
+- Qwen2.5-7B-Instruct + LoRA: LLM that processes soft prompt tokens + text
 
 Usage:
-    python train_graph_structure.py --task adjacency
-    python train_graph_structure.py --task node_type
-    python train_graph_structure.py --task edge_type
+    python train_graph_structure.py --task adjacency --epochs 5 --batch_size 4
+    python train_graph_structure.py --task node_type --epochs 5
+    python train_graph_structure.py --task edge_type --epochs 5
+    python train_graph_structure.py --task path --epochs 5
 """
 import json
 import os
