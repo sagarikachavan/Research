@@ -27,11 +27,11 @@ from sentence_transformers import SentenceTransformer
 # Configuration
 INPUT_TRAIN_JSON = "input/train.json"
 INPUT_TEST_JSON = "input/test.json"
-QWEN_MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
+QWEN_MODEL_NAME = "Qwen/Qwen3-14B-Instruct"
 STAGE3_ADAPTER_DIR = "checkpoints/stage1_grpo_rl"
 STAGE3_GROUP_SIZE = 4
 STAGE3_LR = 1e-5
-STAGE3_STEPS = 100  # Reduced for faster testing
+STAGE3_STEPS = 1000
 STAGE3_KL_COEF = 0.02
 MCP_LABELS = [
     "nmap", "ssh", "ftp", "smbclient", "hydra", "john", "hashcat", 
@@ -87,16 +87,16 @@ def graph_to_text(graph_data: dict) -> str:
 # ---------------------------------------------------------------------------
 
 def load_json_data(json_path: str, split: str = "train"):
-    """Load training data from JSON file."""
+    """Load training data from JSON file - pass raw JSON directly."""
     with open(json_path, 'r') as f:
         data = json.load(f)
     
     examples = []
     for item in data:
-        graph_text = graph_to_text(item.get("Graph", {}))
+        # Pass raw graph JSON directly without conversion
         examples.append({
             "machine": item.get("Machine", ""),
-            "graph_text": graph_text,
+            "graph_json": item.get("Graph", {}),
             "step_label": item.get("step_label", ""),
             "mcp_labels": item.get("mcp_labels", []),
             "gold_step_explanation": item.get("gold_step_explanation", ""),
@@ -199,13 +199,38 @@ def compute_reward(completion: str, gold: dict,
 SYSTEM_PROMPT = """You are an expert penetration testing AI assistant. Given the current state of a penetration test represented as a graph structure, predict the next step to take, explain why, and specify which tools to use."""
 
 def build_prompt(example: dict) -> str:
-    """Build prompt from example data."""
+    """Build prompt from example data - pass raw JSON directly with few-shot examples."""
+    graph_json_str = json.dumps(example['graph_json'], indent=2)
     prompt = f"""Current penetration test state for machine: {example['machine']}
 
-{example['graph_text']}
+Graph data (JSON format):
+{graph_json_str}
 
-Based on the current graph state, predict the next step:
-"""
+Based on the current graph state, predict the next step. You must respond ONLY with a valid JSON object containing exactly these three keys:
+- "New step": the name of the next step to take
+- "Step explanation": a brief explanation of why this step is appropriate  
+- "MCP_tasks": a JSON object with tool names as keys and their parameters as values
+
+Example 1:
+{{
+  "New step": "enumerate further",
+  "Step explanation": "We need to enumerate further services on the target machine to identify potential vulnerabilities.",
+  "MCP_tasks": {{
+    "nmap": "Execute port scan with service version detection",
+    "nikto": "Scan for web vulnerabilities"
+  }}
+}}
+
+Example 2:
+{{
+  "New step": "exploit",
+  "Step explanation": "We have identified a vulnerable service and can now attempt exploitation.",
+  "MCP_tasks": {{
+    "metasploit": "Exploit the identified vulnerability"
+  }}
+}}
+
+Your response (JSON only):"""
     return prompt
 
 
@@ -287,8 +312,8 @@ def main():
     # ── Policy model (base Qwen, trainable with LoRA) ───────────────────────
     print("[Stage 3] Loading base model...")
     base = AutoModelForCausalLM.from_pretrained(
-        QWEN_MODEL_NAME, torch_dtype=torch.bfloat16, device_map=None
-    ).to(device)
+        QWEN_MODEL_NAME, torch_dtype=torch.bfloat16, device_map="auto"
+    )
     
     # Add LoRA for efficient fine-tuning
     from peft import LoraConfig, get_peft_model
@@ -309,8 +334,8 @@ def main():
     # ── Reference model (base Qwen, frozen) ───────────────────────────────
     print("[Stage 3] Loading reference model...")
     ref_base = AutoModelForCausalLM.from_pretrained(
-        QWEN_MODEL_NAME, torch_dtype=torch.bfloat16, device_map=None
-    ).to(device)
+        QWEN_MODEL_NAME, torch_dtype=torch.bfloat16, device_map="auto"
+    )
     ref_model = get_peft_model(ref_base, lora_config)
     ref_model.eval()
     for p in ref_model.parameters():
@@ -374,10 +399,11 @@ def main():
             gen_out = policy.generate(
                 inputs_embeds=prompt_embeds,
                 attention_mask=attn_prompt,
-                max_new_tokens=256,
-                do_sample=True,
-                temperature=0.8,
+                max_new_tokens=300,  # Increased to ensure complete JSON
+                do_sample=True,  # Sampling required for num_return_sequences > 1
+                temperature=0.3,  # Low temperature for more deterministic output
                 top_p=0.9,
+                repetition_penalty=1.0,
                 num_return_sequences=G,
                 pad_token_id=tokenizer.pad_token_id,
                 eos_token_id=tokenizer.eos_token_id,

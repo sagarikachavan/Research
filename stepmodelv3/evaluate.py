@@ -43,7 +43,7 @@ from peft import PeftModel
 
 # Configuration
 INPUT_TEST_JSON = "input/test.json"
-QWEN_MODEL_NAME = "Qwen/Qwen2.5-0.5B-Instruct"
+QWEN_MODEL_NAME = "Qwen/Qwen3-14B-Instruct"
 STAGE1_ADAPTER_DIR = "checkpoints/stage1_grpo_rl"
 MCP_LABELS = [
     "nmap", "ssh", "ftp", "smbclient", "hydra", "john", "hashcat", 
@@ -109,16 +109,16 @@ def graph_to_text(graph_data: dict) -> str:
 # ---------------------------------------------------------------------------
 
 def load_json_data(json_path: str):
-    """Load test data from JSON file."""
+    """Load test data from JSON file - pass raw JSON directly."""
     with open(json_path, 'r') as f:
         data = json.load(f)
     
     examples = []
     for item in data:
-        graph_text = graph_to_text(item.get("Graph", {}))
+        # Pass raw graph JSON directly without conversion
         examples.append({
             "machine": item.get("Machine", ""),
-            "graph_text": graph_text,
+            "graph_json": item.get("Graph", {}),
             "step_label": item.get("step_label", ""),
             "mcp_labels": item.get("mcp_labels", []),
             "gold_step_explanation": item.get("gold_step_explanation", ""),
@@ -381,8 +381,8 @@ def eval_grpo(adapter_dir: str, max_new_tokens: int = 200,
         tokenizer.pad_token = tokenizer.eos_token
 
     base = AutoModelForCausalLM.from_pretrained(
-        QWEN_MODEL_NAME, torch_dtype=dtype, device_map=None
-    ).to(device)
+        QWEN_MODEL_NAME, torch_dtype=dtype, device_map="auto"
+    )
     model = PeftModel.from_pretrained(base, adapter_dir).eval()
 
     # Load sentence transformer for BERTScore
@@ -403,10 +403,11 @@ def eval_grpo(adapter_dir: str, max_new_tokens: int = 200,
     csv_rows = []
 
     for ex in tqdm(examples, desc="Evaluating", unit="sample"):
-        # Build prompt with graph text
+        # Build prompt with raw JSON
+        graph_json_str = json.dumps(ex['graph_json'], indent=2)
         prompt_text = (
             f"<|im_start|>system\n{SYSTEM_PROMPT}<|im_end|>\n"
-            f"<|im_start|>user\nCurrent penetration test state for machine: {ex['machine']}\n\n{ex['graph_text']}\n\nBased on the current graph state, predict the next step:<|im_end|>\n"
+            f"<|im_start|>user\nCurrent penetration test state for machine: {ex['machine']}\n\nGraph data (JSON format):\n{graph_json_str}\n\nBased on the current graph state, predict the next step. You must respond ONLY with a valid JSON object containing exactly these three keys:\n- \"New step\": the name of the next step to take\n- \"Step explanation\": a brief explanation of why this step is appropriate\n- \"MCP_tasks\": a JSON object with tool names as keys and their parameters as values\n\nExample 1:\n{{\n  \"New step\": \"enumerate further\",\n  \"Step explanation\": \"We need to enumerate further services on the target machine to identify potential vulnerabilities.\",\n  \"MCP_tasks\": {{\n    \"nmap\": \"Execute port scan with service version detection\",\n    \"nikto\": \"Scan for web vulnerabilities\"\n  }}\n}}\n\nYour response (JSON only):<|im_end|>\n"
             f"<|im_start|>assistant\n"
         )
 
@@ -426,10 +427,11 @@ def eval_grpo(adapter_dir: str, max_new_tokens: int = 200,
             out = model.generate(
                 inputs_embeds=token_embeds,
                 attention_mask=attn,
-                max_new_tokens=max_new_tokens,
-                do_sample=False,
-                temperature=1.0,
-                repetition_penalty=1.1,
+                max_new_tokens=350,  # Increased for complete JSON
+                do_sample=True,  # Use sampling like training
+                temperature=0.3,  # Low temperature for more deterministic output
+                top_p=0.9,
+                repetition_penalty=1.0,
                 pad_token_id=tokenizer.pad_token_id,
                 eos_token_id=tokenizer.eos_token_id,
             )
@@ -560,8 +562,13 @@ def report_classification(
         )
     )
     print("  Confusion matrix (rows=gold, cols=pred):")
-    cm = confusion_matrix(step_gold, step_preds, labels=list(range(len(STEP_LABELS))))
-    print(cm)
+    # Only compute confusion matrix if we have valid labels
+    valid_labels = [i for i in step_gold if i >= 0] + [i for i in step_preds if i >= 0]
+    if valid_labels:
+        cm = confusion_matrix(step_gold, step_preds, labels=list(range(len(STEP_LABELS))))
+        print(cm)
+    else:
+        print("  Skipped: No valid predictions (all unparseable)")
 
     print("\n" + "=" * 60)
     print("MCP TOOL CLASSIFICATION  (multi-label)")
