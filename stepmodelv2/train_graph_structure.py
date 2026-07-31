@@ -101,12 +101,13 @@ class GraphStructureDataset(Dataset):
         self.tokenizer = tokenizer
         self.max_len = max_len
         self.samples = self._build_samples()
+        self.graph_data_cache = {}  # Cache torch_geometric Data objects
     
     def _build_samples(self) -> List[dict]:
         """Build training samples based on the task type."""
         samples = []
         
-        for graph_dict in self.graph_dicts:
+        for graph_idx, graph_dict in enumerate(self.graph_dicts):
             nodes = graph_dict.get("nodes", [])
             edges = graph_dict.get("edges", [])
             
@@ -124,17 +125,19 @@ class GraphStructureDataset(Dataset):
                     adjacency[tgt].append(src)
             
             if self.task == "adjacency":
-                samples.extend(self._build_adjacency_samples(nodes, adjacency, node_id_to_label))
+                task_samples = self._build_adjacency_samples(nodes, adjacency, node_id_to_label, graph_idx)
             elif self.task == "node_type":
-                samples.extend(self._build_node_type_samples(nodes, node_id_to_label))
+                task_samples = self._build_node_type_samples(nodes, node_id_to_label, graph_idx)
             elif self.task == "edge_type":
-                samples.extend(self._build_edge_type_samples(edges, node_id_to_label))
+                task_samples = self._build_edge_type_samples(edges, node_id_to_label, graph_idx)
             elif self.task == "path":
-                samples.extend(self._build_path_samples(nodes, edges, adjacency, node_id_to_label))
+                task_samples = self._build_path_samples(nodes, edges, adjacency, node_id_to_label, graph_idx)
+            
+            samples.extend(task_samples)
         
         return samples
     
-    def _build_adjacency_samples(self, nodes: List[dict], adjacency: dict, node_id_to_label: dict) -> List[dict]:
+    def _build_adjacency_samples(self, nodes: List[dict], adjacency: dict, node_id_to_label: dict, graph_idx: int) -> List[dict]:
         """Build samples for adjacency prediction task."""
         samples = []
         for node in nodes:
@@ -157,11 +160,11 @@ Based on the graph structure encoded in the soft prompt tokens, predict which no
 Adjacent nodes:"""
             
             target = ", ".join(target_nodes)
-            samples.append({"prompt": prompt, "target": target, "node_id": node_id})
+            samples.append({"prompt": prompt, "target": target, "node_id": node_id, "graph_idx": graph_idx})
         
         return samples
     
-    def _build_node_type_samples(self, nodes: List[dict], node_id_to_label: dict) -> List[dict]:
+    def _build_node_type_samples(self, nodes: List[dict], node_id_to_label: dict, graph_idx: int) -> List[dict]:
         """Build samples for node type prediction task."""
         samples = []
         type_map = {"Agent": 0, "Search": 1, "Track": 2}
@@ -179,11 +182,11 @@ Based on the graph structure encoded in the soft prompt tokens, predict the node
 Node type:"""
             
             target = node_type
-            samples.append({"prompt": prompt, "target": target, "node_id": node_id})
+            samples.append({"prompt": prompt, "target": target, "node_id": node_id, "graph_idx": graph_idx})
         
         return samples
     
-    def _build_edge_type_samples(self, edges: List[dict], node_id_to_label: dict) -> List[dict]:
+    def _build_edge_type_samples(self, edges: List[dict], node_id_to_label: dict, graph_idx: int) -> List[dict]:
         """Build samples for edge type prediction task."""
         samples = []
         
@@ -201,11 +204,11 @@ Based on the graph structure encoded in the soft prompt tokens, predict the edge
 Edge type:"""
             
             target = edge_type
-            samples.append({"prompt": prompt, "target": target, "src_id": src_id, "tgt_id": tgt_id})
+            samples.append({"prompt": prompt, "target": target, "src_id": src_id, "tgt_id": tgt_id, "graph_idx": graph_idx})
         
         return samples
     
-    def _build_path_samples(self, nodes: List[dict], edges: List[dict], adjacency: dict, node_id_to_label: dict) -> List[dict]:
+    def _build_path_samples(self, nodes: List[dict], edges: List[dict], adjacency: dict, node_id_to_label: dict, graph_idx: int) -> List[dict]:
         """Build samples for path prediction task."""
         samples = []
         
@@ -237,7 +240,7 @@ Based on the graph structure encoded in the soft prompt tokens, predict a node t
 2-hop node ID:"""
                 
                 target = target_id
-                samples.append({"prompt": prompt, "target": target, "node_id": node_id})
+                samples.append({"prompt": prompt, "target": target, "node_id": node_id, "graph_idx": graph_idx})
         
         return samples
     
@@ -246,6 +249,15 @@ Based on the graph structure encoded in the soft prompt tokens, predict a node t
     
     def __getitem__(self, idx: int) -> dict:
         sample = self.samples[idx]
+        graph_idx = sample["graph_idx"]
+        
+        # Get or build graph data
+        if graph_idx not in self.graph_data_cache:
+            graph_dict = self.graph_dicts[graph_idx]
+            graph_data = build_graph_from_input_json_graph(graph_dict)
+            self.graph_data_cache[graph_idx] = graph_data
+        else:
+            graph_data = self.graph_data_cache[graph_idx]
         
         prompt_text = f"<|im_start|>system\nYou are a graph structure analysis assistant.<|im_end|>\n<|im_start|>user\n{sample['prompt']}<|im_end|>\n<|im_start|>assistant\n"
         target_text = sample['target']
@@ -259,6 +271,7 @@ Based on the graph structure encoded in the soft prompt tokens, predict a node t
         return {
             "input_ids": torch.tensor(input_ids),
             "labels": torch.tensor(labels),
+            "graph_data": graph_data,
             "sample": sample,
         }
 
@@ -272,14 +285,18 @@ def collate_fn(batch: list, pad_id: int) -> dict:
     labels = torch.full((B, max_len), -100, dtype=torch.long)
     attn = torch.zeros((B, max_len), dtype=torch.long)
     
+    # Collect graph data for each sample
+    graph_data_list = []
+    
     for i, b in enumerate(batch):
         L = len(b["input_ids"])
         input_ids[i, :L] = b["input_ids"]
         labels[i, :L] = b["labels"]
         attn[i, :L] = 1
+        graph_data_list.append(b["graph_data"])
     
     samples = [b["sample"] for b in batch]
-    return {"input_ids": input_ids, "attention_mask": attn, "labels": labels, "samples": samples}
+    return {"input_ids": input_ids, "attention_mask": attn, "labels": labels, "graph_data": graph_data_list, "samples": samples}
 
 
 def load_graphs_from_directory(graph_dir: str) -> List[dict]:
@@ -312,16 +329,24 @@ def train_epoch(train_loader, model, adapter, graph_encoder, embed_layer, device
         input_ids = batch["input_ids"].to(device)
         attn = batch["attention_mask"].to(device)
         labels = batch["labels"].to(device)
+        graph_data_list = batch["graph_data"]
         
-        # For simplicity, use a single graph embedding for all samples in batch
-        # In practice, you'd want to use the actual graph for each sample
         batch_size = input_ids.shape[0]
         
-        # Use a dummy graph embedding (in practice, load actual graphs)
-        with torch.no_grad():
-            dummy_graph_emb = torch.randn(batch_size, GNN_OUT_DIM, device=device, dtype=dtype)
+        # Process each graph in the batch to get real graph embeddings
+        graph_embs = []
+        for graph_data in graph_data_list:
+            graph_data = graph_data.to(device)
+            with torch.no_grad():
+                batch_idx = torch.zeros(graph_data.x.shape[0], dtype=torch.long, device=device)
+                graph_emb = graph_encoder(graph_data.x, graph_data.edge_index, batch_idx)
+                graph_embs.append(graph_emb)
         
-        prefix_embeds = adapter(dummy_graph_emb)
+        # Stack graph embeddings
+        graph_emb_tensor = torch.stack(graph_embs)  # (B, GNN_OUT_DIM)
+        
+        # Convert to soft prompt tokens
+        prefix_embeds = adapter(graph_emb_tensor.to(dtype))
         token_embeds = embed_layer(input_ids).to(dtype)
         inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
         
@@ -490,9 +515,18 @@ def main():
         if train_loss < best_val_loss:
             best_val_loss = train_loss
             print(f"Saving best checkpoint (loss: {best_val_loss:.4f})")
-            model.save_pretrained(args.output_dir)
-            torch.save(adapter.state_dict(), os.path.join(args.output_dir, "graph_adapter.pt"))
-            tokenizer.save_pretrained(args.output_dir)
+            try:
+                model.save_pretrained(args.output_dir)
+                torch.save(adapter.state_dict(), os.path.join(args.output_dir, "graph_adapter.pt"))
+                tokenizer.save_pretrained(args.output_dir)
+            except Exception as e:
+                print(f"Error saving full checkpoint: {e}")
+                print("Saving only adapter weights...")
+                try:
+                    torch.save(adapter.state_dict(), os.path.join(args.output_dir, "graph_adapter.pt"))
+                except Exception as e2:
+                    print(f"Error saving adapter weights: {e2}")
+                    print("Could not save checkpoint due to disk quota or other I/O error")
     
     print(f"\n{'=' * 60}")
     print("Training complete")
