@@ -11,7 +11,7 @@ stepmodel-new/embeddings_data/
 stepmodel/processed_data/
 stepmodel-new/processed_data/
 stepmodelv2/processed_data/
-stepmodelv3/processed_graphs/
+stepmodelv3/processed_data/
 
 # input
 stepmodelv2/input
