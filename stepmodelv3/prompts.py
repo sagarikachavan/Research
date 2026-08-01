@@ -40,25 +40,45 @@ def build_prompt(example: dict) -> str:
     (NOT vector-embedded) — this is passed directly to the LLM as its input,
     exactly as required.
     """
-    graph_json_str = json.dumps(example["graph_json"], indent=2)
-    return f"""Current penetration test state for machine: {example['machine']}
+    # Use plain text summary instead of JSON to avoid continuation
+    graph = example["graph_json"]
+    nodes = graph.get("nodes", [])
+    edges = graph.get("edges", [])
+    
+    recent_states_text = ""
+    if nodes:
+        recent = nodes[-3:]
+        recent_states_text = "\n".join([
+            f"- {n.get('label', 'Unknown')} (status: {n.get('status', 'unknown')})"
+            for n in recent
+        ])
+    
+    graph_summary = f"""Total nodes: {len(nodes)}
+Total edges: {len(edges)}
+Recent states:
+{recent_states_text}"""
 
-Graph data (JSON format, raw — states/actions/findings of the Penetration Testing Tree):
-{graph_json_str}
+    return f"""Machine: {example['machine']}
 
-Candidate next step drafted by a heuristic (for reference only, may be wrong or incomplete):
-"{example.get('candidate_step', '')}"
-Candidate reasoning: "{example.get('candidate_step_explanation', '')}"
+Current penetration test state:
+{graph_summary}
 
-Based on the current graph state, predict the correct next step. You must
-respond ONLY with a valid JSON object containing exactly these three keys:
-- "New step": the name of the next step to take
-- "Step explanation": a brief explanation of why this step is appropriate
-- "MCP_tasks": a JSON object with tool names as keys and their parameters/instructions as values
+Heuristic suggestion: {example.get('candidate_step', 'N/A')}
+Heuristic reasoning: {example.get('candidate_step_explanation', 'N/A')}
 
+TASK: Predict the next penetration testing step.
+
+Output format (JSON only):
+{{
+  "New step": "step name",
+  "Step explanation": "why this step",
+  "MCP_tasks": {{"tool": "description"}}
+}}
+
+Examples:
 {_FEWSHOT}
 
-Your response (JSON only):"""
+Your response:"""
 
 
 def build_chat_prompt(example: dict) -> str:

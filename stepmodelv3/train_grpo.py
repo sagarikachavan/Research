@@ -1,33 +1,14 @@
 """
 train_grpo.py — GRPO (Group Relative Policy Optimization) RL fine-tuning of
-Qwen3-14B on stepmodelv3/input/train.json.
+Qwen2.5-14B on stepmodelv3/input/train.json.
 
-Fixes vs. the original stage1_grpo_rl.py:
-  - Data loader matches the REAL schema (`machine`, `graph`, `gold_new_step`,
-    `gold_step_explanation`, `gold_mcp_tasks`) instead of a schema that
-    doesn't exist in your files (`Machine`, `Graph`, `step_label`, `mcp_labels`).
-  - `gold_mcp_tasks` is parsed correctly — it's usually a semicolon-joined
-    "Tool: description; Tool2: description2" string, not JSON.
-  - Step matching uses a data-derived 10-category classifier + text
-    similarity instead of exact-string match against a hardcoded, wrong
-    label list (which would have given ~0% reward forever).
-  - Raw graph JSON is still passed directly as text in the prompt — no
-    embedding model, exactly as required.
+Stage 2: Loads supervised checkpoint and refines explanation quality using GRPO.
+The supervised stage already teaches the model:
+- Step classification from fixed STEP_LABELS
+- MCP tool classification from fixed MCP_LABELS  
+- Basic explanation generation
 
-Same GRPO mechanics as the original script (LoRA policy + frozen LoRA
-reference, group-relative advantage, PPO-clipped policy gradient + KL
-penalty), which were already correctly implemented and are preserved as-is.
-
-IMPORTANT — realistic expectations:
-This script trains on your real data and will drive reward upward, but
-whether you land in the 85-90% accuracy range is a function of training
-steps, group size, LoRA rank/targets, data size, and Qwen3-14B's own
-capacity — not something a script's hyperparameters can *guarantee*. Treat
-the numbers below (steps, group size, LoRA rank) as a reasonable starting
-point tuned for this dataset's size (1728 rows) and complexity (10 step
-categories, 18 tools), and use evaluate.py + the run log (reward /
-step_r / mcp_r / exp_r curves) to decide whether to train longer, widen
-LoRA rank/targets, or increase group size.
+GRPO then refines the explanation quality using the reward function.
 """
 import json
 import os
@@ -39,7 +20,7 @@ import torch.nn.functional as F
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
 from transformers import AutoTokenizer, AutoModelForCausalLM
-from peft import LoraConfig, get_peft_model
+from peft import LoraConfig, get_peft_model, PeftModel
 
 from data_utils import load_json_data, compute_reward, parse_completion, classify_step, mcp_labels_from_dict, get_sentence_encoder
 import data_utils
@@ -49,17 +30,18 @@ from prompts import build_chat_prompt
 # Configuration
 # ---------------------------------------------------------------------------
 INPUT_TRAIN_JSON = "input/train.json"
-QWEN_MODEL_NAME = "Qwen/Qwen3-14B-Instruct"
-ADAPTER_DIR = "checkpoints/stage1_grpo_rl"
+QWEN_MODEL_NAME = "Qwen/Qwen2.5-14B-Instruct"
+SUPERVISED_ADAPTER_DIR = "/tmp/stage1_supervised"  # Load from supervised checkpoint (using /tmp for disk space)
+ADAPTER_DIR = "/tmp/stage2_grpo_rl"  # Save GRPO-refined model here (using /tmp for disk space)
 
-GROUP_SIZE = 6            # completions sampled per prompt (higher = less noisy advantage estimate)
-LR = 1e-5
+GROUP_SIZE = 4            # increased from 2 for more stable advantage estimation
+LR = 5e-6                 # reduced from 1e-5 for more stable updates
 NUM_STEPS = 3000          # ~10-12 epochs over 1728 rows at batch=1; raise if reward is still climbing
 KL_COEF = 0.02
-GRAD_ACCUM = 8
+GRAD_ACCUM = 16           # increased from 8 for smoother gradient updates
 CLIP_EPS = 0.2
-MAX_PROMPT_TOKENS = 1800  # raw graph JSON can be large; raise if prompts are being truncated
-MAX_NEW_TOKENS = 350
+MAX_PROMPT_TOKENS = 1200  # reduced from 1800 for memory
+MAX_NEW_TOKENS = 350      # increased from 250 to allow complete JSON responses
 LORA_R = 32
 LORA_ALPHA = 64
 LORA_TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
@@ -85,13 +67,13 @@ def build_prompt_embeds(prompt_text: str, tokenizer, embed_layer, device, dtype)
     return token_embeds, token_embeds.shape[1]
 
 
-def completion_logprobs(model, inputs_embeds, completion_ids, embed_layer, dtype, device):
-    comp_embeds = embed_layer(completion_ids).to(dtype)
-    full_embeds = torch.cat([inputs_embeds, comp_embeds], dim=1)
-    attn = torch.ones(full_embeds.shape[:2], dtype=torch.long, device=device)
-    out = model(inputs_embeds=full_embeds, attention_mask=attn)
+def completion_logprobs(model, input_ids, completion_ids, dtype, device):
+    """Compute log probabilities of completion tokens given input_ids."""
+    full_ids = torch.cat([input_ids, completion_ids], dim=1)
+    attn = torch.ones(full_ids.shape[:2], dtype=torch.long, device=device)
+    out = model(input_ids=full_ids, attention_mask=attn)
     logits = out.logits
-    L_prompt = inputs_embeds.shape[1]
+    L_prompt = input_ids.shape[1]
     comp_logits = logits[:, L_prompt - 1: L_prompt + completion_ids.shape[1] - 1, :]
     log_probs = F.log_softmax(comp_logits, dim=-1)
     token_lp = log_probs.gather(2, completion_ids.unsqueeze(-1)).squeeze(-1)
@@ -120,23 +102,56 @@ def main():
         tokenizer.pad_token = tokenizer.eos_token
 
     print("[train] Loading base model (policy)...")
-    base = AutoModelForCausalLM.from_pretrained(
-        QWEN_MODEL_NAME, torch_dtype=torch.bfloat16, device_map="auto"
-    )
-    lora_config = LoraConfig(
-        r=LORA_R, lora_alpha=LORA_ALPHA, target_modules=LORA_TARGETS,
-        lora_dropout=0.05, bias="none", task_type="CAUSAL_LM",
-    )
-    policy = get_peft_model(base, lora_config)
+    # Load supervised checkpoint directly if available, otherwise load base model
+    if os.path.exists(SUPERVISED_ADAPTER_DIR):
+        print(f"[train] Loading supervised checkpoint from {SUPERVISED_ADAPTER_DIR}")
+        base = AutoModelForCausalLM.from_pretrained(
+            QWEN_MODEL_NAME, torch_dtype=torch.bfloat16, device_map="auto"
+        )
+        base.gradient_checkpointing_enable()
+        policy = PeftModel.from_pretrained(base, SUPERVISED_ADAPTER_DIR)
+        # Enable training for LoRA parameters
+        policy.enable_adapter_layers()
+        for param in policy.parameters():
+            if param.requires_grad:
+                param.requires_grad_(True)
+    else:
+        print(f"[train] No supervised checkpoint found at {SUPERVISED_ADAPTER_DIR}, training from scratch")
+        base = AutoModelForCausalLM.from_pretrained(
+            QWEN_MODEL_NAME, torch_dtype=torch.bfloat16, device_map="auto"
+        )
+        base.gradient_checkpointing_enable()
+        lora_config = LoraConfig(
+            r=LORA_R, lora_alpha=LORA_ALPHA, target_modules=LORA_TARGETS,
+            lora_dropout=0.05, bias="none", task_type="CAUSAL_LM",
+        )
+        policy = get_peft_model(base, lora_config)
+    
     policy.train()
     dtype = torch.bfloat16
     print("[train] Policy model ready")
 
     print("[train] Loading reference model (frozen)...")
-    ref_base = AutoModelForCausalLM.from_pretrained(
-        QWEN_MODEL_NAME, torch_dtype=torch.bfloat16, device_map="auto"
-    )
-    ref_model = get_peft_model(ref_base, lora_config)
+    # Load supervised checkpoint for reference model too
+    if os.path.exists(SUPERVISED_ADAPTER_DIR):
+        print(f"[train] Loading supervised checkpoint for reference model")
+        ref_base = AutoModelForCausalLM.from_pretrained(
+            QWEN_MODEL_NAME, torch_dtype=torch.bfloat16, device_map="auto"
+        )
+        ref_base.gradient_checkpointing_enable()
+        ref_model = PeftModel.from_pretrained(ref_base, SUPERVISED_ADAPTER_DIR)
+    else:
+        print(f"[train] No supervised checkpoint found for reference model, using base model")
+        ref_base = AutoModelForCausalLM.from_pretrained(
+            QWEN_MODEL_NAME, torch_dtype=torch.bfloat16, device_map="auto"
+        )
+        ref_base.gradient_checkpointing_enable()
+        lora_config = LoraConfig(
+            r=LORA_R, lora_alpha=LORA_ALPHA, target_modules=LORA_TARGETS,
+            lora_dropout=0.05, bias="none", task_type="CAUSAL_LM",
+        )
+        ref_model = get_peft_model(ref_base, lora_config)
+    
     ref_model.eval()
     for p in ref_model.parameters():
         p.requires_grad_(False)
@@ -144,6 +159,20 @@ def main():
 
     embed_layer = policy.get_input_embeddings()
     trainable = [p for p in policy.parameters() if p.requires_grad]
+    
+    # Debug: print trainable parameter count
+    print(f"[train] Trainable parameters: {len(trainable)}")
+    if len(trainable) == 0:
+        print("[train] WARNING: No trainable parameters found!")
+        print("[train] Forcing all LoRA parameters to be trainable...")
+        # Force enable all parameters
+        for name, param in policy.named_parameters():
+            if "lora" in name.lower():
+                param.requires_grad_(True)
+                print(f"[train] Enabled: {name}")
+        trainable = [p for p in policy.parameters() if p.requires_grad]
+        print(f"[train] Trainable parameters after forcing: {len(trainable)}")
+    
     optimizer = AdamW(trainable, lr=LR, weight_decay=0.01)
     scheduler = CosineAnnealingLR(optimizer, T_max=NUM_STEPS)
 
@@ -170,13 +199,20 @@ def main():
         }
 
         prompt_text = build_chat_prompt(ex)
-        prompt_embeds, L_prompt = build_prompt_embeds(prompt_text, tokenizer, embed_layer, device, dtype)
+        prompt_ids = tokenizer(
+            prompt_text,
+            return_tensors="pt",
+            add_special_tokens=False,
+            truncation=True,
+            max_length=MAX_PROMPT_TOKENS,
+        ).input_ids.to(device)
+        L_prompt = prompt_ids.shape[1]
         attn_prompt = torch.ones(1, L_prompt, dtype=torch.long, device=device)
 
         policy.eval()
         with torch.no_grad():
             gen_out = policy.generate(
-                inputs_embeds=prompt_embeds,
+                input_ids=prompt_ids,
                 attention_mask=attn_prompt,
                 max_new_tokens=MAX_NEW_TOKENS,
                 do_sample=True,
@@ -189,7 +225,24 @@ def main():
             )
         completion_ids_list = gen_out
 
-        completions = [tokenizer.decode(ids, skip_special_tokens=True) for ids in completion_ids_list]
+        # Slice to get only the completion tokens (after the prompt)
+        # gen_out shape: [G, seq_len] when num_return_sequences=G
+        completion_only = gen_out[:, L_prompt:]
+        completions = [tokenizer.decode(ids, skip_special_tokens=True) for ids in completion_only]
+
+        # Brief check for first 10 steps to see if MCP_tasks are generated
+        if step <= 10:
+            from data_utils import parse_completion
+            parsed = parse_completion(completions[0])
+            if parsed:
+                print(f"[step {step}] Full JSON response:")
+                print(json.dumps(parsed, indent=2))
+            else:
+                print(f"[step {step}] JSON parse failed.")
+                print(f"[step {step}] Raw completion (first 500 chars): {completions[0][:500]}")
+                print(f"[step {step}] Raw completion (last 500 chars): {completions[0][-500:]}")
+                print(f"[step {step}] Completion length: {len(completions[0])}")
+
         rewards = torch.tensor([compute_reward(c, gold) for c in completions], dtype=torch.float32)
 
         mean_r = rewards.mean()
@@ -200,13 +253,15 @@ def main():
         loss_accum = torch.zeros(1, device=device)
 
         for g_idx in range(G):
-            comp_ids = completion_ids_list[g_idx].unsqueeze(0).to(device)
+            # Get the full sequence (prompt + completion) for this sample
+            full_ids = gen_out[g_idx].unsqueeze(0).to(device)
+            # Get only completion tokens for logprob computation
+            comp_ids = full_ids[:, L_prompt:]
             adv = advantages[g_idx]
 
-            lp_policy = completion_logprobs(policy, prompt_embeds, comp_ids, embed_layer, dtype, device)
+            lp_policy = completion_logprobs(policy, prompt_ids, comp_ids, dtype, device)
             with torch.no_grad():
-                ref_embed_layer = ref_model.get_input_embeddings()
-                lp_ref = completion_logprobs(ref_model, prompt_embeds.detach(), comp_ids, ref_embed_layer, dtype, device)
+                lp_ref = completion_logprobs(ref_model, prompt_ids, comp_ids, dtype, device)
 
             kl = lp_policy - lp_ref.detach()
             pg_loss = -adv * lp_policy + beta * kl

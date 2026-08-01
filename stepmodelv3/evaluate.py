@@ -38,8 +38,9 @@ from data_utils import (
 from prompts import build_chat_prompt
 
 INPUT_TEST_JSON = "input/test.json"
-QWEN_MODEL_NAME = "Qwen/Qwen3-14B-Instruct"
-STAGE1_ADAPTER_DIR = "checkpoints/stage1_grpo_rl"
+QWEN_MODEL_NAME = "Qwen/Qwen2.5-14B-Instruct"
+SUPERVISED_ADAPTER_DIR = "/tmp/stage1_supervised"
+GRPO_ADAPTER_DIR = "/tmp/stage2_grpo_rl"
 MAX_PROMPT_TOKENS = 1800
 
 # ---------------------------------------------------------------------------
@@ -194,8 +195,10 @@ def eval_grpo(adapter_dir: str, max_new_tokens: int = 350, save_explanations: st
     dtype = torch.bfloat16
     print(f"[eval] Test input : {INPUT_TEST_JSON}")
     print(f"[eval] Device     : {device}")
+    print(f"[eval] Adapter    : {adapter_dir}")
 
-    tokenizer = AutoTokenizer.from_pretrained(adapter_dir)
+    # Load tokenizer from base model, not adapter directory
+    tokenizer = AutoTokenizer.from_pretrained(QWEN_MODEL_NAME)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
@@ -381,15 +384,32 @@ def report_explanation(metrics: dict) -> None:
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Evaluate stepmodelv3 GRPO RL model")
-    parser.add_argument("--adapter-dir", type=str, default=STAGE1_ADAPTER_DIR)
+    parser = argparse.ArgumentParser(description="Evaluate stepmodelv3 models (supervised or GRPO)")
+    parser.add_argument("--adapter-dir", type=str, default=None,
+                       help="Path to adapter directory (overrides --model-type)")
+    parser.add_argument("--model-type", type=str, default="grpo", choices=["supervised", "grpo"],
+                       help="Which model to evaluate: supervised or grpo (default: grpo)")
     parser.add_argument("--max-new-tokens", type=int, default=350)
     parser.add_argument("--save-explanations", type=str, default=None)
     args = parser.parse_args()
 
-    if not os.path.exists(args.adapter_dir):
-        print(f"[eval] ERROR: Adapter directory not found: {args.adapter_dir}")
-        print("[eval] Train the model first: python train_grpo.py")
+    # Determine adapter directory
+    if args.adapter_dir:
+        adapter_dir = args.adapter_dir
+    elif args.model_type == "supervised":
+        adapter_dir = SUPERVISED_ADAPTER_DIR
+    else:  # grpo
+        adapter_dir = GRPO_ADAPTER_DIR
+
+    if not os.path.exists(adapter_dir):
+        print(f"[eval] ERROR: Adapter directory not found: {adapter_dir}")
+        print(f"[eval] Available options:")
+        print(f"[eval]   --model-type supervised (uses {SUPERVISED_ADAPTER_DIR})")
+        print(f"[eval]   --model-type grpo (uses {GRPO_ADAPTER_DIR})")
+        print(f"[eval]   --adapter-dir <custom_path>")
+        print(f"[eval] Train the model first:")
+        print(f"[eval]   python train_supervised.py  (for supervised)")
+        print(f"[eval]   python train_grpo.py        (for GRPO)")
         exit(1)
 
-    eval_grpo(args.adapter_dir, args.max_new_tokens, args.save_explanations)
+    eval_grpo(adapter_dir, args.max_new_tokens, args.save_explanations)

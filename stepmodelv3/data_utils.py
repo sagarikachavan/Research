@@ -35,35 +35,31 @@ from typing import Optional
 import numpy as np
 
 # ---------------------------------------------------------------------------
-# Canonical step categories (data-derived, validated against train.json:
-# 1721/1728 rows classified, 6 blank gold_new_step, 1 typo)
-# ---------------------------------------------------------------------------
+# Canonical step categories (fixed label set for classification)
 STEP_LABELS = [
-    "recon_scan",
-    "enumerate_further",
-    "enumerate_website",
-    "enumerate_domain",
-    "explore_files",
-    "source_code_review",
-    "google_search",
-    "exploit",
-    "analyze_outcomes",
-    "end_task",
+    "Do a google search for more information",
+    "Enumerate further on the X service to find software versions, hidden directories and file.",
+    "Explore the suspicious files, commands and create a summary of the findings.",
+    "Further Enumerate the website. - hidden directories, links and software",
+    "Enumerate the domain",
+    "Exploit the selected exploitations",
+    "Analyze the outcomes of the previous step and find an attack path",
+    "Ask for human assistant",
+    "Explore the source code for vulnerabilities.",
+    "End task and ask permission to generate the report",
 ]
 
 _STEP_KEYWORDS = [
-    ("recon_scan", ["netdiscover", "nmap", "port scan", "discover the target ip",
-                     "identify the target ip"]),
-    ("enumerate_further", ["enumerate further"]),
-    ("enumerate_website", ["enumerate the website", "website"]),
-    ("enumerate_domain", ["enumerate the domain", "domain"]),
-    ("explore_files", ["explore the suspicious", "explore the suspecious",
-                        "xplore the suspicious", "suspicious files", "suspecious files"]),
-    ("source_code_review", ["source code"]),
-    ("google_search", ["google search"]),
-    ("exploit", ["exploit"]),
-    ("analyze_outcomes", ["analyze the outcomes", "analyze outcomes", "attack path"]),
-    ("end_task", ["end task"]),
+    ("Do a google search for more information", ["google search", "search", "research", "cve", "vulnerability"]),
+    ("Enumerate further on the X service to find software versions, hidden directories and file.", ["enumerate further", "enumerate", "enumeration", "service", "software version", "hidden directories"]),
+    ("Explore the suspicious files, commands and create a summary of the findings.", ["explore the suspicious", "explore", "suspicious files", "commands", "summary", "findings"]),
+    ("Further Enumerate the website. - hidden directories, links and software", ["enumerate the website", "website", "web", "hidden directories", "links", "software"]),
+    ("Enumerate the domain", ["enumerate the domain", "domain", "dns", "subdomain"]),
+    ("Exploit the selected exploitations", ["exploit", "exploitation", "attack", "payload", "shell"]),
+    ("Analyze the outcomes of the previous step and find an attack path", ["analyze the outcomes", "analyze outcomes", "attack path", "analyze", "outcome", "result"]),
+    ("Ask for human assistant", ["ask for human", "human assistant", "help", "assistant"]),
+    ("Explore the source code for vulnerabilities.", ["source code", "code review", "code", "vulnerabilities"]),
+    ("End task and ask permission to generate the report", ["end task", "end", "complete", "finish", "report", "document"]),
 ]
 
 
@@ -79,35 +75,33 @@ def classify_step(text: str) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Canonical MCP tool vocabulary (data-derived, validated: only 6/~1800 tool
-# mentions in train.json fail to normalize)
-# ---------------------------------------------------------------------------
+# Canonical MCP tool vocabulary (fixed label set for classification)
 MCP_LABELS = [
-    "nmap", "metasploit", "dirbuster", "john_the_ripper", "smb_client",
-    "sqlmap", "hydra", "hashcat", "netexec", "git_dumper", "burp_suite",
-    "ftp_client", "responder", "autopsy", "netcat", "google_search",
-    "web_page_interaction", "interactive_cli",
+    "Nmap",
+    "Metasploit",
+    "Netcat",
+    "Dirbuster",
+    "SQLmap",
+    "Smb client",
+    "hydra",
+    "John-the-ripper",
+    "Google search",
+    "Interactive CLI",
+    "Web page interaction",
 ]
 
 _MCP_KEYWORDS = [
-    ("nmap", ["nmap", "netdiscover"]),
-    ("metasploit", ["metasploit", "msf"]),
-    ("dirbuster", ["dirbuster", "gobuster"]),
-    ("john_the_ripper", ["john-the-ripper", "john the ripper", "johntheripper"]),
-    ("smb_client", ["smb client", "smbclient"]),
-    ("sqlmap", ["sqlmap"]),
+    ("Nmap", ["nmap", "netdiscover"]),
+    ("Metasploit", ["metasploit", "msf"]),
+    ("Netcat", ["netcat", "nc"]),
+    ("Dirbuster", ["dirbuster", "gobuster"]),
+    ("SQLmap", ["sqlmap"]),
+    ("Smb client", ["smb client", "smbclient"]),
     ("hydra", ["hydra"]),
-    ("hashcat", ["hashcat"]),
-    ("netexec", ["netexec"]),
-    ("git_dumper", ["git-dumper", "git dumper", "gitdumper"]),
-    ("burp_suite", ["burp"]),
-    ("ftp_client", ["ftp client", "ftp"]),
-    ("responder", ["responder"]),
-    ("autopsy", ["autopsy"]),
-    ("netcat", ["netcat", " nc "]),
-    ("google_search", ["google search"]),
-    ("web_page_interaction", ["web page", "browse http", "login", "access "]),
-    ("interactive_cli", ["interactive cli", "ssh", "bash", "shell", "cli"]),
+    ("John-the-ripper", ["john-the-ripper", "john the ripper", "johntheripper"]),
+    ("Google search", ["google search", "search"]),
+    ("Interactive CLI", ["cli", "command", "terminal", "shell"]),
+    ("Web page interaction", ["web", "browser", "http", "https"]),
 ]
 
 
