@@ -1,7 +1,11 @@
+# Graph generation
+graph_generation/processed_graph
+
 # Model checkpoints
 stepmodel/checkpoints/
 stepmodel-new/checkpoints/
 stepmodelv2/checkpoints/
+stepmodelv3/checkpoints/
 
 # Processed embeddings
 stepmodel/embeddings_data/
