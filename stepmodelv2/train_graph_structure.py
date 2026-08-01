@@ -384,7 +384,7 @@ def main():
     parser.add_argument("--epochs", type=int, default=5, help="Number of training epochs")
     parser.add_argument("--batch_size", type=int, default=4, help="Batch size")
     parser.add_argument("--lr", type=float, default=1e-4, help="Learning rate")
-    parser.add_argument("--output_dir", type=str, default="checkpoints/graph_structure",
+    parser.add_argument("--output_dir", type=str, default="/tmp/graph_structure",
                        help="Output directory for trained weights")
     args = parser.parse_args()
     

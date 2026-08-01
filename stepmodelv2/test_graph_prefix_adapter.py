@@ -108,6 +108,31 @@ def build_adjacency_dict(graph_dict: dict) -> dict:
     return adjacency, node_id_to_label
 
 
+def build_node_content_dict(graph_dict: dict) -> dict:
+    """Build node content dictionary from graph nodes."""
+    nodes = graph_dict.get("nodes", [])
+    node_id_to_content = {}
+    
+    for node in nodes:
+        node_id = node["id"]
+        # Collect all relevant content fields
+        content_parts = []
+        if node.get("label"):
+            content_parts.append(f"Label: {node['label']}")
+        if node.get("title"):
+            content_parts.append(f"Title: {node['title']}")
+        if node.get("description"):
+            content_parts.append(f"Description: {node['description']}")
+        if node.get("status"):
+            content_parts.append(f"Status: {node['status']}")
+        if node.get("type"):
+            content_parts.append(f"Type: {node['type']}")
+        
+        node_id_to_content[node_id] = " | ".join(content_parts)
+    
+    return node_id_to_content
+
+
 def create_adjacency_prompt(node_id: str, adjacency: dict, node_id_to_label: dict) -> str:
     """Create a prompt asking the LLM to predict adjacent nodes."""
     node_label = node_id_to_label.get(node_id, node_id)
@@ -122,8 +147,22 @@ Adjacent nodes:"""
     return prompt
 
 
-def run_test(device, dtype, graph_dict, graph_data, adjacency, node_id_to_label, 
-             graph_encoder, model, adapter, tokenizer, test_mode=""):
+def create_node_content_prompt(node_id: str, node_id_to_label: dict, node_id_to_content: dict) -> str:
+    """Create a prompt asking the LLM about node content."""
+    node_label = node_id_to_label.get(node_id, node_id)
+    prompt = f"""Given the following graph node information:
+
+Node ID: {node_id}
+Node Label: {node_label}
+
+Based on the graph structure encoded in the soft prompt tokens, what is the content in this node?
+
+Node content:"""
+    return prompt
+
+
+def run_adjacency_test(device, dtype, graph_dict, graph_data, adjacency, node_id_to_label, 
+                       graph_encoder, model, adapter, tokenizer, test_mode=""):
     """Run the adjacency prediction test with given models."""
     # Get graph embedding from frozen encoder
     print(f"\nComputing graph embedding from frozen Stage-1 encoder...")
@@ -213,6 +252,101 @@ def run_test(device, dtype, graph_dict, graph_data, adjacency, node_id_to_label,
     return avg_recall
 
 
+def run_node_content_test(device, dtype, graph_dict, graph_data, node_id_to_label, node_id_to_content,
+                          graph_encoder, model, adapter, tokenizer, test_mode=""):
+    """Run the node content test with given models."""
+    # Get graph embedding from frozen encoder
+    print(f"\nComputing graph embedding from frozen Stage-1 encoder...")
+    with torch.no_grad():
+        batch = torch.zeros(graph_data.x.shape[0], dtype=torch.long, device=device)
+        graph_emb = graph_encoder(graph_data.x, graph_data.edge_index, batch)
+        print(f"  Graph embedding shape: {graph_emb.shape}")
+    
+    # Convert to soft prompt tokens
+    print(f"\nConverting graph embedding to {GRAPH_PREFIX_TOKENS} soft prompt tokens...")
+    with torch.no_grad():
+        prefix_embeds = adapter(graph_emb.unsqueeze(0).to(dtype))
+        print(f"  Prefix embeddings shape: {prefix_embeds.shape}")
+    
+    # Test node content for a few nodes
+    print("\n" + "=" * 60)
+    print(f"Testing Node Content Prediction ({test_mode})")
+    print("=" * 60)
+    
+    # Select a few test nodes
+    node_ids = list(node_id_to_label.keys())
+    test_nodes = node_ids[:3]  # Test first 3 nodes
+    
+    for node_id in test_nodes:
+        print(f"\n{'-' * 60}")
+        print(f"Test Node: {node_id}")
+        print(f"Label: {node_id_to_label[node_id]}")
+        
+        # Get ground truth content
+        true_content = node_id_to_content.get(node_id, "")
+        print(f"Ground truth content: {true_content[:100]}...")
+        
+        # Create prompt
+        prompt = create_node_content_prompt(node_id, node_id_to_label, node_id_to_content)
+        
+        # Tokenize
+        input_ids = tokenizer(prompt, return_tensors="pt", padding=True, truncation=True, max_length=512)
+        input_ids = input_ids["input_ids"].to(device)
+        
+        # Get token embeddings
+        embed_layer = model.get_input_embeddings()
+        token_embeds = embed_layer(input_ids).to(dtype)
+        
+        # Concatenate prefix and token embeddings
+        inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
+        
+        # Create attention mask
+        attn = torch.ones_like(input_ids)
+        prefix_attn = torch.ones(1, prefix_embeds.shape[1], device=device, dtype=attn.dtype)
+        attn_full = torch.cat([prefix_attn, attn], dim=1)
+        
+        # Generate prediction
+        print(f"\nGenerating LLM prediction...")
+        with torch.no_grad():
+            outputs = model.generate(
+                inputs_embeds=inputs_embeds,
+                attention_mask=attn_full,
+                max_new_tokens=150,
+                do_sample=False,
+                temperature=1.0,
+            )
+        
+        # Decode output
+        generated_text = tokenizer.decode(outputs[0], skip_special_tokens=True)
+        print(f"LLM Output:\n{generated_text}")
+    
+    print(f"\n{'=' * 60}")
+    print(f"Node Content Test Complete ({test_mode})")
+    print(f"{'=' * 60}")
+
+
+def verify_llm_frozen(model, adapter):
+    """Verify that LLM is frozen and only adapter is trainable."""
+    print("\n" + "=" * 60)
+    print("VERIFYING TRAINABLE PARAMETERS")
+    print("=" * 60)
+    
+    llm_trainable = sum(p.numel() for p in model.parameters() if p.requires_grad)
+    adapter_trainable = sum(p.numel() for p in adapter.parameters() if p.requires_grad)
+    llm_total = sum(p.numel() for p in model.parameters())
+    adapter_total = sum(p.numel() for p in adapter.parameters())
+    
+    print(f"LLM trainable parameters: {llm_trainable:,} / {llm_total:,} ({llm_trainable/llm_total*100:.2f}%)")
+    print(f"Adapter trainable parameters: {adapter_trainable:,} / {adapter_total:,} ({adapter_trainable/adapter_total*100:.2f}%)")
+    
+    if llm_trainable == 0 and adapter_trainable > 0:
+        print("✓ LLM is frozen, only adapter is trainable")
+        return True
+    else:
+        print("✗ LLM has trainable parameters (should be frozen)")
+        return False
+
+
 def main():
     parser = argparse.ArgumentParser(description="Test Graph Prefix Adapter")
     parser.add_argument("--mode", type=str, default="untrained", 
@@ -220,19 +354,23 @@ def main():
                        help="Test mode: untrained (random weights), trained (load trained weights), or both")
     parser.add_argument("--graph", type=str, default=None,
                        help="Path to graph JSON file (default: active_graph.json)")
-    parser.add_argument("--checkpoint", type=str, default=None,
-                       help="Path to trained checkpoint directory (default: STAGE2_ADAPTER_DIR for 'trained' mode)")
+    parser.add_argument("--checkpoint", type=str, default="/tmp/graph_structure",
+                       help="Path to trained checkpoint directory (default: /tmp/graph_structure for 'trained' mode)")
+    parser.add_argument("--test_type", type=str, default="adjacency",
+                       choices=["adjacency", "node_content", "both"],
+                       help="Test type: adjacency, node_content, or both")
     args = parser.parse_args()
     
     device = "cuda" if torch.cuda.is_available() else "cpu"
     dtype = torch.bfloat16
     
     print("=" * 60)
-    print("Testing Graph Prefix Adapter - Adjacency Node Prediction")
+    print("Testing Graph Prefix Adapter")
     print("=" * 60)
     print(f"Device: {device}")
     print(f"Dtype: {dtype}")
     print(f"Mode: {args.mode}")
+    print(f"Test type: {args.test_type}")
     
     # Load the active graph
     if args.graph:
@@ -250,6 +388,10 @@ def main():
     # Build adjacency dictionary
     print("Building adjacency dictionary...")
     adjacency, node_id_to_label = build_adjacency_dict(graph_dict)
+    
+    # Build node content dictionary
+    print("Building node content dictionary...")
+    node_id_to_content = build_node_content_dict(graph_dict)
     
     print(f"\nGraph statistics:")
     print(f"  Total nodes: {len(node_id_to_label)}")
@@ -309,9 +451,19 @@ def main():
         adapter = GraphPrefixAdapter(GNN_OUT_DIM, llm_hidden).to(device).to(dtype)
         adapter.eval()
         
-        recall = run_test(device, dtype, graph_dict, graph_data, adjacency, node_id_to_label,
-                         graph_encoder, model, adapter, tokenizer, "Untrained")
-        results["untrained"] = recall
+        # Verify LLM is frozen
+        verify_llm_frozen(model, adapter)
+        
+        # Run adjacency test
+        if args.test_type in ["adjacency", "both"]:
+            recall = run_adjacency_test(device, dtype, graph_dict, graph_data, adjacency, node_id_to_label,
+                                       graph_encoder, model, adapter, tokenizer, "Untrained")
+            results["untrained_adjacency"] = recall
+        
+        # Run node content test
+        if args.test_type in ["node_content", "both"]:
+            run_node_content_test(device, dtype, graph_dict, graph_data, node_id_to_label, node_id_to_content,
+                                  graph_encoder, model, adapter, tokenizer, "Untrained")
         
         # Clean up
         del model, adapter
@@ -355,20 +507,30 @@ def main():
             
             adapter.eval()
             
-            recall = run_test(device, dtype, graph_dict, graph_data, adjacency, node_id_to_label,
-                             graph_encoder, model, adapter, tokenizer, "Trained")
-            results["trained"] = recall
+            # Verify LLM is frozen
+            verify_llm_frozen(model, adapter)
+            
+            # Run adjacency test
+            if args.test_type in ["adjacency", "both"]:
+                recall = run_adjacency_test(device, dtype, graph_dict, graph_data, adjacency, node_id_to_label,
+                                           graph_encoder, model, adapter, tokenizer, "Trained")
+                results["trained_adjacency"] = recall
+            
+            # Run node content test
+            if args.test_type in ["node_content", "both"]:
+                run_node_content_test(device, dtype, graph_dict, graph_data, node_id_to_label, node_id_to_content,
+                                      graph_encoder, model, adapter, tokenizer, "Trained")
     
     # Print summary
     print("\n" + "=" * 60)
     print("SUMMARY")
     print("=" * 60)
     for mode, recall in results.items():
-        print(f"{mode.capitalize()} Average Recall: {recall:.2%}")
+        print(f"{mode.replace('_', ' ').capitalize()}: {recall:.2%}")
     
-    if "untrained" in results and "trained" in results:
-        improvement = results["trained"] - results["untrained"]
-        print(f"\nImprovement (trained - untrained): {improvement:+.2%}")
+    if "untrained_adjacency" in results and "trained_adjacency" in results:
+        improvement = results["trained_adjacency"] - results["untrained_adjacency"]
+        print(f"\nAdjacency Improvement (trained - untrained): {improvement:+.2%}")
         if improvement > 0:
             print("✓ Training improved graph structure understanding")
         else:
