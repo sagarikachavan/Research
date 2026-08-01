@@ -16,7 +16,7 @@ cd "$SCRIPT_DIR"
 echo ""
 echo "[Step 1/4] Generating graphs from CSV data..."
 echo "-------------------------------------------"
-python generate_graphs.py
+python generate_graphs_finalv.py
 if [ $? -eq 0 ]; then
     echo "✓ Graph generation completed successfully"
 else
@@ -28,7 +28,7 @@ fi
 echo ""
 echo "[Step 2/4] Building input JSON from graphs..."
 echo "-------------------------------------------"
-python build_input_json.py
+python build_input_json_finalv.py
 if [ $? -eq 0 ]; then
     echo "✓ Input JSON building completed successfully"
 else
@@ -40,7 +40,7 @@ fi
 echo ""
 echo "[Step 3/4] Running GRPO RL training..."
 echo "-------------------------------------------"
-python stage1_grpo_rl.py
+python train_grpo.py
 if [ $? -eq 0 ]; then
     echo "✓ GRPO RL training completed successfully"
 else
@@ -52,7 +52,7 @@ fi
 echo ""
 echo "[Step 4/4] Evaluating trained GRPO model..."
 echo "-------------------------------------------"
-python evaluate.py
+python evaluate.py --save-explanations out.csv
 if [ $? -eq 0 ]; then
     echo "✓ Model evaluation completed successfully"
 else
