@@ -34,16 +34,16 @@ QWEN_MODEL_NAME = "Qwen/Qwen2.5-14B-Instruct"
 SUPERVISED_ADAPTER_DIR = "/tmp/stage1_supervised"  # Load from supervised checkpoint (using /tmp for disk space)
 ADAPTER_DIR = "/tmp/stage2_grpo_rl"  # Save GRPO-refined model here (using /tmp for disk space)
 
-GROUP_SIZE = 4            # increased from 2 for more stable advantage estimation
-LR = 5e-6                 # reduced from 1e-5 for more stable updates
-NUM_STEPS = 3000          # ~10-12 epochs over 1728 rows at batch=1; raise if reward is still climbing
-KL_COEF = 0.02
-GRAD_ACCUM = 16           # increased from 8 for smoother gradient updates
+GROUP_SIZE = 8            # Increased from 4 for more stable advantage estimation
+LR = 3e-6                 # Reduced from 5e-6 for more stable updates
+NUM_STEPS = 5000          # Increased from 3000 for better convergence
+KL_COEF = 0.01            # Reduced from 0.02 to allow more policy updates
+GRAD_ACCUM = 16           # Same as before
 CLIP_EPS = 0.2
-MAX_PROMPT_TOKENS = 1200  # reduced from 1800 for memory
-MAX_NEW_TOKENS = 350      # increased from 250 to allow complete JSON responses
-LORA_R = 32
-LORA_ALPHA = 64
+MAX_PROMPT_TOKENS = 1200
+MAX_NEW_TOKENS = 350
+LORA_R = 64               # Increased from 32 for more capacity
+LORA_ALPHA = 128          # Increased from 64 (maintaining 2x ratio)
 LORA_TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 RANDOM_SEED = 42
 

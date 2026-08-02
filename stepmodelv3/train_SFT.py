@@ -24,10 +24,10 @@ MAX_PROMPT_TOKENS = 1200
 MAX_NEW_TOKENS = 350
 BATCH_SIZE = 1
 GRAD_ACCUM = 8
-LR = 5e-6
-NUM_EPOCHS = 3
-LORA_R = 32
-LORA_ALPHA = 64
+LR = 3e-6  # Reduced from 5e-6 for more stable training
+NUM_EPOCHS = 5  # Increased from 3 for better convergence
+LORA_R = 64  # Increased from 32 for more capacity
+LORA_ALPHA = 128  # Increased from 64 (maintaining 2x ratio)
 LORA_TARGETS = ["q_proj", "k_proj", "v_proj", "o_proj", "gate_proj", "up_proj", "down_proj"]
 RANDOM_SEED = 42
 
@@ -145,7 +145,7 @@ def main():
         per_device_train_batch_size=BATCH_SIZE,
         gradient_accumulation_steps=GRAD_ACCUM,
         learning_rate=LR,
-        warmup_steps=100,
+        warmup_steps=200,  # Increased from 100 for better warmup
         logging_steps=10,
         save_strategy="no",  # Disable automatic saving to avoid disk quota
         fp16=False,
@@ -153,7 +153,9 @@ def main():
         gradient_checkpointing=True,
         optim="adamw_torch",
         lr_scheduler_type="cosine",
-        report_to="none"
+        weight_decay=0.01,  # Added regularization
+        report_to="none",
+        logging_first_step=True
     )
     
     trainer = Trainer(

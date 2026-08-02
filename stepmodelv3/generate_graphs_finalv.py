@@ -25,7 +25,7 @@ import json
 import pathlib
 import pandas as pd
 
-from ptt_parser_finalv import build_row_graph, to_html, is_valid_machine_name
+from ptt_parser import build_row_graph, to_html, is_valid_machine_name
 
 BASE_DIR = pathlib.Path(__file__).parent
 DATA_DIR = BASE_DIR / "data"

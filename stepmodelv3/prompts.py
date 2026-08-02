@@ -10,7 +10,8 @@ SYSTEM_PROMPT = (
     "state of a penetration test represented as a graph structure (a "
     "Penetration Testing Tree of states, actions and findings), predict the "
     "single next step to take, explain the reasoning behind it, and specify "
-    "which tools (MCP tasks) should be used to carry it out."
+    "which tools (MCP tasks) should be used to carry it out. "
+    "Your response must be valid JSON only, with no additional text or explanation outside the JSON."
 )
 
 _FEWSHOT = """Example 1:
@@ -30,6 +31,26 @@ Example 2:
   "MCP_tasks": {
     "Metasploit": "Use Metasploit to exploit the identified vulnerability for a reverse shell.",
     "Netcat": "Set up a listener with Netcat to receive the reverse shell connection."
+  }
+}
+
+Example 3:
+{
+  "New step": "Enumerate the domain",
+  "Step explanation": "We have identified the target domain. The next logical step is to enumerate DNS records and subdomains to discover additional attack surface.",
+  "MCP_tasks": {
+    "Google search": "Search for subdomain enumeration techniques and known subdomains.",
+    "Interactive CLI": "Use tools like dig or nslookup to query DNS records."
+  }
+}
+
+Example 4:
+{
+  "New step": "Analyze the outcomes of the previous step and find an attack path",
+  "Step explanation": "After gathering information about open ports, services, and potential vulnerabilities, we need to analyze these findings to identify the most promising attack path forward.",
+  "MCP_tasks": {
+    "Google search": "Research potential attack chains based on discovered services and versions.",
+    "Interactive CLI": "Correlate findings from different reconnaissance steps."
   }
 }"""
 
@@ -68,17 +89,19 @@ Heuristic reasoning: {example.get('candidate_step_explanation', 'N/A')}
 
 TASK: Predict the next penetration testing step.
 
-Output format (JSON only):
+IMPORTANT: Your response must be valid JSON only. Do not include any text before or after the JSON.
+
+Output format:
 {{
-  "New step": "step name",
-  "Step explanation": "why this step",
-  "MCP_tasks": {{"tool": "description"}}
+  "New step": "exact step name from the canonical categories",
+  "Step explanation": "detailed reasoning explaining why this step is appropriate given the current state",
+  "MCP_tasks": {{"tool_name": "description of how to use this tool"}}
 }}
 
 Examples:
 {_FEWSHOT}
 
-Your response:"""
+Your response (JSON only):"""
 
 
 def build_chat_prompt(example: dict) -> str:

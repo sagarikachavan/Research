@@ -1,6 +1,6 @@
 """
-ptt_graph.py
-============
+ptt_parser.py
+=============
 Core logic to turn a single PTT (Penetration Testing Tree) cell from the
 dataset into an attack-graph representation with three node types:
 
@@ -21,6 +21,49 @@ Edges (matching the scheme requested):
 Node "status" (completed / in_progress / to_do) is preserved on STATE and
 ACTION nodes and drives a dark / mid / light shade of the base color so the
 three statuses are visually distinguishable.
+
+-----------------------------------------------------------------------
+Why this file replaces the previous parser
+-----------------------------------------------------------------------
+The previous version matched PTT items with a single regex that REQUIRED an
+explicit status token, e.g. "(completed)" or "[to-do]", to sit immediately
+after the item title. In practice, a lot of PTT cells don't follow that
+exact shape:
+
+  * Some sub-items have no status token of their own at all, e.g.:
+        1.3.1 Perform a port scan - {Findings: ...}
+        1.3.2 Determine the services and versions on each open port - {Findings: ...}
+        1.4 Target IP - 10.129.232.106
+    None of these three lines matched the old regex, so they were silently
+    swallowed into the *previous* matched item's trailing text -- which is
+    exactly the "succession" bug that was reported: 1.3.1's and 1.3.2's
+    findings, AND 1.4's "Target IP" text, all ended up jammed into a single
+    oversized "Finding 1.3" node instead of being their own nodes.
+
+  * Some items put the status token *after* the {...} block instead of
+    before it, e.g.:
+        1.3.1 Perform a port scan - {Findings: Open Ports: 22, 80, 443, 8888} - [completed]
+    which the old title-capture group would swallow whole (including the
+    "{...}" block) because "." doesn't match "{" specially -- so the
+    Findings text ended up inside the *title*, not the payload.
+
+  * Some Findings blocks span multiple physical lines with plain "- ..."
+    bullets and no numbering of their own, and the closing "}" + status can
+    appear several lines below the opening "{".
+
+  * Some items are "bare" data blocks with no title at all, immediately
+    nested one level under an action-titled parent that itself has no
+    inline payload, e.g.:
+        1.3.2 Determine the services and versions on each open port - (completed)
+            1.3.2.1 {Target IP: ..., Findings: ...} - (completed)
+    Here 1.3.2.1 isn't really its own PTT step -- it *is* the finding that
+    belongs to 1.3.2 ("Determine the services...").
+
+This rewrite parses PTT text line-by-line (numbered items always start a
+new line in this dataset -- verified against both CSVs), extracts each
+item's payload with a brace-balance scan (so multi-line / oddly-placed
+status tokens don't break anything), and merges "bare" findings-only child
+items back into their action parent so they don't show up as orphan nodes.
 """
 
 import re
@@ -90,12 +133,20 @@ ACTION_SHADES = {
 # ----------------------------------------------------------------------
 # Parsing
 # ----------------------------------------------------------------------
-HEADER_RE = re.compile(
-    r'^[ \t]*(\d+(?:\.\d+)*)\.?\s+(.+?)\s*(?:[-\u2013]\s*)?'
-    r'(?:[\(\[](completed|to-do|to do|in[- ]progress)[\)\]]'
-    r'|\{\s*Status:\s*(completed|to-do|to do|in[- ]progress)\s*\})'
-    r'(.*)$',
-    re.IGNORECASE | re.MULTILINE,
+
+# Matches the START of a numbered PTT item. In this dataset every numbered
+# item begins its own line (verified empirically), so we split the whole
+# cell on these line-starts rather than trying to match a whole item (title
+# + status + payload) with one regex.
+ITEM_START_RE = re.compile(
+    r"^[ \t]*(\d+(?:\.\d+)*)\.?[ \t]+(?=\S)",
+    re.MULTILINE,
+)
+
+STATUS_RE = re.compile(
+    r"[\(\[]\s*(completed|to[- ]do|in[- ]progress)\s*[\)\]]"
+    r"|\{\s*Status:\s*(completed|to[- ]do|in[- ]progress)\s*\}",
+    re.IGNORECASE,
 )
 
 # Word / stem fragments that indicate the PTT item describes an ACTION the
@@ -117,6 +168,19 @@ ACTION_STEMS = [
 ]
 ACTION_STEM_RE = re.compile("|".join(ACTION_STEMS), re.IGNORECASE)
 
+# Short informational field labels that happen to contain an action-stem
+# substring (e.g. "Scan Duration" contains "scan") but are really just a
+# data field, the same as "Target IP" or "Host Status" -- not something the
+# pentester "did". Matched as a whole title (ignoring a trailing
+# parenthetical like "(Port 443)") so it doesn't over-match real actions.
+NON_ACTION_LABEL_RE = re.compile(
+    r"^(scan duration|target ip|ip address|host status|mac address|"
+    r"ssh hostkey|ssh version|http server headers?|http titles?|"
+    r"ssl certificate|smb version|os version|service version)s?"
+    r"(\s*\(.*\))?$",
+    re.IGNORECASE,
+)
+
 
 def _norm_status(raw):
     if not raw:
@@ -137,48 +201,142 @@ def _clean(text):
     return re.sub(r"\s+", " ", text).strip()
 
 
-def parse_ptt(text):
-    """Parse a PTT cell into an ordered list of item dicts (document order)."""
-    text = text if isinstance(text, str) else ""
-    items = []
-    matches = list(HEADER_RE.finditer(text))
+def _strip_title_edges(text):
+    """Trim trailing separators ('-', ':', whitespace) commonly left over
+    once the status token and payload have been removed from a title."""
+    text = text.strip()
+    text = re.sub(r"[\s\-\u2013:]+$", "", text)
+    return text.strip()
+
+
+def _find_balanced_brace(text, start):
+    """Given `text` and the index of an opening '{', return the index of
+    its matching '}' using simple brace-depth counting. If the text is
+    truncated / malformed and no matching close is found, return the
+    length of the text (i.e. "consume to the end")."""
+    depth = 0
+    for i in range(start, len(text)):
+        if text[i] == "{":
+            depth += 1
+        elif text[i] == "}":
+            depth -= 1
+            if depth == 0:
+                return i
+    return len(text)
+
+
+def _extract_status_outside_payload(pre, post):
+    m = STATUS_RE.search(pre)
+    if m:
+        return _norm_status(m.group(1) or m.group(2))
+    m = STATUS_RE.search(post)
+    if m:
+        return _norm_status(m.group(1) or m.group(2))
+    return "unknown"
+
+
+def _clean_payload(payload):
+    payload = payload.strip()
+    # Drop a leading "Findings:" / "Findings" label -- the label itself
+    # doesn't add information once the text is attached to a Finding node.
+    payload = re.sub(r"^\{?\s*Findings?\s*:?\s*", "", payload, flags=re.IGNORECASE)
+    payload = payload.strip().rstrip("}").strip()
+    return _clean(payload)
+
+
+def _split_raw_items(text):
+    """Split PTT text into raw (number, block_text) pairs using line-start
+    numbering as the item boundary. Any preamble before the first numbered
+    item (e.g. "Based on the provided results, ...") is discarded."""
+    matches = list(ITEM_START_RE.finditer(text))
+    raw_items = []
     for idx, m in enumerate(matches):
-        num, title, status_a, status_b, tail = m.groups()
-        status = _norm_status(status_a or status_b)
-        start_extra = m.end()
-        end_extra = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
-        extra = text[start_extra:end_extra]
-        payload = (tail + extra).strip()
-        payload = re.sub(r"^[:\s]+", "", payload)
-        payload = re.sub(r"^\{?\s*Findings?:\s*", "", payload, flags=re.IGNORECASE)
-        payload = payload.strip().lstrip("{").rstrip("}").strip()
+        num = m.group(1)
+        start = m.end()
+        end = matches[idx + 1].start() if idx + 1 < len(matches) else len(text)
+        raw_items.append((num, text[start:end]))
+    return raw_items
 
-        title_clean = _clean(title)
-        # Some PTT rows omit a human title and go straight to a `{...}` info
-        # block (e.g. "1.3.2.1 {Target IP: ..., Findings: ...} - (completed)").
-        # In that case the whole block was greedily captured as the "title" --
-        # pull it out into the payload and derive a short label instead.
-        if title_clean.startswith("{"):
-            info = title_clean.strip("{}").strip()
-            payload = (info + (" " + payload if payload else "")).strip()
-            label_match = re.match(r"^([^,:]{1,40}):", info)
-            title_clean = label_match.group(1).strip() if label_match else "Details"
 
-        items.append({
-            "number": num,
-            "title": title_clean,
-            "status": status,
-            "payload": payload if payload else None,
-            "depth": num.count("."),
-        })
+def _parse_item_block(num, block):
+    """Pull title / status / payload out of one item's raw block text."""
+    brace_idx = block.find("{")
+    if brace_idx == -1:
+        status = _extract_status_outside_payload(block, "")
+        title = _strip_title_edges(STATUS_RE.sub("", block))
+        payload = None
+    else:
+        close_idx = _find_balanced_brace(block, brace_idx)
+        pre = block[:brace_idx]
+        inner = block[brace_idx + 1:close_idx]
+        post = block[close_idx + 1:] if close_idx < len(block) else ""
+
+        status = _extract_status_outside_payload(pre, post)
+        title = _strip_title_edges(STATUS_RE.sub("", pre))
+        if status == "unknown":
+            # Some malformed/truncated rows only carry the status word
+            # inside the payload itself; fall back to searching there too.
+            m = STATUS_RE.search(inner)
+            if m:
+                status = _norm_status(m.group(1) or m.group(2))
+        payload = _clean_payload(inner)
+        if not payload:
+            payload = None
+
+    return {
+        "number": num,
+        "title": title,
+        "status": status,
+        "payload": payload,
+        "depth": num.count("."),
+        "bare": (title == ""),
+    }
+
+
+def parse_ptt(text):
+    """Parse a PTT cell into an ordered list of item dicts (document order).
+
+    Handles two dataset quirks beyond plain item extraction:
+      * items whose title text is empty (a bare "{...}" data block) are
+        merged into the immediately preceding item when that preceding
+        item has no payload of its own and the bare item is one level
+        deeper -- this is the "1.3.2 -> 1.3.2.1 {..}" pattern where the
+        bare child *is* the parent's finding, not a separate PTT step.
+      * a bare item that can't be merged (no suitable parent) is kept as
+        its own item, with a short label derived from its first "Key:"
+        pair so it still renders sensibly.
+    """
+    text = text if isinstance(text, str) else ""
+    raw_items = _split_raw_items(text)
+    parsed = [_parse_item_block(num, block) for num, block in raw_items]
+
+    items = []
+    for item in parsed:
+        if item["bare"] and item["payload"]:
+            if (
+                items
+                and items[-1]["payload"] is None
+                and item["depth"] == items[-1]["depth"] + 1
+            ):
+                items[-1]["payload"] = item["payload"]
+                continue
+            # No suitable parent to merge into -- keep it, with a label
+            # derived from the first "Key:" pair in its payload/title.
+            label_match = re.match(r"^([^,:{}]{1,40}):", item["payload"] or "")
+            item["title"] = label_match.group(1).strip() if label_match else "Details"
+        items.append(item)
+
     return items
 
 
 def classify(item):
-    """Return 'state', 'action' for a parsed PTT item (finding is separate)."""
+    """Return 'state' or 'action' for a parsed PTT item ('finding' nodes
+    are derived separately, from an action's payload)."""
     if item["depth"] == 0:
         return "state"
     if not item["payload"]:
+        return "state"
+    if NON_ACTION_LABEL_RE.match(item["title"].strip()):
         return "state"
     if ACTION_STEM_RE.search(item["title"]):
         return "action"
