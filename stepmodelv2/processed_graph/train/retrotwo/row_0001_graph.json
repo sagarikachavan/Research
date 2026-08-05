@@ -1,0 +1,441 @@
+{
+  "machine": "retrotwo",
+  "row_index": 1,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:retrotwo:r1:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'retrotwo' (row 1).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:retrotwo:r1:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:retrotwo:r1:1.1",
+      "label": "State 1.1\nPassive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.1 Passive Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:retrotwo:r1:1.2",
+      "label": "State 1.2\nActive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.2 Active Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:retrotwo:r1:1.3",
+      "label": "State 1.3\nIdentify Open Ports, Services…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3 Identify Open Ports, Services running on the open ports and their versions [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:retrotwo:r1:1.3.1",
+      "label": "State 1.3.1\nPerform a port scan - {Findin…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3.1 Perform a port scan - {Findings: Host: 10.129.237.26, Up, Latency: 0.47s, Open Ports: 53, 88, 135, 139, 389, 445, 464, 593, 636, 3268, 3269, 3389, 49154, 49155, 49157, 49158, 49165} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:retrotwo:r1:1.3.2",
+      "label": "Action 1.3.2\nDetermine the services and ve…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.2 Determine the services and versions on each open port - {Findings: Port 53: domain, Microsoft DNS 6.1.7601 (Windows Server 2008 R2 SP1), Port 88: kerberos-sec, Microsoft Windows Kerberos, Port 135: msrpc, Microsoft Windows RPC, Port 139: netbios-ssn, Microsoft Windows netbios-ssn, Port 389: ldap, Microsoft Windows Active Directory LDAP (Domain: retro2.vl, Site: Default-First-Site-Name), Port 445: microsoft-ds, Windows Server 2008 R2 Datacenter 7601 Service Pack 1 microsoft-ds (workgroup: RETRO2), Port 464: tcpwrapped, Port 593: ncacn_http, Microsoft Windows RPC over HTTP 1.0, Port 636: tcpwrapped, Port 3268: ldap, Microsoft Windows Active Directory LDAP (Domain: retro2.vl, Site: Default-First-Site-Name), Port 3269: tcpwrapped, Port 3389: ssl/ms-wbt-server?, Port 49154: msrpc, Microsoft Windows RPC, Port 49155: msrpc, Microsoft Windows RPC, Port 49157: ncacn_http, Microsoft Windows RPC over HTTP 1.0, Port 49158: msrpc, Microsoft Windows RPC, Port 49165: msrpc, Microsoft Windows RPC} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:retrotwo:r1:1.3.2",
+      "label": "Finding 1.3.2\n1.4 Target IP - {Findings:10.…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "1.4 Target IP - {Findings:10.129.237.26",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:retrotwo:r1:1.5",
+      "label": "State 1.5\nOS Identification - {Findings…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.5 OS Identification - {Findings: Windows Server 2008 R2 Datacenter 7601 Service Pack 1} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:retrotwo:r1:1.6",
+      "label": "State 1.6\nSMB Security - {Findings: Mes…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.6 SMB Security - {Findings: Message signing enabled and required} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:retrotwo:r1:1.7",
+      "label": "State 1.7\nScan Duration - {Findings: 16…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.7 Scan Duration - {Findings: 167.75 seconds} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:retrotwo:r1:1.8",
+      "label": "State 1.8\nHost Information - {Findings:…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.8 Host Information - {Findings: BLN01, Domain: retro2.vl, FQDN: BLN01.retro2.vl} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:retrotwo:r1:1.9",
+      "label": "State 1.9\nSMB Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.9 SMB Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:retrotwo:r1:1.9.1",
+      "label": "State 1.9.1\nSMB Details - {Findings: Host…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.9.1 SMB Details - {Findings: Host: 10.129.237.26, Port: 445, Name: BLN01, Domain: retro2.vl, OS: Windows 7 / Server 2008 R2 Build 7601 x64, SMB Signing: True, SMBv1: True, Null Authentication: True, User: retro2.vl\\guest} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:retrotwo:r1:1.9.2",
+      "label": "State 1.9.2\nEnumerated Shares - {Findings…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.9.2 Enumerated Shares - {Findings: ADMIN$: Remote Admin, C$: Default share, IPC$: Remote IPC, NETLOGON: Logon server share, Public: READ, SYSVOL: Logon server share} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:retrotwo:r1:START",
+      "to": "state:retrotwo:r1:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:retrotwo:r1:1",
+      "to": "state:retrotwo:r1:1.1",
+      "label": "1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:retrotwo:r1:1.1",
+      "to": "state:retrotwo:r1:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:retrotwo:r1:1.2",
+      "to": "state:retrotwo:r1:1.3",
+      "label": "1.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:retrotwo:r1:1.3",
+      "to": "state:retrotwo:r1:1.3.1",
+      "label": "1.3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:retrotwo:r1:1.3.1",
+      "to": "action:retrotwo:r1:1.3.2",
+      "label": "1.3.2 Determine the ser…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:retrotwo:r1:1.3.2",
+      "to": "finding:retrotwo:r1:1.3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:retrotwo:r1:1.3.2",
+      "to": "state:retrotwo:r1:1.3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:retrotwo:r1:1.3.1",
+      "to": "state:retrotwo:r1:1.5",
+      "label": "1.5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:retrotwo:r1:1.5",
+      "to": "state:retrotwo:r1:1.6",
+      "label": "1.6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:retrotwo:r1:1.6",
+      "to": "state:retrotwo:r1:1.7",
+      "label": "1.7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:retrotwo:r1:1.7",
+      "to": "state:retrotwo:r1:1.8",
+      "label": "1.8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:retrotwo:r1:1.8",
+      "to": "state:retrotwo:r1:1.9",
+      "label": "1.9",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:retrotwo:r1:1.9",
+      "to": "state:retrotwo:r1:1.9.1",
+      "label": "1.9.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:retrotwo:r1:1.9.1",
+      "to": "state:retrotwo:r1:1.9.2",
+      "label": "1.9.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 15,
+    "total_edges": 15,
+    "state_nodes": 13,
+    "action_nodes": 1,
+    "finding_nodes": 1,
+    "ptt_items_parsed": 13
+  },
+  "csv_row_index": 257,
+  "source_csv": "training_data.csv"
+}

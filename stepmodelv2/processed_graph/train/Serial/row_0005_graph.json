@@ -1,0 +1,543 @@
+{
+  "machine": "Serial",
+  "row_index": 5,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Serial:r5:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Serial' (row 5).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Serial:r5:1",
+      "label": "State 1\nReconnaissance and Scanning",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance and Scanning [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Serial:r5:1.1",
+      "label": "Action 1.1\nIdentify target IP and perfor…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Identify target IP and perform port scan [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Serial:r5:1.1",
+      "label": "Finding 1.1\nPort 80 HTTP service open, Po…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Port 80 HTTP service open, Port 22 SSH service open",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Serial:r5:2",
+      "label": "State 2\nService Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Service Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Serial:r5:2.1",
+      "label": "Action 2.1\nEnumerate HTTP service",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Enumerate HTTP service [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Serial:r5:2.1",
+      "label": "Finding 2.1\nBurp Suite interception revea…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Burp Suite interception revealed lengthy base64-encoded value in user cookie parameter, /backup directory discovered containing downloadable ZIP archive with application source files",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Serial:r5:3",
+      "label": "State 3\nVulnerability Analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Vulnerability Analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Serial:r5:3.1",
+      "label": "Action 3.1\nAnalyze application source co…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Analyze application source code [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Serial:r5:3.1",
+      "label": "Finding 3.1\nindex.php is main entry point…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "index.php is main entry point, user.class.php handles user object serialization, log.class.php contains file inclusion handler with unvalidated parameters. Insecure deserialization vulnerability combined with arbitrary file inclusion identified. Log class include function accepts unsanitized input through serialized object chain",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Serial:r5:4",
+      "label": "State 4\nExploitation",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "4 Exploitation [in_progress]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Serial:r5:4.1",
+      "label": "Action 4.1\nTest deserialization vulnerab…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Test deserialization vulnerability [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Serial:r5:4.1",
+      "label": "Finding 4.1\nModified cookie successfully …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Modified cookie successfully retrieved /etc/passwd from target system, confirming arbitrary file inclusion through deserialization",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Serial:r5:4.2",
+      "label": "Action 4.2\nAchieve remote code execution",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.2 Achieve remote code execution [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Serial:r5:4.2",
+      "label": "Finding 4.2\nshell.php created and hosted …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "shell.php created and hosted via Python HTTP server, Log class updated to point to external shell, RCE achieved. Executing ifconfig command revealed system information and credentials.txt.bak file containing login credentials for user sk4",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Serial:r5:4.3",
+      "label": "State 4.3\nObtain SSH access",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "4.3 Obtain SSH access [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Serial:r5:5",
+      "label": "State 5\nPrivilege Escalation",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "5 Privilege Escalation [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Serial:r5:START",
+      "to": "state:Serial:r5:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Serial:r5:1",
+      "to": "action:Serial:r5:1.1",
+      "label": "1.1 Identify target I…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Serial:r5:1.1",
+      "to": "finding:Serial:r5:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Serial:r5:1.1",
+      "to": "state:Serial:r5:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Serial:r5:1",
+      "to": "state:Serial:r5:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Serial:r5:2",
+      "to": "action:Serial:r5:2.1",
+      "label": "2.1 Enumerate HTTP se…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Serial:r5:2.1",
+      "to": "finding:Serial:r5:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Serial:r5:2.1",
+      "to": "state:Serial:r5:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Serial:r5:2",
+      "to": "state:Serial:r5:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Serial:r5:3",
+      "to": "action:Serial:r5:3.1",
+      "label": "3.1 Analyze applicati…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Serial:r5:3.1",
+      "to": "finding:Serial:r5:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Serial:r5:3.1",
+      "to": "state:Serial:r5:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Serial:r5:3",
+      "to": "state:Serial:r5:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Serial:r5:4",
+      "to": "action:Serial:r5:4.1",
+      "label": "4.1 Test deserializat…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Serial:r5:4.1",
+      "to": "finding:Serial:r5:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Serial:r5:4.1",
+      "to": "state:Serial:r5:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Serial:r5:4",
+      "to": "action:Serial:r5:4.2",
+      "label": "4.2 Achieve remote co…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Serial:r5:4.2",
+      "to": "finding:Serial:r5:4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Serial:r5:4.2",
+      "to": "state:Serial:r5:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Serial:r5:4",
+      "to": "state:Serial:r5:4.3",
+      "label": "4.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Serial:r5:4.3",
+      "to": "state:Serial:r5:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 17,
+    "total_edges": 21,
+    "state_nodes": 7,
+    "action_nodes": 5,
+    "finding_nodes": 5,
+    "ptt_items_parsed": 11
+  },
+  "csv_row_index": 1681,
+  "source_csv": "training_data.csv"
+}

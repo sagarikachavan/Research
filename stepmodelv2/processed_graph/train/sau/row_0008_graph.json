@@ -1,0 +1,582 @@
+{
+  "machine": "sau",
+  "row_index": 8,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:sau:r8:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'sau' (row 8).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sau:r8:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sau:r8:1.1",
+      "label": "State 1.1\nPassive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.1 Passive Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sau:r8:1.2",
+      "label": "State 1.2\nActive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.2 Active Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sau:r8:1.3",
+      "label": "State 1.3\nIdentify Open Ports, Services…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3 Identify Open Ports, Services running on the open ports and their versions [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:sau:r8:1.3.1",
+      "label": "Action 1.3.1\nPerform a port scan",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.1 Perform a port scan [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:sau:r8:1.3.1",
+      "label": "Finding 1.3.1\nHost: sau.htb (10.129.229.26)…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Host: sau.htb (10.129.229.26), Host status: Up (1.0s latency), Closed TCP ports: 997 (conn-refused), Open Ports: 22, 80, 55555",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:sau:r8:1.3.2",
+      "label": "Action 1.3.2\nDetermine the services and ve…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.2 Determine the services and versions on each open port [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:sau:r8:1.3.2",
+      "label": "Finding 1.3.2\nPort 22: Open, Service: ssh, …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Port 22: Open, Service: ssh, Version: OpenSSH 8.2p1 Ubuntu 4ubuntu0.7 (Ubuntu Linux; protocol 2.0), Port 80: Filtered, Service: http, Port 55555: Open, Service: unknown, Port 55555 Responses: Invalid basket name error with pattern: ^[wd-_\\.]{1,250}$, HTTP/1.0 400 Bad Request, Content-Type: text/plain; charset=utf-8, HTTP/1.0 302 Found, Location: /web, HTTP/1.0 200 OK, Allow: GET, OPTIONS, Unrecognized service: 1 service unrecognized despite returning data on port 55555, Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:sau:r8:1.3.3",
+      "label": "Action 1.3.3\nEnumerate further on the serv…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.3 Enumerate further on the services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:sau:r8:1.3.3",
+      "label": "Finding 1.3.3\nPort 80: No response, Port 55…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Port 80: No response, Port 55555: Directs to a web portal, Web Portal Content: Functionality: Creates a basket to collect and inspect HTTP requests, My Baskets: wygbo5a, Powered by request-baskets, Version: 1.2.1, Basket Function: Collects any request sent to it, Example: GET request sent to one of the baskets (dmt5wkr) using curl, Headers: Accept: */*, User-Agent: curl/8.5.0, Time: 2:01:55 pm 04/08/2025, Configuration Setup Box: Allows to set up the config, Configuration Settings: Forward URL: 127.0.0.1:80, Insecure TLS: Only affects forwarding to URLs like https://..., Proxy Response: Expand Forward Path, Basket Capacity: 200, Action: Redirected the GET requests coming to the basket to port 80 and got the proxy response back, bypassing the port filtering, Response Content: altrail Documentation, Wiki, Issues, Log In, Filters: Threats, Events, Severity, Sources, Trails, Powered by Maltrail (v0.53), Options: Hide threat, Report false positive",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:sau:r8:1.3.4",
+      "label": "Action 1.3.4\nVulnerability Assessment",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.4 Vulnerability Assessment [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:sau:r8:1.3.4",
+      "label": "Finding 1.3.4\nGoogle search results indicat…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Google search results indicate that the tested version is vulnerable to an OS command execution vulnerability and a public exploit exists. The vulnerability can be exploited by setting up a listener with netcat and running the provided proof of concept (POC). The POC requires modification to use the URL from a previous exploit. The POC is available at: https://github.com/spookier/Maltrail-v0.53-Exploit.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:sau:r8:1.3.5",
+      "label": "Action 1.3.5\nExploit the selected exploita…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.5 Exploit the selected exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:sau:r8:1.3.5",
+      "label": "Finding 1.3.5\nThe tester cloned a repositor…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "The tester cloned a repository and modified the target_URL in the login line. The exploit was run using python3 on the target http://10.129.229.26:55555/dmt5wkr/login. A reverse shell was obtained and the tester connected using netcat listening on port 4444. The current user of the shell is 'puma' and the present working directory is /opt/maltrail. The directory contains files and folders such as CHANGELOG, core, docker, maltrail-sensor.service, maltrail-server.service, maltrail.conf, plugins, requirements.txt, trails, CITATION.cff, LICENSE, README.md, html, misc, sensor.py, server.py, and others.}\n   1.4 Target IP: 10.129.229.26 - (updated) {Findings: SSH Host Key: RSA: 3072 aa:88:67:d7:13:3d:08:3a:8a:ce:9d:c4:dd:f3:e1:ed, ECDSA: 256 ec:2e:b1:05:87:2a:0c:7d:b1:49:87:64:95:dc:8a:21, ED25519: 256 b3:0c:47:fb:a2:f2:12:cc:ce:0b:58:82:0e:50:43:36, Scan Duration: 375.21 seconds, IP Address: 10.129.229.26",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:sau:r8:1.5",
+      "label": "Action 1.5\nSearch for files, commands an…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.5 Search for files, commands and their privileges [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:sau:r8:1.5",
+      "label": "Finding 1.5\nThe user 'puma' on the system…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "The user 'puma' on the system 'sau' has sudo privileges without requiring a password to run the command '/usr/bin/systemctl status trail.service'. However, an attempt to check the version of 'systemctl' failed, suggesting the 'systemctl' command may not be correctly installed or accessible in the current environment. The system suggested installing 'systemctl' from either deb systemd (245.4-4ubuntu3.22) or deb systemctl (1.4.3424-2).",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sau:r8:1.6",
+      "label": "State 1.6\nExploit the sudo privileges",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "1.6 Exploit the sudo privileges [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:sau:r8:START",
+      "to": "state:sau:r8:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r8:1",
+      "to": "state:sau:r8:1.1",
+      "label": "1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r8:1.1",
+      "to": "state:sau:r8:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r8:1.2",
+      "to": "state:sau:r8:1.3",
+      "label": "1.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r8:1.3",
+      "to": "action:sau:r8:1.3.1",
+      "label": "1.3.1 Perform a port sc…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:sau:r8:1.3.1",
+      "to": "finding:sau:r8:1.3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:sau:r8:1.3.1",
+      "to": "state:sau:r8:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r8:1.3",
+      "to": "action:sau:r8:1.3.2",
+      "label": "1.3.2 Determine the ser…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:sau:r8:1.3.2",
+      "to": "finding:sau:r8:1.3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:sau:r8:1.3.2",
+      "to": "state:sau:r8:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r8:1.3",
+      "to": "action:sau:r8:1.3.3",
+      "label": "1.3.3 Enumerate further…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:sau:r8:1.3.3",
+      "to": "finding:sau:r8:1.3.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:sau:r8:1.3.3",
+      "to": "state:sau:r8:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r8:1.3",
+      "to": "action:sau:r8:1.3.4",
+      "label": "1.3.4 Vulnerability Ass…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:sau:r8:1.3.4",
+      "to": "finding:sau:r8:1.3.4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:sau:r8:1.3.4",
+      "to": "state:sau:r8:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r8:1.3",
+      "to": "action:sau:r8:1.3.5",
+      "label": "1.3.5 Exploit the selec…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:sau:r8:1.3.5",
+      "to": "finding:sau:r8:1.3.5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:sau:r8:1.3.5",
+      "to": "state:sau:r8:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r8:1.3",
+      "to": "action:sau:r8:1.5",
+      "label": "1.5 Search for files,…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:sau:r8:1.5",
+      "to": "finding:sau:r8:1.5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:sau:r8:1.5",
+      "to": "state:sau:r8:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r8:1.3",
+      "to": "state:sau:r8:1.6",
+      "label": "1.6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 18,
+    "total_edges": 23,
+    "state_nodes": 6,
+    "action_nodes": 6,
+    "finding_nodes": 6,
+    "ptt_items_parsed": 11
+  },
+  "csv_row_index": 46,
+  "source_csv": "training_data.csv"
+}

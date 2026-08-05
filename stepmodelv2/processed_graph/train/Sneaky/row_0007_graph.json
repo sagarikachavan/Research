@@ -1,0 +1,252 @@
+{
+  "machine": "Sneaky",
+  "row_index": 7,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Sneaky:r7:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Sneaky' (row 7).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Sneaky:r7:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]\nIPv6 SSH access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Sneaky:r7:2",
+      "label": "State 2\nEnumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Enumeration [completed]\nSQL injection, SSH key",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Sneaky:r7:3",
+      "label": "State 3\nInitial Access",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Initial Access [completed]\nShell as thrasivoulos",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Sneaky:r7:4",
+      "label": "State 4\nPrivilege Escalation",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "4 Privilege Escalation [in_progress]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Sneaky:r7:4.1",
+      "label": "Action 4.1\nSUID enumeration",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 SUID enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Sneaky:r7:4.1",
+      "label": "Finding 4.1\nFound /usr/local/bin/chal SUI…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Found /usr/local/bin/chal SUID binary with setuid and setgid bits set",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Sneaky:r7:4.2",
+      "label": "State 4.2\nBinary analysis",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "4.2 Binary analysis [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Sneaky:r7:START",
+      "to": "state:Sneaky:r7:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Sneaky:r7:1",
+      "to": "state:Sneaky:r7:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Sneaky:r7:2",
+      "to": "state:Sneaky:r7:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Sneaky:r7:3",
+      "to": "state:Sneaky:r7:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Sneaky:r7:4",
+      "to": "action:Sneaky:r7:4.1",
+      "label": "4.1 SUID enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Sneaky:r7:4.1",
+      "to": "finding:Sneaky:r7:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Sneaky:r7:4.1",
+      "to": "state:Sneaky:r7:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Sneaky:r7:4",
+      "to": "state:Sneaky:r7:4.2",
+      "label": "4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 8,
+    "total_edges": 8,
+    "state_nodes": 6,
+    "action_nodes": 1,
+    "finding_nodes": 1,
+    "ptt_items_parsed": 6
+  },
+  "csv_row_index": 1782,
+  "source_csv": "training_data.csv"
+}

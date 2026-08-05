@@ -1,0 +1,477 @@
+{
+  "machine": "IClean",
+  "row_index": 2,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:IClean:r2:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'IClean' (row 2).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:IClean:r2:1",
+      "label": "State 1\nPerform reconnaissance on tar…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Perform reconnaissance on target system [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:IClean:r2:1.1",
+      "label": "Action 1.1\nScan for open ports and servi…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Scan for open ports and services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:IClean:r2:1.1",
+      "label": "Finding 1.1\nSSH (22) and HTTP (80) open; …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "SSH (22) and HTTP (80) open; OpenSSH 8.9p1 and Apache 2.4.52 indicating Ubuntu 22.04 LTS",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:IClean:r2:1.2",
+      "label": "Action 1.2\nEnumerate web applications",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Enumerate web applications [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:IClean:r2:1.2",
+      "label": "Finding 1.2\nHTTP redirects to capiclean.h…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "HTTP redirects to capiclean.htb; Python Flask application using Werkzeug 2.3.7; Directories /dashboard, /login, /quote, /InvoiceGenerator discovered",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:IClean:r2:1.3",
+      "label": "Action 1.3\nIdentify application framewor…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3 Identify application frameworks [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:IClean:r2:1.3",
+      "label": "Finding 1.3\nFlask-based cleaning company …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Flask-based cleaning company website; Quote submission form; Protected dashboard requiring authentication",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:IClean:r2:2",
+      "label": "State 2\nExploit XSS vulnerability in …",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Exploit XSS vulnerability in quote form [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:IClean:r2:2.1",
+      "label": "Action 2.1\nTest quote form for XSS",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Test quote form for XSS [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:IClean:r2:2.1",
+      "label": "Finding 2.1\nStored XSS confirmed in servi…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Stored XSS confirmed in service field; Admin viewed submission triggering payload",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:IClean:r2:2.2",
+      "label": "State 2.2\nSteal admin session cookies",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2.2 Steal admin session cookies [completed]\nCaptured session cookie eyJyb2xlIjoiMjEyMzJmMjk3YTU3YTVhNzQzODk0YTBlNGE4MDFmYzMifQ.ZpGnpw.yZMEmiZOTLiezgsFo846uaB6bVY; Cookie decodes to role: 21232f297a57a5a743894a0e4a801fc3 which is MD5 hash of admin; Successfully accessed /dashboard with stolen cookie",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:IClean:r2:3",
+      "label": "State 3\nExploit Server-Side Template …",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "3 Exploit Server-Side Template Injection [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:IClean:r2:3.1",
+      "label": "State 3.1\nTest QR generator for SSTI",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "3.1 Test QR generator for SSTI [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:IClean:r2:3.2",
+      "label": "State 3.2\nAchieve remote code execution",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "3.2 Achieve remote code execution [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:IClean:r2:START",
+      "to": "state:IClean:r2:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:IClean:r2:1",
+      "to": "action:IClean:r2:1.1",
+      "label": "1.1 Scan for open por…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:IClean:r2:1.1",
+      "to": "finding:IClean:r2:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:IClean:r2:1.1",
+      "to": "state:IClean:r2:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:IClean:r2:1",
+      "to": "action:IClean:r2:1.2",
+      "label": "1.2 Enumerate web app…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:IClean:r2:1.2",
+      "to": "finding:IClean:r2:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:IClean:r2:1.2",
+      "to": "state:IClean:r2:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:IClean:r2:1",
+      "to": "action:IClean:r2:1.3",
+      "label": "1.3 Identify applicat…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:IClean:r2:1.3",
+      "to": "finding:IClean:r2:1.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:IClean:r2:1.3",
+      "to": "state:IClean:r2:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:IClean:r2:1",
+      "to": "state:IClean:r2:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:IClean:r2:2",
+      "to": "action:IClean:r2:2.1",
+      "label": "2.1 Test quote form f…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:IClean:r2:2.1",
+      "to": "finding:IClean:r2:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:IClean:r2:2.1",
+      "to": "state:IClean:r2:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:IClean:r2:2",
+      "to": "state:IClean:r2:2.2",
+      "label": "2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:IClean:r2:2.2",
+      "to": "state:IClean:r2:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:IClean:r2:3",
+      "to": "state:IClean:r2:3.1",
+      "label": "3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:IClean:r2:3.1",
+      "to": "state:IClean:r2:3.2",
+      "label": "3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 15,
+    "total_edges": 18,
+    "state_nodes": 7,
+    "action_nodes": 4,
+    "finding_nodes": 4,
+    "ptt_items_parsed": 10
+  },
+  "csv_row_index": 1482,
+  "source_csv": "training_data.csv"
+}

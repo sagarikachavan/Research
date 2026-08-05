@@ -139,28 +139,45 @@ def main():
     print("[train] Loading supervised checkpoint...")
     if os.path.exists(SUPERVISED_ADAPTER_DIR):
         print(f"[train] Loading from {SUPERVISED_ADAPTER_DIR}")
-        policy = PeftModel.from_pretrained(base, SUPERVISED_ADAPTER_DIR)
-        policy.set_adapter("default")
-        # Ensure LoRA parameters are trainable
-        for param in policy.parameters():
-            if param.requires_grad:
-                param.requires_grad_(True)
+        # Load as trainable by using from_pretrained with is_trainable=True
+        policy = PeftModel.from_pretrained(base, SUPERVISED_ADAPTER_DIR, is_trainable=True)
+        # Manually enable gradients for all LoRA parameters
+        for name, param in policy.named_parameters():
+            if "lora" in name:
+                param.requires_grad = True
+        # Set to train mode
+        policy.train()
+        # Debug: count trainable parameters
+        trainable_count = sum(p.numel() for p in policy.parameters() if p.requires_grad)
+        print(f"[train] Trainable parameters after manual enable: {trainable_count:,}")
     else:
         print("[train] No supervised checkpoint found, training from scratch")
         policy = get_peft_model(base, lora_config)
 
-    # Reference model (frozen)
+    # Reference model (frozen) - create separate copy to avoid conflicts
     print("[train] Creating reference model...")
+    base_ref = AutoModelForCausalLM.from_pretrained(
+        QWEN_MODEL_NAME,
+        torch_dtype=torch.bfloat16,
+        device_map="auto"
+    )
+    base_ref.gradient_checkpointing_enable()
     if os.path.exists(SUPERVISED_ADAPTER_DIR):
-        ref_model = PeftModel.from_pretrained(base, SUPERVISED_ADAPTER_DIR)
+        ref_model = PeftModel.from_pretrained(base_ref, SUPERVISED_ADAPTER_DIR)
         ref_model.eval()
         for param in ref_model.parameters():
             param.requires_grad = False
     else:
-        ref_model = get_peft_model(base, lora_config)
+        ref_model = get_peft_model(base_ref, lora_config)
         ref_model.eval()
         for param in ref_model.parameters():
             param.requires_grad = False
+
+    # Re-enable gradients for policy after reference model creation
+    policy.train()
+    for name, param in policy.named_parameters():
+        if "lora" in name:
+            param.requires_grad = True
 
     # Collect trainable parameters
     trainable = [p for p in policy.parameters() if p.requires_grad]

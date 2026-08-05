@@ -1,0 +1,570 @@
+{
+  "machine": "Zipping",
+  "row_index": 5,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Zipping:r5:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Zipping' (row 5).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Zipping:r5:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Zipping:r5:1.1",
+      "label": "Action 1.1\nNetwork enumeration",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Network enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Zipping:r5:1.1",
+      "label": "Finding 1.1\nTwo open ports - Port 22 SSH …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Two open ports - Port 22 SSH OpenSSH 9.0p1 Ubuntu, Port 80 HTTP Apache httpd 2.4.54. OS identified as Ubuntu 23.04 lunar",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Zipping:r5:1.2",
+      "label": "State 1.2\nService enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.2 Service enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Zipping:r5:1.3",
+      "label": "Action 1.3\nWeb application enumeration",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3 Web application enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Zipping:r5:1.3",
+      "label": "Finding 1.3\n/upload.php, /shop/, /shop/pr…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "/upload.php, /shop/, /shop/product.php endpoints discovered",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Zipping:r5:2",
+      "label": "State 2\nVulnerability analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Vulnerability analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Zipping:r5:2.1",
+      "label": "Action 2.1\nUpload mechanism analysis",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Upload mechanism analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Zipping:r5:2.1",
+      "label": "Finding 2.1\nSymlink traversal vulnerabili…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Symlink traversal vulnerability confirmed",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Zipping:r5:3",
+      "label": "State 3\nExploitation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Zipping:r5:3.1",
+      "label": "Action 3.1\nFile read exploitation",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 File read exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Zipping:r5:3.1",
+      "label": "Finding 3.1\nRetrieved source code and dat…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Retrieved source code and database credentials root:MySQL_P@ssw0rd!",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Zipping:r5:4",
+      "label": "State 4\nSource code analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 Source code analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Zipping:r5:4.1",
+      "label": "Action 4.1\nSQL injection identification",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 SQL injection identification [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Zipping:r5:4.1",
+      "label": "Finding 4.1\nproduct.php contains SQL inje…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "product.php contains SQL injection masked by regex filter ^.*[A-Za-z!#$%^&*()...-_=+...]|[^0-9]$ attempting to block non-numeric input. Filter uses preg_match which can be bypassed with URL-encoded newlines %0A due to multiline handling. MySQL root user has FILE privilege via information_schema.user_privileges",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Zipping:r5:5",
+      "label": "State 5\nSQL injection exploitation",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "5 SQL injection exploitation [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Zipping:r5:5.1",
+      "label": "State 5.1\nFilter bypass",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "5.1 Filter bypass [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Zipping:r5:START",
+      "to": "state:Zipping:r5:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Zipping:r5:1",
+      "to": "action:Zipping:r5:1.1",
+      "label": "1.1 Network enumerati…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Zipping:r5:1.1",
+      "to": "finding:Zipping:r5:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Zipping:r5:1.1",
+      "to": "state:Zipping:r5:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Zipping:r5:1",
+      "to": "state:Zipping:r5:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Zipping:r5:1.2",
+      "to": "action:Zipping:r5:1.3",
+      "label": "1.3 Web application e…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Zipping:r5:1.3",
+      "to": "finding:Zipping:r5:1.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Zipping:r5:1.3",
+      "to": "state:Zipping:r5:1.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Zipping:r5:1.2",
+      "to": "state:Zipping:r5:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Zipping:r5:2",
+      "to": "action:Zipping:r5:2.1",
+      "label": "2.1 Upload mechanism …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Zipping:r5:2.1",
+      "to": "finding:Zipping:r5:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Zipping:r5:2.1",
+      "to": "state:Zipping:r5:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Zipping:r5:2",
+      "to": "state:Zipping:r5:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Zipping:r5:3",
+      "to": "action:Zipping:r5:3.1",
+      "label": "3.1 File read exploit…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Zipping:r5:3.1",
+      "to": "finding:Zipping:r5:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Zipping:r5:3.1",
+      "to": "state:Zipping:r5:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Zipping:r5:3",
+      "to": "state:Zipping:r5:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Zipping:r5:4",
+      "to": "action:Zipping:r5:4.1",
+      "label": "4.1 SQL injection ide…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Zipping:r5:4.1",
+      "to": "finding:Zipping:r5:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Zipping:r5:4.1",
+      "to": "state:Zipping:r5:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Zipping:r5:4",
+      "to": "state:Zipping:r5:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Zipping:r5:5",
+      "to": "state:Zipping:r5:5.1",
+      "label": "5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 18,
+    "total_edges": 22,
+    "state_nodes": 8,
+    "action_nodes": 5,
+    "finding_nodes": 5,
+    "ptt_items_parsed": 12
+  },
+  "csv_row_index": 374,
+  "source_csv": "training_data.csv"
+}

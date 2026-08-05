@@ -1,0 +1,516 @@
+{
+  "machine": "GrimTheRipper",
+  "row_index": 4,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:GrimTheRipper:r4:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'GrimTheRipper' (row 4).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:GrimTheRipper:r4:1",
+      "label": "State 1\nReconnaissance Phase",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance Phase [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:GrimTheRipper:r4:1.1",
+      "label": "Action 1.1\nNetwork discovery",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Network discovery [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:GrimTheRipper:r4:1.1",
+      "label": "Finding 1.1\nTarget identified at 192.168.…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Target identified at 192.168.0.8",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:GrimTheRipper:r4:1.2",
+      "label": "Action 1.2\nPort enumeration",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Port enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:GrimTheRipper:r4:1.2",
+      "label": "Finding 1.2\nPort 22 SSH open, Port 80 HTT…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Port 22 SSH open, Port 80 HTTP open",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:GrimTheRipper:r4:2",
+      "label": "State 2\nEnumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:GrimTheRipper:r4:2.1",
+      "label": "Action 2.1\nHTTP service enumeration",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 HTTP service enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:GrimTheRipper:r4:2.1",
+      "label": "Finding 2.1\nRoot webpage displays image w…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Root webpage displays image with no obvious content, /index2 discovered containing message You lost dumb shit?? with another image, source code reveals commented hint with base64 encoding",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:GrimTheRipper:r4:2.2",
+      "label": "Action 2.2\nDecode hidden hints",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.2 Decode hidden hints [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:GrimTheRipper:r4:2.2",
+      "label": "Finding 2.2\nBase64 string THpFd0f1UQXhNRE…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Base64 string THpFd0f1UQXhNREU9IHRyeSBoYXJk decoded to Try Harder, further decoding revealed binary /1010101, navigating to /1010101/ discovered WordPress installation with visible admin username on login page",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:GrimTheRipper:r4:3",
+      "label": "State 3\nExploitation",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "3 Exploitation [in_progress]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:GrimTheRipper:r4:3.1",
+      "label": "Action 3.1\nWordPress credential brute-fo…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 WordPress credential brute-force [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:GrimTheRipper:r4:3.1",
+      "label": "Finding 3.1\nCredentials obtained - Userna…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Credentials obtained - Username: admin, Password: Password@123",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:GrimTheRipper:r4:3.2",
+      "label": "State 3.2\nDeploy WordPress shell",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "3.2 Deploy WordPress shell [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:GrimTheRipper:r4:4",
+      "label": "State 4\nPrivilege Escalation",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "4 Privilege Escalation [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:GrimTheRipper:r4:START",
+      "to": "state:GrimTheRipper:r4:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:GrimTheRipper:r4:1",
+      "to": "action:GrimTheRipper:r4:1.1",
+      "label": "1.1 Network discovery",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:GrimTheRipper:r4:1.1",
+      "to": "finding:GrimTheRipper:r4:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:GrimTheRipper:r4:1.1",
+      "to": "state:GrimTheRipper:r4:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:GrimTheRipper:r4:1",
+      "to": "action:GrimTheRipper:r4:1.2",
+      "label": "1.2 Port enumeration",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:GrimTheRipper:r4:1.2",
+      "to": "finding:GrimTheRipper:r4:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:GrimTheRipper:r4:1.2",
+      "to": "state:GrimTheRipper:r4:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:GrimTheRipper:r4:1",
+      "to": "state:GrimTheRipper:r4:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:GrimTheRipper:r4:2",
+      "to": "action:GrimTheRipper:r4:2.1",
+      "label": "2.1 HTTP service enum…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:GrimTheRipper:r4:2.1",
+      "to": "finding:GrimTheRipper:r4:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:GrimTheRipper:r4:2.1",
+      "to": "state:GrimTheRipper:r4:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:GrimTheRipper:r4:2",
+      "to": "action:GrimTheRipper:r4:2.2",
+      "label": "2.2 Decode hidden hin…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:GrimTheRipper:r4:2.2",
+      "to": "finding:GrimTheRipper:r4:2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:GrimTheRipper:r4:2.2",
+      "to": "state:GrimTheRipper:r4:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:GrimTheRipper:r4:2",
+      "to": "state:GrimTheRipper:r4:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:GrimTheRipper:r4:3",
+      "to": "action:GrimTheRipper:r4:3.1",
+      "label": "3.1 WordPress credent…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:GrimTheRipper:r4:3.1",
+      "to": "finding:GrimTheRipper:r4:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:GrimTheRipper:r4:3.1",
+      "to": "state:GrimTheRipper:r4:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:GrimTheRipper:r4:3",
+      "to": "state:GrimTheRipper:r4:3.2",
+      "label": "3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:GrimTheRipper:r4:3.2",
+      "to": "state:GrimTheRipper:r4:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 16,
+    "total_edges": 20,
+    "state_nodes": 6,
+    "action_nodes": 5,
+    "finding_nodes": 5,
+    "ptt_items_parsed": 10
+  },
+  "csv_row_index": 1699,
+  "source_csv": "training_data.csv"
+}

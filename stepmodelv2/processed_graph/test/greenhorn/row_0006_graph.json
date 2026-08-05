@@ -1,0 +1,1032 @@
+{
+  "machine": "greenhorn",
+  "row_index": 6,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:greenhorn:r6:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'greenhorn' (row 6).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:greenhorn:r6:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:greenhorn:r6:1.1",
+      "label": "State 1.1\nPassive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.1 Passive Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:greenhorn:r6:1.2",
+      "label": "State 1.2\nActive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.2 Active Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:greenhorn:r6:1.3",
+      "label": "State 1.3\nIdentify Open Ports, Services…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3 Identify Open Ports, Services running on the open ports and their versions [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:greenhorn:r6:1.3.1",
+      "label": "Action 1.3.1\nPerform a port scan",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.1 Perform a port scan [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:greenhorn:r6:1.3.1",
+      "label": "Finding 1.3.1\nPorts 22/tcp, 80/tcp, 3000/tc…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Ports 22/tcp, 80/tcp, 3000/tcp are open",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:greenhorn:r6:1.3.2",
+      "label": "Action 1.3.2\nDetermine the services and ve…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.2 Determine the services and versions on each open port [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:greenhorn:r6:1.3.2",
+      "label": "Finding 1.3.2\nPort 22/tcp - OpenSSH 8.9p1 U…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Port 22/tcp - OpenSSH 8.9p1 Ubuntu 3ubuntu0.10, Port 80/tcp - nginx 1.18.0 (Ubuntu), Port 3000/tcp - ppp?}\n   1.4 Target IP: {Findings: 10.129.231.80",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:greenhorn:r6:1.5",
+      "label": "State 1.5\nEnumerate HTTP Service",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.5 Enumerate HTTP Service [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:greenhorn:r6:1.5.1",
+      "label": "Action 1.5.1\nIdentify CMS and Version",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.5.1 Identify CMS and Version [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:greenhorn:r6:1.5.1",
+      "label": "Finding 1.5.1\nCMS is Pluck, Version is 4.7.…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "CMS is Pluck, Version is 4.7.18",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:greenhorn:r6:1.5.2",
+      "label": "Action 1.5.2\nIdentify Admin Login Page",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.5.2 Identify Admin Login Page [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:greenhorn:r6:1.5.2",
+      "label": "Finding 1.5.2\nAdmin Login Page found under …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Admin Login Page found under the admin link at the bottom of the landing page",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:greenhorn:r6:1.5.3",
+      "label": "Action 1.5.3\nEnumerate for Admin Login Pas…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.5.3 Enumerate for Admin Login Password [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:greenhorn:r6:1.5.3",
+      "label": "Finding 1.5.3\nThe password for the admin ac…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "The password for the admin account is 'iloveyou1'",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:greenhorn:r6:1.5.4",
+      "label": "Action 1.5.4\nLogin to Pluck Website",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.5.4 Login to Pluck Website [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:greenhorn:r6:1.5.4",
+      "label": "Finding 1.5.4\nThe website offers an option …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "The website offers an option to install modules under its settings",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:greenhorn:r6:1.5.5",
+      "label": "State 1.5.5\nVulnerability Analysis on Plu…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.5.5 Vulnerability Analysis on Pluck v4.7.18 [completed]\nKnown vulnerabilities include Arbitrary File Upload leading to Remote Code Execution (CVE-2023-50564), Brute Force Attack (CVE-2024-43042), Local File Inclusion (CVE-2024-9405), Cross-Site Scripting (CVE-2023-5013), and others in similar versions. Recommendation is to upgrade to a patched and more secure version of the CMS",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:greenhorn:r6:1.5.6",
+      "label": "Action 1.5.6\nExploit the Vulnerabilities",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.5.6 Exploit the Vulnerabilities [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:greenhorn:r6:1.5.6",
+      "label": "Finding 1.5.6\nSuccessfully obtained a rever…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Successfully obtained a reverse shell as the 'www-data' user",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:greenhorn:r6:1.6",
+      "label": "State 1.6\nEnumerate Gitea Service on Po…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.6 Enumerate Gitea Service on Port 3000 [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:greenhorn:r6:1.6.1",
+      "label": "Action 1.6.1\nIdentify Repository Content",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.6.1 Identify Repository Content [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:greenhorn:r6:1.6.1",
+      "label": "Finding 1.6.1\nRepository contains configura…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Repository contains configuration files for the main website hosted by Pluck",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:greenhorn:r6:1.6.2",
+      "label": "Action 1.6.2\nIdentify Login.php",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.6.2 Identify Login.php [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:greenhorn:r6:1.6.2",
+      "label": "Finding 1.6.2\nLogin.php reveals the locatio…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Login.php reveals the location of the password file (data/settings/pass.php)",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:greenhorn:r6:1.6.3",
+      "label": "Action 1.6.3\nIdentify Hashing Algorithm",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.6.3 Identify Hashing Algorithm [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:greenhorn:r6:1.6.3",
+      "label": "Finding 1.6.3\nSHA512 is used for hashing",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "SHA512 is used for hashing",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:greenhorn:r6:1.6.4",
+      "label": "Action 1.6.4\nIdentify Password File",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.6.4 Identify Password File [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:greenhorn:r6:1.6.4",
+      "label": "Finding 1.6.4\nThe file 'data/settings/pass.…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "The file 'data/settings/pass.php' contains hashed credentials",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:greenhorn:r6:1.6.5",
+      "label": "Action 1.6.5\nCrack the Hashed Password",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.6.5 Crack the Hashed Password [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:greenhorn:r6:1.6.5",
+      "label": "Finding 1.6.5\nThe password hash was cracked…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "The password hash was cracked using John the Ripper, revealing the admin password 'iloveyou1'",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:greenhorn:r6:START",
+      "to": "state:greenhorn:r6:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1",
+      "to": "state:greenhorn:r6:1.1",
+      "label": "1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1.1",
+      "to": "state:greenhorn:r6:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1.2",
+      "to": "state:greenhorn:r6:1.3",
+      "label": "1.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1.3",
+      "to": "action:greenhorn:r6:1.3.1",
+      "label": "1.3.1 Perform a port sc…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:greenhorn:r6:1.3.1",
+      "to": "finding:greenhorn:r6:1.3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:greenhorn:r6:1.3.1",
+      "to": "state:greenhorn:r6:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1.3",
+      "to": "action:greenhorn:r6:1.3.2",
+      "label": "1.3.2 Determine the ser…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:greenhorn:r6:1.3.2",
+      "to": "finding:greenhorn:r6:1.3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:greenhorn:r6:1.3.2",
+      "to": "state:greenhorn:r6:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1.3",
+      "to": "state:greenhorn:r6:1.5",
+      "label": "1.5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1.5",
+      "to": "action:greenhorn:r6:1.5.1",
+      "label": "1.5.1 Identify CMS and …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:greenhorn:r6:1.5.1",
+      "to": "finding:greenhorn:r6:1.5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:greenhorn:r6:1.5.1",
+      "to": "state:greenhorn:r6:1.5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1.5",
+      "to": "action:greenhorn:r6:1.5.2",
+      "label": "1.5.2 Identify Admin Lo…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:greenhorn:r6:1.5.2",
+      "to": "finding:greenhorn:r6:1.5.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:greenhorn:r6:1.5.2",
+      "to": "state:greenhorn:r6:1.5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1.5",
+      "to": "action:greenhorn:r6:1.5.3",
+      "label": "1.5.3 Enumerate for Adm…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:greenhorn:r6:1.5.3",
+      "to": "finding:greenhorn:r6:1.5.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:greenhorn:r6:1.5.3",
+      "to": "state:greenhorn:r6:1.5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1.5",
+      "to": "action:greenhorn:r6:1.5.4",
+      "label": "1.5.4 Login to Pluck We…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:greenhorn:r6:1.5.4",
+      "to": "finding:greenhorn:r6:1.5.4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:greenhorn:r6:1.5.4",
+      "to": "state:greenhorn:r6:1.5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1.5",
+      "to": "state:greenhorn:r6:1.5.5",
+      "label": "1.5.5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1.5.5",
+      "to": "action:greenhorn:r6:1.5.6",
+      "label": "1.5.6 Exploit the Vulne…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:greenhorn:r6:1.5.6",
+      "to": "finding:greenhorn:r6:1.5.6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:greenhorn:r6:1.5.6",
+      "to": "state:greenhorn:r6:1.5.5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1.5.5",
+      "to": "state:greenhorn:r6:1.6",
+      "label": "1.6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1.6",
+      "to": "action:greenhorn:r6:1.6.1",
+      "label": "1.6.1 Identify Reposito…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:greenhorn:r6:1.6.1",
+      "to": "finding:greenhorn:r6:1.6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:greenhorn:r6:1.6.1",
+      "to": "state:greenhorn:r6:1.6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1.6",
+      "to": "action:greenhorn:r6:1.6.2",
+      "label": "1.6.2 Identify Login.php",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:greenhorn:r6:1.6.2",
+      "to": "finding:greenhorn:r6:1.6.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:greenhorn:r6:1.6.2",
+      "to": "state:greenhorn:r6:1.6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1.6",
+      "to": "action:greenhorn:r6:1.6.3",
+      "label": "1.6.3 Identify Hashing …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:greenhorn:r6:1.6.3",
+      "to": "finding:greenhorn:r6:1.6.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:greenhorn:r6:1.6.3",
+      "to": "state:greenhorn:r6:1.6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1.6",
+      "to": "action:greenhorn:r6:1.6.4",
+      "label": "1.6.4 Identify Password…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:greenhorn:r6:1.6.4",
+      "to": "finding:greenhorn:r6:1.6.4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:greenhorn:r6:1.6.4",
+      "to": "state:greenhorn:r6:1.6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:greenhorn:r6:1.6",
+      "to": "action:greenhorn:r6:1.6.5",
+      "label": "1.6.5 Crack the Hashed …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:greenhorn:r6:1.6.5",
+      "to": "finding:greenhorn:r6:1.6.5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:greenhorn:r6:1.6.5",
+      "to": "state:greenhorn:r6:1.6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 32,
+    "total_edges": 43,
+    "state_nodes": 8,
+    "action_nodes": 12,
+    "finding_nodes": 12,
+    "ptt_items_parsed": 19
+  },
+  "csv_row_index": 73,
+  "source_csv": "test_data.csv"
+}

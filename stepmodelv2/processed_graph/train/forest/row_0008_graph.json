@@ -1,0 +1,813 @@
+{
+  "machine": "forest",
+  "row_index": 8,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:forest:r8:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'forest' (row 8).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:forest:r8:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:forest:r8:1.1",
+      "label": "State 1.1\nPassive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.1 Passive Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:forest:r8:1.2",
+      "label": "State 1.2\nActive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.2 Active Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:forest:r8:1.3",
+      "label": "State 1.3\nIdentify Open Ports, Services…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3 Identify Open Ports, Services running on the open ports and their versions [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:forest:r8:1.3.1",
+      "label": "Action 1.3.1\nPerform a port scan",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.1 Perform a port scan [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:forest:r8:1.3.1",
+      "label": "Finding 1.3.1\nHost is up with 1.1s latency.…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Host is up with 1.1s latency. 989 closed TCP ports (conn-refused)",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:forest:r8:1.3.2",
+      "label": "State 1.3.2\nDetermine the services and ve…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3.2 Determine the services and versions on each open port [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:forest:r8:1.3.2.1",
+      "label": "State 1.3.2.1\nIP: 10.129.95.210",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3.2.1 IP: 10.129.95.210 [completed]\nOpen Ports and Services: 53/tcp: Simple DNS Plus (domain), 88/tcp: Microsoft Windows Kerberos (kerberos-sec) - Server time: 2025-08-07 01:02:22Z, 135/tcp: Microsoft Windows RPC (msrpc), 139/tcp: Microsoft Windows netbios-ssn (netbios-ssn), 389/tcp: Microsoft Windows Active Directory LDAP (ldap) - Domain: htb.local, Site: Default-First-Site-Name, 445/tcp: Windows Server 2016 Standard 14393 (microsoft-ds) - Workgroup: HTB, 464/tcp: kpasswd5?, 593/tcp: Microsoft Windows RPC over HTTP 1.0 (ncacn_http), 636/tcp: tcpwrapped, 3268/tcp: Microsoft Windows Active Directory LDAP (ldap) - Domain: htb.local, Site: Default-First-Site-Name, 3269/tcp: tcpwrapped, Service Info: Host: FOREST; OS: Windows; CPE: cpe:/o:microsoft:windows, SMB Security: Message signing enabled and required, Account used: guest, Authentication level: user, Challenge response: supported, Message signing: required, SMB OS Discovery: OS: Windows Server 2016 Standard 14393, Computer name: FOREST, NetBIOS computer name: FOREST, Domain name: htb.local, Forest name: htb.local, FQDN: FOREST.htb.local, System time: 2025-08-06T18:03:01-07:00, Clock skew: mean: 2h27m07s, deviation: 4h02m31s, median: 7m06s, Scan Duration: 159.44 seconds",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:forest:r8:1.4",
+      "label": "State 1.4\nDNS Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.4 DNS Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:forest:r8:1.4.1",
+      "label": "State 1.4.1\nResolve htb.local",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.4.1 Resolve htb.local [completed]\nhtb.local. 600 IN A 10.10.10.161",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:forest:r8:1.4.2",
+      "label": "State 1.4.2\nResolve forest.htb.local",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.4.2 Resolve forest.htb.local [completed]\nforest.htb.local. 3600 IN A 10.10.10.161",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:forest:r8:1.5",
+      "label": "State 1.5\nSMB Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.5 SMB Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:forest:r8:1.5.1",
+      "label": "State 1.5.1\nSMB Mapping",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.5.1 SMB Mapping [completed]\nOpen SMB ports found. User SMB session established on 10.10.10.161. Disk: Not listed due to Access Denied. Attempted smbmap with username 0xdf and password 0xdf resulted in Authentication error: STATUS_LOGON_FAILURE (Bad username or authentication information).",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:forest:r8:1.5.2",
+      "label": "State 1.5.2\nSMB Client",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.5.2 SMB Client [completed]\nAnonymous login was successful. Error occurred while returning browse list: NT_STATUS_REVISION_MISMATCH. Reconnection with SMB1 for workgroup listing failed. Connection Error to 10.10.10.161: NT_STATUS_RESOURCE_NAME_NOT_FOUND. Failed to connect with SMB1, no workgroup available.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:forest:r8:1.6",
+      "label": "State 1.6\nRPC Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.6 RPC Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:forest:r8:1.6.1",
+      "label": "Action 1.6.1\nEnumerate Domain Users",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.6.1 Enumerate Domain Users [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:forest:r8:1.6.1",
+      "label": "Finding 1.6.1\nAdministrator, Guest, krbtgt,…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Administrator, Guest, krbtgt, DefaultAccount, $331000-VK4ADACQNUCA, SM_2c8eef0a09b545acb, SM_ca8c2ed5bdab4dc9b, SM_75a538d3025e4db9a, SM_681f53d4942840e18, SM_1b41c9286325456bb, SM_9b69f1b9d2cc45549, SM_7c96b981967141",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:forest:r8:2",
+      "label": "State 2\nExploitation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:forest:r8:2.1",
+      "label": "Action 2.1\nCrack the Hash",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Crack the Hash [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:forest:r8:2.1",
+      "label": "Finding 2.1\nThe Hashcat tool was used to …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "The Hashcat tool was used to crack the password hash for the user svc-alfresco. The command used was: `hashcat -m 18200 svc-alfresco.kerb /usr/share/wordlists/rockyou.txt --force`. The password for the svc-alfresco account was successfully cracked and is \"s3rvice\". This password can now be used for further penetration testing activities, such as attempting to gain unauthorized access or escalating privileges.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:forest:r8:2.2",
+      "label": "Action 2.2\nShell Access",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.2 Shell Access [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:forest:r8:2.2",
+      "label": "Finding 2.2\nShell access was successfully…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Shell access was successfully obtained on the target system using evil-WinRM tool. The WinRM service, running on port 5985, was the point of entry exploited by the tool. This shell access can now be used for further exploration, exploitation, and analysis of the target system.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:forest:r8:3",
+      "label": "State 3\nPost-Exploitation",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "3 Post-Exploitation [in_progress]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:forest:r8:3.1",
+      "label": "Action 3.1\nEnumerate the server for priv…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Enumerate the server for privilege escalation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:forest:r8:3.1",
+      "label": "Finding 3.1\nThe SharpHound tool was run t…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "The SharpHound tool was run to collect data for BloodHound, a tool used for visualizing Active Directory environment paths. A Python webserver was started in the Ingestors directory and loaded into the current session. The command used to invoke BloodHound was: `invoke-bloodhound -collectionmethod all -domain htb.local -ldapuser svc-alfresco -ldappass s3rvice`. The directory `C:\\Users\\svc-alfresco\\appdata\\local\\temp` contained the result file `20191018035650_BloodHound.zip`. After visualizing the results in BloodHound, a privilege escalation path was identified from the low-privilege user svc-alfresco to Domain Admin privileges in the domain HTB.LOCAL. The key path for privilege escalation is as follows: SVC-ALFRESCO@HTB.LOCAL (MemberOf) SERVICE ACCOUNTS@HTB.LOCAL (MemberOf) PRIVILEGED IT ACCOUNTS@HTB.LOCAL (MemberOf) ACCOUNT OPERATORS@HTB.LOCAL (GenericAll on) EXCHANGE WINDOWS PERMISSIONS@HTB.LOCAL (WriteDacl on) HTB.LOCAL (Domain Object) Contains ADMINISTRATOR@HTB.LOCAL (MemberOf) DOMAIN ADMINS@HTB.LOCAL. This path can be exploited for privilege escalation in further penetration testing activities.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:forest:r8:4",
+      "label": "State 4\nPrivilege Escalation",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "4 Privilege Escalation [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:forest:r8:START",
+      "to": "state:forest:r8:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:1",
+      "to": "state:forest:r8:1.1",
+      "label": "1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:1.1",
+      "to": "state:forest:r8:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:1.2",
+      "to": "state:forest:r8:1.3",
+      "label": "1.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:1.3",
+      "to": "action:forest:r8:1.3.1",
+      "label": "1.3.1 Perform a port sc…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:forest:r8:1.3.1",
+      "to": "finding:forest:r8:1.3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:forest:r8:1.3.1",
+      "to": "state:forest:r8:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:1.3",
+      "to": "state:forest:r8:1.3.2",
+      "label": "1.3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:1.3.2",
+      "to": "state:forest:r8:1.3.2.1",
+      "label": "1.3.2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:1.3.2.1",
+      "to": "state:forest:r8:1.4",
+      "label": "1.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:1.4",
+      "to": "state:forest:r8:1.4.1",
+      "label": "1.4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:1.4.1",
+      "to": "state:forest:r8:1.4.2",
+      "label": "1.4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:1.4.2",
+      "to": "state:forest:r8:1.5",
+      "label": "1.5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:1.5",
+      "to": "state:forest:r8:1.5.1",
+      "label": "1.5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:1.5.1",
+      "to": "state:forest:r8:1.5.2",
+      "label": "1.5.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:1.5.2",
+      "to": "state:forest:r8:1.6",
+      "label": "1.6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:1.6",
+      "to": "action:forest:r8:1.6.1",
+      "label": "1.6.1 Enumerate Domain …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:forest:r8:1.6.1",
+      "to": "finding:forest:r8:1.6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:forest:r8:1.6.1",
+      "to": "state:forest:r8:1.6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:1.6",
+      "to": "state:forest:r8:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:2",
+      "to": "action:forest:r8:2.1",
+      "label": "2.1 Crack the Hash",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:forest:r8:2.1",
+      "to": "finding:forest:r8:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:forest:r8:2.1",
+      "to": "state:forest:r8:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:2",
+      "to": "action:forest:r8:2.2",
+      "label": "2.2 Shell Access",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:forest:r8:2.2",
+      "to": "finding:forest:r8:2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:forest:r8:2.2",
+      "to": "state:forest:r8:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:2",
+      "to": "state:forest:r8:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:3",
+      "to": "action:forest:r8:3.1",
+      "label": "3.1 Enumerate the ser…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:forest:r8:3.1",
+      "to": "finding:forest:r8:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:forest:r8:3.1",
+      "to": "state:forest:r8:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:forest:r8:3",
+      "to": "state:forest:r8:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 27,
+    "total_edges": 31,
+    "state_nodes": 17,
+    "action_nodes": 5,
+    "finding_nodes": 5,
+    "ptt_items_parsed": 21
+  },
+  "csv_row_index": 247,
+  "source_csv": "training_data.csv"
+}

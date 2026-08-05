@@ -80,10 +80,10 @@ class GraphEncoder(nn.Module):
 
 
 class ContextTextProjector(nn.Module):
-    """Projects concatenated frozen sentence-embeddings of the 5 context
+    """Projects concatenated frozen sentence-embeddings of the context
     fields into the same space as the graph embedding."""
 
-    def __init__(self, n_fields=5, field_dim=TEXT_EMB_DIM, out_dim=GNN_OUT_DIM):
+    def __init__(self, n_fields=3, field_dim=TEXT_EMB_DIM, out_dim=GNN_OUT_DIM):
         super().__init__()
         self.proj = nn.Sequential(
             nn.Linear(n_fields * field_dim, FUSION_HIDDEN),

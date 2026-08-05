@@ -1,0 +1,849 @@
+{
+  "machine": "Watcher",
+  "row_index": 4,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Watcher:r4:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Watcher' (row 4).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Watcher:r4:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Watcher:r4:1.1",
+      "label": "Action 1.1\nNetwork and port scanning",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Network and port scanning [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Watcher:r4:1.1",
+      "label": "Finding 1.1\nFour open ports on 10.129.214…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Four open ports on 10.129.214.16 - Port 22 SSH OpenSSH 8.9p1, Port 80 HTTP Apache 2.4.52, Port 10050 Zabbix Agent, Port 10051 Zabbix Trapper",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Watcher:r4:1.2",
+      "label": "Action 1.2\nService enumeration",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Service enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Watcher:r4:1.2",
+      "label": "Finding 1.2\nHTTP service redirects to wat…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "HTTP service redirects to watcher.vl",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Watcher:r4:1.3",
+      "label": "Action 1.3\nSubdomain discovery",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3 Subdomain discovery [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Watcher:r4:1.3",
+      "label": "Finding 1.3\nSubdomain zabbix.watcher.vl d…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Subdomain zabbix.watcher.vl discovered using ffuf",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Watcher:r4:2",
+      "label": "State 2\nZabbix Analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Zabbix Analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Watcher:r4:2.1",
+      "label": "Action 2.1\nEnumerate Zabbix version",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Enumerate Zabbix version [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Watcher:r4:2.1",
+      "label": "Finding 2.1\nZabbix 7.0.0alpha1 identified",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Zabbix 7.0.0alpha1 identified",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Watcher:r4:2.2",
+      "label": "Action 2.2\nResearch Zabbix vulnerabiliti…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.2 Research Zabbix vulnerabilities [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Watcher:r4:2.2",
+      "label": "Finding 2.2\nCVE-2024-22120 - blind SQL in…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "CVE-2024-22120 - blind SQL injection in audit log where clientip field lacks sanitization, enables time-based exploitation and potential RCE",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Watcher:r4:3",
+      "label": "State 3\nZabbix Exploitation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Zabbix Exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Watcher:r4:3.1",
+      "label": "Action 3.1\nExtract admin session via SQL…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Extract admin session via SQL injection [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Watcher:r4:3.1",
+      "label": "Finding 3.1\nGuest session obtained, sessi…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Guest session obtained, session ID extracted from base64-encoded zbx_session cookie, host ID 10084 identified, blind SQL injection extracted admin session_key b9857bc76e26cf108766043dbf43544b and admin_sessionid e29cc8d946f1a3135fe7ceec60d0ff0d",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Watcher:r4:3.2",
+      "label": "State 3.2\nAchieve RCE as zabbix user",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3.2 Achieve RCE as zabbix user [completed]\nAdmin credentials used to execute reverse bash shell command, gained access as zabbix user UID 115",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Watcher:r4:4",
+      "label": "State 4\nDatabase Access and Credentia…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 Database Access and Credential Harvesting [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Watcher:r4:4.1",
+      "label": "Action 4.1\nExtract database credentials",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Extract database credentials [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Watcher:r4:4.1",
+      "label": "Finding 4.1\nDatabase credentials located …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Database credentials located in /usr/share/zabbix/conf/zabbix.conf.php - User: zabbix, Password: uIy@YyshSuyW%0_puSqA",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Watcher:r4:4.2",
+      "label": "Action 4.2\nManipulate database for privi…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.2 Manipulate database for privilege escalation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Watcher:r4:4.2",
+      "label": "Finding 4.2\nDirectly modified users table…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Directly modified users table to reset Admin password hash",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Watcher:r4:4.3",
+      "label": "State 4.3\nImplement credential logging",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4.3 Implement credential logging [completed]\nModified /usr/share/zabbix/index.php to log credentials to /dev/shm/0xdf.txt, captured Frank credentials - Username: Frank, Password: R%)3S7^Hf4TBobb(gVVs",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Watcher:r4:5",
+      "label": "State 5\nTeamCity Exploitation",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "5 TeamCity Exploitation [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Watcher:r4:5.1",
+      "label": "State 5.1\nEnumerate localhost services",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "5.1 Enumerate localhost services [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Watcher:r4:5.2",
+      "label": "State 5.2\nAccess TeamCity",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "5.2 Access TeamCity [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Watcher:r4:5.3",
+      "label": "State 5.3\nExploit CI/CD for root access",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "5.3 Exploit CI/CD for root access [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Watcher:r4:START",
+      "to": "state:Watcher:r4:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Watcher:r4:1",
+      "to": "action:Watcher:r4:1.1",
+      "label": "1.1 Network and port …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Watcher:r4:1.1",
+      "to": "finding:Watcher:r4:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Watcher:r4:1.1",
+      "to": "state:Watcher:r4:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Watcher:r4:1",
+      "to": "action:Watcher:r4:1.2",
+      "label": "1.2 Service enumerati…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Watcher:r4:1.2",
+      "to": "finding:Watcher:r4:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Watcher:r4:1.2",
+      "to": "state:Watcher:r4:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Watcher:r4:1",
+      "to": "action:Watcher:r4:1.3",
+      "label": "1.3 Subdomain discove…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Watcher:r4:1.3",
+      "to": "finding:Watcher:r4:1.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Watcher:r4:1.3",
+      "to": "state:Watcher:r4:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Watcher:r4:1",
+      "to": "state:Watcher:r4:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Watcher:r4:2",
+      "to": "action:Watcher:r4:2.1",
+      "label": "2.1 Enumerate Zabbix …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Watcher:r4:2.1",
+      "to": "finding:Watcher:r4:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Watcher:r4:2.1",
+      "to": "state:Watcher:r4:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Watcher:r4:2",
+      "to": "action:Watcher:r4:2.2",
+      "label": "2.2 Research Zabbix v…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Watcher:r4:2.2",
+      "to": "finding:Watcher:r4:2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Watcher:r4:2.2",
+      "to": "state:Watcher:r4:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Watcher:r4:2",
+      "to": "state:Watcher:r4:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Watcher:r4:3",
+      "to": "action:Watcher:r4:3.1",
+      "label": "3.1 Extract admin ses…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Watcher:r4:3.1",
+      "to": "finding:Watcher:r4:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Watcher:r4:3.1",
+      "to": "state:Watcher:r4:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Watcher:r4:3",
+      "to": "state:Watcher:r4:3.2",
+      "label": "3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Watcher:r4:3.2",
+      "to": "state:Watcher:r4:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Watcher:r4:4",
+      "to": "action:Watcher:r4:4.1",
+      "label": "4.1 Extract database …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Watcher:r4:4.1",
+      "to": "finding:Watcher:r4:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Watcher:r4:4.1",
+      "to": "state:Watcher:r4:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Watcher:r4:4",
+      "to": "action:Watcher:r4:4.2",
+      "label": "4.2 Manipulate databa…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Watcher:r4:4.2",
+      "to": "finding:Watcher:r4:4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Watcher:r4:4.2",
+      "to": "state:Watcher:r4:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Watcher:r4:4",
+      "to": "state:Watcher:r4:4.3",
+      "label": "4.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Watcher:r4:4.3",
+      "to": "state:Watcher:r4:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Watcher:r4:5",
+      "to": "state:Watcher:r4:5.1",
+      "label": "5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Watcher:r4:5.1",
+      "to": "state:Watcher:r4:5.2",
+      "label": "5.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Watcher:r4:5.2",
+      "to": "state:Watcher:r4:5.3",
+      "label": "5.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 27,
+    "total_edges": 34,
+    "state_nodes": 11,
+    "action_nodes": 8,
+    "finding_nodes": 8,
+    "ptt_items_parsed": 18
+  },
+  "csv_row_index": 1664,
+  "source_csv": "training_data.csv"
+}

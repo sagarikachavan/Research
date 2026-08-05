@@ -1,0 +1,636 @@
+{
+  "machine": "Fristileaks",
+  "row_index": 7,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Fristileaks:r7:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Fristileaks' (row 7).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Fristileaks:r7:1",
+      "label": "State 1\nNetwork Reconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Network Reconnaissance [completed]\nTarget IP: 192.168.1.110, Port 80 HTTP",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Fristileaks:r7:2",
+      "label": "State 2\nService Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Service Enumeration [completed]\n/fristi/ directory with login portal",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Fristileaks:r7:3",
+      "label": "State 3\nVulnerability Assessment",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Vulnerability Assessment [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Fristileaks:r7:3.1",
+      "label": "State 3.1\nSource Code Analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3.1 Source Code Analysis [completed]\nUsername, base64-encoded metadata",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Fristileaks:r7:3.2",
+      "label": "Action 3.2\nCredential Discovery",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.2 Credential Discovery [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Fristileaks:r7:3.2",
+      "label": "Finding 3.2\nPassword from image",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Password from image",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Fristileaks:r7:4",
+      "label": "State 4\nExploitation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 Exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Fristileaks:r7:4.1",
+      "label": "Action 4.1\nPHP Shell Upload",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 PHP Shell Upload [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Fristileaks:r7:4.1",
+      "label": "Finding 4.1\nReverse connection",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Reverse connection",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Fristileaks:r7:5",
+      "label": "State 5\nPost-Exploitation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 Post-Exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Fristileaks:r7:5.1",
+      "label": "Action 5.1\nFile System Enumeration",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.1 File System Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Fristileaks:r7:5.1",
+      "label": "Finding 5.1\nnotes.txt, cryptpass.py",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "notes.txt, cryptpass.py",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Fristileaks:r7:5.2",
+      "label": "Action 5.2\nCredential Discovery",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.2 Credential Discovery [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Fristileaks:r7:5.2",
+      "label": "Finding 5.2\nPassword: LetThereBeFristi!",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Password: LetThereBeFristi!",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Fristileaks:r7:6",
+      "label": "State 6\nPrivilege Escalation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "6 Privilege Escalation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Fristileaks:r7:6.1",
+      "label": "Action 6.1\nUser Escalation",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "6.1 User Escalation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Fristileaks:r7:6.1",
+      "label": "Finding 6.1\nSwitched to fristigod, bash_h…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Switched to fristigod, bash_history shows sudo command usage",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Fristileaks:r7:6.2",
+      "label": "Action 6.2\nSudo Exploitation",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "6.2 Sudo Exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Fristileaks:r7:6.2",
+      "label": "Finding 6.2\nRoot access via sudo command,…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Root access via sudo command, flag from /root/fristileafs_secrets.txt",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Fristileaks:r7:START",
+      "to": "state:Fristileaks:r7:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Fristileaks:r7:1",
+      "to": "state:Fristileaks:r7:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Fristileaks:r7:2",
+      "to": "state:Fristileaks:r7:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Fristileaks:r7:3",
+      "to": "state:Fristileaks:r7:3.1",
+      "label": "3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Fristileaks:r7:3.1",
+      "to": "action:Fristileaks:r7:3.2",
+      "label": "3.2 Credential Discov…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Fristileaks:r7:3.2",
+      "to": "finding:Fristileaks:r7:3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Fristileaks:r7:3.2",
+      "to": "state:Fristileaks:r7:3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Fristileaks:r7:3.1",
+      "to": "state:Fristileaks:r7:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Fristileaks:r7:4",
+      "to": "action:Fristileaks:r7:4.1",
+      "label": "4.1 PHP Shell Upload",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Fristileaks:r7:4.1",
+      "to": "finding:Fristileaks:r7:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Fristileaks:r7:4.1",
+      "to": "state:Fristileaks:r7:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Fristileaks:r7:4",
+      "to": "state:Fristileaks:r7:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Fristileaks:r7:5",
+      "to": "action:Fristileaks:r7:5.1",
+      "label": "5.1 File System Enume…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Fristileaks:r7:5.1",
+      "to": "finding:Fristileaks:r7:5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Fristileaks:r7:5.1",
+      "to": "state:Fristileaks:r7:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Fristileaks:r7:5",
+      "to": "action:Fristileaks:r7:5.2",
+      "label": "5.2 Credential Discov…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Fristileaks:r7:5.2",
+      "to": "finding:Fristileaks:r7:5.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Fristileaks:r7:5.2",
+      "to": "state:Fristileaks:r7:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Fristileaks:r7:5",
+      "to": "state:Fristileaks:r7:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Fristileaks:r7:6",
+      "to": "action:Fristileaks:r7:6.1",
+      "label": "6.1 User Escalation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Fristileaks:r7:6.1",
+      "to": "finding:Fristileaks:r7:6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Fristileaks:r7:6.1",
+      "to": "state:Fristileaks:r7:6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Fristileaks:r7:6",
+      "to": "action:Fristileaks:r7:6.2",
+      "label": "6.2 Sudo Exploitation",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Fristileaks:r7:6.2",
+      "to": "finding:Fristileaks:r7:6.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Fristileaks:r7:6.2",
+      "to": "state:Fristileaks:r7:6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 20,
+    "total_edges": 25,
+    "state_nodes": 8,
+    "action_nodes": 6,
+    "finding_nodes": 6,
+    "ptt_items_parsed": 13
+  },
+  "csv_row_index": 643,
+  "source_csv": "training_data.csv"
+}

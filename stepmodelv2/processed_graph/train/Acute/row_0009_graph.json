@@ -1,0 +1,240 @@
+{
+  "machine": "Acute",
+  "row_index": 9,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Acute:r9:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Acute' (row 9).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Acute:r9:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Acute:r9:2",
+      "label": "State 2\nInitial access",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Initial access [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Acute:r9:3",
+      "label": "State 3\nLateral movement",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Lateral movement [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Acute:r9:4",
+      "label": "State 4\nPowerShell remoting",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 PowerShell remoting [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Acute:r9:5",
+      "label": "State 5\nPrivilege escalation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 Privilege escalation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Acute:r9:6",
+      "label": "State 6\nDomain privilege escalation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "6 Domain privilege escalation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Acute:r9:7",
+      "label": "State 7\nAutomated privilege escalation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "7 Automated privilege escalation [completed]\nBatch file executed; awallace added to Site_Admin group granting Domain Admin privileges; user.txt and root.txt flags accessible",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Acute:r9:START",
+      "to": "state:Acute:r9:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Acute:r9:1",
+      "to": "state:Acute:r9:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Acute:r9:2",
+      "to": "state:Acute:r9:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Acute:r9:3",
+      "to": "state:Acute:r9:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Acute:r9:4",
+      "to": "state:Acute:r9:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Acute:r9:5",
+      "to": "state:Acute:r9:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Acute:r9:6",
+      "to": "state:Acute:r9:7",
+      "label": "7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 8,
+    "total_edges": 7,
+    "state_nodes": 8,
+    "action_nodes": 0,
+    "finding_nodes": 0,
+    "ptt_items_parsed": 7
+  },
+  "csv_row_index": 1392,
+  "source_csv": "training_data.csv"
+}

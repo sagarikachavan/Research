@@ -1,0 +1,834 @@
+{
+  "machine": "Slonik",
+  "row_index": 8,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Slonik:r8:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Slonik' (row 8).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Slonik:r8:1",
+      "label": "State 1\nNetwork Reconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Network Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Slonik:r8:1.1",
+      "label": "Action 1.1\nPerform initial port scan",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Perform initial port scan [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Slonik:r8:1.1",
+      "label": "Finding 1.1\nEight open TCP ports discover…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Eight open TCP ports discovered. SSH (22) - OpenSSH 8.9p1 Ubuntu 22.04 LTS, RPC (111) with related high ports, NFS (2049). Host runs Ubuntu 22.04 based on SSH version.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Slonik:r8:1.2",
+      "label": "Action 1.2\nIdentify running services",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Identify running services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Slonik:r8:1.2",
+      "label": "Finding 1.2\nSSH, RPC, NFS services identi…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "SSH, RPC, NFS services identified",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Slonik:r8:2",
+      "label": "State 2\nService Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Service Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Slonik:r8:2.1",
+      "label": "Action 2.1\nEnumerate NFS shares",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Enumerate NFS shares [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Slonik:r8:2.1",
+      "label": "Finding 2.1\nTwo NFS exports discovered: /…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Two NFS exports discovered: /home and /var/backups. Both have world-readable permissions with no_subtree_check enabled, allowing escape from share boundaries. Critical misconfiguration detected.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Slonik:r8:3",
+      "label": "State 3\nCredential Discovery",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Credential Discovery [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Slonik:r8:3.1",
+      "label": "Action 3.1\nAccess NFS shares and extract…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Access NFS shares and extract sensitive files [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Slonik:r8:3.1",
+      "label": "Finding 3.1\nRetrieved /etc/shadow file vi…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Retrieved /etc/shadow file via netexec containing yescrypt hashes for root and service account. Found .psql_history file with MD5 hash aaabf0d39951f3e6c3e8a7911df524c2. Discovered six PostgreSQL backup archives in /var/backups created every minute. Service account shell set to /bin/false.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Slonik:r8:3.2",
+      "label": "Action 3.2\nCrack password hashes",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.2 Crack password hashes [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Slonik:r8:3.2",
+      "label": "Finding 3.2\nJohn cracked service account …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "John cracked service account hash in under two minutes: service:service. Crackstation decoded MD5 hash to same password: service. Credentials confirmed: service:service",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Slonik:r8:4",
+      "label": "State 4\nInitial Access",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 Initial Access [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Slonik:r8:4.1",
+      "label": "Action 4.1\nEstablish SSH connection to s…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Establish SSH connection to service account [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Slonik:r8:4.1",
+      "label": "Finding 4.1\nDirect SSH login fails due to…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Direct SSH login fails due to /bin/false shell. SSH port forwarding to Unix socket successful using: sshpass -p service ssh -N -L 5432:/var/run/postgresql/.s.PGSQL.5432 service@target. Local port 5432 now tunnels to PostgreSQL Unix socket.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Slonik:r8:5",
+      "label": "State 5\nDatabase Exploitation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 Database Exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Slonik:r8:5.1",
+      "label": "Action 5.1\nConnect to PostgreSQL and enu…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.1 Connect to PostgreSQL and enumerate privileges [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Slonik:r8:5.1",
+      "label": "Finding 5.1\nConnected as postgres superus…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Connected as postgres superuser via tunneled connection. COPY FROM PROGRAM command available for executing system commands. Can write files using COPY TO PROGRAM.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Slonik:r8:5.2",
+      "label": "Action 5.2\nEstablish shell access via Po…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.2 Establish shell access via PostgreSQL [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Slonik:r8:5.2",
+      "label": "Finding 5.2\nSSH authorized_keys created s…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "SSH authorized_keys created successfully. Direct SSH access as postgres user achieved. User flag located at /var/lib/postgresql/user.txt instead of standard location.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Slonik:r8:6",
+      "label": "State 6\nPrivilege Escalation",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "6 Privilege Escalation [in_progress]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Slonik:r8:6.1",
+      "label": "Action 6.1\nEnumerate system for privileg…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "6.1 Enumerate system for privilege escalation vectors [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Slonik:r8:6.1",
+      "label": "Finding 6.1\nProcess monitoring reveals ro…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Process monitoring reveals root-owned cron job executing /usr/bin/backup every minute. Script calls pg_basebackup to backup PostgreSQL data to /opt/backups/current/, then zips the directory. Postgres user has write access to /var/lib/postgresql/14/main/.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Slonik:r8:6.2",
+      "label": "State 6.2\nExploit backup process for pr…",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "6.2 Exploit backup process for privilege escalation [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Slonik:r8:START",
+      "to": "state:Slonik:r8:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Slonik:r8:1",
+      "to": "action:Slonik:r8:1.1",
+      "label": "1.1 Perform initial p…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Slonik:r8:1.1",
+      "to": "finding:Slonik:r8:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Slonik:r8:1.1",
+      "to": "state:Slonik:r8:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Slonik:r8:1",
+      "to": "action:Slonik:r8:1.2",
+      "label": "1.2 Identify running …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Slonik:r8:1.2",
+      "to": "finding:Slonik:r8:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Slonik:r8:1.2",
+      "to": "state:Slonik:r8:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Slonik:r8:1",
+      "to": "state:Slonik:r8:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Slonik:r8:2",
+      "to": "action:Slonik:r8:2.1",
+      "label": "2.1 Enumerate NFS sha…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Slonik:r8:2.1",
+      "to": "finding:Slonik:r8:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Slonik:r8:2.1",
+      "to": "state:Slonik:r8:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Slonik:r8:2",
+      "to": "state:Slonik:r8:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Slonik:r8:3",
+      "to": "action:Slonik:r8:3.1",
+      "label": "3.1 Access NFS shares…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Slonik:r8:3.1",
+      "to": "finding:Slonik:r8:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Slonik:r8:3.1",
+      "to": "state:Slonik:r8:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Slonik:r8:3",
+      "to": "action:Slonik:r8:3.2",
+      "label": "3.2 Crack password ha…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Slonik:r8:3.2",
+      "to": "finding:Slonik:r8:3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Slonik:r8:3.2",
+      "to": "state:Slonik:r8:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Slonik:r8:3",
+      "to": "state:Slonik:r8:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Slonik:r8:4",
+      "to": "action:Slonik:r8:4.1",
+      "label": "4.1 Establish SSH con…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Slonik:r8:4.1",
+      "to": "finding:Slonik:r8:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Slonik:r8:4.1",
+      "to": "state:Slonik:r8:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Slonik:r8:4",
+      "to": "state:Slonik:r8:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Slonik:r8:5",
+      "to": "action:Slonik:r8:5.1",
+      "label": "5.1 Connect to Postgr…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Slonik:r8:5.1",
+      "to": "finding:Slonik:r8:5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Slonik:r8:5.1",
+      "to": "state:Slonik:r8:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Slonik:r8:5",
+      "to": "action:Slonik:r8:5.2",
+      "label": "5.2 Establish shell a…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Slonik:r8:5.2",
+      "to": "finding:Slonik:r8:5.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Slonik:r8:5.2",
+      "to": "state:Slonik:r8:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Slonik:r8:5",
+      "to": "state:Slonik:r8:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Slonik:r8:6",
+      "to": "action:Slonik:r8:6.1",
+      "label": "6.1 Enumerate system …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Slonik:r8:6.1",
+      "to": "finding:Slonik:r8:6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Slonik:r8:6.1",
+      "to": "state:Slonik:r8:6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Slonik:r8:6",
+      "to": "state:Slonik:r8:6.2",
+      "label": "6.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 26,
+    "total_edges": 34,
+    "state_nodes": 8,
+    "action_nodes": 9,
+    "finding_nodes": 9,
+    "ptt_items_parsed": 16
+  },
+  "csv_row_index": 915,
+  "source_csv": "training_data.csv"
+}

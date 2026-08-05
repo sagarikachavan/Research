@@ -1,0 +1,483 @@
+{
+  "machine": "jarvis",
+  "row_index": 2,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:jarvis:r2:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'jarvis' (row 2).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r2:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "1 Reconnaissance [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r2:1.1",
+      "label": "State 1.1\nPassive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.1 Passive Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r2:1.2",
+      "label": "State 1.2\nActive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.2 Active Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r2:1.3",
+      "label": "State 1.3\nIdentify Open Ports, Services…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3 Identify Open Ports, Services running on the open ports and their versions [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r2:1.3.1",
+      "label": "State 1.3.1\nPerform a port scan - {Host S…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3.1 Perform a port scan - {Host Status: Up (0.15s latency)} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r2:1.3.2",
+      "label": "State 1.3.2\nDetermine the services and ve…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3.2 Determine the services and versions on each open port - {Port 22/tcp: State: Open, Service: SSH, Version: OpenSSH 7.4p1 Debian 10+deb9u6, Protocol: 2.0; Port 80/tcp: State: Open, Service: HTTP, Version: Apache httpd 2.4.25 (Debian), HTTP Cookie Flags: Path: /, PHPSESSID: httponly flag not set, Server Header: Apache/2.4.25 (Debian), Page Title: Stark Hotel; Port 64999/tcp: State: Open, Service: HTTP, Version: Apache httpd 2.4.25 (Debian), Server Header: Apache/2.4.25 (Debian), Page Title: Site doesn't have a title (text/html)} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r2:1.4",
+      "label": "State 1.4\nTarget IP - 10.10.10.143",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.4 Target IP - 10.10.10.143 [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r2:1.5",
+      "label": "State 1.5\nWebpage Analysis on Apache Se…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.5 Webpage Analysis on Apache Server (Port 80) - \"Stark Hotel\" [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r2:1.5.1",
+      "label": "State 1.5.1\nWebpage Title - Stark Hotel",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.5.1 Webpage Title - Stark Hotel [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r2:1.5.2",
+      "label": "State 1.5.2\nNotable Feature - Login optio…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.5.2 Notable Feature - Login option available [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r2:1.5.3",
+      "label": "State 1.5.3\nVirtual Host (vhost) - supers…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.5.3 Virtual Host (vhost) - supersecurehotel.htb (requires addition to the hosts file for proper resolution) [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r2:1.5.4",
+      "label": "State 1.5.4\nWebpage Security Note - {Obse…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.5.4 Webpage Security Note - {Observation: The webpage titled \"Stark Hotel\" is noted to be hardened; Outcome: Attempts to interact or scan the page resulted in the same outcomes as previously noted, indicating robust security measures are in effect} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r2:1.6",
+      "label": "State 1.6\nGobuster Scanning Outcome",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.6 Gobuster Scanning Outcome [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r2:1.6.1",
+      "label": "State 1.6.1\nAction - Running Gobuster to …",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.6.1 Action - Running Gobuster to scan the server [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r2:1.6.2",
+      "label": "State 1.6.2\nResult - Received a ban messa…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.6.2 Result - Received a ban message stating, \"Hey you have been banned for 90 seconds, don't be bad.\" [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r2:1.6.3",
+      "label": "State 1.6.3\nImplication - The server has …",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.6.3 Implication - The server has active measures to prevent automated scanning tools, complicating further scanning activities [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:jarvis:r2:START",
+      "to": "state:jarvis:r2:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r2:1",
+      "to": "state:jarvis:r2:1.1",
+      "label": "1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r2:1.1",
+      "to": "state:jarvis:r2:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r2:1.2",
+      "to": "state:jarvis:r2:1.3",
+      "label": "1.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r2:1.3",
+      "to": "state:jarvis:r2:1.3.1",
+      "label": "1.3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r2:1.3.1",
+      "to": "state:jarvis:r2:1.3.2",
+      "label": "1.3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r2:1.3.2",
+      "to": "state:jarvis:r2:1.4",
+      "label": "1.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r2:1.4",
+      "to": "state:jarvis:r2:1.5",
+      "label": "1.5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r2:1.5",
+      "to": "state:jarvis:r2:1.5.1",
+      "label": "1.5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r2:1.5.1",
+      "to": "state:jarvis:r2:1.5.2",
+      "label": "1.5.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r2:1.5.2",
+      "to": "state:jarvis:r2:1.5.3",
+      "label": "1.5.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r2:1.5.3",
+      "to": "state:jarvis:r2:1.5.4",
+      "label": "1.5.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r2:1.5.4",
+      "to": "state:jarvis:r2:1.6",
+      "label": "1.6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r2:1.6",
+      "to": "state:jarvis:r2:1.6.1",
+      "label": "1.6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r2:1.6.1",
+      "to": "state:jarvis:r2:1.6.2",
+      "label": "1.6.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r2:1.6.2",
+      "to": "state:jarvis:r2:1.6.3",
+      "label": "1.6.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 17,
+    "total_edges": 16,
+    "state_nodes": 17,
+    "action_nodes": 0,
+    "finding_nodes": 0,
+    "ptt_items_parsed": 16
+  },
+  "csv_row_index": 46,
+  "source_csv": "test_data.csv"
+}

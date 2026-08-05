@@ -79,13 +79,19 @@ Total edges: {len(edges)}
 Recent states:
 {recent_states_text}"""
 
-    return f"""Machine: {example['machine']}
+    # Access context fields from the nested context dict
+    context = example.get("context", {})
+    machine = context.get("machine", "Unknown")
+    candidate_step = context.get("candidate_step", "N/A")
+    candidate_step_explanation = context.get("candidate_step_explanation", "N/A")
+
+    return f"""Machine: {machine}
 
 Current penetration test state:
 {graph_summary}
 
-Heuristic suggestion: {example.get('candidate_step', 'N/A')}
-Heuristic reasoning: {example.get('candidate_step_explanation', 'N/A')}
+Heuristic suggestion: {candidate_step}
+Heuristic reasoning: {candidate_step_explanation}
 
 TASK: Predict the next penetration testing step.
 

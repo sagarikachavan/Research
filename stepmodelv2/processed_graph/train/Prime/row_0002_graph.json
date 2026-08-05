@@ -1,0 +1,384 @@
+{
+  "machine": "Prime",
+  "row_index": 2,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Prime:r2:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Prime' (row 2).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Prime:r2:1",
+      "label": "State 1\nReconnaissance and Network Sc…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance and Network Scanning [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Prime:r2:1.1",
+      "label": "Action 1.1\nIdentify target IP address",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Identify target IP address [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Prime:r2:1.1",
+      "label": "Finding 1.1\nTarget IP: 192.168.1.101",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Target IP: 192.168.1.101",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Prime:r2:1.2",
+      "label": "Action 1.2\nPerform comprehensive port sc…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Perform comprehensive port scan [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Prime:r2:1.2",
+      "label": "Finding 1.2\nPort 22 SSH service open, Por…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Port 22 SSH service open, Port 80 HTTP service open",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Prime:r2:2",
+      "label": "State 2\nService Enumeration",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "2 Service Enumeration [in_progress]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Prime:r2:2.1",
+      "label": "Action 2.1\nEnumerate HTTP service on por…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Enumerate HTTP service on port 80 [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Prime:r2:2.1",
+      "label": "Finding 2.1\n/dev directory found (unhelpf…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "/dev directory found (unhelpful), /wordpress directory found with active WordPress installation, potential admin username Victor",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Prime:r2:2.2",
+      "label": "State 2.2\nEnumerate for text files",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "2.2 Enumerate for text files [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Prime:r2:3",
+      "label": "State 3\nExploitation",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "3 Exploitation [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Prime:r2:4",
+      "label": "State 4\nPrivilege Escalation",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "4 Privilege Escalation [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Prime:r2:START",
+      "to": "state:Prime:r2:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Prime:r2:1",
+      "to": "action:Prime:r2:1.1",
+      "label": "1.1 Identify target I…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Prime:r2:1.1",
+      "to": "finding:Prime:r2:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Prime:r2:1.1",
+      "to": "state:Prime:r2:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Prime:r2:1",
+      "to": "action:Prime:r2:1.2",
+      "label": "1.2 Perform comprehen…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Prime:r2:1.2",
+      "to": "finding:Prime:r2:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Prime:r2:1.2",
+      "to": "state:Prime:r2:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Prime:r2:1",
+      "to": "state:Prime:r2:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Prime:r2:2",
+      "to": "action:Prime:r2:2.1",
+      "label": "2.1 Enumerate HTTP se…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Prime:r2:2.1",
+      "to": "finding:Prime:r2:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Prime:r2:2.1",
+      "to": "state:Prime:r2:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Prime:r2:2",
+      "to": "state:Prime:r2:2.2",
+      "label": "2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Prime:r2:2.2",
+      "to": "state:Prime:r2:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Prime:r2:3",
+      "to": "state:Prime:r2:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 12,
+    "total_edges": 14,
+    "state_nodes": 6,
+    "action_nodes": 3,
+    "finding_nodes": 3,
+    "ptt_items_parsed": 8
+  },
+  "csv_row_index": 1668,
+  "source_csv": "training_data.csv"
+}

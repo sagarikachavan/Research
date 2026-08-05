@@ -1,0 +1,861 @@
+{
+  "machine": "Signed",
+  "row_index": 9,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Signed:r9:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Signed' (row 9).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Signed:r9:1",
+      "label": "State 1\nNetwork Reconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Network Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Signed:r9:1.1",
+      "label": "Action 1.1\nPerform initial port scan",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Perform initial port scan [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Signed:r9:1.1",
+      "label": "Finding 1.1\nOnly TCP port 1433 open on ta…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Only TCP port 1433 open on target. Port 1433 running Microsoft SQL Server 2022 (RTM) - 16.0.1000.6 (X64). No other TCP or UDP ports accessible. Strict firewall rules limiting inbound access.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Signed:r9:1.2",
+      "label": "Action 1.2\nIdentify running services",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Identify running services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Signed:r9:1.2",
+      "label": "Finding 1.2\nMicrosoft SQL Server 2022 on …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Microsoft SQL Server 2022 on port 1433",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Signed:r9:2",
+      "label": "State 2\nService Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Service Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Signed:r9:2.1",
+      "label": "Action 2.1\nAttempt MSSQL authentication",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Attempt MSSQL authentication [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Signed:r9:2.1",
+      "label": "Finding 2.1\nSuccessfully authenticated as…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Successfully authenticated as user scott. User scott has limited permissions - no sysadmin role. xp_cmdshell disabled. Cannot enable xp_cmdshell without sysadmin privileges. Service account running MSSQL: mssqlsvc. Domain environment detected: signed.htb with domain SID S-1-5-21-4088429403-1159899800-2753317549.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Signed:r9:3",
+      "label": "State 3\nVulnerability Analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Vulnerability Analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Signed:r9:3.1",
+      "label": "Action 3.1\nResearch MSSQL privilege esca…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Research MSSQL privilege escalation techniques [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Signed:r9:3.1",
+      "label": "Finding 3.1\nxp_dirtree stored procedure c…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "xp_dirtree stored procedure can coerce MSSQL service to authenticate to attacker-controlled SMB share. This captures NetNTLMv2 hash of service account. Captured hash can be cracked offline or used for silver ticket attacks. Silver tickets forge Kerberos TGS tickets with arbitrary group memberships to escalate privileges.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Signed:r9:4",
+      "label": "State 4\nInitial Access",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 Initial Access [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Signed:r9:4.1",
+      "label": "Action 4.1\nCapture mssqlsvc NetNTLMv2 ha…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Capture mssqlsvc NetNTLMv2 hash [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Signed:r9:4.1",
+      "label": "Finding 4.1\nNetNTLMv2 hash captured for S…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "NetNTLMv2 hash captured for SIGNED\\mssqlsvc account via SMB coercion. Hash format: mssqlsvc::SIGNED:1122334455667788:hash_data. Hash ready for offline cracking.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Signed:r9:5",
+      "label": "State 5\nPrivilege Escalation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 Privilege Escalation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Signed:r9:5.1",
+      "label": "Action 5.1\nCrack captured NetNTLMv2 hash",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.1 Crack captured NetNTLMv2 hash [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Signed:r9:5.1",
+      "label": "Finding 5.1\nHash cracked successfully. Pa…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Hash cracked successfully. Password: purPLE9795!@. NTLM hash derived: <ntlm_hash_value>. Credentials: mssqlsvc:purPLE9795!@",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Signed:r9:5.2",
+      "label": "State 5.2\nForge Kerberos silver ticket",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5.2 Forge Kerberos silver ticket [completed]\nSilver ticket forged for MSSQLSvc/dc.signed.htb with IT group (RID 1105) membership. Authenticated to MSSQL with sysadmin privileges. xp_cmdshell now accessible. Can execute system commands as mssqlsvc service account.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Signed:r9:5.3",
+      "label": "Action 5.3\nEnumerate system via xp_cmdsh…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.3 Enumerate system via xp_cmdshell [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Signed:r9:5.3",
+      "label": "Finding 5.3\nRunning as SIGNED\\mssqlsvc. S…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Running as SIGNED\\mssqlsvc. SeImpersonatePrivilege DISABLED (hardening measure). WinRM configured for HTTPS only on port 5986. Administrator PowerShell history accessible via OPENROWSET BULK. mssqlsvc has permissions to create DNS records in domain.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Signed:r9:6",
+      "label": "State 6\nAdvanced Privilege Escalation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "6 Advanced Privilege Escalation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Signed:r9:6.1",
+      "label": "Action 6.1\nRead Administrator PowerShell…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "6.1 Read Administrator PowerShell history [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Signed:r9:6.1",
+      "label": "Finding 6.1\nAdministrator password discov…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Administrator password discovered in PowerShell history: Th1s889Rabb!t. Credentials: Administrator:Th1s889Rabb!t",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Signed:r9:7",
+      "label": "State 7\nDomain Administrator Access",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "7 Domain Administrator Access [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Signed:r9:7.1",
+      "label": "Action 7.1\nAuthenticate as Administrator…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "7.1 Authenticate as Administrator via WinRM [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Signed:r9:7.1",
+      "label": "Finding 7.1\nSuccessfully authenticated as…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Successfully authenticated as SIGNED\\Administrator via WinRM. Full domain administrator privileges achieved. Complete control over domain controller and domain environment.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Signed:r9:START",
+      "to": "state:Signed:r9:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Signed:r9:1",
+      "to": "action:Signed:r9:1.1",
+      "label": "1.1 Perform initial p…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Signed:r9:1.1",
+      "to": "finding:Signed:r9:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Signed:r9:1.1",
+      "to": "state:Signed:r9:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Signed:r9:1",
+      "to": "action:Signed:r9:1.2",
+      "label": "1.2 Identify running …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Signed:r9:1.2",
+      "to": "finding:Signed:r9:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Signed:r9:1.2",
+      "to": "state:Signed:r9:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Signed:r9:1",
+      "to": "state:Signed:r9:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Signed:r9:2",
+      "to": "action:Signed:r9:2.1",
+      "label": "2.1 Attempt MSSQL aut…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Signed:r9:2.1",
+      "to": "finding:Signed:r9:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Signed:r9:2.1",
+      "to": "state:Signed:r9:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Signed:r9:2",
+      "to": "state:Signed:r9:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Signed:r9:3",
+      "to": "action:Signed:r9:3.1",
+      "label": "3.1 Research MSSQL pr…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Signed:r9:3.1",
+      "to": "finding:Signed:r9:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Signed:r9:3.1",
+      "to": "state:Signed:r9:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Signed:r9:3",
+      "to": "state:Signed:r9:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Signed:r9:4",
+      "to": "action:Signed:r9:4.1",
+      "label": "4.1 Capture mssqlsvc …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Signed:r9:4.1",
+      "to": "finding:Signed:r9:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Signed:r9:4.1",
+      "to": "state:Signed:r9:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Signed:r9:4",
+      "to": "state:Signed:r9:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Signed:r9:5",
+      "to": "action:Signed:r9:5.1",
+      "label": "5.1 Crack captured Ne…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Signed:r9:5.1",
+      "to": "finding:Signed:r9:5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Signed:r9:5.1",
+      "to": "state:Signed:r9:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Signed:r9:5",
+      "to": "state:Signed:r9:5.2",
+      "label": "5.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Signed:r9:5.2",
+      "to": "action:Signed:r9:5.3",
+      "label": "5.3 Enumerate system …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Signed:r9:5.3",
+      "to": "finding:Signed:r9:5.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Signed:r9:5.3",
+      "to": "state:Signed:r9:5.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Signed:r9:5.2",
+      "to": "state:Signed:r9:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Signed:r9:6",
+      "to": "action:Signed:r9:6.1",
+      "label": "6.1 Read Administrato…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Signed:r9:6.1",
+      "to": "finding:Signed:r9:6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Signed:r9:6.1",
+      "to": "state:Signed:r9:6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Signed:r9:6",
+      "to": "state:Signed:r9:7",
+      "label": "7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Signed:r9:7",
+      "to": "action:Signed:r9:7.1",
+      "label": "7.1 Authenticate as A…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Signed:r9:7.1",
+      "to": "finding:Signed:r9:7.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Signed:r9:7.1",
+      "to": "state:Signed:r9:7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 27,
+    "total_edges": 35,
+    "state_nodes": 9,
+    "action_nodes": 9,
+    "finding_nodes": 9,
+    "ptt_items_parsed": 17
+  },
+  "csv_row_index": 938,
+  "source_csv": "training_data.csv"
+}

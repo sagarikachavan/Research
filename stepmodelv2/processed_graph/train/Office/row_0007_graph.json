@@ -1,0 +1,159 @@
+{
+  "machine": "Office",
+  "row_index": 7,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Office:r7:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Office' (row 7).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Office:r7:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Office:r7:2",
+      "label": "State 2\nInitial access",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Initial access [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Office:r7:3",
+      "label": "State 3\nLateral movement",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Lateral movement [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Office:r7:4",
+      "label": "State 4\nPrivilege escalation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 Privilege escalation [completed]\nhhogan member of GPO Managers with write on Default Domain Controllers Policy; Used PowerSploit New-GPOImmediateTask: New-GPOImmediateTask -TaskName evilTask -Command cmd -CommandArguments /c net localgroup administrators hhogan /add -GPODisplayName Default Domain Controllers Policy; Forced policy update: gpupdate /force; Re-authenticated as hhogan; hhogan became local administrator on domain controller; User flag: 987a1cde940109566a0e0bbfef2c0200; Root flag: 1c9a3b48c10961b6b56dbd0f672bd830",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Office:r7:START",
+      "to": "state:Office:r7:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office:r7:1",
+      "to": "state:Office:r7:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office:r7:2",
+      "to": "state:Office:r7:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office:r7:3",
+      "to": "state:Office:r7:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 5,
+    "total_edges": 4,
+    "state_nodes": 5,
+    "action_nodes": 0,
+    "finding_nodes": 0,
+    "ptt_items_parsed": 4
+  },
+  "csv_row_index": 1275,
+  "source_csv": "training_data.csv"
+}

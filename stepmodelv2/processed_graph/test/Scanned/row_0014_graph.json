@@ -1,0 +1,876 @@
+{
+  "machine": "Scanned",
+  "row_index": 14,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Scanned:r14:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Scanned' (row 14).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Scanned:r14:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Scanned:r14:1.1",
+      "label": "Action 1.1\nNetwork scanning",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Network scanning [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Scanned:r14:1.1",
+      "label": "Finding 1.1\nSSH and HTTP",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "SSH and HTTP",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Scanned:r14:2",
+      "label": "State 2\nWeb Application Analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Web Application Analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Scanned:r14:2.1",
+      "label": "Action 2.1\nExplore HTTP service",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Explore HTTP service [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Scanned:r14:2.1",
+      "label": "Finding 2.1\nMalScanner",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "MalScanner",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Scanned:r14:3",
+      "label": "State 3\nSource Code Analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Source Code Analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Scanned:r14:3.1",
+      "label": "Action 3.1\nAnalyze source code",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Analyze source code [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Scanned:r14:3.1",
+      "label": "Finding 3.1\nFile descriptor leak",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "File descriptor leak",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Scanned:r14:4",
+      "label": "State 4\nVulnerability Assessment",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 Vulnerability Assessment [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Scanned:r14:4.1",
+      "label": "Action 4.1\nResearch exploitation",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Research exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Scanned:r14:4.1",
+      "label": "Finding 4.1\nChroot escape",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Chroot escape",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Scanned:r14:5",
+      "label": "State 5\nExploitation Strategy",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 Exploitation Strategy [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Scanned:r14:5.1",
+      "label": "Action 5.1\nExecute file read",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.1 Execute file read [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Scanned:r14:5.1",
+      "label": "Finding 5.1\nHash extracted",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Hash extracted",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Scanned:r14:6",
+      "label": "State 6\nCredential Cracking",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "6 Credential Cracking [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Scanned:r14:6.1",
+      "label": "Action 6.1\nCrack hash",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "6.1 Crack hash [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Scanned:r14:6.1",
+      "label": "Finding 6.1\nSSH as clarence",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "SSH as clarence",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Scanned:r14:7",
+      "label": "State 7\nPrivilege Escalation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "7 Privilege Escalation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Scanned:r14:7.1",
+      "label": "Action 7.1\nEnumerate privileges",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "7.1 Enumerate privileges [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Scanned:r14:7.1",
+      "label": "Finding 7.1\nSandbox exploitable for prive…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Sandbox exploitable for privesc",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Scanned:r14:8",
+      "label": "State 8\nRoot Exploitation Strategy",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "8 Root Exploitation Strategy [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Scanned:r14:8.1",
+      "label": "Action 8.1\nResearch library injection",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "8.1 Research library injection [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Scanned:r14:8.1",
+      "label": "Finding 8.1\nTwo-stage exploit possible - …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Two-stage exploit possible - Stage 1: binary sleeps 3 seconds then calls SetUID /usr/bin/su via /proc/1/fd/3/, Stage 2: malicious shared object replaces libpam_misc.so.0 in jail with constructor function that executes during library loading, changes /tmp/0xdf permissions to SetUID mode 4777",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Scanned:r14:9",
+      "label": "State 9\nRoot Exploitation Execution",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "9 Root Exploitation Execution [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Scanned:r14:9.1",
+      "label": "State 9.1\nCreate exploit binaries",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "9.1 Create exploit binaries [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Scanned:r14:9.2",
+      "label": "State 9.2\nExecute privilege escalation",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "9.2 Execute privilege escalation [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Scanned:r14:START",
+      "to": "state:Scanned:r14:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:1",
+      "to": "action:Scanned:r14:1.1",
+      "label": "1.1 Network scanning",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Scanned:r14:1.1",
+      "to": "finding:Scanned:r14:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Scanned:r14:1.1",
+      "to": "state:Scanned:r14:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:1",
+      "to": "state:Scanned:r14:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:2",
+      "to": "action:Scanned:r14:2.1",
+      "label": "2.1 Explore HTTP serv…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Scanned:r14:2.1",
+      "to": "finding:Scanned:r14:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Scanned:r14:2.1",
+      "to": "state:Scanned:r14:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:2",
+      "to": "state:Scanned:r14:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:3",
+      "to": "action:Scanned:r14:3.1",
+      "label": "3.1 Analyze source co…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Scanned:r14:3.1",
+      "to": "finding:Scanned:r14:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Scanned:r14:3.1",
+      "to": "state:Scanned:r14:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:3",
+      "to": "state:Scanned:r14:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:4",
+      "to": "action:Scanned:r14:4.1",
+      "label": "4.1 Research exploita…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Scanned:r14:4.1",
+      "to": "finding:Scanned:r14:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Scanned:r14:4.1",
+      "to": "state:Scanned:r14:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:4",
+      "to": "state:Scanned:r14:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:5",
+      "to": "action:Scanned:r14:5.1",
+      "label": "5.1 Execute file read",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Scanned:r14:5.1",
+      "to": "finding:Scanned:r14:5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Scanned:r14:5.1",
+      "to": "state:Scanned:r14:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:5",
+      "to": "state:Scanned:r14:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:6",
+      "to": "action:Scanned:r14:6.1",
+      "label": "6.1 Crack hash",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Scanned:r14:6.1",
+      "to": "finding:Scanned:r14:6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Scanned:r14:6.1",
+      "to": "state:Scanned:r14:6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:6",
+      "to": "state:Scanned:r14:7",
+      "label": "7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:7",
+      "to": "action:Scanned:r14:7.1",
+      "label": "7.1 Enumerate privile…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Scanned:r14:7.1",
+      "to": "finding:Scanned:r14:7.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Scanned:r14:7.1",
+      "to": "state:Scanned:r14:7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:7",
+      "to": "state:Scanned:r14:8",
+      "label": "8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:8",
+      "to": "action:Scanned:r14:8.1",
+      "label": "8.1 Research library …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Scanned:r14:8.1",
+      "to": "finding:Scanned:r14:8.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Scanned:r14:8.1",
+      "to": "state:Scanned:r14:8",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:8",
+      "to": "state:Scanned:r14:9",
+      "label": "9",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:9",
+      "to": "state:Scanned:r14:9.1",
+      "label": "9.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Scanned:r14:9.1",
+      "to": "state:Scanned:r14:9.2",
+      "label": "9.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 28,
+    "total_edges": 35,
+    "state_nodes": 12,
+    "action_nodes": 8,
+    "finding_nodes": 8,
+    "ptt_items_parsed": 19
+  },
+  "csv_row_index": 143,
+  "source_csv": "test_data.csv"
+}

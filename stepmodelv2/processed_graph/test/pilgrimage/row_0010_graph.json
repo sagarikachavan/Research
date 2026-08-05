@@ -1,0 +1,951 @@
+{
+  "machine": "pilgrimage",
+  "row_index": 10,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:pilgrimage:r10:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'pilgrimage' (row 10).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:pilgrimage:r10:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]\nTarget IP:10.129.237.31",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:pilgrimage:r10:1.1",
+      "label": "State 1.1\nPassive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.1 Passive Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:pilgrimage:r10:1.2",
+      "label": "State 1.2\nActive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.2 Active Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:pilgrimage:r10:1.3",
+      "label": "State 1.3\nIdentify Open Ports, Services…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3 Identify Open Ports, Services running on the open ports and their versions [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:pilgrimage:r10:1.3.1",
+      "label": "Action 1.3.1\nPerform a port scan",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.1 Perform a port scan [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:pilgrimage:r10:1.3.1",
+      "label": "Finding 1.3.1\nHost Status: Up, Latency: 0.9…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Host Status: Up, Latency: 0.95s, Closed TCP Ports: 998, Open Ports: 22, 80",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:pilgrimage:r10:1.3.2",
+      "label": "Action 1.3.2\nDetermine the services and ve…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.2 Determine the services and versions on each open port [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:pilgrimage:r10:1.3.2",
+      "label": "Finding 1.3.2\nPort 22: Open, Service: SSH, …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Port 22: Open, Service: SSH, Version: OpenSSH 8.4p1 Debian 5+deb11u1 (protocol 2.0), SSH-Hostkey: RSA: 3072 20:be:60:d2:95:f6:28:c1:b7:e9:e8:17:06:f1:68:f3, ECDSA: 256 0e:b6:a6:a8:c9:9b:41:73:74:6e:70:18:0d:5f:e0:af, ED25519: 256 d1:4e:29:3c:70:86:69:b4:d7:2c:c8:0b:48:6e:98:04, Port 80: Open, Service: HTTP, Version: nginx 1.18.0, HTTP Title: Did not follow redirect to http://pilgrimage.htb/, HTTP Server Header: nginx/1.18.0, Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:pilgrimage:r10:1.4",
+      "label": "Action 1.4\nEnumerate HTTP service",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.4 Enumerate HTTP service [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:pilgrimage:r10:1.4",
+      "label": "Finding 1.4\nWebpage contains an image shr…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Webpage contains an image shrinker feature, Feroxbuster tool used for directory and file enumeration, Found 46 paths with 0 errors, Significant paths found: http://pilgrimage.htb/.git/, http://pilgrimage.htb/.git/logs/, http://pilgrimage.htb/assets/, http://pilgrimage.htb/assets/css/, http://pilgrimage.htb/assets/images/, http://pilgrimage.htb/assets/js/, http://pilgrimage.htb/tmp/, http://pilgrimage.htb/vendor/, http://pilgrimage.htb/vendor/jquery/",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:pilgrimage:r10:1.5",
+      "label": "Action 1.5\nDump and analyze Git reposito…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.5 Dump and analyze Git repository [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:pilgrimage:r10:1.5",
+      "label": "Finding 1.5\nGit-dumper tool used to clone…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Git-dumper tool used to clone Git repository, Full clone of the Git repository has been obtained and is ready for further enumeration, The repository contains the source code of the web application, primarily consisting of PHP files and assets, A binary named 'magick' is present in the files, part of the ImageMagick software suite used for editing and manipulating digital images",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:pilgrimage:r10:1.6",
+      "label": "Action 1.6\nCheck the version of the 'mag…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.6 Check the version of the 'magick' tool [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:pilgrimage:r10:1.6",
+      "label": "Finding 1.6\nImageMagick version 7.1.0-49 …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "ImageMagick version 7.1.0-49 has two significant vulnerabilities: CVE-2022-44268 and CVE-2022-44267. Both vulnerabilities are related to processing PNG images, Public exploits are available, Users of ImageMagick 7.1.0-49 are strongly advised to upgrade to a patched version to mitigate these vulnerabilities",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:pilgrimage:r10:1.7",
+      "label": "Action 1.7\nPlan for Exploitation",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.7 Plan for Exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:pilgrimage:r10:1.7",
+      "label": "Finding 1.7\nThe vulnerability occurs when…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "The vulnerability occurs when parsing PNG files, which may contain embedded references to other files. A malicious actor could craft a PNG or use an existing one and add a textual chunk type (e.g., tEXt) with the keyword \"profile\" that ImageMagick interprets as a filename and loads the content as a raw profile. Exploitation path involves crafting a malicious PNG file with a tEXt chunk containing a profile attribute referencing a local file. When ImageMagick is used to process the image, the contents of the referenced files are embedded into the new image. A Proof of Concept (PoC) was tested using a simple Rust application from a GitHub repository. The PoC creates the malicious PNG. The PoC was used to embed the contents of the /etc/passwd file into a PNG image, exploiting CVE-2022-44268. The hex-encoded contents of the /etc/passwd file were successfully embedded inside the PNG as part of the exploit",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:pilgrimage:r10:1.8",
+      "label": "Action 1.8\nAnalyze the Exploit Output",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.8 Analyze the Exploit Output [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:pilgrimage:r10:1.8",
+      "label": "Finding 1.8\nA Python script was used to c…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "A Python script was used to convert a hex-encoded string back into readable text. The output reveals the contents of the /etc/passwd file from the system where the ImageMagick exploit was tested. The /etc/passwd file contains user account information, including usernames and their respective user and group IDs, home directories, and default shells. Notable users found include 'root', 'daemon', 'bin', 'sys', 'sync', 'games', 'man', 'lp', 'mail', 'news', 'uucp', 'proxy', 'www-data', 'backup', 'list', 'irc', 'gnats', 'nobody', '_apt', 'systemd-network', 'systemd-resolve', 'messagebus', 'timesync', 'emily', 'systemd-coredump', 'sshd', and '_laurel'",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:pilgrimage:r10:1.9",
+      "label": "Action 1.9\nFurther Enumerate the website",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.9 Further Enumerate the website [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:pilgrimage:r10:1.9",
+      "label": "Finding 1.9\nThe PHP script checks if a us…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "The PHP script checks if a user session exists. If a session exists, it connects to an SQLite database located at /var/db/pilgrimage. It prepares an SQL statement to insert into the 'images' table the URL, original file name, and username. If the execution is successful, it redirects to a success page; otherwise, it redirects to a failure page. If a user session does not exist, it directly redirects to a failure page. The location of the SQLite database is /var/db/pilgrimage.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:pilgrimage:r10:1.10",
+      "label": "Action 1.10\nExploit the selected exploita…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.10 Exploit the selected exploitations [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:pilgrimage:r10:1.10",
+      "label": "Finding 1.10\nThe exploit was re-run, this …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "The exploit was re-run, this time targeting the /var/db/pilgrimage file. The same procedure was followed, trimming the \\n characters and converting the file to bytes. The bytes were then saved into a file using a Python script. The saved file, named 'sql.db', was confirmed to be an SQLite 3.x database using the 'file' command. The database can now be opened using the sqlite3 command for further exploration.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:pilgrimage:r10:1.11",
+      "label": "Action 1.11\nEnumerate the Database Tables",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.11 Enumerate the Database Tables [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:pilgrimage:r10:1.11",
+      "label": "Finding 1.11\nThe SQLite database contains …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "The SQLite database contains two tables: 'images' and 'users'. A SQL query was executed to select all data from the 'users' table. The query returned a username 'emily' and a password 'abigchonkyboi123'.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:pilgrimage:r10:1.12",
+      "label": "Action 1.12\nLogin Using the Revealed Cred…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.12 Login Using the Revealed Credentials [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:pilgrimage:r10:1.12",
+      "label": "Finding 1.12\nA successful SSH login was ma…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "A successful SSH login was made into the system as the 'emily' user. The host 'pilgrimage.htb' was previously unknown, but its authenticity was confirmed and added to the list of known hosts. The system is running Linux pilgrimage 5.10.0-23-amd64, a Debian distribution. The 'id' command confirms that the user 'emily' has a user ID and group ID of 1000.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:pilgrimage:r10:1.13",
+      "label": "Action 1.13\nPlan Next Steps Based on Logi…",
+      "type": "Action",
+      "color": "#FFC7A3",
+      "status": "to_do",
+      "title": "1.13 Plan Next Steps Based on Login Results [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:pilgrimage:r10:1.13",
+      "label": "Finding 1.13\nBased on the successful login…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Based on the successful login as the 'emily' user.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:pilgrimage:r10:START",
+      "to": "state:pilgrimage:r10:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:pilgrimage:r10:1",
+      "to": "state:pilgrimage:r10:1.1",
+      "label": "1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:pilgrimage:r10:1.1",
+      "to": "state:pilgrimage:r10:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:pilgrimage:r10:1.2",
+      "to": "state:pilgrimage:r10:1.3",
+      "label": "1.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:pilgrimage:r10:1.3",
+      "to": "action:pilgrimage:r10:1.3.1",
+      "label": "1.3.1 Perform a port sc…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:pilgrimage:r10:1.3.1",
+      "to": "finding:pilgrimage:r10:1.3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:pilgrimage:r10:1.3.1",
+      "to": "state:pilgrimage:r10:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:pilgrimage:r10:1.3",
+      "to": "action:pilgrimage:r10:1.3.2",
+      "label": "1.3.2 Determine the ser…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:pilgrimage:r10:1.3.2",
+      "to": "finding:pilgrimage:r10:1.3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:pilgrimage:r10:1.3.2",
+      "to": "state:pilgrimage:r10:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:pilgrimage:r10:1.3",
+      "to": "action:pilgrimage:r10:1.4",
+      "label": "1.4 Enumerate HTTP se…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:pilgrimage:r10:1.4",
+      "to": "finding:pilgrimage:r10:1.4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:pilgrimage:r10:1.4",
+      "to": "state:pilgrimage:r10:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:pilgrimage:r10:1.3",
+      "to": "action:pilgrimage:r10:1.5",
+      "label": "1.5 Dump and analyze …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:pilgrimage:r10:1.5",
+      "to": "finding:pilgrimage:r10:1.5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:pilgrimage:r10:1.5",
+      "to": "state:pilgrimage:r10:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:pilgrimage:r10:1.3",
+      "to": "action:pilgrimage:r10:1.6",
+      "label": "1.6 Check the version…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:pilgrimage:r10:1.6",
+      "to": "finding:pilgrimage:r10:1.6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:pilgrimage:r10:1.6",
+      "to": "state:pilgrimage:r10:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:pilgrimage:r10:1.3",
+      "to": "action:pilgrimage:r10:1.7",
+      "label": "1.7 Plan for Exploita…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:pilgrimage:r10:1.7",
+      "to": "finding:pilgrimage:r10:1.7",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:pilgrimage:r10:1.7",
+      "to": "state:pilgrimage:r10:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:pilgrimage:r10:1.3",
+      "to": "action:pilgrimage:r10:1.8",
+      "label": "1.8 Analyze the Explo…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:pilgrimage:r10:1.8",
+      "to": "finding:pilgrimage:r10:1.8",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:pilgrimage:r10:1.8",
+      "to": "state:pilgrimage:r10:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:pilgrimage:r10:1.3",
+      "to": "action:pilgrimage:r10:1.9",
+      "label": "1.9 Further Enumerate…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:pilgrimage:r10:1.9",
+      "to": "finding:pilgrimage:r10:1.9",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:pilgrimage:r10:1.9",
+      "to": "state:pilgrimage:r10:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:pilgrimage:r10:1.3",
+      "to": "action:pilgrimage:r10:1.10",
+      "label": "1.10 Exploit the selec…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:pilgrimage:r10:1.10",
+      "to": "finding:pilgrimage:r10:1.10",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:pilgrimage:r10:1.10",
+      "to": "state:pilgrimage:r10:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:pilgrimage:r10:1.3",
+      "to": "action:pilgrimage:r10:1.11",
+      "label": "1.11 Enumerate the Dat…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:pilgrimage:r10:1.11",
+      "to": "finding:pilgrimage:r10:1.11",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:pilgrimage:r10:1.11",
+      "to": "state:pilgrimage:r10:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:pilgrimage:r10:1.3",
+      "to": "action:pilgrimage:r10:1.12",
+      "label": "1.12 Login Using the R…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:pilgrimage:r10:1.12",
+      "to": "finding:pilgrimage:r10:1.12",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:pilgrimage:r10:1.12",
+      "to": "state:pilgrimage:r10:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:pilgrimage:r10:1.3",
+      "to": "action:pilgrimage:r10:1.13",
+      "label": "1.13 Plan Next Steps B…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:pilgrimage:r10:1.13",
+      "to": "finding:pilgrimage:r10:1.13",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:pilgrimage:r10:1.13",
+      "to": "state:pilgrimage:r10:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 29,
+    "total_edges": 40,
+    "state_nodes": 5,
+    "action_nodes": 12,
+    "finding_nodes": 12,
+    "ptt_items_parsed": 16
+  },
+  "csv_row_index": 16,
+  "source_csv": "test_data.csv"
+}

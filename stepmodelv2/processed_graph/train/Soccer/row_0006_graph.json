@@ -1,0 +1,729 @@
+{
+  "machine": "Soccer",
+  "row_index": 6,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Soccer:r6:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Soccer' (row 6).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Soccer:r6:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Soccer:r6:1.1",
+      "label": "Action 1.1\nNetwork enumeration",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Network enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Soccer:r6:1.1",
+      "label": "Finding 1.1\nPort 22, 80, 9091",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Port 22, 80, 9091",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Soccer:r6:1.2",
+      "label": "Action 1.2\nWeb application enumeration",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Web application enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Soccer:r6:1.2",
+      "label": "Finding 1.2\n/tiny/",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "/tiny/",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Soccer:r6:2",
+      "label": "State 2\nApplication analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Application analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Soccer:r6:2.1",
+      "label": "Action 2.1\nTiny File Manager investigati…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Tiny File Manager investigation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Soccer:r6:2.1",
+      "label": "Finding 2.1\nDefault credentials",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Default credentials",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Soccer:r6:3",
+      "label": "State 3\nInitial exploitation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Initial exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Soccer:r6:3.1",
+      "label": "Action 3.1\nWebshell upload",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Webshell upload [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Soccer:r6:3.1",
+      "label": "Finding 3.1\nShell as www-data",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Shell as www-data",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Soccer:r6:4",
+      "label": "State 4\nPost-exploitation enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 Post-exploitation enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Soccer:r6:4.1",
+      "label": "Action 4.1\nVirtual host discovery",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Virtual host discovery [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Soccer:r6:4.1",
+      "label": "Finding 4.1\nWebSocket endpoint",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "WebSocket endpoint",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Soccer:r6:5",
+      "label": "State 5\nSQL injection analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 SQL injection analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Soccer:r6:5.1",
+      "label": "Action 5.1\nWebSocket SQLi testing",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.1 WebSocket SQLi testing [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Soccer:r6:5.1",
+      "label": "Finding 5.1\nThree-column blind SQLi confi…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Three-column blind SQLi confirmed",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Soccer:r6:6",
+      "label": "State 6\nDatabase exploitation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "6 Database exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Soccer:r6:6.1",
+      "label": "Action 6.1\nSQLMap WebSocket extraction",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "6.1 SQLMap WebSocket extraction [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Soccer:r6:6.1",
+      "label": "Finding 6.1\nsqlmap enumerated soccer_db d…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "sqlmap enumerated soccer_db database containing accounts table with credentials username:player password:PlayerOftheMatch2022 email:player@player.htb stored in plaintext",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Soccer:r6:7",
+      "label": "State 7\nLateral movement",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "7 Lateral movement [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Soccer:r6:7.1",
+      "label": "State 7.1\nSSH authentication",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "7.1 SSH authentication [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Soccer:r6:START",
+      "to": "state:Soccer:r6:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Soccer:r6:1",
+      "to": "action:Soccer:r6:1.1",
+      "label": "1.1 Network enumerati…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Soccer:r6:1.1",
+      "to": "finding:Soccer:r6:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Soccer:r6:1.1",
+      "to": "state:Soccer:r6:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Soccer:r6:1",
+      "to": "action:Soccer:r6:1.2",
+      "label": "1.2 Web application e…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Soccer:r6:1.2",
+      "to": "finding:Soccer:r6:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Soccer:r6:1.2",
+      "to": "state:Soccer:r6:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Soccer:r6:1",
+      "to": "state:Soccer:r6:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Soccer:r6:2",
+      "to": "action:Soccer:r6:2.1",
+      "label": "2.1 Tiny File Manager…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Soccer:r6:2.1",
+      "to": "finding:Soccer:r6:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Soccer:r6:2.1",
+      "to": "state:Soccer:r6:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Soccer:r6:2",
+      "to": "state:Soccer:r6:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Soccer:r6:3",
+      "to": "action:Soccer:r6:3.1",
+      "label": "3.1 Webshell upload",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Soccer:r6:3.1",
+      "to": "finding:Soccer:r6:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Soccer:r6:3.1",
+      "to": "state:Soccer:r6:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Soccer:r6:3",
+      "to": "state:Soccer:r6:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Soccer:r6:4",
+      "to": "action:Soccer:r6:4.1",
+      "label": "4.1 Virtual host disc…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Soccer:r6:4.1",
+      "to": "finding:Soccer:r6:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Soccer:r6:4.1",
+      "to": "state:Soccer:r6:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Soccer:r6:4",
+      "to": "state:Soccer:r6:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Soccer:r6:5",
+      "to": "action:Soccer:r6:5.1",
+      "label": "5.1 WebSocket SQLi te…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Soccer:r6:5.1",
+      "to": "finding:Soccer:r6:5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Soccer:r6:5.1",
+      "to": "state:Soccer:r6:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Soccer:r6:5",
+      "to": "state:Soccer:r6:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Soccer:r6:6",
+      "to": "action:Soccer:r6:6.1",
+      "label": "6.1 SQLMap WebSocket …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Soccer:r6:6.1",
+      "to": "finding:Soccer:r6:6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Soccer:r6:6.1",
+      "to": "state:Soccer:r6:6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Soccer:r6:6",
+      "to": "state:Soccer:r6:7",
+      "label": "7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Soccer:r6:7",
+      "to": "state:Soccer:r6:7.1",
+      "label": "7.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 23,
+    "total_edges": 29,
+    "state_nodes": 9,
+    "action_nodes": 7,
+    "finding_nodes": 7,
+    "ptt_items_parsed": 15
+  },
+  "csv_row_index": 420,
+  "source_csv": "training_data.csv"
+}

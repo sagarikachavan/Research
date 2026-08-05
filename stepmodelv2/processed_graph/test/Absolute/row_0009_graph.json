@@ -1,0 +1,903 @@
+{
+  "machine": "Absolute",
+  "row_index": 9,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Absolute:r9:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Absolute' (row 9).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Absolute:r9:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Absolute:r9:1.1",
+      "label": "Action 1.1\nNetwork scanning",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Network scanning [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Absolute:r9:1.1",
+      "label": "Finding 1.1\nWindows DC",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Windows DC",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Absolute:r9:2",
+      "label": "State 2\nWeb Application Analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Web Application Analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Absolute:r9:2.1",
+      "label": "Action 2.1\nExplore IIS",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Explore IIS [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Absolute:r9:2.1",
+      "label": "Finding 2.1\nEmployee names",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Employee names",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Absolute:r9:3",
+      "label": "State 3\nUsername Discovery",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Username Discovery [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Absolute:r9:3.1",
+      "label": "Action 3.1\nGenerate usernames",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Generate usernames [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Absolute:r9:3.1",
+      "label": "Finding 3.1\nValid accounts",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Valid accounts",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Absolute:r9:4",
+      "label": "State 4\nAS-REP Roasting",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 AS-REP Roasting [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Absolute:r9:4.1",
+      "label": "Action 4.1\nTest pre-auth",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Test pre-auth [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Absolute:r9:4.1",
+      "label": "Finding 4.1\nd.klay password",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "d.klay password",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Absolute:r9:5",
+      "label": "State 5\nLDAP Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 LDAP Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Absolute:r9:5.1",
+      "label": "Action 5.1\nEnumerate",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.1 Enumerate [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Absolute:r9:5.1",
+      "label": "Finding 5.1\nCredentials",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Credentials",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Absolute:r9:6",
+      "label": "State 6\nBinary Analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "6 Binary Analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Absolute:r9:6.1",
+      "label": "Action 6.1\nAnalyze test.exe",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "6.1 Analyze test.exe [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Absolute:r9:6.1",
+      "label": "Finding 6.1\nm.lovegod credentials",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "m.lovegod credentials",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Absolute:r9:7",
+      "label": "State 7\nLDAP Write Access",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "7 LDAP Write Access [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Absolute:r9:7.1",
+      "label": "State 7.1\nLeverage m.lovegod",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "7.1 Leverage m.lovegod [completed]\nNetwork Audit group",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Absolute:r9:8",
+      "label": "State 8\nShadow Credentials Attack",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "8 Shadow Credentials Attack [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Absolute:r9:8.1",
+      "label": "State 8.1\nShadow credential",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "8.1 Shadow credential [completed]\nWinRM access",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Absolute:r9:9",
+      "label": "State 9\nPrivilege Escalation Research",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "9 Privilege Escalation Research [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Absolute:r9:9.1",
+      "label": "Action 9.1\nResearch KrbRelay",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "9.1 Research KrbRelay [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Absolute:r9:9.1",
+      "label": "Finding 9.1\nKrbRelay exploitation method",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "KrbRelay exploitation method",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Absolute:r9:10",
+      "label": "State 10\nDomain Compromise",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "10 Domain Compromise [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Absolute:r9:10.1",
+      "label": "Action 10.1\nExecute KrbRelay",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "10.1 Execute KrbRelay [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Absolute:r9:10.1",
+      "label": "Finding 10.1\nKrbRelayUp successfully injec…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "KrbRelayUp successfully injected shadow credential into DC$ machine account, Rubeus extracted machine account NTLM hash A7864AB463177ACB9AEC553F18F42577 using certificate and /getcredentials flag, crackmapexec with DC$ hash performed full DC synchronization, dumped all domain credentials, administrator hash obtained: 1f4a6093623653f6488d5aa24c75f2ea, complete domain compromise achieved",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Absolute:r9:START",
+      "to": "state:Absolute:r9:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:1",
+      "to": "action:Absolute:r9:1.1",
+      "label": "1.1 Network scanning",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Absolute:r9:1.1",
+      "to": "finding:Absolute:r9:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Absolute:r9:1.1",
+      "to": "state:Absolute:r9:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:1",
+      "to": "state:Absolute:r9:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:2",
+      "to": "action:Absolute:r9:2.1",
+      "label": "2.1 Explore IIS",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Absolute:r9:2.1",
+      "to": "finding:Absolute:r9:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Absolute:r9:2.1",
+      "to": "state:Absolute:r9:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:2",
+      "to": "state:Absolute:r9:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:3",
+      "to": "action:Absolute:r9:3.1",
+      "label": "3.1 Generate usernames",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Absolute:r9:3.1",
+      "to": "finding:Absolute:r9:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Absolute:r9:3.1",
+      "to": "state:Absolute:r9:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:3",
+      "to": "state:Absolute:r9:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:4",
+      "to": "action:Absolute:r9:4.1",
+      "label": "4.1 Test pre-auth",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Absolute:r9:4.1",
+      "to": "finding:Absolute:r9:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Absolute:r9:4.1",
+      "to": "state:Absolute:r9:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:4",
+      "to": "state:Absolute:r9:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:5",
+      "to": "action:Absolute:r9:5.1",
+      "label": "5.1 Enumerate",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Absolute:r9:5.1",
+      "to": "finding:Absolute:r9:5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Absolute:r9:5.1",
+      "to": "state:Absolute:r9:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:5",
+      "to": "state:Absolute:r9:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:6",
+      "to": "action:Absolute:r9:6.1",
+      "label": "6.1 Analyze test.exe",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Absolute:r9:6.1",
+      "to": "finding:Absolute:r9:6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Absolute:r9:6.1",
+      "to": "state:Absolute:r9:6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:6",
+      "to": "state:Absolute:r9:7",
+      "label": "7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:7",
+      "to": "state:Absolute:r9:7.1",
+      "label": "7.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:7.1",
+      "to": "state:Absolute:r9:8",
+      "label": "8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:8",
+      "to": "state:Absolute:r9:8.1",
+      "label": "8.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:8.1",
+      "to": "state:Absolute:r9:9",
+      "label": "9",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:9",
+      "to": "action:Absolute:r9:9.1",
+      "label": "9.1 Research KrbRelay",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Absolute:r9:9.1",
+      "to": "finding:Absolute:r9:9.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Absolute:r9:9.1",
+      "to": "state:Absolute:r9:9",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:9",
+      "to": "state:Absolute:r9:10",
+      "label": "10",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Absolute:r9:10",
+      "to": "action:Absolute:r9:10.1",
+      "label": "10.1 Execute KrbRelay",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Absolute:r9:10.1",
+      "to": "finding:Absolute:r9:10.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Absolute:r9:10.1",
+      "to": "state:Absolute:r9:10",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 29,
+    "total_edges": 36,
+    "state_nodes": 13,
+    "action_nodes": 8,
+    "finding_nodes": 8,
+    "ptt_items_parsed": 20
+  },
+  "csv_row_index": 175,
+  "source_csv": "test_data.csv"
+}

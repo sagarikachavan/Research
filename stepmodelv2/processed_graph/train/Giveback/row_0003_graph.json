@@ -1,0 +1,423 @@
+{
+  "machine": "Giveback",
+  "row_index": 3,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Giveback:r3:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Giveback' (row 3).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Giveback:r3:1",
+      "label": "State 1\nNetwork Reconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Network Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Giveback:r3:1.1",
+      "label": "Action 1.1\nPerform initial port scan",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Perform initial port scan [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Giveback:r3:1.1",
+      "label": "Finding 1.1\nThree open ports discovered o…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Three open ports discovered on target 10.129.242.171: Port 22 (SSH) - OpenSSH 8.9p1, Port 80 (HTTP) - nginx 1.28.0, Port 30686 (Unknown service). Extra routing hop to port 80 suggests containerized infrastructure.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Giveback:r3:1.2",
+      "label": "Action 1.2\nIdentify running services",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Identify running services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Giveback:r3:1.2",
+      "label": "Finding 1.2\nSSH, HTTP with nginx, unknown…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "SSH, HTTP with nginx, unknown service on port 30686",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Giveback:r3:2",
+      "label": "State 2\nService Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Service Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Giveback:r3:2.1",
+      "label": "Action 2.1\nEnumerate HTTP/HTTPS services",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Enumerate HTTP/HTTPS services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Giveback:r3:2.1",
+      "label": "Finding 2.1\nWordPress 6.8.1 charity platf…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "WordPress 6.8.1 charity platform identified. WPScan enumeration revealed GiveWP plugin version 3.14.0 with 22 vulnerabilities. Most critical: CVE-2024-5932 (unauthenticated PHP object injection leading to RCE). WordPress version 6.8.1 has two additional flaws.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Giveback:r3:2.2",
+      "label": "Action 2.2\nEnumerate unknown services",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.2 Enumerate unknown services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Giveback:r3:2.2",
+      "label": "Finding 2.2\nPort 30686 returns Kubernetes…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Port 30686 returns Kubernetes-specific metadata about service named wp-nginx-service, including namespace and endpoint information. Confirms containerized Kubernetes environment.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Giveback:r3:3",
+      "label": "State 3\nVulnerability Analysis",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "3 Vulnerability Analysis [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Giveback:r3:3.1",
+      "label": "State 3.1\nResearch GiveWP CVE-2024-5932",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "3.1 Research GiveWP CVE-2024-5932 [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Giveback:r3:START",
+      "to": "state:Giveback:r3:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Giveback:r3:1",
+      "to": "action:Giveback:r3:1.1",
+      "label": "1.1 Perform initial p…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Giveback:r3:1.1",
+      "to": "finding:Giveback:r3:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Giveback:r3:1.1",
+      "to": "state:Giveback:r3:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Giveback:r3:1",
+      "to": "action:Giveback:r3:1.2",
+      "label": "1.2 Identify running …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Giveback:r3:1.2",
+      "to": "finding:Giveback:r3:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Giveback:r3:1.2",
+      "to": "state:Giveback:r3:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Giveback:r3:1",
+      "to": "state:Giveback:r3:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Giveback:r3:2",
+      "to": "action:Giveback:r3:2.1",
+      "label": "2.1 Enumerate HTTP/HT…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Giveback:r3:2.1",
+      "to": "finding:Giveback:r3:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Giveback:r3:2.1",
+      "to": "state:Giveback:r3:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Giveback:r3:2",
+      "to": "action:Giveback:r3:2.2",
+      "label": "2.2 Enumerate unknown…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Giveback:r3:2.2",
+      "to": "finding:Giveback:r3:2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Giveback:r3:2.2",
+      "to": "state:Giveback:r3:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Giveback:r3:2",
+      "to": "state:Giveback:r3:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Giveback:r3:3",
+      "to": "state:Giveback:r3:3.1",
+      "label": "3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 13,
+    "total_edges": 16,
+    "state_nodes": 5,
+    "action_nodes": 4,
+    "finding_nodes": 4,
+    "ptt_items_parsed": 8
+  },
+  "csv_row_index": 884,
+  "source_csv": "training_data.csv"
+}

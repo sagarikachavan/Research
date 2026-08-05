@@ -1,0 +1,1311 @@
+{
+  "machine": "Artificial",
+  "row_index": 6,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Artificial:r6:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Artificial' (row 6).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Artificial:r6:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Artificial:r6:1.1",
+      "label": "Action 1.1\nNetwork and port scanning",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Network and port scanning [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Artificial:r6:1.1",
+      "label": "Finding 1.1\nTwo open ports identified - S…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Two open ports identified - SSH on port 22 (OpenSSH 8.2p1), HTTP on port 80 (nginx 1.18.0)",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Artificial:r6:1.2",
+      "label": "Action 1.2\nService enumeration",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Service enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Artificial:r6:1.2",
+      "label": "Finding 1.2\nUbuntu 20.04 LTS identified, …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Ubuntu 20.04 LTS identified, web server redirects to artificial.htb",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Artificial:r6:1.3",
+      "label": "Action 1.3\nWeb application discovery",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3 Web application discovery [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Artificial:r6:1.3",
+      "label": "Finding 1.3\nAI model upload platform usin…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "AI model upload platform using TensorFlow, accepts .h5 HDF5 model files, Flask-based application with user registration/login, requirements specify tensorflow-cpu==2.13.1",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Artificial:r6:2",
+      "label": "State 2\nWeb Application Analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Web Application Analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Artificial:r6:2.1",
+      "label": "Action 2.1\nEnumerate subdomains",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Enumerate subdomains [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Artificial:r6:2.1",
+      "label": "Finding 2.1\nNo additional subdomains disc…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "No additional subdomains discovered",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Artificial:r6:2.2",
+      "label": "Action 2.2\nAnalyze TensorFlow upload fun…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.2 Analyze TensorFlow upload functionality [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Artificial:r6:2.2",
+      "label": "Finding 2.2\nUpload endpoint accepts .h5 f…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Upload endpoint accepts .h5 files and triggers View Predictions feature that loads the model",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Artificial:r6:2.3",
+      "label": "Action 2.3\nResearch TensorFlow deseriali…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.3 Research TensorFlow deserialization vulnerabilities [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Artificial:r6:2.3",
+      "label": "Finding 2.3\nTensorFlow deserialization of…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "TensorFlow deserialization of .h5 files can execute arbitrary Python code during model loading via Lambda layers with custom functions",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Artificial:r6:3",
+      "label": "State 3\nExploitation Preparation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Exploitation Preparation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Artificial:r6:3.1",
+      "label": "Action 3.1\nCreate malicious TensorFlow m…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Create malicious TensorFlow model [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Artificial:r6:3.1",
+      "label": "Finding 3.1\nMalicious model created with …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Malicious model created with Lambda layer containing os.system bash reverse shell to 10.10.14.6:443",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Artificial:r6:3.2",
+      "label": "Action 3.2\nTest payload in matching envi…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.2 Test payload in matching environment [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Artificial:r6:3.2",
+      "label": "Finding 3.2\nPayload successfully tested i…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Payload successfully tested in Docker with tensorflow-cpu==2.13.1",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Artificial:r6:4",
+      "label": "State 4\nInitial Access",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 Initial Access [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Artificial:r6:4.1",
+      "label": "Action 4.1\nUpload malicious model",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Upload malicious model [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Artificial:r6:4.1",
+      "label": "Finding 4.1\nexploit.h5 uploaded successfu…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "exploit.h5 uploaded successfully to application",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Artificial:r6:4.2",
+      "label": "Action 4.2\nTrigger code execution",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.2 Trigger code execution [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Artificial:r6:4.2",
+      "label": "Finding 4.2\nClicked View Predictions, rev…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Clicked View Predictions, reverse shell received, gained shell as app user",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Artificial:r6:5",
+      "label": "State 5\nPrivilege Escalation to gael",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 Privilege Escalation to gael [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Artificial:r6:5.1",
+      "label": "Action 5.1\nEnumerate application files a…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.1 Enumerate application files and databases [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Artificial:r6:5.1",
+      "label": "Finding 5.1\nSQLite database located at /h…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "SQLite database located at /home/app/app/instance/users.db",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Artificial:r6:5.2",
+      "label": "Action 5.2\nExtract user credentials",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.2 Extract user credentials [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Artificial:r6:5.2",
+      "label": "Finding 5.2\nExtracted password hash for g…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Extracted password hash for gael - MD5 hash c99175974b6e192936d97224638a34f8, cracked to password mattp005numbertwo",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Artificial:r6:6",
+      "label": "State 6\nLateral Movement",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "6 Lateral Movement [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Artificial:r6:6.1",
+      "label": "Action 6.1\nAuthenticate as gael via SSH",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "6.1 Authenticate as gael via SSH [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Artificial:r6:6.1",
+      "label": "Finding 6.1\nSuccessfully authenticated as…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Successfully authenticated as gael via SSH",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Artificial:r6:7",
+      "label": "State 7\nPrivilege Escalation to root",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "7 Privilege Escalation to root [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Artificial:r6:7.1",
+      "label": "Action 7.1\nEnumerate localhost services",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "7.1 Enumerate localhost services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Artificial:r6:7.1",
+      "label": "Finding 7.1\nPort 9898 running Backrest ba…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Port 9898 running Backrest backup management interface, configuration backup available in /var/backups/backrest_backup.tar.gz",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Artificial:r6:7.2",
+      "label": "Action 7.2\nIdentify privilege escalation…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "7.2 Identify privilege escalation vectors [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Artificial:r6:7.2",
+      "label": "Finding 7.2\nBackrest service provides bac…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Backrest service provides backup/restore functionality with potential for privilege escalation",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Artificial:r6:8",
+      "label": "State 8\nBackrest Exploitation",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "8 Backrest Exploitation [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Artificial:r6:8.1",
+      "label": "State 8.1\nExtract and analyze Backrest …",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "8.1 Extract and analyze Backrest configuration [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Artificial:r6:8.2",
+      "label": "State 8.2\nCrack Backrest admin password",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "8.2 Crack Backrest admin password [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Artificial:r6:START",
+      "to": "state:Artificial:r6:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:1",
+      "to": "action:Artificial:r6:1.1",
+      "label": "1.1 Network and port …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Artificial:r6:1.1",
+      "to": "finding:Artificial:r6:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Artificial:r6:1.1",
+      "to": "state:Artificial:r6:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:1",
+      "to": "action:Artificial:r6:1.2",
+      "label": "1.2 Service enumerati…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Artificial:r6:1.2",
+      "to": "finding:Artificial:r6:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Artificial:r6:1.2",
+      "to": "state:Artificial:r6:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:1",
+      "to": "action:Artificial:r6:1.3",
+      "label": "1.3 Web application d…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Artificial:r6:1.3",
+      "to": "finding:Artificial:r6:1.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Artificial:r6:1.3",
+      "to": "state:Artificial:r6:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:1",
+      "to": "state:Artificial:r6:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:2",
+      "to": "action:Artificial:r6:2.1",
+      "label": "2.1 Enumerate subdoma…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Artificial:r6:2.1",
+      "to": "finding:Artificial:r6:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Artificial:r6:2.1",
+      "to": "state:Artificial:r6:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:2",
+      "to": "action:Artificial:r6:2.2",
+      "label": "2.2 Analyze TensorFlo…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Artificial:r6:2.2",
+      "to": "finding:Artificial:r6:2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Artificial:r6:2.2",
+      "to": "state:Artificial:r6:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:2",
+      "to": "action:Artificial:r6:2.3",
+      "label": "2.3 Research TensorFl…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Artificial:r6:2.3",
+      "to": "finding:Artificial:r6:2.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Artificial:r6:2.3",
+      "to": "state:Artificial:r6:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:2",
+      "to": "state:Artificial:r6:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:3",
+      "to": "action:Artificial:r6:3.1",
+      "label": "3.1 Create malicious …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Artificial:r6:3.1",
+      "to": "finding:Artificial:r6:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Artificial:r6:3.1",
+      "to": "state:Artificial:r6:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:3",
+      "to": "action:Artificial:r6:3.2",
+      "label": "3.2 Test payload in m…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Artificial:r6:3.2",
+      "to": "finding:Artificial:r6:3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Artificial:r6:3.2",
+      "to": "state:Artificial:r6:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:3",
+      "to": "state:Artificial:r6:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:4",
+      "to": "action:Artificial:r6:4.1",
+      "label": "4.1 Upload malicious …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Artificial:r6:4.1",
+      "to": "finding:Artificial:r6:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Artificial:r6:4.1",
+      "to": "state:Artificial:r6:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:4",
+      "to": "action:Artificial:r6:4.2",
+      "label": "4.2 Trigger code exec…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Artificial:r6:4.2",
+      "to": "finding:Artificial:r6:4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Artificial:r6:4.2",
+      "to": "state:Artificial:r6:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:4",
+      "to": "state:Artificial:r6:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:5",
+      "to": "action:Artificial:r6:5.1",
+      "label": "5.1 Enumerate applica…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Artificial:r6:5.1",
+      "to": "finding:Artificial:r6:5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Artificial:r6:5.1",
+      "to": "state:Artificial:r6:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:5",
+      "to": "action:Artificial:r6:5.2",
+      "label": "5.2 Extract user cred…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Artificial:r6:5.2",
+      "to": "finding:Artificial:r6:5.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Artificial:r6:5.2",
+      "to": "state:Artificial:r6:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:5",
+      "to": "state:Artificial:r6:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:6",
+      "to": "action:Artificial:r6:6.1",
+      "label": "6.1 Authenticate as g…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Artificial:r6:6.1",
+      "to": "finding:Artificial:r6:6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Artificial:r6:6.1",
+      "to": "state:Artificial:r6:6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:6",
+      "to": "state:Artificial:r6:7",
+      "label": "7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:7",
+      "to": "action:Artificial:r6:7.1",
+      "label": "7.1 Enumerate localho…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Artificial:r6:7.1",
+      "to": "finding:Artificial:r6:7.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Artificial:r6:7.1",
+      "to": "state:Artificial:r6:7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:7",
+      "to": "action:Artificial:r6:7.2",
+      "label": "7.2 Identify privileg…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Artificial:r6:7.2",
+      "to": "finding:Artificial:r6:7.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Artificial:r6:7.2",
+      "to": "state:Artificial:r6:7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:7",
+      "to": "state:Artificial:r6:8",
+      "label": "8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:8",
+      "to": "state:Artificial:r6:8.1",
+      "label": "8.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Artificial:r6:8.1",
+      "to": "state:Artificial:r6:8.2",
+      "label": "8.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 41,
+    "total_edges": 55,
+    "state_nodes": 11,
+    "action_nodes": 15,
+    "finding_nodes": 15,
+    "ptt_items_parsed": 25
+  },
+  "csv_row_index": 1645,
+  "source_csv": "training_data.csv"
+}

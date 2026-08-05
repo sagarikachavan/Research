@@ -194,21 +194,28 @@ def build_graph_from_input_json_graph(graph_dict: dict):
               for n in nodes]
     title_embs = _embed_titles_cached(titles)  # (N, 384) — cached
 
-    # One-hot type encoding: Agent=0, Search=1, Track=2
-    type_map = {"Agent": 0, "Search": 1, "Track": 2}
+    # One-hot type encoding: Support both stepmodelv2 (Agent/Search/Track) and stepmodelv3 (State/Action/Finding)
+    # stepmodelv2: Agent=0, Search=1, Track=2
+    # stepmodelv3: State=0, Action=1, Finding=2
+    type_map_v2 = {"Agent": 0, "Search": 1, "Track": 2}
+    type_map_v3 = {"State": 0, "Action": 1, "Finding": 2}
     type_onehot = np.zeros((len(nodes), 3), dtype=np.float32)
     for i, n in enumerate(nodes):
         ntype = n.get("type", "Agent")
-        type_onehot[i, type_map.get(ntype, 0)] = 1.0
+        # Try stepmodelv3 mapping first, fallback to stepmodelv2
+        if ntype in type_map_v3:
+            type_onehot[i, type_map_v3[ntype]] = 1.0
+        else:
+            type_onehot[i, type_map_v2.get(ntype, 0)] = 1.0
 
     # Combine: (N, 387)
     x = np.concatenate([title_embs, type_onehot], axis=1)
 
-    # Build edge_index from edges list
+    # Build edge_index from edges list (support both stepmodelv2 "from"/"to" and stepmodelv3 "source"/"target")
     edge_list = []
     for e in edges:
-        src_id = e.get("from", "")
-        tgt_id = e.get("to", "")
+        src_id = e.get("from", e.get("source", ""))
+        tgt_id = e.get("to", e.get("target", ""))
         if src_id in id2idx and tgt_id in id2idx:
             edge_list.append([id2idx[src_id], id2idx[tgt_id]])
 
@@ -228,15 +235,15 @@ def build_graph_from_input_json_graph(graph_dict: dict):
 def load_from_input_json(json_path: str, split: str = "train"):
     """
     Primary loader: reads input/train.json or input/test.json (produced by
-    build_input_json.py) and returns a list of examples, where each example
-    has:
+    build_input_json_finalv.py from stepmodelv3) and returns a list of examples,
+    where each example has:
       {
         machine, row_id, graph (torch_geometric Data), context: {...},
         step_label, step_idx, mcp_labels, mcp_vec,
         gold_step_explanation, gold_mcp_raw
       }
 
-    Records whose "Gold New step" cannot be normalized to STEP_LABELS are
+    Records whose "gold_new_step" cannot be normalized to STEP_LABELS are
     dropped.
 
     PERFORMANCE: All unique node titles across the entire file are collected
@@ -252,7 +259,8 @@ def load_from_input_json(json_path: str, split: str = "train"):
     # Collect every unique node title across the whole file
     all_titles: set[str] = set()
     for record in data:
-        for node in record.get("Graph", {}).get("nodes", []):
+        graph_dict = record.get("graph", record.get("Graph", {}))
+        for node in graph_dict.get("nodes", []):
             t = node.get("title", node.get("label", "")).strip() or "unknown node"
             all_titles.add(t)
 
@@ -274,27 +282,34 @@ def load_from_input_json(json_path: str, split: str = "train"):
     dropped = 0
 
     for row_id, record in enumerate(data):
-        machine = record.get("Machine", "unknown")
-        graph_dict = record.get("Graph", {})
+        machine = record.get("machine", record.get("Machine", "unknown"))
+        graph_dict = record.get("graph", record.get("Graph", {}))
 
-        # Normalize step label
-        raw_step = record.get("Gold New step", "")
+        # Normalize step label (stepmodelv3 format uses "gold_new_step")
+        raw_step = record.get("gold_new_step", record.get("Gold New step", ""))
         step_label = normalizer.normalize(raw_step)
         if step_label is None:
             dropped += 1
             continue
 
-        # Extract MCP labels
-        mcp_raw = record.get("Gold MCP_tasks", "")
+        # Extract MCP labels (stepmodelv3 format uses "gold_mcp_tasks")
+        mcp_raw = record.get("gold_mcp_tasks", record.get("Gold MCP_tasks", ""))
         mcp_labels = extract_mcp_labels(mcp_raw)
 
-        # Build context dict
+        # Build context dict (adapt stepmodelv3 format to stepmodelv2's 5-field structure)
+        # stepmodelv3 provides: new_strategy, strategy_explanation
+        # We need to construct the 5 context fields expected by stepmodelv2
+        new_strategy = record.get("new_strategy", record.get("New strategy", ""))
+        strategy_explanation = record.get("strategy_explanation", record.get("Strategy explanation", ""))
+        gold_new_step = record.get("gold_new_step", record.get("Gold New step", ""))
+        gold_step_explanation = record.get("gold_step_explanation", record.get("Gold Step explanation", ""))
+        
         context = {
-            "Previous strategy":    record.get("Previous strategy", ""),
-            "Previous step":        record.get("Previous step", ""),
-            "Previous step result": record.get("Previous step result", ""),
-            "New strategy":         record.get("New strategy", ""),
-            "Strategy explanation": record.get("Strategy explanation", ""),
+            "Previous strategy":    new_strategy,  # Use current strategy as "previous" for next step
+            "Previous step":        gold_new_step,  # Use current step as "previous" 
+            "Previous step result": gold_step_explanation,  # Use current explanation as result
+            "New strategy":         new_strategy,
+            "Strategy explanation": strategy_explanation,
         }
 
         # Build graph — every _embed_titles_cached call here is a cache hit
@@ -309,13 +324,13 @@ def load_from_input_json(json_path: str, split: str = "train"):
             "step_idx":              STEP2IDX[step_label],
             "mcp_labels":            mcp_labels,
             "mcp_vec":               mcp_multihot(mcp_labels),
-            "gold_step_explanation": record.get("Gold Step explanation", ""),
+            "gold_step_explanation": gold_step_explanation,
             "gold_mcp_raw":          mcp_raw,
             "ptt":                   "",  # not needed when using input JSON
         })
 
     print(f"[{split}] loaded {len(examples)} usable rows from {json_path}, "
-          f"dropped {dropped} unmappable 'Gold New step' rows "
+          f"dropped {dropped} unmappable 'gold_new_step' rows "
           f"({dropped / (len(data) or 1):.1%})")
     return examples
 

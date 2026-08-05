@@ -1,0 +1,1059 @@
+{
+  "machine": "Office_0xdf",
+  "row_index": 5,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Office_0xdf:r5:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Office_0xdf' (row 5).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Office_0xdf:r5:1",
+      "label": "State 1\nPerform reconnaissance on tar…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Perform reconnaissance on target system [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Office_0xdf:r5:1.1",
+      "label": "Action 1.1\nScan for open ports and servi…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Scan for open ports and services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Office_0xdf:r5:1.1",
+      "label": "Finding 1.1\nWindows domain controller wit…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Windows domain controller with HTTP (80), HTTPS (443), Kerberos (88), LDAP (389), SMB (445) open",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Office_0xdf:r5:1.2",
+      "label": "Action 1.2\nEnumerate domain services",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Enumerate domain services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Office_0xdf:r5:1.2",
+      "label": "Finding 1.2\nActive Directory domain offic…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Active Directory domain office.htb identified",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Office_0xdf:r5:1.3",
+      "label": "Action 1.3\nIdentify web applications",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3 Identify web applications [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Office_0xdf:r5:1.3",
+      "label": "Finding 1.3\nJoomla 4.2.7 CMS discovered o…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Joomla 4.2.7 CMS discovered on web server",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Office_0xdf:r5:2",
+      "label": "State 2\nExploit Joomla authentication…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Exploit Joomla authentication bypass [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Office_0xdf:r5:2.1",
+      "label": "Action 2.1\nResearch Joomla 4.2.7 vulnera…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Research Joomla 4.2.7 vulnerabilities [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Office_0xdf:r5:2.1",
+      "label": "Finding 2.1\nCVE-2023-23752 identified - u…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "CVE-2023-23752 identified - unauthenticated API access via mass-assignment",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Office_0xdf:r5:2.2",
+      "label": "Action 2.2\nExtract database credentials",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.2 Extract database credentials [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Office_0xdf:r5:2.2",
+      "label": "Finding 2.2\nAccessed /api/index.php/v1/co…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Accessed /api/index.php/v1/config/application?public=true; Leaked database root password H0lOgrams4reTakIng0Ver754!",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Office_0xdf:r5:3",
+      "label": "State 3\nEnumerate and compromise doma…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Enumerate and compromise domain users [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Office_0xdf:r5:3.1",
+      "label": "Action 3.1\nPerform Kerberos user enumera…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Perform Kerberos user enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Office_0xdf:r5:3.1",
+      "label": "Finding 3.1\nValid domain users identified…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Valid domain users identified using kerbrute",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Office_0xdf:r5:3.2",
+      "label": "Action 3.2\nPassword spray with leaked cr…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.2 Password spray with leaked credentials [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Office_0xdf:r5:3.2",
+      "label": "Finding 3.2\nPassword works for dwolfe; PC…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Password works for dwolfe; PCAP analysis extracted Kerberos hash; Cracked to tstark:playboy69",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Office_0xdf:r5:3.3",
+      "label": "Action 3.3\nAccess SMB shares",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.3 Access SMB shares [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Office_0xdf:r5:3.3",
+      "label": "Finding 3.3\nAuthenticated to SMB as dwolf…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Authenticated to SMB as dwolfe; Accessed SOC Analysis share containing PCAP",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Office_0xdf:r5:4",
+      "label": "State 4\nExploit Joomla admin access f…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 Exploit Joomla admin access for RCE [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Office_0xdf:r5:4.1",
+      "label": "Action 4.1\nAuthenticate to Joomla with t…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Authenticate to Joomla with tstark credentials [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Office_0xdf:r5:4.1",
+      "label": "Finding 4.1\ntstark:playboy69 valid for Jo…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "tstark:playboy69 valid for Joomla administrator panel",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Office_0xdf:r5:4.2",
+      "label": "Action 4.2\nModify template for code exec…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.2 Modify template for code execution [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Office_0xdf:r5:4.2",
+      "label": "Finding 4.2\nModified Site Templates Cassi…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Modified Site Templates Cassiopeia index.php with PHP webshell; Confirmed command execution; Used RunasCs to obtain interactive shell as tstark",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Office_0xdf:r5:5",
+      "label": "State 5\nExploit LibreOffice for later…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 Exploit LibreOffice for lateral movement [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Office_0xdf:r5:5.1",
+      "label": "Action 5.1\nResearch LibreOffice exploita…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.1 Research LibreOffice exploitation techniques [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Office_0xdf:r5:5.1",
+      "label": "Finding 5.1\nCVE-2023-2255 floating frame …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "CVE-2023-2255 floating frame RCE identified; Macro-based exploitation via registry modification",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Office_0xdf:r5:5.2",
+      "label": "Action 5.2\nCreate and deploy malicious d…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.2 Create and deploy malicious document [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Office_0xdf:r5:5.2",
+      "label": "Finding 5.2\nCreated ODT with floating fra…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Created ODT with floating frame executing arbitrary commands; Modified registry MacroSecurityLevel from 3 to 0 allowing unsigned macros; Document processed by PPotts; Obtained shell access as PPotts user",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Office_0xdf:r5:6",
+      "label": "State 6\nExtract DPAPI credentials and…",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "6 Extract DPAPI credentials and escalate privileges [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Office_0xdf:r5:6.1",
+      "label": "State 6.1\nUse Mimikatz for DPAPI decryp…",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "6.1 Use Mimikatz for DPAPI decryption [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Office_0xdf:r5:6.2",
+      "label": "State 6.2\nExploit GPO permissions for a…",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "6.2 Exploit GPO permissions for administrator access [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Office_0xdf:r5:START",
+      "to": "state:Office_0xdf:r5:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:1",
+      "to": "action:Office_0xdf:r5:1.1",
+      "label": "1.1 Scan for open por…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Office_0xdf:r5:1.1",
+      "to": "finding:Office_0xdf:r5:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Office_0xdf:r5:1.1",
+      "to": "state:Office_0xdf:r5:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:1",
+      "to": "action:Office_0xdf:r5:1.2",
+      "label": "1.2 Enumerate domain …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Office_0xdf:r5:1.2",
+      "to": "finding:Office_0xdf:r5:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Office_0xdf:r5:1.2",
+      "to": "state:Office_0xdf:r5:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:1",
+      "to": "action:Office_0xdf:r5:1.3",
+      "label": "1.3 Identify web appl…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Office_0xdf:r5:1.3",
+      "to": "finding:Office_0xdf:r5:1.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Office_0xdf:r5:1.3",
+      "to": "state:Office_0xdf:r5:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:1",
+      "to": "state:Office_0xdf:r5:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:2",
+      "to": "action:Office_0xdf:r5:2.1",
+      "label": "2.1 Research Joomla 4…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Office_0xdf:r5:2.1",
+      "to": "finding:Office_0xdf:r5:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Office_0xdf:r5:2.1",
+      "to": "state:Office_0xdf:r5:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:2",
+      "to": "action:Office_0xdf:r5:2.2",
+      "label": "2.2 Extract database …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Office_0xdf:r5:2.2",
+      "to": "finding:Office_0xdf:r5:2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Office_0xdf:r5:2.2",
+      "to": "state:Office_0xdf:r5:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:2",
+      "to": "state:Office_0xdf:r5:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:3",
+      "to": "action:Office_0xdf:r5:3.1",
+      "label": "3.1 Perform Kerberos …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Office_0xdf:r5:3.1",
+      "to": "finding:Office_0xdf:r5:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Office_0xdf:r5:3.1",
+      "to": "state:Office_0xdf:r5:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:3",
+      "to": "action:Office_0xdf:r5:3.2",
+      "label": "3.2 Password spray wi…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Office_0xdf:r5:3.2",
+      "to": "finding:Office_0xdf:r5:3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Office_0xdf:r5:3.2",
+      "to": "state:Office_0xdf:r5:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:3",
+      "to": "action:Office_0xdf:r5:3.3",
+      "label": "3.3 Access SMB shares",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Office_0xdf:r5:3.3",
+      "to": "finding:Office_0xdf:r5:3.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Office_0xdf:r5:3.3",
+      "to": "state:Office_0xdf:r5:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:3",
+      "to": "state:Office_0xdf:r5:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:4",
+      "to": "action:Office_0xdf:r5:4.1",
+      "label": "4.1 Authenticate to J…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Office_0xdf:r5:4.1",
+      "to": "finding:Office_0xdf:r5:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Office_0xdf:r5:4.1",
+      "to": "state:Office_0xdf:r5:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:4",
+      "to": "action:Office_0xdf:r5:4.2",
+      "label": "4.2 Modify template f…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Office_0xdf:r5:4.2",
+      "to": "finding:Office_0xdf:r5:4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Office_0xdf:r5:4.2",
+      "to": "state:Office_0xdf:r5:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:4",
+      "to": "state:Office_0xdf:r5:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:5",
+      "to": "action:Office_0xdf:r5:5.1",
+      "label": "5.1 Research LibreOff…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Office_0xdf:r5:5.1",
+      "to": "finding:Office_0xdf:r5:5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Office_0xdf:r5:5.1",
+      "to": "state:Office_0xdf:r5:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:5",
+      "to": "action:Office_0xdf:r5:5.2",
+      "label": "5.2 Create and deploy…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Office_0xdf:r5:5.2",
+      "to": "finding:Office_0xdf:r5:5.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Office_0xdf:r5:5.2",
+      "to": "state:Office_0xdf:r5:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:5",
+      "to": "state:Office_0xdf:r5:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:6",
+      "to": "state:Office_0xdf:r5:6.1",
+      "label": "6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Office_0xdf:r5:6.1",
+      "to": "state:Office_0xdf:r5:6.2",
+      "label": "6.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 33,
+    "total_edges": 44,
+    "state_nodes": 9,
+    "action_nodes": 12,
+    "finding_nodes": 12,
+    "ptt_items_parsed": 20
+  },
+  "csv_row_index": 1491,
+  "source_csv": "training_data.csv"
+}

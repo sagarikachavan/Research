@@ -1,0 +1,225 @@
+{
+  "machine": "Nibbles",
+  "row_index": 6,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Nibbles:r6:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Nibbles' (row 6).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Nibbles:r6:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]\nPort 22 - OpenSSH 7.2p2 Ubuntu, Port 80 - Apache httpd 2.4.18",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Nibbles:r6:2",
+      "label": "State 2\nEnumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Enumeration [completed]\nNibbleblog v4.0.3, admin panel accessible",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Nibbles:r6:3",
+      "label": "State 3\nInitial Access",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Initial Access [completed]\nCVE-2015-6967 exploited, shell as nibbler",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Nibbles:r6:4",
+      "label": "State 4\nPrivilege Escalation",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "4 Privilege Escalation [in_progress]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Nibbles:r6:4.1",
+      "label": "Action 4.1\nEnumerate privileges",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Enumerate privileges [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Nibbles:r6:4.1",
+      "label": "Finding 4.1\nsudo -l output shows User nib…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "sudo -l output shows User nibbler may run /home/nibbler/personal/stuff/monitor.sh as root with NOPASSWD, script has permissions -rwxrwxrwx",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Nibbles:r6:START",
+      "to": "state:Nibbles:r6:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Nibbles:r6:1",
+      "to": "state:Nibbles:r6:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Nibbles:r6:2",
+      "to": "state:Nibbles:r6:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Nibbles:r6:3",
+      "to": "state:Nibbles:r6:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Nibbles:r6:4",
+      "to": "action:Nibbles:r6:4.1",
+      "label": "4.1 Enumerate privile…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Nibbles:r6:4.1",
+      "to": "finding:Nibbles:r6:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Nibbles:r6:4.1",
+      "to": "state:Nibbles:r6:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 7,
+    "total_edges": 7,
+    "state_nodes": 5,
+    "action_nodes": 1,
+    "finding_nodes": 1,
+    "ptt_items_parsed": 5
+  },
+  "csv_row_index": 454,
+  "source_csv": "training_data.csv"
+}

@@ -50,3 +50,24 @@ KL_COEF = 0.01
 GRPO_GRAD_ACCUM = 16
 
 RANDOM_SEED = 42
+
+# Step categories (canonical labels)
+STEP_LABELS = [
+    "Do a google search for more information",
+    "Enumerate further on the X service to find software versions, hidden directories and file.",
+    "Explore the suspicious files, commands and create a summary of the findings.",
+    "Further Enumerate the website. - hidden directories, links and software",
+    "Enumerate the domain",
+    "Exploit the selected exploitations",
+    "Analyze the outcomes of the previous step and find an attack path",
+    "Ask for human assistant",
+    "Explore the source code for vulnerabilities.",
+    "End task and ask permission to generate the report",
+]
+
+# MCP tool labels (canonical tools)
+MCP_LABELS = [
+    "Nmap", "Metasploit", "Netcat", "Dirbuster", "SQLmap",
+    "Smb client", "hydra", "John-the-ripper", "Google search",
+    "Interactive CLI", "Web page interaction",
+]

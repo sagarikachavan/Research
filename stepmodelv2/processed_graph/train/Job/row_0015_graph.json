@@ -1,0 +1,357 @@
+{
+  "machine": "Job",
+  "row_index": 15,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Job:r15:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Job' (row 15).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Job:r15:1",
+      "label": "State 1\nPerform network reconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Perform network reconnaissance [completed]\nFive open ports: SMTP(25), HTTP(80/IIS 10.0), SMB(445), RDP(3389), WinRM(5985); Windows Server 2022 detected; hMailServer on SMTP",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Job:r15:1.1",
+      "label": "Action 1.1\nEnumerate SMB service",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Enumerate SMB service [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Job:r15:1.1",
+      "label": "Finding 1.1\nGuest account disabled; no un…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Guest account disabled; no unauthenticated SMB access available",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Job:r15:1.2",
+      "label": "Action 1.2\nEnumerate HTTP service",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Enumerate HTTP service [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Job:r15:1.2",
+      "label": "Finding 1.2\nStatic HTML index requesting …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Static HTML index requesting LibreOffice format resumes; career email discovered; hello.aspx test page located",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Job:r15:1.3",
+      "label": "Action 1.3\nEnumerate SMTP service",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3 Enumerate SMTP service [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Job:r15:1.3",
+      "label": "Finding 1.3\nVRFY disabled; RCPT TO lacks …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "VRFY disabled; RCPT TO lacks validation; server accepts mail to career@job.local and career@localhost",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Job:r15:2",
+      "label": "State 2\nEnumerate services for attack…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Enumerate services for attack vectors [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Job:r15:3",
+      "label": "State 3\nGain initial access",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "3 Gain initial access [in_progress]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Job:r15:4",
+      "label": "State 4\nEscalate privileges to SYSTEM",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "4 Escalate privileges to SYSTEM [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Job:r15:START",
+      "to": "state:Job:r15:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Job:r15:1",
+      "to": "action:Job:r15:1.1",
+      "label": "1.1 Enumerate SMB ser…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Job:r15:1.1",
+      "to": "finding:Job:r15:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Job:r15:1.1",
+      "to": "state:Job:r15:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Job:r15:1",
+      "to": "action:Job:r15:1.2",
+      "label": "1.2 Enumerate HTTP se…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Job:r15:1.2",
+      "to": "finding:Job:r15:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Job:r15:1.2",
+      "to": "state:Job:r15:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Job:r15:1",
+      "to": "action:Job:r15:1.3",
+      "label": "1.3 Enumerate SMTP se…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Job:r15:1.3",
+      "to": "finding:Job:r15:1.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Job:r15:1.3",
+      "to": "state:Job:r15:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Job:r15:1",
+      "to": "state:Job:r15:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Job:r15:2",
+      "to": "state:Job:r15:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Job:r15:3",
+      "to": "state:Job:r15:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 11,
+    "total_edges": 13,
+    "state_nodes": 5,
+    "action_nodes": 3,
+    "finding_nodes": 3,
+    "ptt_items_parsed": 7
+  },
+  "csv_row_index": 1812,
+  "source_csv": "training_data.csv"
+}

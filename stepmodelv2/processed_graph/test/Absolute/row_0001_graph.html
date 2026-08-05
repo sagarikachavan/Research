@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Absolute - row 1 - PTT Attack Graph</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" crossorigin="anonymous" />
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f8f9fa; }
+    header { padding: 14px 18px; background: white; border-bottom: 1px solid #d1d5db; }
+    #network { height: calc(100vh - 100px); width: 100vw; background-color: #f8f9fa; border: 1px solid lightgray; }
+    .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12.5px; margin-top: 6px; }
+    .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>Absolute &mdash; row 1 &mdash; PTT Attack Graph</strong>
+    (6 state, 2 action, 2 finding nodes)
+    <div class="legend">
+      <span><span class="swatch" style="background:#0B3D91"></span>State (dark=completed)</span>
+      <span><span class="swatch" style="background:#3A86FF"></span>State (mid=in progress)</span>
+      <span><span class="swatch" style="background:#AFC8FF"></span>State (light=to-do)</span>
+      <span><span class="swatch" style="background:#B33E00"></span>Action (dark=completed)</span>
+      <span><span class="swatch" style="background:#FB5607"></span>Action (mid=in progress)</span>
+      <span><span class="swatch" style="background:#FFC7A3"></span>Action (light=to-do)</span>
+      <span><span class="swatch" style="background:#06D6A0"></span>Finding</span>
+      <span>Black: StateTransition | Green: SearchUpdate | Blue: TrackUpdate | Purple: Prediction</span>
+    </div>
+  </header>
+  <div id="network"></div>
+  <script type="text/javascript">
+    var nodes = new vis.DataSet([{"id": "state:Absolute:r1:START", "label": "State: Start", "color": "#3A86FF", "shape": "dot", "size": 30, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "Start of pentest tree snapshot for 'Absolute' (row 1)."}, {"id": "state:Absolute:r1:1", "label": "State 1\nReconnaissance", "color": "#0B3D91", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "1 Reconnaissance [completed]"}, {"id": "action:Absolute:r1:1.1", "label": "Action 1.1\nNetwork scanning", "color": "#B33E00", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "1.1 Network scanning [completed]"}, {"id": "finding:Absolute:r1:1.1", "label": "Finding 1.1\nWindows DC with DNS, HTTP, Ke\u2026", "color": "#06D6A0", "shape": "dot", "size": 32, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "Windows DC with DNS, HTTP, Kerberos, LDAP, SMB, WinRM, clock skew"}, {"id": "state:Absolute:r1:1.2", "label": "State 1.2\nService enumeration", "color": "#0B3D91", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "1.2 Service enumeration [completed]"}, {"id": "state:Absolute:r1:2", "label": "State 2\nWeb Application Analysis", "color": "#0B3D91", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "2 Web Application Analysis [completed]"}, {"id": "action:Absolute:r1:2.1", "label": "Action 2.1\nExplore IIS website", "color": "#B33E00", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "2.1 Explore IIS website [completed]"}, {"id": "finding:Absolute:r1:2.1", "label": "Finding 2.1\nStatic design portfolio with \u2026", "color": "#06D6A0", "shape": "dot", "size": 32, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "Static design portfolio with rotating hero images, exiftool metadata extraction revealed six employee names: James Roberts, Michael Chaffrey, Donald Klay, Sarah Osvald, Jeffer Robinson, Nicole Smith"}, {"id": "state:Absolute:r1:3", "label": "State 3\nUsername Discovery", "color": "#AFC8FF", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "3 Username Discovery [to_do]"}, {"id": "state:Absolute:r1:3.1", "label": "State 3.1\nGenerate and validate usernam\u2026", "color": "#AFC8FF", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "3.1 Generate and validate usernames [to_do]"}]);
+    var edges = new vis.DataSet([{"from": "state:Absolute:r1:START", "to": "state:Absolute:r1:1", "label": "1", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "state:Absolute:r1:1", "to": "action:Absolute:r1:1.1", "label": "1.1 Network scanning", "color": "#06D6A0", "width": 2, "arrows": "to", "smooth": {"type": "continuous"}, "title": "SearchUpdate"}, {"from": "action:Absolute:r1:1.1", "to": "finding:Absolute:r1:1.1", "label": "Discover", "color": "#3A86FF", "width": 2, "arrows": "to", "smooth": {"type": "continuous"}, "title": "TrackUpdate"}, {"from": "finding:Absolute:r1:1.1", "to": "state:Absolute:r1:1", "label": "Leads to", "color": "#8338EC", "width": 1, "arrows": "to", "smooth": {"type": "continuous"}, "title": "Prediction"}, {"from": "state:Absolute:r1:1", "to": "state:Absolute:r1:1.2", "label": "1.2", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "state:Absolute:r1:1.2", "to": "state:Absolute:r1:2", "label": "2", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "state:Absolute:r1:2", "to": "action:Absolute:r1:2.1", "label": "2.1 Explore IIS websi\u2026", "color": "#06D6A0", "width": 2, "arrows": "to", "smooth": {"type": "continuous"}, "title": "SearchUpdate"}, {"from": "action:Absolute:r1:2.1", "to": "finding:Absolute:r1:2.1", "label": "Discover", "color": "#3A86FF", "width": 2, "arrows": "to", "smooth": {"type": "continuous"}, "title": "TrackUpdate"}, {"from": "finding:Absolute:r1:2.1", "to": "state:Absolute:r1:2", "label": "Leads to", "color": "#8338EC", "width": 1, "arrows": "to", "smooth": {"type": "continuous"}, "title": "Prediction"}, {"from": "state:Absolute:r1:2", "to": "state:Absolute:r1:3", "label": "3", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "state:Absolute:r1:3", "to": "state:Absolute:r1:3.1", "label": "3.1", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}]);
+    var container = document.getElementById('network');
+    var data = { nodes: nodes, edges: edges };
+    var options = {
+      physics: { forceAtlas2Based: { springLength: 220, springConstant: 0.03, centralGravity: 0.008, damping: 0.35, nodeDistance: 180 },
+                  minVelocity: 0.75, solver: "forceAtlas2Based", stabilization: { iterations: 220 } },
+      interaction: { hover: true, navigationButtons: true, keyboard: true },
+      nodes: { font: { size: 12 } },
+      edges: { font: { size: 9, color: '#212529', align: 'middle' }, smooth: { type: 'continuous' } }
+    };
+    new vis.Network(container, data, options);
+  </script>
+</body>
+</html>

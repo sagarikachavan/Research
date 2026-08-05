@@ -1,0 +1,585 @@
+{
+  "machine": "sus",
+  "row_index": 2,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:sus:r2:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'sus' (row 2).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sus:r2:3",
+      "label": "State 3\nVulnerability Analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Vulnerability Analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:sus:r2:3.1",
+      "label": "Action 3.1\nIdentify Privilege Escalation…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Identify Privilege Escalation Vulnerabilities [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:sus:r2:3.1",
+      "label": "Finding 3.1\nopenSUSE Leap 15.6 has severa…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "openSUSE Leap 15.6 has several privilege escalation vulnerabilities that could allow local attackers to gain full root access. Sudo vulnerabilities (CVE-2025-32462, CVE-2025-32463) are present in the sudo package, which can be exploited via the `--host` and `chroot` options. Chained privilege escalation vulnerabilities (CVE-2025-6018, CVE-2025-6019) can be exploited to gain full root access. CVE-2025-6018 is a PAM misconfiguration, and CVE-2025-6019 is a vulnerability in `libblockdev` exploitable via the `udisks` daemon. Linux Kernel vulnerabilities (CVE-2024-50302, CVE-2017-1000253, CVE-2024-53104) can lead to privilege escalation.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sus:r2:3.2",
+      "label": "State 3.2\nSecurity Recommendations",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3.2 Security Recommendations [completed]\nSecurity recommendations include: keeping systems updated, working with least privilege, monitoring security advisories, hardening system configuration, and hardening Polkit rules. For CVE-2025-6018 and CVE-2025-6019, mitigation involves applying security updates and hardening Polkit rules by changing the `org.freedesktop.udisks2.modify-device` policy from `allow_active=yes` to `auth_admin`.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sus:r2:3.3",
+      "label": "State 3.3\nRelevant Resources",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3.3 Relevant Resources [completed]\nRelevant resources include openSUSE Leap 15.6 `sudo` updates, SUSE Security Advisories, SUSE CVE List, HKCert Advisory on SUSE Linux Kernel Vulnerabilities, Qualys Report on Chained LPE, and openSUSE Leap 15.6 Security and Hardening Guide.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sus:r2:2",
+      "label": "State 2\nGaining Access",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Gaining Access [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:sus:r2:2.1",
+      "label": "Action 2.1\nSSH login",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 SSH login [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:sus:r2:2.1",
+      "label": "Finding 2.1\nSSH connection established wi…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "SSH connection established with IP: 10.129.231.188, User: susan, ED25519 key fingerprint: SHA256:FIE9EfBwKfkWlVUGmlmZDNbxJzxJNycqW1lO2Uoe6ec, Last login: Thu Aug 21 01:27:42 2025 from localhost, Sudo permissions for user 'susan': (ALL) ALL",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sus:r2:2.2",
+      "label": "State 2.2\nCollect System Information",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2.2 Collect System Information [completed]\nOS information: Name: openSUSE Leap, Version: 15.6, ID: opensuse-leap, Pretty Name: openSUSE Leap 15.6, CPE Name: cpe:/o:opensuse:leap:15.6, Home URL: https://www.opensuse.org/, Documentation URL: https://en.opensuse.org/Portal:Leap, Logo: distributor-logo-Leap, No other valid information found",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sus:r2:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sus:r2:1.1",
+      "label": "State 1.1\nPassive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.1 Passive Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sus:r2:1.2",
+      "label": "State 1.2\nActive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.2 Active Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sus:r2:1.3",
+      "label": "State 1.3\nIdentify Open Ports, Services…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3 Identify Open Ports, Services running on the open ports and their versions [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:sus:r2:1.3.1",
+      "label": "Action 1.3.1\nPerform a port scan",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.1 Perform a port scan [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:sus:r2:1.3.1",
+      "label": "Finding 1.3.1\nNmap version: 7.97, Scan targ…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Nmap version: 7.97, Scan target IP: 10.129.242.138, Host status: Up, Latency: 0.20s, Filtered TCP ports: 65401 (no-response), 133 (admin-prohibited), Open port: 22/tcp, Scan duration: 137.75 seconds",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:sus:r2:1.3.2",
+      "label": "Action 1.3.2\nDetermine the services and ve…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.2 Determine the services and versions on each open port [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:sus:r2:1.3.2",
+      "label": "Finding 1.3.2\nOpen port service and version…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Open port service and version: ssh, OpenSSH 9.6 (protocol 2.0), SSH host keys: ECDSA: bc:5e:1d:82:3c:e8:1a:ad:0a:6e:93:47:9e:3e:5d:4d, ED25519: 2d:bf:70:bf:02:33:62:40:03:02:da:f0:71:e1:60:7d, Credentials for SSH service: Username: susan, Password: dpQyxFD9158xK8C",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sus:r2:1.3.3",
+      "label": "State 1.3.3\nTarget IP: 10.129.231.188",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3.3 Target IP: 10.129.231.188 [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:sus:r2:START",
+      "to": "state:sus:r2:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sus:r2:3",
+      "to": "action:sus:r2:3.1",
+      "label": "3.1 Identify Privileg…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:sus:r2:3.1",
+      "to": "finding:sus:r2:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:sus:r2:3.1",
+      "to": "state:sus:r2:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sus:r2:3",
+      "to": "state:sus:r2:3.2",
+      "label": "3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sus:r2:3.2",
+      "to": "state:sus:r2:3.3",
+      "label": "3.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sus:r2:3.3",
+      "to": "state:sus:r2:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sus:r2:2",
+      "to": "action:sus:r2:2.1",
+      "label": "2.1 SSH login",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:sus:r2:2.1",
+      "to": "finding:sus:r2:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:sus:r2:2.1",
+      "to": "state:sus:r2:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sus:r2:2",
+      "to": "state:sus:r2:2.2",
+      "label": "2.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sus:r2:2.2",
+      "to": "state:sus:r2:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sus:r2:1",
+      "to": "state:sus:r2:1.1",
+      "label": "1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sus:r2:1.1",
+      "to": "state:sus:r2:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sus:r2:1.2",
+      "to": "state:sus:r2:1.3",
+      "label": "1.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sus:r2:1.3",
+      "to": "action:sus:r2:1.3.1",
+      "label": "1.3.1 Perform a port sc…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:sus:r2:1.3.1",
+      "to": "finding:sus:r2:1.3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:sus:r2:1.3.1",
+      "to": "state:sus:r2:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sus:r2:1.3",
+      "to": "action:sus:r2:1.3.2",
+      "label": "1.3.2 Determine the ser…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:sus:r2:1.3.2",
+      "to": "finding:sus:r2:1.3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:sus:r2:1.3.2",
+      "to": "state:sus:r2:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sus:r2:1.3",
+      "to": "state:sus:r2:1.3.3",
+      "label": "1.3.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 19,
+    "total_edges": 22,
+    "state_nodes": 11,
+    "action_nodes": 4,
+    "finding_nodes": 4,
+    "ptt_items_parsed": 14
+  },
+  "csv_row_index": 138,
+  "source_csv": "training_data.csv"
+}

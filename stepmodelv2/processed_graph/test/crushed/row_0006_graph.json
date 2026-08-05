@@ -1,0 +1,648 @@
+{
+  "machine": "crushed",
+  "row_index": 6,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:crushed:r6:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'crushed' (row 6).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:crushed:r6:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "1 Reconnaissance [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:crushed:r6:1.1",
+      "label": "State 1.1\nPassive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.1 Passive Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:crushed:r6:1.2",
+      "label": "State 1.2\nActive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.2 Active Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:crushed:r6:1.3",
+      "label": "Action 1.3\nIdentify Open Ports, Services…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3 Identify Open Ports, Services running on the open ports and their versions [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:crushed:r6:1.3",
+      "label": "Finding 1.3\nMultiple open ports with serv…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Multiple open ports with services related to CrushFTP. Presence of potentially risky HTTP methods on port 443. Valid SSL certificates with a long validity period. SSH services with identifiable keys on ports 22 and 2222. Repeated references to user \"username\" in HTTP services.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:crushed:r6:1.3.1",
+      "label": "Action 1.3.1\nPerform a port scan",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.1 Perform a port scan [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:crushed:r6:1.3.1",
+      "label": "Finding 1.3.1\nHost is up (0.16s latency). 6…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Host is up (0.16s latency). 65528 closed TCP ports (connection refused). Open Ports: 21/tcp (FTP: CrushFTP), 22/tcp (SSH: OpenSSH 8.9p1 Ubuntu 3ubuntu0.10), 443/tcp (SSL/HTTP: CrushFTP DAV httpd), 2222/tcp (SSH: CrushFTP sftpd), 8080/tcp (HTTP: CrushFTP DAV httpd), 9090/tcp (Hadoop Datanode: Apache Hadoop).",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:crushed:r6:1.3.2",
+      "label": "Action 1.3.2\nDetermine the services and ve…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.2 Determine the services and versions on each open port [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:crushed:r6:1.3.2",
+      "label": "Finding 1.3.2\nPort 21: CrushFTP; Port 22: O…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Port 21: CrushFTP; Port 22: OpenSSH 8.9p1 Ubuntu 3ubuntu0.10; Port 443: CrushFTP DAV httpd; Port 2222: CrushFTP sftpd; Port 8080: CrushFTP DAV httpd; Port 9090: Apache Hadoop.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:crushed:r6:1.3.3",
+      "label": "Action 1.3.3\nEnumerate the CrushFTP Web Ap…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.3 Enumerate the CrushFTP Web Application [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:crushed:r6:1.3.3",
+      "label": "Finding 1.3.3\nThe application is a file tra…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "The application is a file transfer solution with a login page for user authentication. No default usernames or passwords are provided, which may reduce unauthorized access risks. Recommendations include investigating the login page for vulnerabilities, testing for SQL Injection, XSS, CSRF, and reviewing configuration settings for security best practices.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:crushed:r6:1.3.4",
+      "label": "State 1.3.4\nSummary of Vulnerabilities in…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3.4 Summary of Vulnerabilities in CrushFTP [completed]\nNotable vulnerabilities include CVE-2025-31161 (Authentication Bypass), CVE-2024-4040 (VFS Sandbox Escape), and CVE-2025-54309 (AS2 Validation Flaw). Recommendations include prompt patching, vulnerability monitoring, and implementing security best practices.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:crushed:r6:1.3.5",
+      "label": "Action 1.3.5\nSummary of CVE-2024-4040 Expl…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.5 Summary of CVE-2024-4040 Exploitation Findings [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:crushed:r6:1.3.5",
+      "label": "Finding 1.3.5\nSuccessfully exploited CVE-20…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Successfully exploited CVE-2024-4040 leading to unauthorized access to `/etc/passwd`, retrieval of session tokens, and identification of sensitive user data. Recommendations include investigating further vulnerabilities, reviewing access controls, and considering patching.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:crushed:r6:1.3.6",
+      "label": "Action 1.3.6\nSummary of Extracted User Dat…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.6 Summary of Extracted User Data from CrushFTP [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:crushed:r6:1.3.6",
+      "label": "Finding 1.3.6\nSuccessfully extracted `/var/…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Successfully extracted `/var/opt/CrushFTP10/users/MainUsers/deathflash/user.XML`, which contains sensitive information including an MD5 hashed password. Recommendations include investigating the feasibility of cracking the MD5 hash, reviewing access control settings, and implementing stronger password hashing mechanisms.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:crushed:r6:1.3.7",
+      "label": "State 1.3.7\nSummary of Password Disclosur…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3.7 Summary of Password Disclosure for User \"deathflash\" [completed]\nThe password for the user account \"deathflash\" has been successfully extracted and is easily guessable, indicating a potential security weakness. Recommendations include changing the password to a strong, complex one, enforcing a robust password policy, educating users on password security, reviewing access logs for unauthorized attempts, and implementing multi-factor authentication.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:crushed:r6:1.4",
+      "label": "Action 1.4\nSummary of Active Session Fin…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.4 Summary of Active Session Findings [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:crushed:r6:1.4",
+      "label": "Finding 1.4\nSuccessful login achieved, es…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Successful login achieved, establishing an active session. Despite having an active session, no additional valuable information or sensitive data has been located. Recommendations include continuing to explore the application’s functionalities, investigating for administrative privileges, checking for access to sensitive user data or configuration files, conducting a thorough vulnerability assessment for XSS, CSRF, IDOR, and reviewing session management practices.}\n   1.5 Target IP - 10.129.231.140",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:crushed:r6:START",
+      "to": "state:crushed:r6:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:crushed:r6:1",
+      "to": "state:crushed:r6:1.1",
+      "label": "1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:crushed:r6:1.1",
+      "to": "state:crushed:r6:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:crushed:r6:1.2",
+      "to": "action:crushed:r6:1.3",
+      "label": "1.3 Identify Open Por…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:crushed:r6:1.3",
+      "to": "finding:crushed:r6:1.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:crushed:r6:1.3",
+      "to": "state:crushed:r6:1.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:crushed:r6:1.2",
+      "to": "action:crushed:r6:1.3.1",
+      "label": "1.3.1 Perform a port sc…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:crushed:r6:1.3.1",
+      "to": "finding:crushed:r6:1.3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:crushed:r6:1.3.1",
+      "to": "state:crushed:r6:1.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:crushed:r6:1.2",
+      "to": "action:crushed:r6:1.3.2",
+      "label": "1.3.2 Determine the ser…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:crushed:r6:1.3.2",
+      "to": "finding:crushed:r6:1.3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:crushed:r6:1.3.2",
+      "to": "state:crushed:r6:1.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:crushed:r6:1.2",
+      "to": "action:crushed:r6:1.3.3",
+      "label": "1.3.3 Enumerate the Cru…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:crushed:r6:1.3.3",
+      "to": "finding:crushed:r6:1.3.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:crushed:r6:1.3.3",
+      "to": "state:crushed:r6:1.2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:crushed:r6:1.2",
+      "to": "state:crushed:r6:1.3.4",
+      "label": "1.3.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:crushed:r6:1.3.4",
+      "to": "action:crushed:r6:1.3.5",
+      "label": "1.3.5 Summary of CVE-20…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:crushed:r6:1.3.5",
+      "to": "finding:crushed:r6:1.3.5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:crushed:r6:1.3.5",
+      "to": "state:crushed:r6:1.3.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:crushed:r6:1.3.4",
+      "to": "action:crushed:r6:1.3.6",
+      "label": "1.3.6 Summary of Extrac…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:crushed:r6:1.3.6",
+      "to": "finding:crushed:r6:1.3.6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:crushed:r6:1.3.6",
+      "to": "state:crushed:r6:1.3.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:crushed:r6:1.3.4",
+      "to": "state:crushed:r6:1.3.7",
+      "label": "1.3.7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:crushed:r6:1.3.7",
+      "to": "action:crushed:r6:1.4",
+      "label": "1.4 Summary of Active…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:crushed:r6:1.4",
+      "to": "finding:crushed:r6:1.4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:crushed:r6:1.4",
+      "to": "state:crushed:r6:1.3.7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 20,
+    "total_edges": 26,
+    "state_nodes": 6,
+    "action_nodes": 7,
+    "finding_nodes": 7,
+    "ptt_items_parsed": 12
+  },
+  "csv_row_index": 27,
+  "source_csv": "test_data.csv"
+}

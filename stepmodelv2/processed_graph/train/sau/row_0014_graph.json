@@ -1,0 +1,489 @@
+{
+  "machine": "sau",
+  "row_index": 14,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:sau:r14:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'sau' (row 14).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sau:r14:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sau:r14:1.1",
+      "label": "State 1.1\nPassive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.1 Passive Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sau:r14:1.2",
+      "label": "State 1.2\nActive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.2 Active Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:sau:r14:1.3",
+      "label": "State 1.3\nIdentify Open Ports, Services…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3 Identify Open Ports, Services running on the open ports and their versions [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:sau:r14:1.3.1",
+      "label": "Action 1.3.1\nPerform a port scan",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.1 Perform a port scan [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:sau:r14:1.3.1",
+      "label": "Finding 1.3.1\n1.3.1:{Nmap version:7.80, Sca…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "1.3.1:{Nmap version:7.80, Scan date and time:2024-01-04 10:26 EST, IP address scanned:10.10.11.224, Host status:Up, Latency:0.11s, Closed ports:65531, Scan duration:7.31 seconds",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:sau:r14:1.3.2",
+      "label": "Action 1.3.2\nDetermine the services and ve…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.2 Determine the services and versions on each open port [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:sau:r14:1.3.2",
+      "label": "Finding 1.3.2\n1.3.2:{Open Ports and Service…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "1.3.2:{Open Ports and Services: Port 22/tcp: Open, Service: ssh, Port 55555/tcp: Open, Service: unknown, Filtered Ports and Services: Port 80/tcp: Filtered, Service: http, Port 8338/tcp: Filtered, Service: unknown} \n       1.3:{Target IP:10.129.229.26",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:sau:r14:1.3.3",
+      "label": "Action 1.3.3\nEnumerate port 80",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.3 Enumerate port 80 [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:sau:r14:1.3.3",
+      "label": "Finding 1.3.3\n1.3.3:{Port 80: Not loaded",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "1.3.3:{Port 80: Not loaded",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:sau:r14:1.3.4",
+      "label": "Action 1.3.4\nEnumerate port 55555",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.4 Enumerate port 55555 [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:sau:r14:1.3.4",
+      "label": "Finding 1.3.4\n1.3.4:{Port 55555: Directs to…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "1.3.4:{Port 55555: Directs to a web page, Web page function: Collecting and inspecting HTTP requests, Web page URL: http://10.129.229.26:55555/, Action: Creating a basket to collect and inspect HTTP requests, Result of action: Returns a token for future basket access, Basket created: 'wygbo5a', Token received: fAyZqu93BRdiZ2UakGim_JbTk5rhtCrmUojTozkLjoNM",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:sau:r14:1.3.5",
+      "label": "Action 1.3.5\nFurther Enumerate the website",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.5 Further Enumerate the website [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:sau:r14:1.3.5",
+      "label": "Finding 1.3.5\n1.3.5:{Basket functionality: …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "1.3.5:{Basket functionality: Collects HTTP requests, Basket status: Empty, Basket URL: http://10.129.229.26:55555/wygbo5a, GET request made to the basket, GET request time: 8:08:58 pm 02/08/2025, GET request endpoint: /wygbo5a, Headers of GET request: Accept: */*, User-Agent: curl/8.5.0, Powering service: request-baskets, Version: 1.2.1, Directories found with statuses, sizes: /baskets: Status 401, Size 0, /Documents and Settings: Status 400, Size 75, /lost+found: Status 400, Size 75, /Program Files: Status 400, Size 75, /reports list: Status 400, Size 75, /web: Status 200, Size 8700",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:sau:r14:START",
+      "to": "state:sau:r14:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r14:1",
+      "to": "state:sau:r14:1.1",
+      "label": "1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r14:1.1",
+      "to": "state:sau:r14:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r14:1.2",
+      "to": "state:sau:r14:1.3",
+      "label": "1.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r14:1.3",
+      "to": "action:sau:r14:1.3.1",
+      "label": "1.3.1 Perform a port sc…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:sau:r14:1.3.1",
+      "to": "finding:sau:r14:1.3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:sau:r14:1.3.1",
+      "to": "state:sau:r14:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r14:1.3",
+      "to": "action:sau:r14:1.3.2",
+      "label": "1.3.2 Determine the ser…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:sau:r14:1.3.2",
+      "to": "finding:sau:r14:1.3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:sau:r14:1.3.2",
+      "to": "state:sau:r14:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r14:1.3",
+      "to": "action:sau:r14:1.3.3",
+      "label": "1.3.3 Enumerate port 80",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:sau:r14:1.3.3",
+      "to": "finding:sau:r14:1.3.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:sau:r14:1.3.3",
+      "to": "state:sau:r14:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r14:1.3",
+      "to": "action:sau:r14:1.3.4",
+      "label": "1.3.4 Enumerate port 55…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:sau:r14:1.3.4",
+      "to": "finding:sau:r14:1.3.4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:sau:r14:1.3.4",
+      "to": "state:sau:r14:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:sau:r14:1.3",
+      "to": "action:sau:r14:1.3.5",
+      "label": "1.3.5 Further Enumerate…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:sau:r14:1.3.5",
+      "to": "finding:sau:r14:1.3.5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:sau:r14:1.3.5",
+      "to": "state:sau:r14:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 15,
+    "total_edges": 19,
+    "state_nodes": 5,
+    "action_nodes": 5,
+    "finding_nodes": 5,
+    "ptt_items_parsed": 9
+  },
+  "csv_row_index": 52,
+  "source_csv": "training_data.csv"
+}

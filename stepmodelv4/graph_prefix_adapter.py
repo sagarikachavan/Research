@@ -39,18 +39,19 @@ class GraphPrefixAdapter(nn.Module):
         return soft_prompt
 
 
-def load_graph_encoder_and_adapter(gnn_ckpt_path, adapter_ckpt_path, device):
+def load_graph_encoder_and_adapter(gnn_ckpt_path, adapter_ckpt_path, device, train_adapter=True):
     """
-    Load frozen graph encoder and trained graph prefix adapter.
+    Load frozen graph encoder and graph prefix adapter.
     
     Args:
         gnn_ckpt_path: Path to GNN encoder checkpoint
         adapter_ckpt_path: Path to graph adapter checkpoint
         device: torch device
+        train_adapter: If True, adapter parameters will be trainable
     
     Returns:
         graph_encoder: Frozen Stage1Classifier
-        graph_adapter: Trained GraphPrefixAdapter
+        graph_adapter: GraphPrefixAdapter (trainable if train_adapter=True)
     """
     from graph_encoder import Stage1Classifier
     
@@ -61,10 +62,26 @@ def load_graph_encoder_and_adapter(gnn_ckpt_path, adapter_ckpt_path, device):
     for param in graph_encoder.parameters():
         param.requires_grad = False
     
-    # Load graph adapter
+    # Load graph adapter (initialize if checkpoint doesn't exist)
     graph_adapter = GraphPrefixAdapter().to(device)
     if adapter_ckpt_path:
-        graph_adapter.load_state_dict(torch.load(adapter_ckpt_path, map_location=device))
-    graph_adapter.eval()
+        try:
+            graph_adapter.load_state_dict(torch.load(adapter_ckpt_path, map_location=device))
+            print(f"[adapter] Loaded adapter checkpoint from {adapter_ckpt_path}")
+        except FileNotFoundError:
+            print(f"[adapter] Adapter checkpoint not found at {adapter_ckpt_path}, initializing randomly")
+    else:
+        print(f"[adapter] Initializing adapter randomly (will be trained during SFT)")
+    
+    if train_adapter:
+        graph_adapter.train()
+        for param in graph_adapter.parameters():
+            param.requires_grad = True
+        print(f"[adapter] Adapter set to trainable mode")
+    else:
+        graph_adapter.eval()
+        for param in graph_adapter.parameters():
+            param.requires_grad = False
+        print(f"[adapter] Adapter set to frozen mode")
     
     return graph_encoder, graph_adapter

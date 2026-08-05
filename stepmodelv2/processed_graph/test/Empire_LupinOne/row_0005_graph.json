@@ -1,0 +1,570 @@
+{
+  "machine": "Empire LupinOne",
+  "row_index": 5,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Empire LupinOne:r5:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Empire LupinOne' (row 5).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Empire LupinOne:r5:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Empire LupinOne:r5:1.1",
+      "label": "Action 1.1\nNetwork scanning",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Network scanning [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Empire LupinOne:r5:1.1",
+      "label": "Finding 1.1\nSSH and HTTP",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "SSH and HTTP",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Empire LupinOne:r5:2",
+      "label": "State 2\nWeb Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Web Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Empire LupinOne:r5:2.1",
+      "label": "Action 2.1\nEnumerate directories",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Enumerate directories [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Empire LupinOne:r5:2.1",
+      "label": "Finding 2.1\n/~secret",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "/~secret",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Empire LupinOne:r5:3",
+      "label": "State 3\nHidden File Discovery",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Hidden File Discovery [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Empire LupinOne:r5:3.1",
+      "label": "Action 3.1\nFuzz for files",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Fuzz for files [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Empire LupinOne:r5:3.1",
+      "label": "Finding 3.1\n.mysecret.txt base58",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": ".mysecret.txt base58",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Empire LupinOne:r5:4",
+      "label": "State 4\nSSH Key Decoding",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 SSH Key Decoding [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Empire LupinOne:r5:4.1",
+      "label": "Action 4.1\nDecode base58",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Decode base58 [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Empire LupinOne:r5:4.1",
+      "label": "Finding 4.1\nSSH key decoded",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "SSH key decoded",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Empire LupinOne:r5:5",
+      "label": "State 5\nSSH Key Cracking",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 SSH Key Cracking [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Empire LupinOne:r5:5.1",
+      "label": "Action 5.1\nCrack passphrase",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.1 Crack passphrase [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Empire LupinOne:r5:5.1",
+      "label": "Finding 5.1\nssh2john converted key to has…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "ssh2john converted key to hash, john cracked passphrase to P@55w0rd! using fastrack.txt wordlist, SSH authentication successful as icex64@192.168.1.2, discovered Python script /home/arsene/heist.py with sudo permissions",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Empire LupinOne:r5:6",
+      "label": "State 6\nPrivilege Escalation to Arsene",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "6 Privilege Escalation to Arsene [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Empire LupinOne:r5:6.1",
+      "label": "State 6.1\nPython library hijacking for …",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "6.1 Python library hijacking for arsene [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Empire LupinOne:r5:START",
+      "to": "state:Empire LupinOne:r5:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Empire LupinOne:r5:1",
+      "to": "action:Empire LupinOne:r5:1.1",
+      "label": "1.1 Network scanning",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Empire LupinOne:r5:1.1",
+      "to": "finding:Empire LupinOne:r5:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Empire LupinOne:r5:1.1",
+      "to": "state:Empire LupinOne:r5:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Empire LupinOne:r5:1",
+      "to": "state:Empire LupinOne:r5:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Empire LupinOne:r5:2",
+      "to": "action:Empire LupinOne:r5:2.1",
+      "label": "2.1 Enumerate directo…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Empire LupinOne:r5:2.1",
+      "to": "finding:Empire LupinOne:r5:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Empire LupinOne:r5:2.1",
+      "to": "state:Empire LupinOne:r5:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Empire LupinOne:r5:2",
+      "to": "state:Empire LupinOne:r5:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Empire LupinOne:r5:3",
+      "to": "action:Empire LupinOne:r5:3.1",
+      "label": "3.1 Fuzz for files",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Empire LupinOne:r5:3.1",
+      "to": "finding:Empire LupinOne:r5:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Empire LupinOne:r5:3.1",
+      "to": "state:Empire LupinOne:r5:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Empire LupinOne:r5:3",
+      "to": "state:Empire LupinOne:r5:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Empire LupinOne:r5:4",
+      "to": "action:Empire LupinOne:r5:4.1",
+      "label": "4.1 Decode base58",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Empire LupinOne:r5:4.1",
+      "to": "finding:Empire LupinOne:r5:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Empire LupinOne:r5:4.1",
+      "to": "state:Empire LupinOne:r5:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Empire LupinOne:r5:4",
+      "to": "state:Empire LupinOne:r5:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Empire LupinOne:r5:5",
+      "to": "action:Empire LupinOne:r5:5.1",
+      "label": "5.1 Crack passphrase",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Empire LupinOne:r5:5.1",
+      "to": "finding:Empire LupinOne:r5:5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Empire LupinOne:r5:5.1",
+      "to": "state:Empire LupinOne:r5:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Empire LupinOne:r5:5",
+      "to": "state:Empire LupinOne:r5:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Empire LupinOne:r5:6",
+      "to": "state:Empire LupinOne:r5:6.1",
+      "label": "6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 18,
+    "total_edges": 22,
+    "state_nodes": 8,
+    "action_nodes": 5,
+    "finding_nodes": 5,
+    "ptt_items_parsed": 12
+  },
+  "csv_row_index": 217,
+  "source_csv": "test_data.csv"
+}

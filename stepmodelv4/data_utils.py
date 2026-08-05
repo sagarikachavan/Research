@@ -132,6 +132,38 @@ def mcp_multihot(mcp_labels: List[str]) -> np.ndarray:
     return vec
 
 
+def parse_completion(completion: str) -> Optional[Dict]:
+    """Parse completion string into JSON dictionary."""
+    if not completion or not completion.strip():
+        return None
+    
+    # Try to extract JSON from completion
+    completion = completion.strip()
+    
+    # Remove markdown code blocks if present
+    if completion.startswith("```"):
+        completion = completion[3:]
+    if completion.startswith("```json"):
+        completion = completion[7:]
+    if completion.endswith("```"):
+        completion = completion[:-3]
+    completion = completion.strip()
+    
+    # Try parsing as JSON
+    try:
+        return json.loads(completion)
+    except json.JSONDecodeError:
+        # Try to find JSON object in the string
+        start_idx = completion.find("{")
+        end_idx = completion.rfind("}")
+        if start_idx != -1 and end_idx != -1 and end_idx > start_idx:
+            try:
+                return json.loads(completion[start_idx:end_idx + 1])
+            except json.JSONDecodeError:
+                pass
+        return None
+
+
 def graph_to_torch_geometric(graph_json: Dict) -> Data:
     """Convert stepmodelv3 graph JSON to torch_geometric Data object."""
     nodes = graph_json.get("nodes", [])

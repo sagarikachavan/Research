@@ -1,0 +1,47 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>RustyKey - row 9 - PTT Attack Graph</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/vis-network.min.js" crossorigin="anonymous"></script>
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/vis-network/9.1.2/dist/dist/vis-network.min.css" crossorigin="anonymous" />
+  <style>
+    body { margin: 0; font-family: Arial, sans-serif; background: #f8f9fa; }
+    header { padding: 14px 18px; background: white; border-bottom: 1px solid #d1d5db; }
+    #network { height: calc(100vh - 100px); width: 100vw; background-color: #f8f9fa; border: 1px solid lightgray; }
+    .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12.5px; margin-top: 6px; }
+    .swatch { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 5px; }
+  </style>
+</head>
+<body>
+  <header>
+    <strong>RustyKey &mdash; row 9 &mdash; PTT Attack Graph</strong>
+    (14 state, 0 action, 0 finding nodes)
+    <div class="legend">
+      <span><span class="swatch" style="background:#0B3D91"></span>State (dark=completed)</span>
+      <span><span class="swatch" style="background:#3A86FF"></span>State (mid=in progress)</span>
+      <span><span class="swatch" style="background:#AFC8FF"></span>State (light=to-do)</span>
+      <span><span class="swatch" style="background:#B33E00"></span>Action (dark=completed)</span>
+      <span><span class="swatch" style="background:#FB5607"></span>Action (mid=in progress)</span>
+      <span><span class="swatch" style="background:#FFC7A3"></span>Action (light=to-do)</span>
+      <span><span class="swatch" style="background:#06D6A0"></span>Finding</span>
+      <span>Black: StateTransition | Green: SearchUpdate | Blue: TrackUpdate | Purple: Prediction</span>
+    </div>
+  </header>
+  <div id="network"></div>
+  <script type="text/javascript">
+    var nodes = new vis.DataSet([{"id": "state:RustyKey:r9:START", "label": "State: Start", "color": "#3A86FF", "shape": "dot", "size": 30, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "Start of pentest tree snapshot for 'RustyKey' (row 9)."}, {"id": "state:RustyKey:r9:1", "label": "State 1\nReconnaissance", "color": "#0B3D91", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "1 Reconnaissance [completed]"}, {"id": "state:RustyKey:r9:2", "label": "State 2\nInitial access testing", "color": "#0B3D91", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "2 Initial access testing [completed]"}, {"id": "state:RustyKey:r9:3", "label": "State 3\nActive Directory enumeration", "color": "#0B3D91", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "3 Active Directory enumeration [completed]"}, {"id": "state:RustyKey:r9:4", "label": "State 4\nComputer account compromise", "color": "#0B3D91", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "4 Computer account compromise [completed]"}, {"id": "state:RustyKey:r9:5", "label": "State 5\nPrivilege escalation via grou\u2026", "color": "#0B3D91", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "5 Privilege escalation via groups [completed]"}, {"id": "state:RustyKey:r9:6", "label": "State 6\nUser access", "color": "#0B3D91", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "6 User access [completed]"}, {"id": "state:RustyKey:r9:7", "label": "State 7\nLateral movement planning", "color": "#0B3D91", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "7 Lateral movement planning [completed]"}, {"id": "state:RustyKey:r9:8", "label": "State 8\nContext menu hijacking", "color": "#0B3D91", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "8 Context menu hijacking [completed]"}, {"id": "state:RustyKey:r9:9", "label": "State 9\nResource-Based Constrained De\u2026", "color": "#0B3D91", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "9 Resource-Based Constrained Delegation [completed]\nRBCD configured successfully. IT-COMPUTER3$ set as PrincipalsAllowedToDelegateToAccount on DC. getST.py generated service ticket impersonating backupadmin. wmiexec.py connected successfully as backupadmin (Administrators group member). root.txt flag accessed."}, {"id": "state:RustyKey:r9:9.1", "label": "State 9.1\nRBCD configuration", "color": "#0B3D91", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "9.1 RBCD configuration [completed]"}, {"id": "state:RustyKey:r9:9.2", "label": "State 9.2\nAdministrator access", "color": "#0B3D91", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "9.2 Administrator access [completed]"}, {"id": "state:RustyKey:r9:10", "label": "State 10\nDomain compromise", "color": "#AFC8FF", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "10 Domain compromise [to_do]"}, {"id": "state:RustyKey:r9:10.1", "label": "State 10.1\nDCSync operation", "color": "#AFC8FF", "shape": "dot", "size": 40, "borderColor": "#212529", "borderWidth": 2, "font": {"color": "#212529"}, "title": "10.1 DCSync operation [to_do]"}]);
+    var edges = new vis.DataSet([{"from": "state:RustyKey:r9:START", "to": "state:RustyKey:r9:1", "label": "1", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "state:RustyKey:r9:1", "to": "state:RustyKey:r9:2", "label": "2", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "state:RustyKey:r9:2", "to": "state:RustyKey:r9:3", "label": "3", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "state:RustyKey:r9:3", "to": "state:RustyKey:r9:4", "label": "4", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "state:RustyKey:r9:4", "to": "state:RustyKey:r9:5", "label": "5", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "state:RustyKey:r9:5", "to": "state:RustyKey:r9:6", "label": "6", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "state:RustyKey:r9:6", "to": "state:RustyKey:r9:7", "label": "7", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "state:RustyKey:r9:7", "to": "state:RustyKey:r9:8", "label": "8", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "state:RustyKey:r9:8", "to": "state:RustyKey:r9:9", "label": "9", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "state:RustyKey:r9:9", "to": "state:RustyKey:r9:9.1", "label": "9.1", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "state:RustyKey:r9:9.1", "to": "state:RustyKey:r9:9.2", "label": "9.2", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "state:RustyKey:r9:9.2", "to": "state:RustyKey:r9:10", "label": "10", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}, {"from": "state:RustyKey:r9:10", "to": "state:RustyKey:r9:10.1", "label": "10.1", "color": "#000000", "width": 3, "arrows": "to", "smooth": {"type": "continuous"}, "title": "StateTransition"}]);
+    var container = document.getElementById('network');
+    var data = { nodes: nodes, edges: edges };
+    var options = {
+      physics: { forceAtlas2Based: { springLength: 220, springConstant: 0.03, centralGravity: 0.008, damping: 0.35, nodeDistance: 180 },
+                  minVelocity: 0.75, solver: "forceAtlas2Based", stabilization: { iterations: 220 } },
+      interaction: { hover: true, navigationButtons: true, keyboard: true },
+      nodes: { font: { size: 12 } },
+      edges: { font: { size: 9, color: '#212529', align: 'middle' }, smooth: { type: 'continuous' } }
+    };
+    new vis.Network(container, data, options);
+  </script>
+</body>
+</html>

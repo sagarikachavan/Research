@@ -1,0 +1,543 @@
+{
+  "machine": "Cascade",
+  "row_index": 7,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Cascade:r7:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Cascade' (row 7).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Cascade:r7:1",
+      "label": "State 1\nPerform network reconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Perform network reconnaissance [completed]\n15 open ports: DNS(53), Kerberos(88), LDAP(389/636), SMB(445), WinRM(5985); Windows Server 2008 R2 SP1 domain controller identified",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Cascade:r7:1.1",
+      "label": "Action 1.1\nEnumerate LDAP service",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Enumerate LDAP service [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Cascade:r7:1.1",
+      "label": "Finding 1.1\nRyan Thompson account discove…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Ryan Thompson account discovered with cascadeLegacyPwd attribute containing base64 value: clk0bjVldmE=",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Cascade:r7:1.2",
+      "label": "State 1.2\nEnumerate SMB shares",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "1.2 Enumerate SMB shares [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Cascade:r7:2",
+      "label": "State 2\nEnumerate Active Directory se…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Enumerate Active Directory services [completed]\nDecoded password rY4n5eva for r.thompson account",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Cascade:r7:3",
+      "label": "State 3\nGain initial access",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Gain initial access [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Cascade:r7:3.1",
+      "label": "Action 3.1\nValidate credentials against …",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Validate credentials against services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Cascade:r7:3.1",
+      "label": "Finding 3.1\nAccess to Data, NETLOGON, SYS…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Access to Data, NETLOGON, SYSVOL shares; discovered VNC Install.reg file in IT\\Temp\\s.smith directory",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Cascade:r7:3.2",
+      "label": "Action 3.2\nExtract VNC password from reg…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.2 Extract VNC password from registry file [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Cascade:r7:3.2",
+      "label": "Finding 3.2\nVNC password decrypted to: sT…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "VNC password decrypted to: sT333ve2 for s.smith account",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Cascade:r7:3.3",
+      "label": "Action 3.3\nAuthenticate via WinRM",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.3 Authenticate via WinRM [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Cascade:r7:3.3",
+      "label": "Finding 3.3\nWinRM shell established as s.…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "WinRM shell established as s.smith; user.txt flag obtained; membership in Audit Share group confirmed",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Cascade:r7:4",
+      "label": "State 4\nEscalate to administrator pri…",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "4 Escalate to administrator privileges [in_progress]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Cascade:r7:4.1",
+      "label": "Action 4.1\nEnumerate Audit share contents",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Enumerate Audit share contents [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Cascade:r7:4.1",
+      "label": "Finding 4.1\nAudit.db SQLite database and …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Audit.db SQLite database and CascAudit.exe .NET executable located; database contains encrypted LDAP password for arksvc account",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Cascade:r7:4.2",
+      "label": "State 4.2\nReverse engineer credential d…",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "4.2 Reverse engineer credential decryption [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Cascade:r7:START",
+      "to": "state:Cascade:r7:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Cascade:r7:1",
+      "to": "action:Cascade:r7:1.1",
+      "label": "1.1 Enumerate LDAP se…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Cascade:r7:1.1",
+      "to": "finding:Cascade:r7:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Cascade:r7:1.1",
+      "to": "state:Cascade:r7:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Cascade:r7:1",
+      "to": "state:Cascade:r7:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Cascade:r7:1.2",
+      "to": "state:Cascade:r7:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Cascade:r7:2",
+      "to": "state:Cascade:r7:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Cascade:r7:3",
+      "to": "action:Cascade:r7:3.1",
+      "label": "3.1 Validate credenti…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Cascade:r7:3.1",
+      "to": "finding:Cascade:r7:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Cascade:r7:3.1",
+      "to": "state:Cascade:r7:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Cascade:r7:3",
+      "to": "action:Cascade:r7:3.2",
+      "label": "3.2 Extract VNC passw…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Cascade:r7:3.2",
+      "to": "finding:Cascade:r7:3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Cascade:r7:3.2",
+      "to": "state:Cascade:r7:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Cascade:r7:3",
+      "to": "action:Cascade:r7:3.3",
+      "label": "3.3 Authenticate via …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Cascade:r7:3.3",
+      "to": "finding:Cascade:r7:3.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Cascade:r7:3.3",
+      "to": "state:Cascade:r7:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Cascade:r7:3",
+      "to": "state:Cascade:r7:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Cascade:r7:4",
+      "to": "action:Cascade:r7:4.1",
+      "label": "4.1 Enumerate Audit s…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Cascade:r7:4.1",
+      "to": "finding:Cascade:r7:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Cascade:r7:4.1",
+      "to": "state:Cascade:r7:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Cascade:r7:4",
+      "to": "state:Cascade:r7:4.2",
+      "label": "4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 17,
+    "total_edges": 21,
+    "state_nodes": 7,
+    "action_nodes": 5,
+    "finding_nodes": 5,
+    "ptt_items_parsed": 11
+  },
+  "csv_row_index": 807,
+  "source_csv": "training_data.csv"
+}

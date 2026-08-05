@@ -1,0 +1,783 @@
+{
+  "machine": "Imagery",
+  "row_index": 6,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Imagery:r6:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Imagery' (row 6).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Imagery:r6:1",
+      "label": "State 1\nNetwork Reconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Network Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Imagery:r6:1.1",
+      "label": "Action 1.1\nPerform initial port scan",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Perform initial port scan [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Imagery:r6:1.1",
+      "label": "Finding 1.1\nTwo open ports identified - P…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Two open ports identified - Port 22 (SSH) running OpenSSH 9.7p1, Port 8000 (HTTP) running Werkzeug/3.1.3 Python/3.12.7 Flask application. OS detection suggests Ubuntu 24.10.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Imagery:r6:1.2",
+      "label": "Action 1.2\nIdentify running services",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Identify running services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Imagery:r6:1.2",
+      "label": "Finding 1.2\nSSH and HTTP services identif…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "SSH and HTTP services identified",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Imagery:r6:2",
+      "label": "State 2\nService Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Service Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Imagery:r6:2.1",
+      "label": "Action 2.1\nEnumerate HTTP/HTTPS services",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Enumerate HTTP/HTTPS services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Imagery:r6:2.1",
+      "label": "Finding 2.1\nImage gallery application wit…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Image gallery application with registration, login, upload functionality. Bug reporting feature accessible through footer link. Session cookies lack HttpOnly attribute. GET endpoint /images returns JSON data about uploaded images. Admin panel exists.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Imagery:r6:3",
+      "label": "State 3\nVulnerability Analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Vulnerability Analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Imagery:r6:3.1",
+      "label": "Action 3.1\nTest for XSS vulnerabilities",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Test for XSS vulnerabilities [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Imagery:r6:3.1",
+      "label": "Finding 3.1\nStored XSS confirmed in bug r…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Stored XSS confirmed in bug report details field. Admin panel code shows details field inserted directly into HTML without DOMPurify sanitization. Payload successfully exfiltrated admin Flask session cookie. Decoded cookie reveals isAdmin: true privilege.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Imagery:r6:4",
+      "label": "State 4\nInitial Access Exploitation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 Initial Access Exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Imagery:r6:4.1",
+      "label": "Action 4.1\nAccess admin panel with stole…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Access admin panel with stolen session [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Imagery:r6:4.1",
+      "label": "Finding 4.1\nAdmin panel contains log down…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Admin panel contains log download feature at /admin/get_system_log?log_identifier=. Directory traversal vulnerability confirmed - ../../../../etc/passwd successfully retrieved. Multiple ../ sequences allow reading application source files including app.py, config.py, and api_*.py modules.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Imagery:r6:5",
+      "label": "State 5\nPost-Exploitation Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 Post-Exploitation Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Imagery:r6:5.1",
+      "label": "Action 5.1\nDownload application source c…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.1 Download application source code [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Imagery:r6:5.1",
+      "label": "Finding 5.1\napi_edit.py contains command …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "api_edit.py contains command injection vulnerability in /apply_visual_transform endpoint. Crop function executes ImageMagick with subprocess.run(command, shell=True) using unsanitized user input: command = f\"{IMAGEMAGICK_CONVERT_PATH} {original_filepath} -crop {width}x{height}+{x}+{y} {output_filepath}\". Requires is_testuser_account: true in session. db.json file path revealed.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Imagery:r6:6",
+      "label": "State 6\nLateral Movement",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "6 Lateral Movement [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Imagery:r6:6.1",
+      "label": "Action 6.1\nDownload and crack database h…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "6.1 Download and crack database hashes [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Imagery:r6:6.1",
+      "label": "Finding 6.1\ndb.json downloaded. Testuser …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "db.json downloaded. Testuser MD5 hash 2c65c8d7bfbca32a3ed42596192384f6 cracked to password123. Logged in as testuser, image transformation features now enabled.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Imagery:r6:7",
+      "label": "State 7\nRCE Exploitation",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "7 RCE Exploitation [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Imagery:r6:7.1",
+      "label": "State 7.1\nExecute command injection via…",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "7.1 Execute command injection via crop parameters [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Imagery:r6:8",
+      "label": "State 8\nPrivilege Escalation",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "8 Privilege Escalation [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Imagery:r6:9",
+      "label": "State 9\nReport Generation",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "9 Report Generation [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Imagery:r6:START",
+      "to": "state:Imagery:r6:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Imagery:r6:1",
+      "to": "action:Imagery:r6:1.1",
+      "label": "1.1 Perform initial p…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Imagery:r6:1.1",
+      "to": "finding:Imagery:r6:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Imagery:r6:1.1",
+      "to": "state:Imagery:r6:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Imagery:r6:1",
+      "to": "action:Imagery:r6:1.2",
+      "label": "1.2 Identify running …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Imagery:r6:1.2",
+      "to": "finding:Imagery:r6:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Imagery:r6:1.2",
+      "to": "state:Imagery:r6:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Imagery:r6:1",
+      "to": "state:Imagery:r6:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Imagery:r6:2",
+      "to": "action:Imagery:r6:2.1",
+      "label": "2.1 Enumerate HTTP/HT…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Imagery:r6:2.1",
+      "to": "finding:Imagery:r6:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Imagery:r6:2.1",
+      "to": "state:Imagery:r6:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Imagery:r6:2",
+      "to": "state:Imagery:r6:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Imagery:r6:3",
+      "to": "action:Imagery:r6:3.1",
+      "label": "3.1 Test for XSS vuln…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Imagery:r6:3.1",
+      "to": "finding:Imagery:r6:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Imagery:r6:3.1",
+      "to": "state:Imagery:r6:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Imagery:r6:3",
+      "to": "state:Imagery:r6:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Imagery:r6:4",
+      "to": "action:Imagery:r6:4.1",
+      "label": "4.1 Access admin pane…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Imagery:r6:4.1",
+      "to": "finding:Imagery:r6:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Imagery:r6:4.1",
+      "to": "state:Imagery:r6:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Imagery:r6:4",
+      "to": "state:Imagery:r6:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Imagery:r6:5",
+      "to": "action:Imagery:r6:5.1",
+      "label": "5.1 Download applicat…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Imagery:r6:5.1",
+      "to": "finding:Imagery:r6:5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Imagery:r6:5.1",
+      "to": "state:Imagery:r6:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Imagery:r6:5",
+      "to": "state:Imagery:r6:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Imagery:r6:6",
+      "to": "action:Imagery:r6:6.1",
+      "label": "6.1 Download and crac…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Imagery:r6:6.1",
+      "to": "finding:Imagery:r6:6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Imagery:r6:6.1",
+      "to": "state:Imagery:r6:6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Imagery:r6:6",
+      "to": "state:Imagery:r6:7",
+      "label": "7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Imagery:r6:7",
+      "to": "state:Imagery:r6:7.1",
+      "label": "7.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Imagery:r6:7.1",
+      "to": "state:Imagery:r6:8",
+      "label": "8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Imagery:r6:8",
+      "to": "state:Imagery:r6:9",
+      "label": "9",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 25,
+    "total_edges": 31,
+    "state_nodes": 11,
+    "action_nodes": 7,
+    "finding_nodes": 7,
+    "ptt_items_parsed": 17
+  },
+  "csv_row_index": 1003,
+  "source_csv": "training_data.csv"
+}

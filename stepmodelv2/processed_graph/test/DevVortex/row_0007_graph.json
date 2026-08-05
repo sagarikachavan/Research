@@ -1,0 +1,756 @@
+{
+  "machine": "DevVortex",
+  "row_index": 7,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:DevVortex:r7:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'DevVortex' (row 7).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevVortex:r7:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevVortex:r7:1.1",
+      "label": "Action 1.1\nNetwork scanning",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Network scanning [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevVortex:r7:1.1",
+      "label": "Finding 1.1\nSSH and HTTP",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "SSH and HTTP",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevVortex:r7:2",
+      "label": "State 2\nDNS Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 DNS Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevVortex:r7:2.1",
+      "label": "Action 2.1\nSubdomain discovery",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Subdomain discovery [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevVortex:r7:2.1",
+      "label": "Finding 2.1\ndev subdomain",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "dev subdomain",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevVortex:r7:3",
+      "label": "State 3\nWeb Application Analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Web Application Analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevVortex:r7:3.1",
+      "label": "Action 3.1\nExplore sites",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Explore sites [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevVortex:r7:3.1",
+      "label": "Finding 3.1\nJoomla 4.2.6",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Joomla 4.2.6",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevVortex:r7:4",
+      "label": "State 4\nVulnerability Research",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 Vulnerability Research [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevVortex:r7:4.1",
+      "label": "Action 4.1\nResearch Joomla",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Research Joomla [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevVortex:r7:4.1",
+      "label": "Finding 4.1\nCVE-2023-23752",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "CVE-2023-23752",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevVortex:r7:5",
+      "label": "State 5\nExploitation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 Exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevVortex:r7:5.1",
+      "label": "Action 5.1\nExtract credentials",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.1 Extract credentials [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevVortex:r7:5.1",
+      "label": "Finding 5.1\nAdmin access",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Admin access",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevVortex:r7:6",
+      "label": "State 6\nRemote Code Execution",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "6 Remote Code Execution [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevVortex:r7:6.1",
+      "label": "Action 6.1\nInject webshell",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "6.1 Inject webshell [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevVortex:r7:6.1",
+      "label": "Finding 6.1\nShell as www-data",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Shell as www-data",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevVortex:r7:7",
+      "label": "State 7\nPrivilege Escalation to User",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "7 Privilege Escalation to User [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevVortex:r7:7.1",
+      "label": "Action 7.1\nExploit database",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "7.1 Exploit database [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevVortex:r7:7.1",
+      "label": "Finding 7.1\nMySQL connection with lewis:P…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "MySQL connection with lewis:P4ntherg0t1n5r3c0n##, queried sd4fg_users table extracting bcrypt hashes for lewis and logan, logan hash cracked quickly to password tequieromucho using hashcat with rockyou wordlist, lewis hash matched known database password, SSH access obtained as logan, user flag retrieved",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevVortex:r7:8",
+      "label": "State 8\nPrivilege Escalation to Root",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "8 Privilege Escalation to Root [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevVortex:r7:8.1",
+      "label": "State 8.1\nEnumerate logan sudo privileg…",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "8.1 Enumerate logan sudo privileges [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:DevVortex:r7:START",
+      "to": "state:DevVortex:r7:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevVortex:r7:1",
+      "to": "action:DevVortex:r7:1.1",
+      "label": "1.1 Network scanning",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevVortex:r7:1.1",
+      "to": "finding:DevVortex:r7:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevVortex:r7:1.1",
+      "to": "state:DevVortex:r7:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevVortex:r7:1",
+      "to": "state:DevVortex:r7:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevVortex:r7:2",
+      "to": "action:DevVortex:r7:2.1",
+      "label": "2.1 Subdomain discove…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevVortex:r7:2.1",
+      "to": "finding:DevVortex:r7:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevVortex:r7:2.1",
+      "to": "state:DevVortex:r7:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevVortex:r7:2",
+      "to": "state:DevVortex:r7:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevVortex:r7:3",
+      "to": "action:DevVortex:r7:3.1",
+      "label": "3.1 Explore sites",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevVortex:r7:3.1",
+      "to": "finding:DevVortex:r7:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevVortex:r7:3.1",
+      "to": "state:DevVortex:r7:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevVortex:r7:3",
+      "to": "state:DevVortex:r7:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevVortex:r7:4",
+      "to": "action:DevVortex:r7:4.1",
+      "label": "4.1 Research Joomla",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevVortex:r7:4.1",
+      "to": "finding:DevVortex:r7:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevVortex:r7:4.1",
+      "to": "state:DevVortex:r7:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevVortex:r7:4",
+      "to": "state:DevVortex:r7:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevVortex:r7:5",
+      "to": "action:DevVortex:r7:5.1",
+      "label": "5.1 Extract credentia…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevVortex:r7:5.1",
+      "to": "finding:DevVortex:r7:5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevVortex:r7:5.1",
+      "to": "state:DevVortex:r7:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevVortex:r7:5",
+      "to": "state:DevVortex:r7:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevVortex:r7:6",
+      "to": "action:DevVortex:r7:6.1",
+      "label": "6.1 Inject webshell",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevVortex:r7:6.1",
+      "to": "finding:DevVortex:r7:6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevVortex:r7:6.1",
+      "to": "state:DevVortex:r7:6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevVortex:r7:6",
+      "to": "state:DevVortex:r7:7",
+      "label": "7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevVortex:r7:7",
+      "to": "action:DevVortex:r7:7.1",
+      "label": "7.1 Exploit database",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevVortex:r7:7.1",
+      "to": "finding:DevVortex:r7:7.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevVortex:r7:7.1",
+      "to": "state:DevVortex:r7:7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevVortex:r7:7",
+      "to": "state:DevVortex:r7:8",
+      "label": "8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevVortex:r7:8",
+      "to": "state:DevVortex:r7:8.1",
+      "label": "8.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 24,
+    "total_edges": 30,
+    "state_nodes": 10,
+    "action_nodes": 7,
+    "finding_nodes": 7,
+    "ptt_items_parsed": 16
+  },
+  "csv_row_index": 183,
+  "source_csv": "test_data.csv"
+}

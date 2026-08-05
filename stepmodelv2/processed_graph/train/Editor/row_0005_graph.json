@@ -1,0 +1,294 @@
+{
+  "machine": "Editor",
+  "row_index": 5,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Editor:r5:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Editor' (row 5).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Editor:r5:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Editor:r5:2",
+      "label": "State 2\nSubdomain and service discove…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Subdomain and service discovery [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Editor:r5:3",
+      "label": "State 3\nVulnerability research",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Vulnerability research [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Editor:r5:4",
+      "label": "State 4\nXWiki RCE exploitation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 XWiki RCE exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Editor:r5:5",
+      "label": "State 5\nLateral movement",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 Lateral movement [completed]\nDatabase credentials located in /etc/xwiki/hibernate.cfg.xml - username xwiki, password theEd1t0rTeam99. Credentials tested against SSH for potential user accounts. Successfully authenticated as oliver user via SSH with password theEd1t0rTeam99 (password reuse). User flag obtained from oliver's home directory.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Editor:r5:5.1",
+      "label": "State 5.1\nCredential discovery",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5.1 Credential discovery [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Editor:r5:5.2",
+      "label": "State 5.2\nSSH lateral movement",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5.2 SSH lateral movement [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Editor:r5:6",
+      "label": "State 6\nPrivilege escalation enumerat…",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "6 Privilege escalation enumeration [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Editor:r5:6.1",
+      "label": "State 6.1\nLocal service discovery",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "6.1 Local service discovery [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Editor:r5:START",
+      "to": "state:Editor:r5:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Editor:r5:1",
+      "to": "state:Editor:r5:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Editor:r5:2",
+      "to": "state:Editor:r5:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Editor:r5:3",
+      "to": "state:Editor:r5:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Editor:r5:4",
+      "to": "state:Editor:r5:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Editor:r5:5",
+      "to": "state:Editor:r5:5.1",
+      "label": "5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Editor:r5:5.1",
+      "to": "state:Editor:r5:5.2",
+      "label": "5.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Editor:r5:5.2",
+      "to": "state:Editor:r5:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Editor:r5:6",
+      "to": "state:Editor:r5:6.1",
+      "label": "6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 10,
+    "total_edges": 9,
+    "state_nodes": 10,
+    "action_nodes": 0,
+    "finding_nodes": 0,
+    "ptt_items_parsed": 9
+  },
+  "csv_row_index": 1048,
+  "source_csv": "training_data.csv"
+}

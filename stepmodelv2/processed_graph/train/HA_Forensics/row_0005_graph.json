@@ -1,0 +1,927 @@
+{
+  "machine": "HA Forensics",
+  "row_index": 5,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:HA Forensics:r5:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'HA Forensics' (row 5).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:HA Forensics:r5:1",
+      "label": "State 1\nNetwork Reconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Network Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:HA Forensics:r5:1.1",
+      "label": "Action 1.1\nIdentify target IP",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Identify target IP [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:HA Forensics:r5:1.1",
+      "label": "Finding 1.1\nTarget IP=192.168.0.174; MAC …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Target IP=192.168.0.174; MAC address correlated with VM configuration",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:HA Forensics:r5:1.2",
+      "label": "Action 1.2\nEnumerate ports and services",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Enumerate ports and services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:HA Forensics:r5:1.2",
+      "label": "Finding 1.2\nTwo open ports - SSH port 22,…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Two open ports - SSH port 22, HTTP port 80",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:HA Forensics:r5:2",
+      "label": "State 2\nWeb Application Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Web Application Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:HA Forensics:r5:2.1",
+      "label": "Action 2.1\nBrowse web application",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Browse web application [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:HA Forensics:r5:2.1",
+      "label": "Finding 2.1\nSimple forensics-themed page …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Simple forensics-themed page with interactive button",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:HA Forensics:r5:2.2",
+      "label": "Action 2.2\nEnumerate directories and fil…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.2 Enumerate directories and files [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:HA Forensics:r5:2.2",
+      "label": "Finding 2.2\ndirb discovered /images direc…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "dirb discovered /images directory; fingerprint.jpg downloaded; exiftool extraction revealed Flag #1 in image metadata",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:HA Forensics:r5:3",
+      "label": "State 3\nExtended File Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Extended File Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:HA Forensics:r5:3.1",
+      "label": "Action 3.1\nSearch for text files",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Search for text files [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:HA Forensics:r5:3.1",
+      "label": "Finding 3.1\ndirb with .txt extension loca…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "dirb with .txt extension located flag.zip and tips.txt; PGP-encrypted clue.txt discovered in igolder directory; online PGP decryption revealed hint: Password is 6 characters - first 3 letters for last 3 numeric",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:HA Forensics:r5:3.2",
+      "label": "Action 3.2\nCrack password-protected arch…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.2 Crack password-protected archive [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:HA Forensics:r5:3.2",
+      "label": "Finding 3.2\ncrunch generated password per…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "crunch generated password permutations to dict.txt with pattern for###; fcrackzip cracked password as for007; unzip extracted flag.pdf and lsass.DMP; Flag #2 retrieved from flag.pdf",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:HA Forensics:r5:4",
+      "label": "State 4\nMemory Dump Analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 Memory Dump Analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:HA Forensics:r5:4.1",
+      "label": "Action 4.1\nExtract credentials from lsas…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Extract credentials from lsass.DMP [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:HA Forensics:r5:4.1",
+      "label": "Finding 4.1\npypykatz executed on lsass.DM…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "pypykatz executed on lsass.DMP; NT hash discovered for user jasoos; John the Ripper cracked hash; password=Password@1; username=jasoos",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:HA Forensics:r5:4.2",
+      "label": "Action 4.2\nSSH authentication",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.2 SSH authentication [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:HA Forensics:r5:4.2",
+      "label": "Finding 4.2\nMetasploit ssh_login module w…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Metasploit ssh_login module with rhosts=192.168.0.174 username=jasoos password=Password@1; SSH session established",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:HA Forensics:r5:5",
+      "label": "State 5\nNetwork Pivoting",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 Network Pivoting [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:HA Forensics:r5:5.1",
+      "label": "Action 5.1\nConvert to meterpreter and di…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.1 Convert to meterpreter and discover internal network [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:HA Forensics:r5:5.1",
+      "label": "Finding 5.1\nshell_to_meterpreter upgrade …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "shell_to_meterpreter upgrade successful; meterpreter session obtained; ifconfig revealed Docker interface at 172.17.0.1 indicating internal 172.17.0.0/24 network",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:HA Forensics:r5:5.2",
+      "label": "Action 5.2\nScan internal Docker network",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.2 Scan internal Docker network [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:HA Forensics:r5:5.2",
+      "label": "Finding 5.2\nautoroute configured for 172.…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "autoroute configured for 172.17.0.0/24; ping_sweep discovered internal host 172.17.0.2; TCP port scan found FTP service on internal host; anonymous FTP access verified",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:HA Forensics:r5:6",
+      "label": "State 6\nInternal FTP Analysis",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "6 Internal FTP Analysis [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:HA Forensics:r5:6.1",
+      "label": "State 6.1\nAccess FTP and retrieve foren…",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "6.1 Access FTP and retrieve forensic image [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:HA Forensics:r5:6.2",
+      "label": "State 6.2\nAnalyze forensic image with A…",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "6.2 Analyze forensic image with Autopsy [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:HA Forensics:r5:START",
+      "to": "state:HA Forensics:r5:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:HA Forensics:r5:1",
+      "to": "action:HA Forensics:r5:1.1",
+      "label": "1.1 Identify target IP",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:HA Forensics:r5:1.1",
+      "to": "finding:HA Forensics:r5:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:HA Forensics:r5:1.1",
+      "to": "state:HA Forensics:r5:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:HA Forensics:r5:1",
+      "to": "action:HA Forensics:r5:1.2",
+      "label": "1.2 Enumerate ports a…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:HA Forensics:r5:1.2",
+      "to": "finding:HA Forensics:r5:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:HA Forensics:r5:1.2",
+      "to": "state:HA Forensics:r5:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:HA Forensics:r5:1",
+      "to": "state:HA Forensics:r5:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:HA Forensics:r5:2",
+      "to": "action:HA Forensics:r5:2.1",
+      "label": "2.1 Browse web applic…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:HA Forensics:r5:2.1",
+      "to": "finding:HA Forensics:r5:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:HA Forensics:r5:2.1",
+      "to": "state:HA Forensics:r5:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:HA Forensics:r5:2",
+      "to": "action:HA Forensics:r5:2.2",
+      "label": "2.2 Enumerate directo…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:HA Forensics:r5:2.2",
+      "to": "finding:HA Forensics:r5:2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:HA Forensics:r5:2.2",
+      "to": "state:HA Forensics:r5:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:HA Forensics:r5:2",
+      "to": "state:HA Forensics:r5:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:HA Forensics:r5:3",
+      "to": "action:HA Forensics:r5:3.1",
+      "label": "3.1 Search for text f…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:HA Forensics:r5:3.1",
+      "to": "finding:HA Forensics:r5:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:HA Forensics:r5:3.1",
+      "to": "state:HA Forensics:r5:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:HA Forensics:r5:3",
+      "to": "action:HA Forensics:r5:3.2",
+      "label": "3.2 Crack password-pr…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:HA Forensics:r5:3.2",
+      "to": "finding:HA Forensics:r5:3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:HA Forensics:r5:3.2",
+      "to": "state:HA Forensics:r5:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:HA Forensics:r5:3",
+      "to": "state:HA Forensics:r5:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:HA Forensics:r5:4",
+      "to": "action:HA Forensics:r5:4.1",
+      "label": "4.1 Extract credentia…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:HA Forensics:r5:4.1",
+      "to": "finding:HA Forensics:r5:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:HA Forensics:r5:4.1",
+      "to": "state:HA Forensics:r5:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:HA Forensics:r5:4",
+      "to": "action:HA Forensics:r5:4.2",
+      "label": "4.2 SSH authentication",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:HA Forensics:r5:4.2",
+      "to": "finding:HA Forensics:r5:4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:HA Forensics:r5:4.2",
+      "to": "state:HA Forensics:r5:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:HA Forensics:r5:4",
+      "to": "state:HA Forensics:r5:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:HA Forensics:r5:5",
+      "to": "action:HA Forensics:r5:5.1",
+      "label": "5.1 Convert to meterp…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:HA Forensics:r5:5.1",
+      "to": "finding:HA Forensics:r5:5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:HA Forensics:r5:5.1",
+      "to": "state:HA Forensics:r5:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:HA Forensics:r5:5",
+      "to": "action:HA Forensics:r5:5.2",
+      "label": "5.2 Scan internal Doc…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:HA Forensics:r5:5.2",
+      "to": "finding:HA Forensics:r5:5.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:HA Forensics:r5:5.2",
+      "to": "state:HA Forensics:r5:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:HA Forensics:r5:5",
+      "to": "state:HA Forensics:r5:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:HA Forensics:r5:6",
+      "to": "state:HA Forensics:r5:6.1",
+      "label": "6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:HA Forensics:r5:6.1",
+      "to": "state:HA Forensics:r5:6.2",
+      "label": "6.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 29,
+    "total_edges": 38,
+    "state_nodes": 9,
+    "action_nodes": 10,
+    "finding_nodes": 10,
+    "ptt_items_parsed": 18
+  },
+  "csv_row_index": 360,
+  "source_csv": "training_data.csv"
+}

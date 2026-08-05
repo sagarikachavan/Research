@@ -1,0 +1,636 @@
+{
+  "machine": "topology",
+  "row_index": 16,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:topology:r16:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'topology' (row 16).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:topology:r16:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:topology:r16:1.1",
+      "label": "State 1.1\nPassive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.1 Passive Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:topology:r16:1.2",
+      "label": "State 1.2\nActive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.2 Active Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:topology:r16:1.3",
+      "label": "State 1.3\nIdentify Open Ports, Services…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3 Identify Open Ports, Services running on the open ports and their versions [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:topology:r16:1.3.1",
+      "label": "Action 1.3.1\nPerform a port scan",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3.1 Perform a port scan [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:topology:r16:1.3.1",
+      "label": "Finding 1.3.1\nHost IP: 10.129.237.17, Laten…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Host IP: 10.129.237.17, Latency: 0.80s, Closed TCP Ports: 998",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:topology:r16:1.3.2",
+      "label": "State 1.3.2\nDetermine the services and ve…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3.2 Determine the services and versions on each open port [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:topology:r16:1.3.2.1",
+      "label": "State 1.3.2.1\nIP 10.129.237.18",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3.2.1 IP 10.129.237.18 [completed]\nOpen Ports and Services: 1. Port 22 - Open, Service: ssh, Version: OpenSSH 8.2p1 Ubuntu 4ubuntu0.7 (Ubuntu Linux; protocol 2.0), SSH Hostkey: RSA: 3072 dc:bc:32:86:e8:e8:45:78:10:bc:2b:5d:bf:0f:55:c6, ECDSA: 256 d9:f3:39:69:2c:6c:27:f1:a9:2d:50:6c:a7:9f:1c:33, ED25519: 256 4c:a6:50:75:d0:93:4f:9c:4a:1b:89:0a:7a:27:08:d7, 2. Port 80 - Open, Service: http, Version: Apache httpd 2.4.41 ((Ubuntu)), HTTP Server Header: Apache/2.4.41 (Ubuntu), HTTP Title: Miskatonic University | Topology Group, OS: Linux; CPE: cpe:/o:linux:linux_kernel, Scan Duration: 109.39 seconds",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:topology:r16:2",
+      "label": "State 2\nEnumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:topology:r16:2.1",
+      "label": "Action 2.1\nEnumerate website",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Enumerate website [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:topology:r16:2.1",
+      "label": "Finding 2.1\nDirectory Bruteforcing Result…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Directory Bruteforcing Results: 1. http://10.10.11.217/images - Status 301, 2. http://10.10.11.217/ - Status 200, 3. http://10.10.11.217/css - Status 301, 4. http://10.10.11.217/javascript - Status 301, 5. http://10.10.11.217/index.html - Status 200, 6. http://10.10.11.217/javascript/jquery - Status 301, 7. http://10.10.11.217/javascript/jquery/jquery - Status 200, Subdomain Bruteforcing Results: 1. dev.topology.htb - Status 401, 2. stats.topology.htb - Status 200, Additional Info: Wordlist used: /opt/SecLists/Discovery/DNS/subdomains-top1million-5000.txt, Threads used: 40, Total requests: 4989, Total errors: 0, Duration: 6 minutes 20 seconds",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:topology:r16:2.2",
+      "label": "Action 2.2\nEnumerate subdomains",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.2 Enumerate subdomains [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:topology:r16:2.2",
+      "label": "Finding 2.2\nDev Subdomain: A login portal…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Dev Subdomain: A login portal pops up, but unable to log in using default passwords. Stats Subdomain: Loads a graph image from the http://stats.topology.htb/files/ directory. The PNG file (load.png and network.png) is frequently updated. Directory Listing: Parent Directory, load.png - Last modified: 2025-08-02 02:36, Size: 10K, network.png - Last modified: 2025-08-02 02:36, Size: 0, Server: Apache/2.4.41 (Ubuntu) at stats.topology.htb Port 80",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:topology:r16:2.3",
+      "label": "Action 2.3\nEnumerate web service",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.3 Enumerate web service [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:topology:r16:2.3",
+      "label": "Finding 2.3\nLaTeX Equation Generator: Fou…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "LaTeX Equation Generator: Found on http://latex.topology.htb/equation.php. Used to generate equations for a website. Creates a .PNG file. Requires LaTeX inline math mode syntax in the text field. Only supports oneliners at the moment. Clicking \"Generate\" will return a .PNG file that can be saved with Ctrl+S (or Command+S if on Mac). It has an input box which takes LaTeX equations and converts them to images.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:topology:r16:2.4",
+      "label": "Action 2.4\nFind functionality of image g…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.4 Find functionality of image generator and software packages [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:topology:r16:2.4",
+      "label": "Finding 2.4\nLaTeX Equation Generator Func…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "LaTeX Equation Generator Functionality: Uses a LaTeX file named 'equationtest.tex' for testing. The 'equationtest.tex' file includes 'header.tex' file using \\input{header} command. Contents of 'header.tex': Set of packages used for document formatting and functionality. Includes 'utf8' for input encoding, 'graphicx' for graphic files, 'eurosym' for euro currency symbol, 'times' for font, 'listings' for including source code files or printing inline code, 'hyperref' for clickable links in PDFs, 'mathtools', 'amssymb', 'amsthm' for math packages, and 'mathptmx' for math mode with times font. The 'listings' package is of particular interest as it can include (presumably read) files.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:topology:r16:2.5",
+      "label": "Action 2.5\nVulnerability assessment of L…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.5 Vulnerability assessment of LaTeX listings package [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:topology:r16:2.5",
+      "label": "Finding 2.5\nLaTeX Listings Package: Poten…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "LaTeX Listings Package: Potential Vulnerabilities and Exploitation Methods: 1. Arbitrary Command Execution: Some LaTeX packages, including the listings package, may execute malicious commands on the user's system if not properly configured or if malicious input is processed. The \\write18 command can be particularly dangerous as it allows executing system commands. 2. Arbitrary File Read: A vulnerability (CVE-2024-29073) in Ankitects Anki 24.04, related to LaTeX handling, allowed specially crafted flashcards to lead to an arbitrary file read. 3. Special Characters and Encoding Issues: The listings package needs to correctly handle special characters within the code to avoid compilation errors. Misconfigurations in this area could potentially be exploited to disrupt document processing or introduce unexpected behavior. 4. Malicious Document Creation: LaTeX files themselves can be crafted to act as viruses, spreading between documents or stealing data from online preview services. Mitigation and Best Practices: 1. Sanitize and Validate Input: Rigorous sanitization and validation of the input are crucial when processing untrusted LaTeX code that includes listings. 2. Use Secure Configurations: Employing sandboxing and command restrictions is essential for services that compile LaTeX code. 3. Understand Package Dependencies: Packages like minted often rely on external tools and may require shell escape to be enabled, which increases the potential attack surface. 4. Careful Use of escapeinside: Ensure that the delimiters chosen are not present in the code itself and are properly escaped. 5. Keep LaTeX Systems Updated: Regularly updating LaTeX distributions and packages ensures that known vulnerabilities are patched. 6. Process Untrusted Files with Caution: It's advisable to examine LaTeX files from external sources for potentially malicious content or packages before compilation.",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:topology:r16:START",
+      "to": "state:topology:r16:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:topology:r16:1",
+      "to": "state:topology:r16:1.1",
+      "label": "1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:topology:r16:1.1",
+      "to": "state:topology:r16:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:topology:r16:1.2",
+      "to": "state:topology:r16:1.3",
+      "label": "1.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:topology:r16:1.3",
+      "to": "action:topology:r16:1.3.1",
+      "label": "1.3.1 Perform a port sc…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:topology:r16:1.3.1",
+      "to": "finding:topology:r16:1.3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:topology:r16:1.3.1",
+      "to": "state:topology:r16:1.3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:topology:r16:1.3",
+      "to": "state:topology:r16:1.3.2",
+      "label": "1.3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:topology:r16:1.3.2",
+      "to": "state:topology:r16:1.3.2.1",
+      "label": "1.3.2.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:topology:r16:1.3.2.1",
+      "to": "state:topology:r16:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:topology:r16:2",
+      "to": "action:topology:r16:2.1",
+      "label": "2.1 Enumerate website",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:topology:r16:2.1",
+      "to": "finding:topology:r16:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:topology:r16:2.1",
+      "to": "state:topology:r16:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:topology:r16:2",
+      "to": "action:topology:r16:2.2",
+      "label": "2.2 Enumerate subdoma…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:topology:r16:2.2",
+      "to": "finding:topology:r16:2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:topology:r16:2.2",
+      "to": "state:topology:r16:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:topology:r16:2",
+      "to": "action:topology:r16:2.3",
+      "label": "2.3 Enumerate web ser…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:topology:r16:2.3",
+      "to": "finding:topology:r16:2.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:topology:r16:2.3",
+      "to": "state:topology:r16:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:topology:r16:2",
+      "to": "action:topology:r16:2.4",
+      "label": "2.4 Find functionalit…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:topology:r16:2.4",
+      "to": "finding:topology:r16:2.4",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:topology:r16:2.4",
+      "to": "state:topology:r16:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:topology:r16:2",
+      "to": "action:topology:r16:2.5",
+      "label": "2.5 Vulnerability ass…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:topology:r16:2.5",
+      "to": "finding:topology:r16:2.5",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:topology:r16:2.5",
+      "to": "state:topology:r16:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 20,
+    "total_edges": 25,
+    "state_nodes": 8,
+    "action_nodes": 6,
+    "finding_nodes": 6,
+    "ptt_items_parsed": 13
+  },
+  "csv_row_index": 86,
+  "source_csv": "training_data.csv"
+}

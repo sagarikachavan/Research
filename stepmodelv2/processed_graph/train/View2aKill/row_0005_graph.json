@@ -1,0 +1,1008 @@
+{
+  "machine": "View2aKill",
+  "row_index": 5,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:View2aKill:r5:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'View2aKill' (row 5).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:View2aKill:r5:1",
+      "label": "State 1\nNetwork Reconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Network Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:View2aKill:r5:1.1",
+      "label": "Action 1.1\nIdentify target IP",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Identify target IP [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:View2aKill:r5:1.1",
+      "label": "Finding 1.1\nTarget IP=192.168.238.161",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Target IP=192.168.238.161",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:View2aKill:r5:1.2",
+      "label": "Action 1.2\nEnumerate ports and services",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Enumerate ports and services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:View2aKill:r5:1.2",
+      "label": "Finding 1.2\n4 ports open; web service pre…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "4 ports open; web service present; robots.txt contains 4 disallowed entries",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:View2aKill:r5:2",
+      "label": "State 2\nWeb Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Web Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:View2aKill:r5:2.1",
+      "label": "Action 2.1\nExplore robots.txt directories",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Explore robots.txt directories [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:View2aKill:r5:2.1",
+      "label": "Finding 2.1\nHR acquisition portal located…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "HR acquisition portal located; /dev directory contains index listing with multiple files including PDFs text files images",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:View2aKill:r5:2.2",
+      "label": "Action 2.2\nDownload and analyze files",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.2 Download and analyze files [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:View2aKill:r5:2.2",
+      "label": "Finding 2.2\nBackup archive discovered and…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Backup archive discovered and extracted containing 4 text files; employee information about chuck with password clues; HID proxcard reader manual shows frequency=125Hz; gif file contains word helicopter",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:View2aKill:r5:3",
+      "label": "State 3\nCredential Assembly and Authe…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Credential Assembly and Authentication [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:View2aKill:r5:3.1",
+      "label": "State 3.1\nConstruct credentials from cl…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3.1 Construct credentials from clues [completed]\nCredentials assembled - chuck@localhost.com:helicopter125",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:View2aKill:r5:3.2",
+      "label": "Action 3.2\nLogin to HR portal",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.2 Login to HR portal [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:View2aKill:r5:3.2",
+      "label": "Finding 3.2\nRedirected to /sentrifugo HR …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Redirected to /sentrifugo HR portal; successful authentication with chuck@localhost.com:helicopter125",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:View2aKill:r5:4",
+      "label": "State 4\nSentrifugo Exploitation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 Sentrifugo Exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:View2aKill:r5:4.1",
+      "label": "Action 4.1\nResearch file upload vulnerab…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Research file upload vulnerability [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:View2aKill:r5:4.1",
+      "label": "Finding 4.1\nFile upload vulnerability in …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "File upload vulnerability in Sentrifugo identified on Exploit-DB",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:View2aKill:r5:4.2",
+      "label": "Action 4.2\nUpload PHP reverse shell",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.2 Upload PHP reverse shell [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:View2aKill:r5:4.2",
+      "label": "Finding 4.2\nPHP reverse shell prepared wi…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "PHP reverse shell prepared with attacker IP; double extension .php.doc created; Burp Suite intercepted upload; extension changed to .php during transmission; upload accepted; shell accessible via web browser",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:View2aKill:r5:5",
+      "label": "State 5\nInitial Shell Access",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 Initial Shell Access [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:View2aKill:r5:5.1",
+      "label": "Action 5.1\nTrigger reverse shell",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.1 Trigger reverse shell [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:View2aKill:r5:5.1",
+      "label": "Finding 5.1\nNetcat listener received conn…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Netcat listener received connection; shell upgraded to interactive bash with Python pty.spawn",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:View2aKill:r5:5.2",
+      "label": "Action 5.2\nEnumerate user directories",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.2 Enumerate user directories [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:View2aKill:r5:5.2",
+      "label": "Finding 5.2\n4 user directories discovered…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "4 user directories discovered in /home; jenny user directory contains dsktp_backup.zip",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:View2aKill:r5:6",
+      "label": "State 6\nCredential Discovery and User…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "6 Credential Discovery and User Escalation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:View2aKill:r5:6.1",
+      "label": "Action 6.1\nExtract and analyze jenny's b…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "6.1 Extract and analyze jenny's backup [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:View2aKill:r5:6.1",
+      "label": "Finding 6.1\nArchive extracted containing …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Archive extracted containing 2 text files; jenny's password discovered=!!!sfbay!!!; reference to aView.py script noted",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:View2aKill:r5:6.2",
+      "label": "State 6.2\nSSH as jenny",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "6.2 SSH as jenny [completed]\nSSH authentication successful with jenny:!!!sfbay!!!",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:View2aKill:r5:7",
+      "label": "State 7\nPython Script Analysis",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "7 Python Script Analysis [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:View2aKill:r5:7.1",
+      "label": "State 7.1\nExamine aView.py script",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "7.1 Examine aView.py script [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:View2aKill:r5:7.2",
+      "label": "State 7.2\nModify script to read restric…",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "7.2 Modify script to read restricted files [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:View2aKill:r5:START",
+      "to": "state:View2aKill:r5:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:1",
+      "to": "action:View2aKill:r5:1.1",
+      "label": "1.1 Identify target IP",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:View2aKill:r5:1.1",
+      "to": "finding:View2aKill:r5:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:View2aKill:r5:1.1",
+      "to": "state:View2aKill:r5:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:1",
+      "to": "action:View2aKill:r5:1.2",
+      "label": "1.2 Enumerate ports a…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:View2aKill:r5:1.2",
+      "to": "finding:View2aKill:r5:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:View2aKill:r5:1.2",
+      "to": "state:View2aKill:r5:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:1",
+      "to": "state:View2aKill:r5:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:2",
+      "to": "action:View2aKill:r5:2.1",
+      "label": "2.1 Explore robots.tx…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:View2aKill:r5:2.1",
+      "to": "finding:View2aKill:r5:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:View2aKill:r5:2.1",
+      "to": "state:View2aKill:r5:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:2",
+      "to": "action:View2aKill:r5:2.2",
+      "label": "2.2 Download and anal…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:View2aKill:r5:2.2",
+      "to": "finding:View2aKill:r5:2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:View2aKill:r5:2.2",
+      "to": "state:View2aKill:r5:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:2",
+      "to": "state:View2aKill:r5:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:3",
+      "to": "state:View2aKill:r5:3.1",
+      "label": "3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:3.1",
+      "to": "action:View2aKill:r5:3.2",
+      "label": "3.2 Login to HR portal",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:View2aKill:r5:3.2",
+      "to": "finding:View2aKill:r5:3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:View2aKill:r5:3.2",
+      "to": "state:View2aKill:r5:3.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:3.1",
+      "to": "state:View2aKill:r5:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:4",
+      "to": "action:View2aKill:r5:4.1",
+      "label": "4.1 Research file upl…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:View2aKill:r5:4.1",
+      "to": "finding:View2aKill:r5:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:View2aKill:r5:4.1",
+      "to": "state:View2aKill:r5:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:4",
+      "to": "action:View2aKill:r5:4.2",
+      "label": "4.2 Upload PHP revers…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:View2aKill:r5:4.2",
+      "to": "finding:View2aKill:r5:4.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:View2aKill:r5:4.2",
+      "to": "state:View2aKill:r5:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:4",
+      "to": "state:View2aKill:r5:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:5",
+      "to": "action:View2aKill:r5:5.1",
+      "label": "5.1 Trigger reverse s…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:View2aKill:r5:5.1",
+      "to": "finding:View2aKill:r5:5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:View2aKill:r5:5.1",
+      "to": "state:View2aKill:r5:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:5",
+      "to": "action:View2aKill:r5:5.2",
+      "label": "5.2 Enumerate user di…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:View2aKill:r5:5.2",
+      "to": "finding:View2aKill:r5:5.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:View2aKill:r5:5.2",
+      "to": "state:View2aKill:r5:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:5",
+      "to": "state:View2aKill:r5:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:6",
+      "to": "action:View2aKill:r5:6.1",
+      "label": "6.1 Extract and analy…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:View2aKill:r5:6.1",
+      "to": "finding:View2aKill:r5:6.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:View2aKill:r5:6.1",
+      "to": "state:View2aKill:r5:6",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:6",
+      "to": "state:View2aKill:r5:6.2",
+      "label": "6.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:6.2",
+      "to": "state:View2aKill:r5:7",
+      "label": "7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:7",
+      "to": "state:View2aKill:r5:7.1",
+      "label": "7.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:View2aKill:r5:7.1",
+      "to": "state:View2aKill:r5:7.2",
+      "label": "7.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 32,
+    "total_edges": 41,
+    "state_nodes": 12,
+    "action_nodes": 10,
+    "finding_nodes": 10,
+    "ptt_items_parsed": 21
+  },
+  "csv_row_index": 326,
+  "source_csv": "training_data.csv"
+}

@@ -1,0 +1,1086 @@
+{
+  "machine": "Tr0ll 3",
+  "row_index": 6,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Tr0ll 3:r6:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Tr0ll 3' (row 6).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Tr0ll 3:r6:1",
+      "label": "State 1\nNetwork Reconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Network Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Tr0ll 3:r6:1.1",
+      "label": "Action 1.1\nIdentify target IP",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Identify target IP [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Tr0ll 3:r6:1.1",
+      "label": "Finding 1.1\nTarget located at 192.168.1.1…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Target located at 192.168.1.104",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Tr0ll 3:r6:1.2",
+      "label": "Action 1.2\nEnumerate ports and services",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Enumerate ports and services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Tr0ll 3:r6:1.2",
+      "label": "Finding 1.2\nOnly port 22 SSH open",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Only port 22 SSH open",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Tr0ll 3:r6:2",
+      "label": "State 2\nInitial Access",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Initial Access [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Tr0ll 3:r6:2.1",
+      "label": "Action 2.1\nIdentify default credentials",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Identify default credentials [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Tr0ll 3:r6:2.1",
+      "label": "Finding 2.1\nCredentials discovered from l…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Credentials discovered from login prompt - start:here",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Tr0ll 3:r6:2.2",
+      "label": "Action 2.2\nSSH authentication",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.2 SSH authentication [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Tr0ll 3:r6:2.2",
+      "label": "Finding 2.2\nMetasploit SSH login module s…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Metasploit SSH login module successful; remote shell access obtained",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Tr0ll 3:r6:3",
+      "label": "State 3\nPost-Exploitation Enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Post-Exploitation Enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Tr0ll 3:r6:3.1",
+      "label": "Action 3.1\nSearch for world-writable fil…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Search for world-writable files [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Tr0ll 3:r6:3.1",
+      "label": "Finding 3.1\nFind command revealed wytshad…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Find command revealed wytshadow.cap wireless packet capture file; gold_star.txt wordlist file discovered",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Tr0ll 3:r6:3.2",
+      "label": "Action 3.2\nAnalyze discovered files",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.2 Analyze discovered files [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Tr0ll 3:r6:3.2",
+      "label": "Finding 3.2\nwytshadow.cap downloaded; Wir…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "wytshadow.cap downloaded; Wireshark analysis shows 802.11 protocol packets indicating wireless network traffic",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Tr0ll 3:r6:4",
+      "label": "State 4\nWireless Password Cracking",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 Wireless Password Cracking [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Tr0ll 3:r6:4.1",
+      "label": "Action 4.1\nCrack wireless password",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "4.1 Crack wireless password [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Tr0ll 3:r6:4.1",
+      "label": "Finding 4.1\naircrack-ng with gold_star.tx…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "aircrack-ng with gold_star.txt wordlist cracked password - gaUoCe34t1",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Tr0ll 3:r6:4.2",
+      "label": "State 4.2\nSwitch to wytshadow user",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4.2 Switch to wytshadow user [completed]\nsu wytshadow successful with password gaUoCe34t1; SUID binary ohhfun discovered in home directory",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Tr0ll 3:r6:5",
+      "label": "State 5\nSudo Enumeration and Service …",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 Sudo Enumeration and Service Exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Tr0ll 3:r6:5.1",
+      "label": "Action 5.1\nCheck sudo privileges",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.1 Check sudo privileges [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Tr0ll 3:r6:5.1",
+      "label": "Finding 5.1\nsudo -l revealed nginx servic…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "sudo -l revealed nginx service executable as root",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Tr0ll 3:r6:5.2",
+      "label": "Action 5.2\nStart nginx and access web se…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "5.2 Start nginx and access web service [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Tr0ll 3:r6:5.2",
+      "label": "Finding 5.2\nnginx configuration examined …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "nginx configuration examined showing port 8080 with Lynx user agent; nginx service started successfully; lynx browser accessed http://192.168.1.104:8080; new credentials discovered - genphlux:HF9nd0cr!",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Tr0ll 3:r6:6",
+      "label": "State 6\nLateral Movement to Genphlux",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "6 Lateral Movement to Genphlux [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Tr0ll 3:r6:6.1",
+      "label": "State 6.1\nSwitch to genphlux user",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "6.1 Switch to genphlux user [completed]\nsu genphlux successful with password HF9nd0cr!",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Tr0ll 3:r6:6.2",
+      "label": "Action 6.2\nExtract SSH private key",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "6.2 Extract SSH private key [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Tr0ll 3:r6:6.2",
+      "label": "Finding 6.2\nRSA private key file maleus l…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "RSA private key file maleus located in home directory; chmod 600 applied to key; SSH authentication to maleus@192.168.1.104 successful with private key",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Tr0ll 3:r6:7",
+      "label": "State 7\nMaleus User Analysis",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "7 Maleus User Analysis [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Tr0ll 3:r6:7.1",
+      "label": "Action 7.1\nEnumerate files and sudo perm…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "7.1 Enumerate files and sudo permissions [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Tr0ll 3:r6:7.1",
+      "label": "Finding 7.1\nELF 64-bit binary dont_even_b…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "ELF 64-bit binary dont_even_bother with full permissions discovered; .viminfo examined revealing password B^slc8I$; sudo -l showed maleus can execute dont_even_bother as root without password",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Tr0ll 3:r6:7.2",
+      "label": "Action 7.2\nExploit sudo binary",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "7.2 Exploit sudo binary [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Tr0ll 3:r6:7.2",
+      "label": "Finding 7.2\nBinary replaced with maliciou…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Binary replaced with malicious C code containing setresuid(0,0,0) and system(\"/bin/sh\"); compiled with gcc dont_even_bother.c -o dont_even_bother; executed with sudo /home/maleus/dont_even_bother; root shell obtained; flag.txt captured from /root; challenge completed successfully",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Tr0ll 3:r6:START",
+      "to": "state:Tr0ll 3:r6:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:1",
+      "to": "action:Tr0ll 3:r6:1.1",
+      "label": "1.1 Identify target IP",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Tr0ll 3:r6:1.1",
+      "to": "finding:Tr0ll 3:r6:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Tr0ll 3:r6:1.1",
+      "to": "state:Tr0ll 3:r6:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:1",
+      "to": "action:Tr0ll 3:r6:1.2",
+      "label": "1.2 Enumerate ports a…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Tr0ll 3:r6:1.2",
+      "to": "finding:Tr0ll 3:r6:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Tr0ll 3:r6:1.2",
+      "to": "state:Tr0ll 3:r6:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:1",
+      "to": "state:Tr0ll 3:r6:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:2",
+      "to": "action:Tr0ll 3:r6:2.1",
+      "label": "2.1 Identify default …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Tr0ll 3:r6:2.1",
+      "to": "finding:Tr0ll 3:r6:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Tr0ll 3:r6:2.1",
+      "to": "state:Tr0ll 3:r6:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:2",
+      "to": "action:Tr0ll 3:r6:2.2",
+      "label": "2.2 SSH authentication",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Tr0ll 3:r6:2.2",
+      "to": "finding:Tr0ll 3:r6:2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Tr0ll 3:r6:2.2",
+      "to": "state:Tr0ll 3:r6:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:2",
+      "to": "state:Tr0ll 3:r6:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:3",
+      "to": "action:Tr0ll 3:r6:3.1",
+      "label": "3.1 Search for world-…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Tr0ll 3:r6:3.1",
+      "to": "finding:Tr0ll 3:r6:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Tr0ll 3:r6:3.1",
+      "to": "state:Tr0ll 3:r6:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:3",
+      "to": "action:Tr0ll 3:r6:3.2",
+      "label": "3.2 Analyze discovere…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Tr0ll 3:r6:3.2",
+      "to": "finding:Tr0ll 3:r6:3.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Tr0ll 3:r6:3.2",
+      "to": "state:Tr0ll 3:r6:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:3",
+      "to": "state:Tr0ll 3:r6:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:4",
+      "to": "action:Tr0ll 3:r6:4.1",
+      "label": "4.1 Crack wireless pa…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Tr0ll 3:r6:4.1",
+      "to": "finding:Tr0ll 3:r6:4.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Tr0ll 3:r6:4.1",
+      "to": "state:Tr0ll 3:r6:4",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:4",
+      "to": "state:Tr0ll 3:r6:4.2",
+      "label": "4.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:4.2",
+      "to": "state:Tr0ll 3:r6:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:5",
+      "to": "action:Tr0ll 3:r6:5.1",
+      "label": "5.1 Check sudo privil…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Tr0ll 3:r6:5.1",
+      "to": "finding:Tr0ll 3:r6:5.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Tr0ll 3:r6:5.1",
+      "to": "state:Tr0ll 3:r6:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:5",
+      "to": "action:Tr0ll 3:r6:5.2",
+      "label": "5.2 Start nginx and a…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Tr0ll 3:r6:5.2",
+      "to": "finding:Tr0ll 3:r6:5.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Tr0ll 3:r6:5.2",
+      "to": "state:Tr0ll 3:r6:5",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:5",
+      "to": "state:Tr0ll 3:r6:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:6",
+      "to": "state:Tr0ll 3:r6:6.1",
+      "label": "6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:6.1",
+      "to": "action:Tr0ll 3:r6:6.2",
+      "label": "6.2 Extract SSH priva…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Tr0ll 3:r6:6.2",
+      "to": "finding:Tr0ll 3:r6:6.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Tr0ll 3:r6:6.2",
+      "to": "state:Tr0ll 3:r6:6.1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:6.1",
+      "to": "state:Tr0ll 3:r6:7",
+      "label": "7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:7",
+      "to": "action:Tr0ll 3:r6:7.1",
+      "label": "7.1 Enumerate files a…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Tr0ll 3:r6:7.1",
+      "to": "finding:Tr0ll 3:r6:7.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Tr0ll 3:r6:7.1",
+      "to": "state:Tr0ll 3:r6:7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Tr0ll 3:r6:7",
+      "to": "action:Tr0ll 3:r6:7.2",
+      "label": "7.2 Exploit sudo bina…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Tr0ll 3:r6:7.2",
+      "to": "finding:Tr0ll 3:r6:7.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Tr0ll 3:r6:7.2",
+      "to": "state:Tr0ll 3:r6:7",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 34,
+    "total_edges": 45,
+    "state_nodes": 10,
+    "action_nodes": 12,
+    "finding_nodes": 12,
+    "ptt_items_parsed": 21
+  },
+  "csv_row_index": 354,
+  "source_csv": "training_data.csv"
+}

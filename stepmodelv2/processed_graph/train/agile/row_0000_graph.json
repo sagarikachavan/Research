@@ -1,0 +1,321 @@
+{
+  "machine": "agile",
+  "row_index": 0,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:agile:r0:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'agile' (row 0).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:agile:r0:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:agile:r0:1.1",
+      "label": "State 1.1\nPassive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.1 Passive Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:agile:r0:1.2",
+      "label": "State 1.2\nActive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.2 Active Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:agile:r0:1.3",
+      "label": "State 1.3\nIdentify Open Ports, Services…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3 Identify Open Ports, Services running on the open ports and their versions [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:agile:r0:1.3.1",
+      "label": "State 1.3.1\nPerform a port scan - {Findin…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3.1 Perform a port scan - {Findings: Host Status: Up, Latency: 0.91s, Closed TCP Ports: 998 (connection refused), Open Ports: 22, 80, Scan Duration: 102.88 seconds} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:agile:r0:1.3.2",
+      "label": "State 1.3.2\nDetermine the services and ve…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3.2 Determine the services and versions on each open port - {Findings: Port 22: Open. Service: SSH. Version: OpenSSH 8.9p1 Ubuntu 3ubuntu0.1 (Ubuntu Linux; protocol 2.0), Port 80: Open. Service: HTTP. Version: nginx 1.18.0 (Ubuntu)} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:agile:r0:1.3.3",
+      "label": "State 1.3.3\nTarget IP: {Findings: 10.129.…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3.3 Target IP: {Findings: 10.129.228.212} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:agile:r0:1.4",
+      "label": "State 1.4\nIdentify Operating System - {…",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "1.4 Identify Operating System - {Findings: OS Info: Linux; CPE: cpe:/o:linux:linux_kernel} [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:agile:r0:1.5",
+      "label": "State 1.5\nIdentify Server Headers and T…",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "1.5 Identify Server Headers and Titles - {Findings: HTTP Server Header: nginx/1.18.0 (Ubuntu), HTTP Title: Redirect to http://superpass.htb} [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:agile:r0:1.6",
+      "label": "State 1.6\nIdentify SSH Hostkey - {Findi…",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "1.6 Identify SSH Hostkey - {Findings: ECDSA: f4:bc:ee:21:d7:1f:1a:a2:65:72:21:2d:5b:a6:f7:00, ED25519: 65:c1:48:0d:88:cb:b9:75:a0:2c:a5:e6:37:7e:51:06} [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:agile:r0:START",
+      "to": "state:agile:r0:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:agile:r0:1",
+      "to": "state:agile:r0:1.1",
+      "label": "1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:agile:r0:1.1",
+      "to": "state:agile:r0:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:agile:r0:1.2",
+      "to": "state:agile:r0:1.3",
+      "label": "1.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:agile:r0:1.3",
+      "to": "state:agile:r0:1.3.1",
+      "label": "1.3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:agile:r0:1.3.1",
+      "to": "state:agile:r0:1.3.2",
+      "label": "1.3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:agile:r0:1.3.2",
+      "to": "state:agile:r0:1.3.3",
+      "label": "1.3.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:agile:r0:1.3.3",
+      "to": "state:agile:r0:1.4",
+      "label": "1.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:agile:r0:1.4",
+      "to": "state:agile:r0:1.5",
+      "label": "1.5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:agile:r0:1.5",
+      "to": "state:agile:r0:1.6",
+      "label": "1.6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 11,
+    "total_edges": 10,
+    "state_nodes": 11,
+    "action_nodes": 0,
+    "finding_nodes": 0,
+    "ptt_items_parsed": 10
+  },
+  "csv_row_index": 268,
+  "source_csv": "training_data.csv"
+}

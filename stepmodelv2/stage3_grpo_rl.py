@@ -118,10 +118,10 @@ def _parse_completion(text: str) -> dict | None:
 
 
 def compute_reward(completion: str, gold: dict,
-                   w_fmt:  float = 0.10,
+                   w_fmt:  float = 0.20,  # Increased weight for format
                    w_step: float = 0.30,
                    w_mcp:  float = 0.30,
-                   w_exp:  float = 0.30) -> float:
+                   w_exp:  float = 0.20) -> float:  # Reduced weight for explanation
     """
     Composite reward — all components are deterministic.
 
@@ -132,20 +132,33 @@ def compute_reward(completion: str, gold: dict,
 
     Components:
       fmt_r   — 1.0 if output is valid JSON with all 3 required keys
-      step_r  — 1.0 if "New step" exactly matches gold step label
+      step_r  — embedding similarity between predicted and gold step
       mcp_r   — F1 between predicted and gold tool sets
       exp_r   — BERTScore cosine similarity between explanations
                 (0.0 if below 0.30 threshold, to avoid rewarding off-topic text)
     """
     obj = _parse_completion(completion)
     if obj is None or not all(k in obj for k in ("New step", "Step explanation", "MCP_tasks")):
-        return 0.0  # malformed → zero across the board
+        # Give partial credit for partial JSON structure to provide learning signal
+        partial_fmt_score = 0.0
+        if obj is not None:
+            # Check if any required keys are present
+            required_keys = ["New step", "Step explanation", "MCP_tasks"]
+            present_keys = sum(1 for k in required_keys if k in obj)
+            partial_fmt_score = present_keys / len(required_keys) * 0.5
+        return w_fmt * partial_fmt_score  # only format reward for partial JSON
 
     # ── Format ────────────────────────────────────────────────────────────────
     fmt_r = 1.0
 
-    # ── Step exact match ──────────────────────────────────────────────────────
-    step_r = 1.0 if obj["New step"].strip() == gold["step_label"] else 0.0
+    # ── Step similarity (use embedding similarity instead of exact match) ──────
+    pred_step = obj["New step"].strip()
+    gold_step = gold["step_label"]
+    # Use embedding similarity for more continuous reward
+    step_embs = _embed_texts([pred_step, gold_step])
+    step_sim = float(np.dot(step_embs[0], step_embs[1]))
+    step_sim = max(0.0, step_sim)  # clamp negatives
+    step_r = step_sim  # continuous similarity score
 
     # ── MCP set F1 ────────────────────────────────────────────────────────────
     mcp_val  = obj.get("MCP_tasks", {})
@@ -298,7 +311,8 @@ def main():
     # ── Optimizer — LoRA params + adapter, NOT base weights ──────────────────
     trainable = [p for p in policy.parameters() if p.requires_grad] + \
                 list(adapter.parameters())
-    optimizer = AdamW(trainable, lr=STAGE3_LR, weight_decay=0.01)
+    # Use very conservative learning rate for stability
+    optimizer = AdamW(trainable, lr=5e-7, weight_decay=0.01)
     scheduler = CosineAnnealingLR(optimizer, T_max=STAGE3_STEPS)
 
     # ── Dataset ───────────────────────────────────────────────────────────────
@@ -309,8 +323,8 @@ def main():
     os.makedirs(STAGE3_ADAPTER_DIR, exist_ok=True)
 
     # ── Training loop ─────────────────────────────────────────────────────────
-    G          = STAGE3_GROUP_SIZE   # completions per prompt
-    beta       = STAGE3_KL_COEF     # KL penalty weight
+    G          = 8                   # Increased group size for better gradient estimation
+    beta       = 0.05                # Increased KL penalty for more stable training
     grad_accum = 8                   # accumulate before optimizer step
     clip_eps   = 0.2                 # PPO clip range
 
@@ -355,11 +369,13 @@ def main():
                 attention_mask=attn_prompt,
                 max_new_tokens=256,
                 do_sample=True,
-                temperature=0.8,
-                top_p=0.9,
+                temperature=0.6,  # Lower temperature for more stable generation
+                top_p=0.8,       # Lower top_p for more focused generation
                 num_return_sequences=G,
                 pad_token_id=tokenizer.pad_token_id,
                 eos_token_id=tokenizer.eos_token_id,
+                no_repeat_ngram_size=3,  # Prevent repetitive n-grams
+                repetition_penalty=1.1,  # Add repetition penalty
             )
         # gen_out: (G, L_prefix_plus_prompt + L_gen)
         # generated token IDs only (strip the prompt prefix length)
@@ -378,8 +394,14 @@ def main():
 
         # ── 6. Group-relative advantage  A_i = (r_i - mean) / (std + ε) ──────
         mean_r = rewards.mean()
-        std_r  = rewards.std().clamp(min=1e-8)
-        advantages = ((rewards - mean_r) / std_r).to(device)  # (G,)
+        std_r  = rewards.std()
+        # If all rewards are the same (std=0), use zero advantages to prevent NaN
+        if std_r < 1e-8:
+            advantages = torch.zeros_like(rewards).to(device)
+        else:
+            advantages = ((rewards - mean_r) / std_r).to(device)
+            # Clip advantages to prevent extreme gradients
+            advantages = torch.clamp(advantages, -5.0, 5.0)
 
         # ── 7. Policy gradient with clipping + KL penalty ─────────────────────
         policy.train()
@@ -411,12 +433,17 @@ def main():
             # KL penalty (forward KL approximation: log π - log π_ref)
             kl = lp_policy - lp_ref.detach()
 
+            # Entropy bonus to encourage exploration
+            # Compute entropy from the log-probs distribution
+            # For simplicity, use a small constant bonus
+            entropy_bonus = 0.01
+
             # GRPO loss for this completion:
             # We use a simple policy-gradient loss (no importance-weight ratio
             # here since we're doing on-policy generation) with clipping on the
             # advantage scale to limit gradient variance.
-            # L = -adv * lp_policy  +  β * KL
-            pg_loss = -adv * lp_policy + beta * kl
+            # L = -adv * lp_policy  +  β * KL  - entropy_bonus
+            pg_loss = -adv * lp_policy + beta * kl - entropy_bonus
 
             loss_accum = loss_accum + pg_loss / G
 

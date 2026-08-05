@@ -1,0 +1,375 @@
+{
+  "machine": "WhiteRabbit",
+  "row_index": 8,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:WhiteRabbit:r8:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'WhiteRabbit' (row 8).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:WhiteRabbit:r8:1",
+      "label": "State 1\nReconnaissance",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Reconnaissance [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:WhiteRabbit:r8:2",
+      "label": "State 2\nWeb application enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Web application enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:WhiteRabbit:r8:3",
+      "label": "State 3\nUptime Kuma exploitation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Uptime Kuma exploitation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:WhiteRabbit:r8:4",
+      "label": "State 4\nWikiJS intelligence gathering",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "4 WikiJS intelligence gathering [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:WhiteRabbit:r8:5",
+      "label": "State 5\nSignature bypass and SQLI",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "5 Signature bypass and SQLI [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:WhiteRabbit:r8:6",
+      "label": "State 6\nDatabase intelligence",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "6 Database intelligence [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:WhiteRabbit:r8:7",
+      "label": "State 7\nBackup recovery",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "7 Backup recovery [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:WhiteRabbit:r8:8",
+      "label": "State 8\nContainer privilege escalation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "8 Container privilege escalation [completed]\nBob's sudo privileges allow running /usr/bin/restic without authentication. The --password-command flag enables arbitrary command execution as root. Commands executed: sudo restic check --password-command 'cp /bin/bash /tmp/shell' and sudo restic check --password-command 'chmod 6777 /tmp/shell'. SetUID bash binary created, yielding root shell within container.",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:WhiteRabbit:r8:8.1",
+      "label": "State 8.1\nSudo enumeration",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "8.1 Sudo enumeration [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:WhiteRabbit:r8:8.2",
+      "label": "State 8.2\nRestic privilege escalation",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "8.2 Restic privilege escalation [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:WhiteRabbit:r8:9",
+      "label": "State 9\nContainer to host escape",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "9 Container to host escape [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:WhiteRabbit:r8:9.1",
+      "label": "State 9.1\nRoot container enumeration",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "9.1 Root container enumeration [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:WhiteRabbit:r8:START",
+      "to": "state:WhiteRabbit:r8:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:WhiteRabbit:r8:1",
+      "to": "state:WhiteRabbit:r8:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:WhiteRabbit:r8:2",
+      "to": "state:WhiteRabbit:r8:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:WhiteRabbit:r8:3",
+      "to": "state:WhiteRabbit:r8:4",
+      "label": "4",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:WhiteRabbit:r8:4",
+      "to": "state:WhiteRabbit:r8:5",
+      "label": "5",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:WhiteRabbit:r8:5",
+      "to": "state:WhiteRabbit:r8:6",
+      "label": "6",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:WhiteRabbit:r8:6",
+      "to": "state:WhiteRabbit:r8:7",
+      "label": "7",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:WhiteRabbit:r8:7",
+      "to": "state:WhiteRabbit:r8:8",
+      "label": "8",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:WhiteRabbit:r8:8",
+      "to": "state:WhiteRabbit:r8:8.1",
+      "label": "8.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:WhiteRabbit:r8:8.1",
+      "to": "state:WhiteRabbit:r8:8.2",
+      "label": "8.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:WhiteRabbit:r8:8.2",
+      "to": "state:WhiteRabbit:r8:9",
+      "label": "9",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:WhiteRabbit:r8:9",
+      "to": "state:WhiteRabbit:r8:9.1",
+      "label": "9.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 13,
+    "total_edges": 12,
+    "state_nodes": 13,
+    "action_nodes": 0,
+    "finding_nodes": 0,
+    "ptt_items_parsed": 12
+  },
+  "csv_row_index": 1039,
+  "source_csv": "training_data.csv"
+}

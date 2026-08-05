@@ -1,0 +1,132 @@
+{
+  "machine": "Chronos",
+  "row_index": 0,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Chronos:r0:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Chronos' (row 0).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Chronos:r0:1",
+      "label": "State 1\nNetwork Reconnaissance",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "1 Network Reconnaissance [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Chronos:r0:1.1",
+      "label": "State 1.1\nIdentify target IP",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "1.1 Identify target IP [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Chronos:r0:1.2",
+      "label": "State 1.2\nEnumerate ports and services",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "1.2 Enumerate ports and services [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Chronos:r0:START",
+      "to": "state:Chronos:r0:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Chronos:r0:1",
+      "to": "state:Chronos:r0:1.1",
+      "label": "1.1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Chronos:r0:1.1",
+      "to": "state:Chronos:r0:1.2",
+      "label": "1.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 4,
+    "total_edges": 3,
+    "state_nodes": 4,
+    "action_nodes": 0,
+    "finding_nodes": 0,
+    "ptt_items_parsed": 3
+  },
+  "csv_row_index": 303,
+  "source_csv": "training_data.csv"
+}

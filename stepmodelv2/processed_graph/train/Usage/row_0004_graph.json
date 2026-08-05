@@ -1,0 +1,648 @@
+{
+  "machine": "Usage",
+  "row_index": 4,
+  "legend": {
+    "node_types": {
+      "State (Blue)": "Pentest phase / sub-phase, or informational item (target IP, hostname, machine name, OS, ...)",
+      "Action (Orange)": "A concrete action the pentester performed",
+      "Finding (Green)": "The result/finding produced by an Action"
+    },
+    "status_shading": {
+      "dark": "completed",
+      "mid": "in_progress",
+      "light": "to_do"
+    },
+    "edge_types": {
+      "StateTransition (Black)": "State -> State, advancing through the PTT",
+      "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+      "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+      "Prediction (Purple)": "Finding -> State, findings lead back into state"
+    }
+  },
+  "nodes": [
+    {
+      "id": "state:Usage:r4:START",
+      "label": "State: Start",
+      "type": "State",
+      "color": "#3A86FF",
+      "status": "in_progress",
+      "title": "Start of pentest tree snapshot for 'Usage' (row 4).",
+      "size": 30,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Usage:r4:1",
+      "label": "State 1\nPerform reconnaissance on tar…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "1 Perform reconnaissance on target system [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Usage:r4:1.1",
+      "label": "Action 1.1\nScan for open ports and servi…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.1 Scan for open ports and services [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Usage:r4:1.1",
+      "label": "Finding 1.1\nSSH (port 22) and HTTP (port …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "SSH (port 22) and HTTP (port 80) running on Ubuntu 22.04 LTS; Virtual host routing to usage.htb and admin.usage.htb",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Usage:r4:1.2",
+      "label": "Action 1.2\nEnumerate web applications an…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.2 Enumerate web applications and technologies [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Usage:r4:1.2",
+      "label": "Finding 1.2\nLaravel framework identified …",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Laravel framework identified via 404 pages and HTTP headers; Password reset form at /forgot-password; Separate admin login panel on subdomain admin.usage.htb",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Usage:r4:1.3",
+      "label": "Action 1.3\nIdentify potential attack sur…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "1.3 Identify potential attack surfaces [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Usage:r4:1.3",
+      "label": "Finding 1.3\nPassword reset functionality,…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Password reset functionality, admin authentication panel, Laravel-based application",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Usage:r4:2",
+      "label": "State 2\nTest web application for comm…",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "2 Test web application for common vulnerabilities [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Usage:r4:2.1",
+      "label": "Action 2.1\nTest password reset form for …",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.1 Test password reset form for SQL injection [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Usage:r4:2.1",
+      "label": "Finding 2.1\nSingle quote submitted return…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Single quote submitted returned HTTP 500 error; SQLMap confirmed blind SQL injection via boolean and time-based techniques; Located usage_blog database with 15 tables; Dumped admin_users table revealing administrator account with bcrypt hash",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Usage:r4:2.2",
+      "label": "Action 2.2\nCrack extracted password hash…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.2 Crack extracted password hashes [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Usage:r4:2.2",
+      "label": "Finding 2.2\nHash cracked to admin:whateve…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Hash cracked to admin:whatever1",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Usage:r4:2.3",
+      "label": "Action 2.3\nTest admin panel access with …",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "2.3 Test admin panel access with recovered credentials [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Usage:r4:2.3",
+      "label": "Finding 2.3\nSuccessfully authenticated to…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "Successfully authenticated to admin panel at admin.usage.htb; Laravel-Admin v1.8.18 framework identified",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Usage:r4:3",
+      "label": "State 3\nExploit admin panel for code …",
+      "type": "State",
+      "color": "#0B3D91",
+      "status": "completed",
+      "title": "3 Exploit admin panel for code execution [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "action:Usage:r4:3.1",
+      "label": "Action 3.1\nResearch Laravel-Admin vulner…",
+      "type": "Action",
+      "color": "#B33E00",
+      "status": "completed",
+      "title": "3.1 Research Laravel-Admin vulnerabilities [completed]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "finding:Usage:r4:3.1",
+      "label": "Finding 3.1\nCVE-2023-24249 identified - f…",
+      "type": "Finding",
+      "color": "#06D6A0",
+      "status": null,
+      "title": "CVE-2023-24249 identified - file validation flaw allowing PHP webshell uploads via profile pictures",
+      "size": 32,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Usage:r4:3.2",
+      "label": "State 3.2\nExploit file upload vulnerabi…",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "3.2 Exploit file upload vulnerability [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    },
+    {
+      "id": "state:Usage:r4:3.3",
+      "label": "State 3.3\nEstablish reverse shell",
+      "type": "State",
+      "color": "#AFC8FF",
+      "status": "to_do",
+      "title": "3.3 Establish reverse shell [to_do]",
+      "size": 40,
+      "shape": "dot",
+      "borderColor": "#212529",
+      "borderWidth": 2,
+      "font": {
+        "color": "#212529"
+      }
+    }
+  ],
+  "edges": [
+    {
+      "from": "state:Usage:r4:START",
+      "to": "state:Usage:r4:1",
+      "label": "1",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Usage:r4:1",
+      "to": "action:Usage:r4:1.1",
+      "label": "1.1 Scan for open por…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Usage:r4:1.1",
+      "to": "finding:Usage:r4:1.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Usage:r4:1.1",
+      "to": "state:Usage:r4:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Usage:r4:1",
+      "to": "action:Usage:r4:1.2",
+      "label": "1.2 Enumerate web app…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Usage:r4:1.2",
+      "to": "finding:Usage:r4:1.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Usage:r4:1.2",
+      "to": "state:Usage:r4:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Usage:r4:1",
+      "to": "action:Usage:r4:1.3",
+      "label": "1.3 Identify potentia…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Usage:r4:1.3",
+      "to": "finding:Usage:r4:1.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Usage:r4:1.3",
+      "to": "state:Usage:r4:1",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Usage:r4:1",
+      "to": "state:Usage:r4:2",
+      "label": "2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Usage:r4:2",
+      "to": "action:Usage:r4:2.1",
+      "label": "2.1 Test password res…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Usage:r4:2.1",
+      "to": "finding:Usage:r4:2.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Usage:r4:2.1",
+      "to": "state:Usage:r4:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Usage:r4:2",
+      "to": "action:Usage:r4:2.2",
+      "label": "2.2 Crack extracted p…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Usage:r4:2.2",
+      "to": "finding:Usage:r4:2.2",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Usage:r4:2.2",
+      "to": "state:Usage:r4:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Usage:r4:2",
+      "to": "action:Usage:r4:2.3",
+      "label": "2.3 Test admin panel …",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Usage:r4:2.3",
+      "to": "finding:Usage:r4:2.3",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Usage:r4:2.3",
+      "to": "state:Usage:r4:2",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Usage:r4:2",
+      "to": "state:Usage:r4:3",
+      "label": "3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Usage:r4:3",
+      "to": "action:Usage:r4:3.1",
+      "label": "3.1 Research Laravel-…",
+      "type": "SearchUpdate",
+      "color": "#06D6A0",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "action:Usage:r4:3.1",
+      "to": "finding:Usage:r4:3.1",
+      "label": "Discover",
+      "type": "TrackUpdate",
+      "color": "#3A86FF",
+      "width": 2,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "finding:Usage:r4:3.1",
+      "to": "state:Usage:r4:3",
+      "label": "Leads to",
+      "type": "Prediction",
+      "color": "#8338EC",
+      "width": 1,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Usage:r4:3",
+      "to": "state:Usage:r4:3.2",
+      "label": "3.2",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    },
+    {
+      "from": "state:Usage:r4:3.2",
+      "to": "state:Usage:r4:3.3",
+      "label": "3.3",
+      "type": "StateTransition",
+      "color": "#000000",
+      "width": 3,
+      "arrows": "to",
+      "smooth": {
+        "type": "continuous"
+      }
+    }
+  ],
+  "graph_statistics": {
+    "total_nodes": 20,
+    "total_edges": 26,
+    "state_nodes": 6,
+    "action_nodes": 7,
+    "finding_nodes": 7,
+    "ptt_items_parsed": 12
+  },
+  "csv_row_index": 1462,
+  "source_csv": "training_data.csv"
+}
