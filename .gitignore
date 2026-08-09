@@ -18,11 +18,15 @@ stepmodel-new/processed_data/
 stepmodelv3/processed_graph/
 stepmodelv4/processed_graph/
 stepmodelv2/processed_graph/
+stepmodel-final/processed_graph
+stepmodel-new/processed_graph
 
 # input
 stepmodelv2/input
 stepmodelv3/input
 stepmodelv4/input
+stepmodel-final/input
+stepmodel-new/input
 
 # Logs
 stepmodel/logs/
@@ -30,6 +34,9 @@ stepmodel-new/logs/
 stepmodel/.dbg/
 stepmodel-new/.dbg/
 *.log
+
+# LLM cache
+stepmodel-final/.llm_cache
 
 # PyTorch models
 *.pt
