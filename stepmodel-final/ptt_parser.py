@@ -112,8 +112,8 @@ ACTION_BASE = "#FB5607"    # orange
 FINDING_COLOR = "#06D6A0"  # green
 
 STATE_TRANSITION_COLOR = "#000000"   # black
-ACTION_UPDATE_COLOR = "#28a745"      # green
-FINDING_UPDATE_COLOR = "#007bff"     # blue
+SEARCH_UPDATE_COLOR = "#06D6A0"      # green
+TRACK_UPDATE_COLOR = "#3A86FF"       # blue
 PREDICTION_COLOR = "#8338EC"         # purple
 
 # Shades: completed = dark, in_progress = mid (base color), to_do = light
@@ -178,6 +178,24 @@ NON_ACTION_LABEL_RE = re.compile(
     r"ssh hostkey|ssh version|http server headers?|http titles?|"
     r"ssl certificate|smb version|os version|service version)s?"
     r"(\s*\(.*\))?$",
+    re.IGNORECASE,
+)
+
+# Trailing "field label" nouns. A title *ending* in one of these is a data
+# field being reported (e.g. "Authentication Status", "SMB1 Status", "Host
+# Info", "Shared Resources"), never an action the pentester performed --
+# even when the noun itself shares a root with one of the ACTION_STEMS
+# below (e.g. "Authentication" contains the stem "authenticat", but
+# "Authentication Status" is a fact being stated, not a command). Checked
+# BEFORE the action-stem search so it always wins for these unambiguous
+# label endings. Deliberately excludes nouns that legitimately end real
+# action titles too (e.g. "password", "credentials", "hash" -- "Crack the
+# password" / "Decrypt the hash" are genuine actions), to avoid the
+# opposite mistake.
+INFO_SUFFIX_RE = re.compile(
+    r"(status|info|information|address(es)?|sessions?|resources?|duration|"
+    r"details?|summary|type|count|headers?|banner|titles?|version|hostname|"
+    r"domain)\s*$",
     re.IGNORECASE,
 )
 
@@ -331,14 +349,40 @@ def parse_ptt(text):
 
 def classify(item):
     """Return 'state' or 'action' for a parsed PTT item ('finding' nodes
-    are derived separately, from an action's payload)."""
+    are derived separately, from an action's payload).
+
+    Decision order (each rule only applies if the previous one didn't
+    already decide):
+      1. A top-level item (no dot in its number, e.g. "1", "2") is always
+         a pentest phase -> state.
+      2. No finding/data payload attached -> state, always, even if the
+         title reads like a command. Nothing has been produced yet, so
+         there's nothing to hang an Action+Finding pair off of -- it's
+         just the current (to-do/in-progress/completed) phase or sub-phase.
+      3. A payload IS present:
+         a. Title is a known non-action data label (Target IP, IP Address,
+            Host Status, ...) -> state (payload stays attached to the
+            state node itself, no separate Finding node).
+         b. Title ENDS in a field-label noun (Status, Info, Address,
+            Sessions, Resources, ...) -> state, same reasoning -- these
+            are facts being reported, not actions performed, regardless
+            of any action-stem substring elsewhere in the title.
+         c. Title contains a recognizable action verb stem (perform,
+            enumerate, exploit, check, determine, obtain, ...) -> action.
+            The payload becomes a separate Finding node connected to it.
+         d. Otherwise -> state (conservative default: only promote to
+            Action when there's a clear verb signal).
+    """
     if item["depth"] == 0:
         return "state"
     if not item["payload"]:
         return "state"
-    if NON_ACTION_LABEL_RE.match(item["title"].strip()):
+    title = item["title"].strip()
+    if NON_ACTION_LABEL_RE.match(title):
         return "state"
-    if ACTION_STEM_RE.search(item["title"]):
+    if INFO_SUFFIX_RE.search(title):
+        return "state"
+    if ACTION_STEM_RE.search(title):
         return "action"
     return "state"
 
@@ -404,14 +448,14 @@ def build_row_graph(machine, row_index, ptt_text, mcp_tasks_raw=None, extra_meta
         add_node(node_id, f"Action {item['number']}\n{short(item['title'], 30)}",
                   "Action", color, a_title, status=item["status"])
         add_edge(current_state, node_id, f"{item['number']} {short(item['title'], 18)}",
-                  "ActionUpdate", ACTION_UPDATE_COLOR, 2)
+                  "SearchUpdate", SEARCH_UPDATE_COLOR, 2)
 
         if item["payload"]:
             finding_id = f"finding:{machine}:r{row_index}:{item['number']}"
             add_node(finding_id, f"Finding {item['number']}\n{short(item['payload'], 30)}",
                       "Finding", FINDING_COLOR, item["payload"], status=None, size=32)
-            add_edge(node_id, finding_id, "Discover", "FindingUpdate",
-                      FINDING_UPDATE_COLOR, 2)
+            add_edge(node_id, finding_id, "Discover", "TrackUpdate",
+                      TRACK_UPDATE_COLOR, 2)
             add_edge(finding_id, current_state, "Leads to", "Prediction",
                       PREDICTION_COLOR, 1)
         else:
@@ -442,8 +486,8 @@ def build_row_graph(machine, row_index, ptt_text, mcp_tasks_raw=None, extra_meta
             },
             "edge_types": {
                 "StateTransition (Black)": "State -> State, advancing through the PTT",
-                "ActionUpdate (Green)": "State -> Action, starting work on a PTT item",
-                "FindingUpdate (Blue)": "Action -> Finding, item execution produced findings",
+                "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+                "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
                 "Prediction (Purple)": "Finding -> State, findings lead back into state",
             },
         },
@@ -476,7 +520,7 @@ def to_html(graph):
     ])
     vis_edges = _json.dumps([
         {"from": e["from"], "to": e["to"], "label": e["label"], "color": e["color"],
-         "width": e["width"], "arrows": e["arrows"], "smooth": e["smooth"], "title": f"{e['type']}: {e.get('label', '')}"}
+         "width": e["width"], "arrows": e["arrows"], "smooth": e["smooth"], "title": e["type"]}
         for e in edges
     ])
 

@@ -1,115 +1,121 @@
-# PTT -> Attack Graph pipeline (LLM-based)
+# PTT -> Attack Graph pipeline
 
-## What changed
+## Default mode: deterministic (no API key needed)
 
-The old pipeline parsed each PTT cell with a hand-written regex
-(`ptt_parser.parse_ptt` + `classify`). That's brittle — status markers show
-up before/after the payload or not at all, some items are bare `{...}` data
-blocks with no title, and deciding "is this a State or an Action" (e.g. a
-Target IP with a Findings payload is a State, not an Action) is a judgement
-call, not a pattern match.
+`build_input_json.py` and `generate_graphs.py` now build graphs with a
+**deterministic rule engine** (`ptt_parser.py`) by default -- no LLM, no
+API key, fully reproducible, and it implements your exact classification
+rule:
 
-The new pipeline splits the job in two:
+1. **No finding/data payload attached -> always State.** Even if the
+   title reads like a command (e.g. `2.1 Identify vulnerability -
+   (to-do)`), nothing has been produced yet, so it's just the current
+   phase/sub-phase.
+2. **Has a payload, but is contextual/informational** (a machine name,
+   target IP, "Authentication Status", "Host Info", ...) **-> State**,
+   with the payload kept on that State node itself (no separate Finding
+   node).
+3. **Has a payload and describes a concrete action** ("Perform a port
+   scan", "Enumerate HTTP service", "Check user privileges", ...)
+   **-> Action**, and the payload becomes a separate Finding node.
 
-1. **`llm_ptt_parser.py`** — sends each row's raw PTT text to an OpenAI
-   model and gets back a flat, ordered list of classified items
-   (`number`, `title`, `node_type`, `status`, `finding`). This is the part
-   that actually needs language understanding, so it's delegated to the
-   LLM instead of regex. If a call fails validation after 3 retries, it
-   falls back to the original regex parser so **no row is ever dropped**
-   — you'll see it recorded as `"llm_source": "fallback_regex"` in the
-   output graph.
-2. **`graph_builder.py`** — deterministically turns that classified list
-   into the same vis-network node/edge JSON schema as before (ids, colors,
-   status shading, the four edge types). This part is plain Python, costs
-   nothing, and always produces the same graph for the same item list.
+Every numbered item -- **including a Target IP / IP-address item that has
+its own number** (e.g. `1.4 Target IP: {Findings: 10.129.X.X}`,
+`1.9.1 IP Address - {...}`) -- gets its own node. Nothing is folded into a
+sibling or parent unless it's a truly bare `{...}` block with no label of
+its own, directly under a payload-less parent -- which is rare in this
+dataset and, when it happens, is verified item-by-item, not guessed at.
 
-`build_input_json.py` and `generate_graphs.py` are both thin drivers over
-this shared pipeline — same logic, same schema as the graphs you already
-have in `processed_graph.zip`.
+I verified this against the exact case you flagged (`active`, row 9,
+`1.4 Target IP`, `1.9.1 IP Address`, etc.) and against the full dataset
+(1,996 kept rows across both CSVs): every Action node pairs with exactly
+one Finding node, and Target-IP-style items with their own PTT number
+always land as their own State node.
+
+An **LLM mode** (`--use-llm`, needs `OPENAI_API_KEY`) is still available
+if you want it for genuinely ambiguous wording -- its prompt now encodes
+the identical decision rule above -- but it's opt-in, not the default,
+since deterministic parsing is what actually matched your spec when
+checked against real rows.
+
+## What was wrong before (fixed)
+
+1. **Machine names were being merged across case (`bashed`/`Bashed`).**
+   You confirmed these are *not* duplicates -- each is a separate entry.
+   Reverted: machine names are now kept exactly as they appear in the
+   CSV, case and all. Row numbering is per exact machine string, just
+   like your original data. A defensive (non-merging) guard still stops
+   two *different* machine names from ever colliding on disk -- if two
+   distinct names would sanitize to the same folder, the second gets a
+   short disambiguating suffix instead of silently overwriting the first.
+2. **Target IP items with their own PTT number were sometimes folded
+   away instead of getting their own State node** (the `active`/row 9
+   case you flagged). Root cause: the LLM prompt's "fold bare children"
+   instruction was too loose and occasionally swallowed a legitimately
+   separate item. Fixed two ways: (a) the new deterministic engine only
+   folds a child when it is *truly* label-less and one level below a
+   payload-less parent, verified structurally, not guessed; (b) the LLM
+   prompt (for `--use-llm` mode) was tightened to the same rule with an
+   explicit "when in doubt, do NOT fold" instruction.
+3. **A handful of noun-phrase field labels that happen to share a word
+   root with an action verb** (e.g. "Authentication Status" contains
+   "authenticat...") were misclassified as Action. Fixed with an
+   `INFO_SUFFIX_RE` check in `ptt_parser.classify()` that recognizes
+   common trailing field-label nouns (Status, Info, Address, Sessions,
+   Resources, Duration, ...) and always treats them as State, checked
+   before the action-verb search.
+4. **Rows with a corrupted "Machine" column** (PTT text leaked into it
+   upstream -- e.g. `"1. Reconnaissance {to-do}\n1.1 Port scanning ..."`
+   sitting in the Machine cell) are dropped, not guessed at. This was
+   already handled by `ptt_parser.is_valid_machine_name` and is unchanged;
+   confirmed it drops exactly the rows with this problem (166 in
+   `training_data.csv`, 0 in `test_data.csv`) and nothing else.
 
 ## Setup
 
 ```bash
-pip install --upgrade openai pandas
-export OPENAI_API_KEY=sk-...          # your OpenAI token
+pip install --upgrade pandas
 ```
 
 Put `training_data.csv` and `test_data.csv` in a `data/` folder next to
-these scripts (same layout as before).
+these scripts.
+
+Only needed for `--use-llm`:
+```bash
+pip install --upgrade openai
+export OPENAI_API_KEY=sk-...
+```
 
 ## Run
 
 ```bash
-# Quick, cheap smoke test on the first 20 rows of each CSV
+# Full dataset, deterministic (default) -- fast, free, reproducible
+python build_input_json.py
+python generate_graphs.py
+
+# Quick check on a handful of rows first
 python build_input_json.py --limit 20
 
-# Full run
-python build_input_json.py
-
-# Visual verification folder (same rows, shares the cache below)
-python generate_graphs.py
+# LLM mode instead
+python build_input_json.py --use-llm
+python generate_graphs.py --use-llm
 ```
-
-Optional flags on both scripts:
-- `--model gpt-4o-mini` (default) or any other OpenAI chat model that
-  supports structured JSON outputs, e.g. `--model gpt-4o`
-- `--workers 8` (default) — number of PTT cells parsed concurrently
-
-## Caching
-
-Every LLM response is cached on disk under `.llm_cache/`, keyed by a hash
-of `(model, machine, ptt_text)`. Since `build_input_json.py` and
-`generate_graphs.py` process the exact same CSV rows, **running the second
-script after the first costs zero additional API calls** — it just reads
-the cache. Delete `.llm_cache/` (or pass a different `--model`) to force
-re-parsing.
-
-## Cost / scale note
-
-`training_data.csv` + `test_data.csv` together are ~2,200 rows, so a full
-run is ~2,200 LLM calls the first time (then free on any re-run thanks to
-the cache). With `gpt-4o-mini` and `--workers 8` this should be inexpensive
-and finish in well under an hour; use `--limit` first to sanity-check the
-graphs before committing to the full run.
 
 ## Files
 
 | File | Purpose |
 |---|---|
-| `ptt_parser.py` | Unchanged. Color/shade constants, `is_valid_machine_name`, and the original regex parser (used only as the fallback path). |
-| `llm_ptt_parser.py` | LLM call, JSON-schema validation, disk cache, regex fallback. |
-| `graph_builder.py` | Deterministic item-list -> node/edge graph JSON assembly (+ same HTML via `ptt_parser.to_html`). |
-| `machine_utils.py` | Canonicalizes case-duplicate machine names (see "Known data issue" below). |
+| `ptt_parser.py` | Core deterministic engine: PTT text -> classified items -> node/edge attack graph JSON + HTML (`to_html`). Also `is_valid_machine_name` (drops corrupted rows). |
+| `llm_ptt_parser.py` | LLM call, JSON-schema validation, disk cache, regex fallback -- used only in `--use-llm` mode. |
+| `graph_builder.py` | Deterministic item-list -> node/edge graph assembly, used by `--use-llm` mode (LLM only classifies items; graph construction itself stays deterministic either way). |
 | `build_input_json.py` | Produces `input/train.json`, `input/test.json`. |
 | `generate_graphs.py` | Produces `processed_graph/{train,test}/<machine>/row_NNNN_graph.{json,html}` for manual visual QA. |
 
-## Known data issue: case-duplicate machine names (fixed)
+## If you spot more mismatches
 
-Both CSVs log 8 machines under two different capitalizations of the same
-name (`bashed`/`Bashed`, `lame`/`Lame`, `topology`/`Topology`,
-`precious`/`Precious`, `compiled`/`Compiled`, `pilgrimage`/`Pilgrimage`,
-`authority`/`Authority`, `greenhorn`/`GreenHorn`). Left alone, each
-capitalization got its own row-index counter starting at 0 and its own
-output folder — which, if you generate on a case-insensitive filesystem
-(macOS default, Windows), makes `bashed/` and `Bashed/` resolve to the
-*same* folder, so the second variant's `row_0000...` files silently
-overwrote the first's. That's the corrupted `processed_graph.zip` you saw.
-
-Fixed in `machine_utils.py`: before processing either CSV, both scripts
-now scan **both** CSVs and build a case-insensitive canonical name map
-(canonical spelling = whichever casing appears first in the data), then
-canonicalize every row's machine name through it. All 8 duplicates now
-merge into one continuous sequence per machine. Both scripts print which
-names got merged, e.g.:
-
-```
-Merged 8 case-duplicate machine name(s) so their rows stay one continuous sequence:
-  ['Bashed', 'bashed'] -> "bashed"
-  ...
-```
-
-`generate_graphs.py` also keeps a second, independent safety net
-(`_resolve_machine_dir`) that disambiguates any *other* pair of distinct
-machine names whose sanitized folder names happen to collide — so this
-class of bug can't recur even for machine names not on the list above.
+The classification rule above is regex/heuristic-based, so it won't be
+100% perfect on every one of the ~2,000 rows' worth of free-text titles.
+If you find another specific row where the graph still doesn't match the
+PTT, send me the exact `machine` + row number (or the PTT text itself) and
+I'll trace it through `ptt_parser.classify()` the same way I did for
+`active` row 9, and patch the specific rule that's misfiring.

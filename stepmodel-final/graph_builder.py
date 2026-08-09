@@ -22,7 +22,7 @@ downstream keeps working unchanged.
 
 from ptt_parser import (
     STATE_SHADES, ACTION_SHADES, FINDING_COLOR,
-    STATE_TRANSITION_COLOR, ACTION_UPDATE_COLOR, FINDING_UPDATE_COLOR, PREDICTION_COLOR,
+    STATE_TRANSITION_COLOR, SEARCH_UPDATE_COLOR, TRACK_UPDATE_COLOR, PREDICTION_COLOR,
     short,
 )
 
@@ -124,13 +124,13 @@ def build_graph_from_items(machine, row_index, items, extra_meta=None):
         add_node(node_id, f"Action {item['number']}\n{short(item['title'], 30)}",
                  "Action", color, a_title, status=item["status"])
         add_edge(current_state, node_id, f"{item['number']} {short(item['title'], 18)}",
-                 "ActionUpdate", ACTION_UPDATE_COLOR, 2)
+                 "SearchUpdate", SEARCH_UPDATE_COLOR, 2)
 
         if item["payload"]:
             finding_id = f"finding:{machine}:r{row_index}:{item['number']}"
             add_node(finding_id, f"Finding {item['number']}\n{short(item['payload'], 30)}",
                      "Finding", FINDING_COLOR, item["payload"], status=None, size=32)
-            add_edge(node_id, finding_id, "Discover", "FindingUpdate", FINDING_UPDATE_COLOR, 2)
+            add_edge(node_id, finding_id, "Discover", "TrackUpdate", TRACK_UPDATE_COLOR, 2)
             add_edge(finding_id, current_state, "Leads to", "Prediction", PREDICTION_COLOR, 1)
         else:
             add_edge(node_id, current_state, "Leads to", "Prediction", PREDICTION_COLOR, 1)
@@ -159,8 +159,8 @@ def build_graph_from_items(machine, row_index, items, extra_meta=None):
             },
             "edge_types": {
                 "StateTransition (Black)": "State -> State, advancing through the PTT",
-                "ActionUpdate (Green)": "State -> Action, starting work on a PTT item",
-                "FindingUpdate (Blue)": "Action -> Finding, item execution produced findings",
+                "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
+                "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
                 "Prediction (Purple)": "Finding -> State, findings lead back into state",
             },
         },

@@ -63,38 +63,26 @@ one point in time (numbers like "1", "1.1", "1.3.2", "3.4" ...). Convert it
 into a FLAT, ORDERED list of "items", one per numbered line, each
 classified as a graph node.
 
-For every numbered item, decide:
+Classify every numbered item using this decision order -- apply the rules
+top to bottom, stop at the first one that applies:
 
-node_type:
-  "State" - items that end WITHOUT findings (e.g. pentest phases like
-            Reconnaissance, Passive Information Gathering, Active Information
-            Gathering, Enumeration, Initial Access, Privilege Escalation,
-            Post-Exploitation), OR contextual/informational items like machine
-            name, IP address, hostname, OS, etc. even if they have findings
-            (e.g. "Target IP - 10.129.X.X {Findings: IP confirmed reachable}",
-            "Host Info - {Findings: ...}", "SSL Certificates - {Findings: ...}",
-            "OS Information - {Findings: ...}", "Machine - {Findings: ...}",
-            "Hostname - {Findings: ...}" are all States).
-  "Action" - items that end WITH findings AND describe DOING something
-             (e.g. "Perform a port scan", "Enumerate HTTP service", "Explore
-             the directories", "Exploit the PHP files", "Check user
-             privileges", "Obtain reverse shell", "Enumerate further on the
-             HTTP service"). The findings of actions go in the finding field.
-             
-  CRITICAL RULES:
-  1. If an item has NO findings, it is ALWAYS a State (pentest phase).
-  2. If an item has findings AND the title describes an activity
-     (enumerate, perform, explore, exploit, check, scan, identify, determine,
-     update, obtain, capture, etc.), it is an Action.
-  3. If an item has findings BUT is contextual (Target IP, Machine, Hostname,
-     Host Info, OS Information, SSL Certificates, etc.), it is a State.
-  4. Examples of contextual State items with findings:
-     - "Target IP - 10.129.X.X {Findings: ...}" -> State
-     - "Machine - {Findings: ...}" -> State
-     - "Host Info - {Findings: ...}" -> State
-     - "OS Information - {Findings: ...}" -> State
-     - "SSL Certificates - {Findings: ...}" -> State
-     - "Hostname - {Findings: ...}" -> State
+  1. No finding/data payload attached to this item at all (no "{...}"
+     block, no data of any kind) -> node_type = "State". ALWAYS. Even if
+     the title reads like a command (e.g. "2.1 Identify vulnerability -
+     (to-do)" with nothing else) -- nothing has been produced yet, so it's
+     just the current phase/sub-phase, not a completed Action.
+  2. A payload IS present, and the item is really just contextual /
+     informational data about the target rather than something the
+     pentester did -- a machine name, target IP address, hostname, OS,
+     "Authentication Status", "Host Info", or similar field label ->
+     node_type = "State", and the payload stays attached to that same
+     State node (do not also emit it as a separate Finding).
+  3. A payload IS present, and the item describes a concrete action the
+     pentester actually performed that produced this result -- "Perform a
+     port scan", "Enumerate HTTP service", "Explore the directories",
+     "Exploit the PHP files", "Check user privileges", "Obtain reverse
+     shell" -> node_type = "Action", and the payload becomes that item's
+     `finding` (a separate Finding node downstream).
 
 status: one of "completed", "in_progress", "to_do", "unknown" -- read from
   markers like (completed) / [completed], (to-do) / [to-do], (in progress)
@@ -107,26 +95,26 @@ finding: the result/data text attached to that item (commonly inside a
   no such payload of its own.
 
 Important edge cases:
-  * Nesting depth alone never determines node_type. A deeply-nested item
-    can still be a State (e.g. an IP address at 1.4) or an Action (e.g. a
-    port scan at 1.3.1) -- judge it by what the item actually describes.
-  * Some items have NO title text of their own -- they are just a bare
-    "{...}" data block nested one level under an item that itself had no
-    payload, e.g.:
-        1.3.2 Determine the services and versions... (completed)
-            1.3.2.1 {Target IP: ..., Findings: ...} (completed)
-    Do NOT emit a bare child like 1.3.2.1 as its own item -- fold its data
-    into the `finding` field of its immediate parent item (1.3.2) instead.
-  * HOWEVER, if an item has its OWN line number (e.g. 1.3.2, not 1.3.2.1)
-    and contains contextual info like "Target IP", "Machine", "Hostname", etc.,
-    it should be emitted as its own State node, even if it's just a "{...}"
-    payload. Only fold deeply-nested bare children (e.g. 1.3.2.1) into parents.
-  * BARE CHILDREN are items that consist ONLY of a "{...}" data block with
-    no descriptive title text. If an item has both a title AND a payload,
-    it is NOT a bare child and should be emitted as its own item.
+  * Nesting depth alone never determines node_type -- judge each item by
+    what it actually describes, per the rules above. A Target IP / IP
+    address / machine-name item that has ITS OWN number (e.g. "1.4 Target
+    IP: {Findings: 10.129.X.X}", "1.9.1 IP Address - {Findings: ...}") is
+    ALWAYS its own separate State node -- never fold it into a sibling or
+    parent just because it looks like a short data field.
+  * The ONLY time you should fold an item into another is when it is a
+    truly BARE data block with NO label/title text of its own whatsoever
+    -- i.e. the line is nothing but a number followed directly by a
+    "{...}" block, e.g. "1.3.2.1 {Target IP: ..., Findings: ...}" -- AND
+    it sits exactly one numbering level deeper than the immediately
+    preceding item, AND that preceding item itself has no payload yet. In
+    that specific case only, merge the bare child's data into the
+    `finding` field of that immediate parent instead of emitting a
+    separate item. This is rare -- when in doubt, do NOT fold; give the
+    item its own entry (rule 1 or 2 above will classify it correctly as a
+    State either way).
   * Preserve document order. Every numbered item in the input maps to
-    exactly one output item, except deeply-nested bare children folded into
-    a parent per the rule above.
+    exactly one output item, except a bare child folded per the rule
+    directly above.
   * Keep `title` short and clean: strip the leading item number, status
     markers, and the payload/braces out of it.
 
@@ -192,17 +180,13 @@ def get_openai_client():
 # ----------------------------------------------------------------------
 # Disk cache
 # ----------------------------------------------------------------------
-def _cache_key(model, machine, ptt_text, row_index=None):
+def _cache_key(model, machine, ptt_text):
     h = hashlib.sha256()
     h.update(model.encode("utf-8"))
     h.update(b"\x00")
     h.update((machine or "").encode("utf-8"))
     h.update(b"\x00")
     h.update((ptt_text or "").encode("utf-8"))
-    # Include row_index to distinguish multiple rows for the same machine
-    if row_index is not None:
-        h.update(b"\x00")
-        h.update(str(row_index).encode("utf-8"))
     return h.hexdigest()
 
 
@@ -223,15 +207,9 @@ def _load_cache(key, cache_dir):
 def _save_cache(key, cache_dir, payload):
     p = _cache_path(key, cache_dir)
     p.parent.mkdir(parents=True, exist_ok=True)
-    try:
-        tmp = p.with_suffix(f".{os.getpid()}.tmp")
-        tmp.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
-        # Ensure parent directory exists before replace (race condition fix)
-        p.parent.mkdir(parents=True, exist_ok=True)
-        tmp.replace(p)  # atomic, safe across the thread pool
-    except (FileNotFoundError, OSError) as e:
-        # Fallback: write directly if atomic replace fails
-        p.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    tmp = p.with_suffix(f".{os.getpid()}.tmp")
+    tmp.write_text(json.dumps(payload, ensure_ascii=False), encoding="utf-8")
+    tmp.replace(p)  # atomic, safe across the thread pool
 
 
 # ----------------------------------------------------------------------
@@ -287,12 +265,12 @@ def _validate_items(obj):
 # Public entry point
 # ----------------------------------------------------------------------
 def parse_ptt_items(machine, ptt_text, client, model=DEFAULT_MODEL,
-                     cache_dir=CACHE_DIR, max_retries=3, use_cache=True, row_index=None):
+                     cache_dir=CACHE_DIR, max_retries=3, use_cache=True):
     ptt_text = ptt_text if isinstance(ptt_text, str) else ""
     if not ptt_text.strip():
         return [], "fallback_regex"
 
-    key = _cache_key(model, machine, ptt_text, row_index)
+    key = _cache_key(model, machine, ptt_text)
 
     if use_cache:
         cached = _load_cache(key, cache_dir)
@@ -307,7 +285,6 @@ def parse_ptt_items(machine, ptt_text, client, model=DEFAULT_MODEL,
             resp = client.chat.completions.create(
                 model=model,
                 temperature=0,
-                max_tokens=4000,  # Ensure enough tokens for complete output
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": f"Machine: {machine}\n\nPTT cell:\n{ptt_text}"},

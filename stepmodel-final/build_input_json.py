@@ -14,43 +14,53 @@ Each record (one per CSV row) has:
       "gold_mcp_tasks": "..."
     }
 
-The graph is built in two steps:
-  1. llm_ptt_parser.parse_ptt_items() sends the row's PTT cell to an LLM
-     (OpenAI API) and gets back a flat, ordered, classified list of
-     State/Action items with status + findings. This replaces the old
-     regex-only parser for the ambiguous NLP part of the job (deciding
-     what's a phase vs. an action vs. plain context, where status markers
-     and findings payloads sit, folding bare nested data blocks into their
-     parent). If the LLM call fails validation after retries, a
-     deterministic regex fallback is used instead so no row is dropped.
-  2. graph_builder.build_graph_from_items() deterministically turns that
-     classified list into the vis-network-style node/edge JSON (ids,
-     colors, per-status shading, edge wiring, statistics) -- a fixed
-     transformation that needs no LLM.
+Graph construction, by default, is fully deterministic
+(ptt_parser.build_row_graph): every numbered PTT item becomes its own node
+-- classified State vs Action using the exact rule you specified:
 
-LLM responses are cached in .llm_cache/ keyed by (model, machine, ptt_text),
-shared with generate_graphs.py, so running both against the same CSVs only
-pays for each unique row once.
+    * No finding/data payload attached  -> always State (nothing produced
+      yet, it's just the current phase/sub-phase).
+    * Has a payload AND reads like a concrete action ("Perform a port
+      scan", "Enumerate HTTP service", ...)            -> Action, payload
+      becomes a separate Finding node.
+    * Has a payload but is really contextual/informational (a machine
+      name, IP address, "Authentication Status", ...)  -> State, with the
+      payload kept on that State node itself (no separate Finding node).
+
+Every numbered item -- including a "Target IP"/IP-address item that has
+its own number (e.g. 1.4, 1.9.1) -- gets its own node. Nothing is folded
+into a sibling or parent unless it is a truly bare "{...}" data block with
+no label of its own, sitting exactly one level under a payload-less
+parent.
+
+This is deterministic and needs no API key, so it's the default. If you'd
+rather have an LLM parse each PTT cell (more flexible on genuinely
+ambiguous wording, but can drift from the exact rule above -- see
+llm_ptt_parser.py's SYSTEM_PROMPT), pass --use-llm.
+
+Rows whose "Machine" column is corrupted (PTT text leaked into it upstream)
+are dropped, not guessed at -- see ptt_parser.is_valid_machine_name.
+
+Machine names are kept exactly as they appear in the CSV, including case
+("bashed" and "Bashed" are treated as different entries, each with its own
+independent row sequence) -- only file/directory naming is guarded against
+accidental collisions (see generate_graphs.py), never merged.
 
 Usage:
-    export OPENAI_API_KEY=sk-...
-    pip install --upgrade openai pandas
-    python build_input_json.py                       # full run
-    python build_input_json.py --limit 20             # quick smoke test
-    python build_input_json.py --model gpt-4o --workers 4
+    python build_input_json.py                          # deterministic (default)
+    python build_input_json.py --limit 20                # quick check
+    python build_input_json.py --use-llm                 # LLM-based parsing instead
+        (requires: export OPENAI_API_KEY=sk-...  &&  pip install --upgrade openai)
 """
 
 import argparse
 import json
 import pathlib
-from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import pandas as pd
 
+import ptt_parser
 from ptt_parser import is_valid_machine_name
-from llm_ptt_parser import parse_ptt_items, get_openai_client, DEFAULT_MODEL
-from graph_builder import build_graph_from_items
-from machine_utils import build_canonical_machine_map, canonicalize, report_merged_duplicates
 
 BASE_DIR = pathlib.Path(__file__).parent
 DATA_DIR = BASE_DIR / "data"
@@ -72,10 +82,7 @@ def safe_str(value):
     return str(value).strip()
 
 
-def _collect_rows(csv_path: pathlib.Path, canon_map, limit=None):
-    """Read the CSV and return (rows, skipped_rows). `rows` holds everything
-    needed to build one record: machine, per-machine row index, PTT text,
-    and the already-extracted gold columns."""
+def _collect_rows(csv_path: pathlib.Path, limit=None):
     df = pd.read_csv(csv_path)
     if limit:
         df = df.head(limit)
@@ -88,18 +95,13 @@ def _collect_rows(csv_path: pathlib.Path, canon_map, limit=None):
 
         if not is_valid_machine_name(machine):
             # Row's columns are misaligned (PTT text leaked into the
-            # Machine column upstream) -- skip rather than emit a bad
-            # training example.
+            # Machine column upstream) -- the rest of the row is unreliable
+            # too, so drop it rather than emit a bad training example.
             skipped_rows.append({
                 "csv_row_index": int(csv_row_idx),
                 "machine_value_preview": machine[:80],
             })
             continue
-
-        # Fold case-duplicate spellings ("bashed" / "Bashed") into one
-        # canonical name so their rows stay one continuous sequence
-        # instead of two separate, colliding ones.
-        machine = canonicalize(machine, canon_map)
 
         row_num = machine_row_counter.get(machine, 0)
         machine_row_counter[machine] = row_num + 1
@@ -117,26 +119,47 @@ def _collect_rows(csv_path: pathlib.Path, canon_map, limit=None):
     return rows, skipped_rows
 
 
-def _build_one_record(entry, client, model):
-    items, source = parse_ptt_items(entry["machine"], entry["ptt_text"], client, model=model)
-    graph = build_graph_from_items(
-        entry["machine"], entry["row_index"], items,
-        extra_meta={"csv_row_index": entry["csv_row_index"], "llm_source": source},
+def _build_one_record_deterministic(entry):
+    graph = ptt_parser.build_row_graph(
+        machine=entry["machine"],
+        row_index=entry["row_index"],
+        ptt_text=entry["ptt_text"],
+        extra_meta={"csv_row_index": entry["csv_row_index"], "source": "deterministic"},
     )
     record = {"machine": entry["machine"], "graph": graph}
     for out_key in CSV_TO_OUTPUT.values():
         record[out_key] = entry[out_key]
-    return record, source
+    return record
 
 
-def build_records(csv_path: pathlib.Path, client, model, workers, canon_map, limit=None):
-    rows, skipped_rows = _collect_rows(csv_path, canon_map, limit=limit)
+def build_records_deterministic(csv_path: pathlib.Path, limit=None):
+    rows, skipped_rows = _collect_rows(csv_path, limit=limit)
+    records = [_build_one_record_deterministic(entry) for entry in rows]
+    return records, skipped_rows
+
+
+def build_records_llm(csv_path: pathlib.Path, client, model, workers, limit=None):
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from llm_ptt_parser import parse_ptt_items
+    from graph_builder import build_graph_from_items
+
+    rows, skipped_rows = _collect_rows(csv_path, limit=limit)
     records = [None] * len(rows)
     sources = {"llm": 0, "llm_cache": 0, "fallback_regex": 0}
 
+    def _build(entry):
+        items, source = parse_ptt_items(entry["machine"], entry["ptt_text"], client, model=model)
+        graph = build_graph_from_items(
+            entry["machine"], entry["row_index"], items,
+            extra_meta={"csv_row_index": entry["csv_row_index"], "llm_source": source},
+        )
+        record = {"machine": entry["machine"], "graph": graph}
+        for out_key in CSV_TO_OUTPUT.values():
+            record[out_key] = entry[out_key]
+        return record, source
+
     with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {pool.submit(_build_one_record, entry, client, model): i
-                   for i, entry in enumerate(rows)}
+        futures = {pool.submit(_build, entry): i for i, entry in enumerate(rows)}
         done = 0
         for fut in as_completed(futures):
             i = futures[fut]
@@ -146,7 +169,6 @@ def build_records(csv_path: pathlib.Path, client, model, workers, canon_map, lim
             done += 1
             if done % 25 == 0 or done == len(rows):
                 print(f"  ... {done}/{len(rows)} rows processed", end="\r")
-
     print()
     print(f"  sources: {sources}")
     return records, skipped_rows
@@ -154,33 +176,39 @@ def build_records(csv_path: pathlib.Path, client, model, workers, canon_map, lim
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--model", default=DEFAULT_MODEL, help="OpenAI model used to parse each PTT cell")
-    parser.add_argument("--workers", type=int, default=8, help="parallel API calls")
+    parser.add_argument("--use-llm", action="store_true",
+                         help="parse each PTT cell with an LLM instead of the deterministic rule engine")
+    parser.add_argument("--model", default=None, help="OpenAI model for --use-llm (default: gpt-4o-mini)")
+    parser.add_argument("--workers", type=int, default=8, help="parallel API calls, --use-llm only")
     parser.add_argument("--limit", type=int, default=None,
-                         help="only process the first N rows per CSV (for a quick/cheap smoke test)")
-    parser.add_argument("--no-cache", action="store_true", help="ignore/skip the on-disk LLM response cache")
+                         help="only process the first N rows per CSV (for a quick check)")
     args = parser.parse_args()
 
-    client = get_openai_client()
+    client = None
+    model = None
+    if args.use_llm:
+        from llm_ptt_parser import get_openai_client, DEFAULT_MODEL
+        client = get_openai_client()
+        model = args.model or DEFAULT_MODEL
+
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     splits = [
         ("training_data.csv", "train.json"),
         ("test_data.csv", "test.json"),
     ]
-    csv_paths = [DATA_DIR / name for name, _ in splits]
-
-    print("Building canonical machine-name map across both CSVs ...")
-    canon_map = build_canonical_machine_map(csv_paths)
-    report_merged_duplicates(csv_paths, canon_map)
 
     for csv_name, out_name in splits:
         csv_path = DATA_DIR / csv_name
         out_path = OUTPUT_DIR / out_name
 
-        print(f"Processing {csv_name} -> {out_path} (model={args.model}, workers={args.workers}) ...")
-        records, skipped_rows = build_records(csv_path, client, args.model, args.workers,
-                                               canon_map, limit=args.limit)
+        mode = f"LLM (model={model}, workers={args.workers})" if args.use_llm else "deterministic rule engine"
+        print(f"Processing {csv_name} -> {out_path}  [{mode}] ...")
+
+        if args.use_llm:
+            records, skipped_rows = build_records_llm(csv_path, client, model, args.workers, limit=args.limit)
+        else:
+            records, skipped_rows = build_records_deterministic(csv_path, limit=args.limit)
 
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(records, f, indent=2, ensure_ascii=False)
