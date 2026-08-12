@@ -277,6 +277,7 @@ def main():
     base = AutoModelForCausalLM.from_pretrained(
         QWEN_MODEL_NAME, torch_dtype=torch.bfloat16, device_map=None
     ).to(device)
+    base.gradient_checkpointing_enable()
     policy = PeftModel.from_pretrained(base, STAGE2_ADAPTER_DIR, is_trainable=True)
     policy.train()
     dtype = torch.bfloat16
@@ -286,6 +287,7 @@ def main():
     ref_base = AutoModelForCausalLM.from_pretrained(
         QWEN_MODEL_NAME, torch_dtype=torch.bfloat16, device_map=None
     ).to(device)
+    ref_base.gradient_checkpointing_enable()
     ref_model = PeftModel.from_pretrained(ref_base, STAGE2_ADAPTER_DIR, is_trainable=False)
     ref_model.eval()
     for p in ref_model.parameters():
@@ -293,7 +295,11 @@ def main():
 
     # ── Frozen Stage-1 graph encoder ─────────────────────────────────────────
     stage1 = Stage1Classifier()
-    stage1.load_state_dict(torch.load(STAGE1_CKPT, map_location=device))
+    ckpt = torch.load(STAGE1_CKPT, map_location=device, weights_only=False)
+    if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
+        stage1.load_state_dict(ckpt["model_state_dict"])
+    else:
+        stage1.load_state_dict(ckpt)
     graph_encoder = stage1.graph_encoder.to(device).eval()
     for p in graph_encoder.parameters():
         p.requires_grad_(False)
@@ -302,7 +308,7 @@ def main():
     llm_hidden = policy.config.hidden_size
     adapter = GraphPrefixAdapter(GNN_OUT_DIM, llm_hidden).to(device).to(dtype)
     adapter_ckpt = os.path.join(STAGE2_ADAPTER_DIR, "graph_adapter.pt")
-    adapter.load_state_dict(torch.load(adapter_ckpt, map_location=device))
+    adapter.load_state_dict(torch.load(adapter_ckpt, map_location=device, weights_only=False))
     adapter.train()
 
     # ── Embedding layer (shared, read-only during generation) ────────────────
@@ -367,7 +373,7 @@ def main():
             gen_out = policy.generate(
                 inputs_embeds=prompt_embeds,
                 attention_mask=attn_prompt,
-                max_new_tokens=256,
+                max_new_tokens=500,
                 do_sample=True,
                 temperature=0.6,  # Lower temperature for more stable generation
                 top_p=0.8,       # Lower top_p for more focused generation

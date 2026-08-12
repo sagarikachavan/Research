@@ -49,7 +49,7 @@ from sklearn.metrics import (
 
 from config import (
     INPUT_TEST_JSON, STAGE1_CKPT, STEP_LABELS, MCP_LABELS, MCP_DECISION_THRESHOLD,
-    QWEN_MODEL_NAME,
+    QWEN_MODEL_NAME, ROOT,
 )
 from data_utils import (
     load_from_input_json, _embed_texts, CONTEXT_COLUMNS,
@@ -57,6 +57,7 @@ from data_utils import (
 )
 from graph_encoder import Stage1Classifier
 from mcp_threshold_search import predict_with_per_class_thresholds
+from llm_judge import batch_evaluate_explanations, print_llm_judge_results
 
 
 # ---------------------------------------------------------------------------
@@ -166,16 +167,16 @@ def bertscore_f1_batch(
 
 # Keywords associated with each STEP_LABEL index — used for step alignment.
 _STEP_KEYWORDS: list[list[str]] = [
-    ["google", "search", "googled"],                                    # 0 google search
-    ["enumerate", "enumerat", "version", "hidden", "directory", "service"],  # 1 enumerate further
-    ["explore", "suspicious", "file", "command", "summary", "finding"],  # 2 explore files
-    ["website", "web", "dirb", "gobuster", "directory", "link"],        # 3 enumerate website
-    ["domain", "dns", "subdomain", "ldap"],                             # 4 enumerate domain
-    ["exploit", "exploitation", "payload", "metasploit", "shell"],      # 5 exploit
-    ["analyz", "outcome", "attack", "path", "vector", "assess"],        # 6 analyze outcomes
-    ["human", "assist", "help", "stuck", "unclear"],                    # 7 ask human
-    ["source", "code", "review", "vuln", "injection", "xss", "sqli"],  # 8 source code
-    ["report", "end", "task", "complet", "finish"],                     # 9 end task
+    ["google", "search", "googled", "web", "query", "look", "find"],    # 0 google search
+    ["enumerate", "enumerat", "version", "hidden", "directory", "service", "scan", "probe"],  # 1 enumerate further
+    ["explore", "suspicious", "file", "command", "summary", "finding", "examine", "check"],  # 2 explore files
+    ["website", "web", "dirb", "gobuster", "directory", "link", "url", "http", "https"],        # 3 enumerate website
+    ["domain", "dns", "subdomain", "ldap", "host", "hostname"],                             # 4 enumerate domain
+    ["exploit", "exploitation", "payload", "metasploit", "shell", "attack", "vulnerability"],      # 5 exploit
+    ["analyz", "outcome", "attack", "path", "vector", "assess", "result", "review"],        # 6 analyze outcomes
+    ["human", "assist", "help", "stuck", "unclear", "manual", "guidance"],                    # 7 ask human
+    ["source", "code", "review", "vuln", "injection", "xss", "sqli", "script", "function"],  # 8 source code
+    ["report", "end", "task", "complet", "finish", "document", "summary"],                     # 9 end task
 ]
 
 # Causal / reasoning connectors — presence signals genuine justification.
@@ -336,7 +337,7 @@ def compute_explanation_metrics(
 # GNN evaluation  (classification only — no text generation)
 # ---------------------------------------------------------------------------
 
-def eval_gnn(threshold_override=None) -> None:
+def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"[eval] Test input: {INPUT_TEST_JSON}")
     examples = load_from_input_json(INPUT_TEST_JSON, "test")
@@ -394,6 +395,45 @@ def eval_gnn(threshold_override=None) -> None:
         marker = "  <-- non-default" if abs(thr - 0.5) > 0.05 else ""
         print(f"  {label:<22}  {thr:.2f}{marker}")
 
+    # ── CSV dump for GNN predictions ────────────────────────────────────────
+    if auto_save_csv:
+        import csv
+        
+        # Create output directory
+        output_dir = os.path.join(ROOT, "output")
+        os.makedirs(output_dir, exist_ok=True)
+        
+        csv_path = os.path.join(output_dir, "stage1_gnn_predictions.csv")
+        
+        # Build CSV rows (without explanation fields)
+        csv_rows = []
+        for i, ex in enumerate(examples):
+            pred_step_label = STEP_LABELS[step_preds[i]] if step_preds[i] >= 0 else "UNPARSEABLE"
+            gold_step_label = STEP_LABELS[ex["step_idx"]]
+            
+            # Convert MCP vectors to label lists
+            pred_mcp_labels = [MCP_LABELS[j] for j, val in enumerate(mcp_preds[i]) if val == 1]
+            gold_mcp_labels = [MCP_LABELS[j] for j, val in enumerate(mcp_gold[i]) if val == 1]
+            
+            csv_row = {
+                "machine": ex["machine"],
+                "new_strategy": ex["context"].get("New strategy", ""),
+                "strategy_explanation": ex["context"].get("Strategy explanation", ""),
+                "gold_new_step": gold_step_label,
+                "predicted_new_step": pred_step_label,
+                "gold_mcp_tasks": "|".join(gold_mcp_labels),
+                "predicted_mcp_tasks": "|".join(pred_mcp_labels),
+                "step_correct": int(step_preds[i] == ex["step_idx"]),
+            }
+            csv_rows.append(csv_row)
+        
+        fieldnames = list(csv_rows[0].keys())
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(csv_rows)
+        print(f"\n[eval] GNN prediction CSV saved to: {csv_path}")
+
 
 # ---------------------------------------------------------------------------
 # LLM evaluation  (classification + explanation quality)
@@ -440,7 +480,11 @@ def eval_llm(adapter_dir: str, threshold_override=None,
 
     # ── Graph prefix adapter ──────────────────────────────────────────────
     stage1 = Stage1Classifier()
-    stage1.load_state_dict(torch.load(STAGE1_CKPT, map_location=device))
+    ckpt = torch.load(STAGE1_CKPT, map_location=device, weights_only=False)
+    if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
+        stage1.load_state_dict(ckpt["model_state_dict"])
+    else:
+        stage1.load_state_dict(ckpt)
     graph_encoder = stage1.graph_encoder.to(device).eval()
     for p in graph_encoder.parameters():
         p.requires_grad_(False)
@@ -509,17 +553,53 @@ def eval_llm(adapter_dir: str, threshold_override=None,
         # ── Parse JSON ────────────────────────────────────────────────────
         obj = {}
         try:
+            # Try to find and parse JSON object
             start = gen_text.index("{")
             end   = gen_text.rindex("}") + 1
             obj   = json.loads(gen_text[start:end])
         except Exception:
             parse_failures += 1
-            m = re.search(r'"?New step"?\s*:\s*"([^"]+)"', gen_text)
+            # Enhanced regex fallback with multiple patterns
+            # Pattern 1: "New step": "value"
+            m = re.search(r'"?New step"?\s*:\s*"([^"]+)"', gen_text, re.IGNORECASE)
             if m:
                 obj["New step"] = m.group(1)
-            m2 = re.search(r'"?Step explanation"?\s*:\s*"([^"]*)"', gen_text, re.DOTALL)
+            # Pattern 2: "new_step": "value" (underscore variant)
+            m = re.search(r'"?new_step"?\s*:\s*"([^"]+)"', gen_text, re.IGNORECASE)
+            if m and "New step" not in obj:
+                obj["New step"] = m.group(1)
+            # Pattern 3: "step": "value"
+            m = re.search(r'"?step"?\s*:\s*"([^"]+)"', gen_text, re.IGNORECASE)
+            if m and "New step" not in obj:
+                obj["New step"] = m.group(1)
+            
+            # Step explanation patterns
+            m2 = re.search(r'"?Step explanation"?\s*:\s*"([^"]*)"', gen_text, re.DOTALL | re.IGNORECASE)
             if m2:
                 obj["Step explanation"] = m2.group(1)
+            # Pattern 2: "step_explanation": "value"
+            m2 = re.search(r'"?step_explanation"?\s*:\s*"([^"]*)"', gen_text, re.DOTALL | re.IGNORECASE)
+            if m2 and "Step explanation" not in obj:
+                obj["Step explanation"] = m2.group(1)
+            # Pattern 3: "explanation": "value"
+            m2 = re.search(r'"?explanation"?\s*:\s*"([^"]*)"', gen_text, re.DOTALL | re.IGNORECASE)
+            if m2 and "Step explanation" not in obj:
+                obj["Step explanation"] = m2.group(1)
+            
+            # MCP tasks patterns - try to extract tool names
+            mcp_pattern = re.search(r'"?MCP[_ ]tasks"?\s*:\s*\[([^\]]*)\]', gen_text, re.DOTALL | re.IGNORECASE)
+            if mcp_pattern:
+                # Extract quoted tool names from the array
+                tools = re.findall(r'"([^"]+)"', mcp_pattern.group(1))
+                if tools:
+                    obj["MCP_tasks"] = {tool: True for tool in tools}
+            # Alternative MCP pattern: object format
+            mcp_obj_pattern = re.search(r'"?MCP[_ ]tasks"?\s*:\s*\{([^}]+)\}', gen_text, re.DOTALL | re.IGNORECASE)
+            if mcp_obj_pattern and "MCP_tasks" not in obj:
+                # Extract keys from object format
+                tools = re.findall(r'"([^"]+)"\s*:', mcp_obj_pattern.group(1))
+                if tools:
+                    obj["MCP_tasks"] = {tool: True for tool in tools}
 
         # ── Step classification ───────────────────────────────────────────
         pred_step_raw  = obj.get("New step", "")
@@ -590,20 +670,84 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     expl_metrics = compute_explanation_metrics(
         pred_explanations,
         gold_explanations,
-        step_preds=step_preds,
+        step_preds=step_preds_arr,
         prev_step_results=prev_step_results,
     )
     report_explanation(expl_metrics)
 
+    # ── LLM judge evaluation (if requested) ───────────────────────────────
+    if args.use_llm_judge:
+        print("\n\n" + "=" * 60)
+        print("LLM JUDGE EVALUATION")
+        print("=" * 60)
+        print("Using LLM to evaluate explanation quality...")
+        
+        # Prepare examples for LLM judge
+        llm_examples = []
+        for i, ex in enumerate(examples):
+            if i < len(pred_explanations):
+                llm_examples.append({
+                    "pred_explanation": pred_explanations[i],
+                    "gold_explanation": gold_explanations[i],
+                    "pred_step": STEP_LABELS[step_preds[i]] if step_preds[i] >= 0 else "UNPARSEABLE",
+                    "gold_step": STEP_LABELS[ex["step_idx"]],
+                    "context": ex["context"],
+                    "machine": ex["machine"],
+                })
+        
+        # Run LLM judge evaluation
+        llm_results = batch_evaluate_explanations(
+            examples=llm_examples,
+            model=args.llm_judge_model,
+            max_samples=args.llm_judge_samples,
+            verbose=True,
+        )
+        
+        # Print LLM judge results
+        print_llm_judge_results(llm_results)
+
     # ── Optional CSV dump ─────────────────────────────────────────────────
-    if save_explanations and csv_rows:
+    if (save_explanations or args.auto_save_csv) and csv_rows:
         import csv
-        fieldnames = list(csv_rows[0].keys())
-        with open(save_explanations, "w", newline="", encoding="utf-8") as f:
+        
+        # Create output directory
+        output_dir = os.path.join(ROOT, "output")
+        os.makedirs(output_dir, exist_ok=True)
+        
+        # Determine output path
+        if save_explanations:
+            csv_path = save_explanations
+        else:
+            # Auto-generate path based on adapter directory name
+            if adapter_dir:
+                stage_name = os.path.basename(adapter_dir)
+                csv_path = os.path.join(output_dir, f"{stage_name}_predictions.csv")
+            else:
+                csv_path = os.path.join(output_dir, "llm_predictions.csv")
+        
+        # Enhance CSV rows with all requested fields
+        enhanced_rows = []
+        for i, row in enumerate(csv_rows):
+            enhanced_row = {
+                "machine": row["machine"],
+                "new_strategy": examples[i]["context"].get("New strategy", ""),
+                "strategy_explanation": examples[i]["context"].get("Strategy explanation", ""),
+                "gold_new_step": row["gold_step"],
+                "predicted_new_step": row["pred_step"],
+                "gold_step_explanation": row["gold_explanation"],
+                "predicted_step_explanation": row["pred_explanation"],
+                "gold_mcp_tasks": row["gold_mcp"],
+                "predicted_mcp_tasks": row["pred_mcp"],
+                "step_correct": row["step_correct"],
+            }
+            enhanced_rows.append(enhanced_row)
+        
+        fieldnames = list(enhanced_rows[0].keys())
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
-            writer.writerows(csv_rows)
-        print(f"\n[eval] Explanation predictions saved to: {save_explanations}")
+            writer.writerows(enhanced_rows)
+        print(f"\n[eval] Prediction CSV saved to: {csv_path}")
 
 
 # ---------------------------------------------------------------------------
@@ -795,14 +939,46 @@ if __name__ == "__main__":
              "Omit to use per-class thresholds from Stage-1 checkpoint.",
     )
     parser.add_argument(
-        "--max-new-tokens", type=int, default=200,
-        help="Max tokens to generate per sample in LLM mode (default: 200).",
+        "--max-new-tokens", type=int, default=500,
+        help="Max tokens to generate per sample in LLM mode (default: 500).",
     )
     parser.add_argument(
         "--save-explanations", default=None, metavar="PATH",
         help="Save per-sample explanation predictions to a CSV file at PATH.",
     )
+    parser.add_argument(
+        "--auto-save-csv", action="store_true", default=None,
+        help="Automatically save prediction CSVs for LLM models (stage 2/3). "
+             "Automatically enabled for LLM models. Use --no-auto-save-csv to disable.",
+    )
+    parser.add_argument(
+        "--no-auto-save-csv", dest="auto_save_csv", action="store_false",
+        help="Disable automatic CSV saving for LLM models.",
+    )
+    parser.add_argument(
+        "--use-llm-judge", action="store_true", default=None,
+        help="Use LLM judge to evaluate explanation quality (requires OPENAI_API_KEY). "
+             "Automatically enabled for LLM models (stage 2/3). Use --no-llm-judge to disable.",
+    )
+    parser.add_argument(
+        "--no-llm-judge", dest="use_llm_judge", action="store_false",
+        help="Disable automatic LLM judge evaluation for LLM models.",
+    )
+    parser.add_argument(
+        "--llm-judge-model", default="gpt-4o",
+        help="OpenAI model to use for LLM judge (default: gpt-4o).",
+    )
+    parser.add_argument(
+        "--llm-judge-samples", type=int, default=None,
+        help="Maximum number of samples to evaluate with LLM judge (for testing).",
+    )
     args = parser.parse_args()
+
+    # Auto-enable LLM judge and CSV saving for LLM models unless explicitly disabled
+    if args.use_llm_judge is None and args.model in ["llm", "all"]:
+        args.use_llm_judge = True
+    if args.auto_save_csv is None and args.model in ["llm", "all"]:
+        args.auto_save_csv = True
 
     if args.model == "all":
         available = check_model_availability()
@@ -822,7 +998,7 @@ if __name__ == "__main__":
             print(f"  MODEL: {header}")
             print(f"{'═' * 60}")
             if mtype == "gnn":
-                eval_gnn(threshold_override=args.threshold)
+                eval_gnn(threshold_override=args.threshold, auto_save_csv=args.auto_save_csv)
             else:
                 eval_llm(
                     adir,
@@ -836,7 +1012,7 @@ if __name__ == "__main__":
             print(f"[eval] Stage-1 checkpoint not found: {STAGE1_CKPT}")
             sys.exit(1)
         print(f"\n{'═' * 60}\n  MODEL: Stage 1 GNN\n{'═' * 60}")
-        eval_gnn(threshold_override=args.threshold)
+        eval_gnn(threshold_override=args.threshold, auto_save_csv=args.auto_save_csv)
 
     else:  # llm
         adapter = args.adapter_dir

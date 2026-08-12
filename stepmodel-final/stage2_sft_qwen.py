@@ -55,7 +55,9 @@ SYSTEM_PROMPT = (
     "strictly within an authorized lab environment. Given the current "
     "reconnaissance graph state and the previous/new strategy context, "
     "choose exactly one next-step type from the fixed taxonomy, exactly one "
-    "or more tool(s) from the fixed MCP taxonomy, and explain your reasoning."
+    "or more tool(s) from the fixed MCP taxonomy, and explain your reasoning. "
+    "IMPORTANT: Your step explanation MUST explicitly mention the chosen step "
+    "type by name to justify why that specific step is appropriate."
 )
 
 
@@ -122,7 +124,7 @@ class GraphPrefixAdapter(nn.Module):
 # ---------------------------------------------------------------------------
 
 class SFTDataset(Dataset):
-    def __init__(self, examples: list, tokenizer, max_len: int = 2048):
+    def __init__(self, examples: list, tokenizer, max_len: int = 2560):
         self.examples = examples
         self.tok = tokenizer
         self.max_len = max_len
@@ -268,6 +270,7 @@ def main():
     base_model = AutoModelForCausalLM.from_pretrained(
         QWEN_MODEL_NAME, torch_dtype=dtype, device_map=None
     ).to(device)
+    base_model.gradient_checkpointing_enable()
 
     lora_cfg = LoraConfig(
         r=LORA_R,
@@ -284,7 +287,11 @@ def main():
 
     # ── Frozen Stage-1 graph encoder ──────────────────────────────────────────
     stage1 = Stage1Classifier()
-    stage1.load_state_dict(torch.load(STAGE1_CKPT, map_location=device))
+    ckpt = torch.load(STAGE1_CKPT, map_location=device, weights_only=False)
+    if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
+        stage1.load_state_dict(ckpt["model_state_dict"])
+    else:
+        stage1.load_state_dict(ckpt)
     graph_encoder = stage1.graph_encoder.to(device).eval()
     for p in graph_encoder.parameters():
         p.requires_grad_(False)

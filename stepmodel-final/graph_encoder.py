@@ -97,7 +97,13 @@ class Stage1Classifier(nn.Module):
         return step_logits, mcp_logits, g  # g is reused as the LLM graph-prefix source
 
     def loss(self, step_logits, mcp_logits, step_labels, mcp_targets,
-              step_w=1.0, mcp_w=1.0):
+              step_w=1.0, mcp_w=1.0, mcp_class_weights=None):
         step_loss = F.cross_entropy(step_logits, step_labels)
-        mcp_loss = F.binary_cross_entropy_with_logits(mcp_logits, mcp_targets)
+        if mcp_class_weights is not None:
+            # Apply class weights to MCP loss for imbalanced classes
+            mcp_loss = F.binary_cross_entropy_with_logits(
+                mcp_logits, mcp_targets, weight=mcp_class_weights
+            )
+        else:
+            mcp_loss = F.binary_cross_entropy_with_logits(mcp_logits, mcp_targets)
         return step_w * step_loss + mcp_w * mcp_loss, step_loss.detach(), mcp_loss.detach()

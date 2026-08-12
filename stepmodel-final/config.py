@@ -64,12 +64,20 @@ GRAPH_DIR_TEST = os.environ.get(
     "GRAPH_DIR_TEST", os.path.join(ROOT, "processed_data", "test")
 )
 
-CKPT_DIR = os.path.join(ROOT, "checkpoints")
+CKPT_DIR = os.environ.get(
+    "CKPT_DIR", os.path.join(ROOT, "checkpoints")
+)
 os.makedirs(CKPT_DIR, exist_ok=True)
 
-STAGE1_CKPT = os.path.join(CKPT_DIR, "stage1_gnn_classifier.pt")
-STAGE2_ADAPTER_DIR = os.path.join(CKPT_DIR, "stage2_qwen_lora")
-STAGE3_ADAPTER_DIR = os.path.join(CKPT_DIR, "stage3_qwen_grpo")
+STAGE1_CKPT = os.environ.get(
+    "STAGE1_CKPT", os.path.join(CKPT_DIR, "stage1_gnn_classifier.pt")
+)
+STAGE2_ADAPTER_DIR = os.environ.get(
+    "STAGE2_ADAPTER_DIR", os.path.join(CKPT_DIR, "stage2_qwen_lora")
+)
+STAGE3_ADAPTER_DIR = os.environ.get(
+    "STAGE3_ADAPTER_DIR", os.path.join(CKPT_DIR, "stage3_qwen_grpo")
+)
 
 # ----------------------------------------------------------------------------
 # Model / training hyperparameters
@@ -102,7 +110,7 @@ STAGE2_GRAD_ACCUM = 8
 STAGE2_VAL_SPLIT = 0.1           # 10% held-out for validation
 STAGE2_EARLY_STOP_PATIENCE = 3   # stop if val loss doesn't improve for 3 epochs
 
-STAGE3_GROUP_SIZE = 4            # number of samples per prompt for GRPO
+STAGE3_GROUP_SIZE = 2            # number of samples per prompt for GRPO
 STAGE3_LR = 5e-6
 STAGE3_STEPS = 1000
 STAGE3_KL_COEF = 0.02
