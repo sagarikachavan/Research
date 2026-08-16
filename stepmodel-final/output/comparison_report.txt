@@ -5,29 +5,21 @@ COMPREHENSIVE MODEL COMPARISON REPORT
 OVERALL PERFORMANCE METRICS
 --------------------------------------------------------------------------------
             Model  mcp_macro_f1  mcp_micro_f1  mcp_subset_accuracy  step_accuracy  step_macro_f1  step_weighted_f1
-baseline_zeroshot      0.000000      0.000000             0.003731            0.0            0.0               0.0
-   baseline_3shot      0.000000      0.000000             0.003731            0.0            0.0               0.0
-   baseline_5shot      0.000000      0.000000             0.003731            0.0            0.0               0.0
-           stage1      0.668518      0.760417             0.514925            1.0            1.0               1.0
-           stage2      0.000000      0.000000             0.003731            0.0            0.0               0.0
-           stage3      0.000000      0.000000             0.003731            0.0            0.0               0.0
+baseline_zeroshot      0.338741      0.404432             0.104478       0.526119       0.356859          0.561185
+   baseline_3shot      0.014371      0.072670             0.007463       0.220149       0.032805          0.079442
+   baseline_5shot      0.014371      0.072670             0.007463       0.220149       0.032805          0.079442
+           stage1      0.689176      0.754558             0.544776       1.000000       0.818182          1.000000
 
 KEY IMPROVEMENTS (Stage 2 vs Zero-shot Baseline)
 --------------------------------------------------------------------------------
-mcp_macro_f1             : 0.0000 vs 0.0000 (+0.0000, +0.0%)
-mcp_micro_f1             : 0.0000 vs 0.0000 (+0.0000, +0.0%)
-mcp_subset_accuracy      : 0.0037 vs 0.0037 (+0.0000, +0.0%)
-step_accuracy            : 0.0000 vs 0.0000 (+0.0000, +0.0%)
-step_macro_f1            : 0.0000 vs 0.0000 (+0.0000, +0.0%)
-step_weighted_f1         : 0.0000 vs 0.0000 (+0.0000, +0.0%)
 
 BEST MODEL PER METRIC
 --------------------------------------------------------------------------------
-mcp_macro_f1             : stage1 (0.6685)
-mcp_micro_f1             : stage1 (0.7604)
-mcp_subset_accuracy      : stage1 (0.5149)
+mcp_macro_f1             : stage1 (0.6892)
+mcp_micro_f1             : stage1 (0.7546)
+mcp_subset_accuracy      : stage1 (0.5448)
 step_accuracy            : stage1 (1.0000)
-step_macro_f1            : stage1 (1.0000)
+step_macro_f1            : stage1 (0.8182)
 step_weighted_f1         : stage1 (1.0000)
 
 ================================================================================

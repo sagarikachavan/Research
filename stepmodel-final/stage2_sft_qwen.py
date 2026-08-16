@@ -91,6 +91,131 @@ def build_target(ex: dict) -> str:
     )
 
 
+_MCP_PATTERNS_STG = {
+    "Nmap": re.compile(r"\bnmap\b", re.I),
+    "Metasploit": re.compile(r"\bmetasploit|msfconsole|msfvenom\b", re.I),
+    "Netcat": re.compile(r"\bnetcat|\bnc\b", re.I),
+    "Dirbuster": re.compile(r"\bdirbuster|gobuster|dirb|netexec\b", re.I),
+    "SQLmap": re.compile(r"\bsqlmap\b", re.I),
+    "Smb client": re.compile(r"smb\s*client|smbclient|\bsmb\b", re.I),
+    "hydra": re.compile(r"\bhydra\b", re.I),
+    "John-the-ripper": re.compile(r"john[\s\-]?the[\s\-]?ripper|\bjohn\b", re.I),
+    "Google search": re.compile(r"google\s*search|\bgoogle\b", re.I),
+    "Interactive CLI": re.compile(r"interactive\s*cli|\bssh\b|\bbash\b|\bshell\b", re.I),
+    "Web page interaction": re.compile(r"web\s*page\s*interaction|\bbrowser\b|\bcurl\b", re.I),
+}
+
+
+def _extract_mcp_from_text_stg(text: str):
+    if not text:
+        return []
+    return [label for label, pat in _MCP_PATTERNS_STG.items() if pat.search(text)]
+
+
+def build_obj_parser():
+    """Return a robust parse(text, normalizer) -> dict used by Stage2/Stage3 eval.
+
+    Equivalent to the hardened parser in baseline_llm_eval.parse_response —
+    centralised so Stage 2 and Stage 3 evaluation always apply the same logic.
+    """
+
+    def parse(text: str, normalizer):
+        obj = {}
+        try:
+            candidates = []
+            for match in re.finditer(
+                r"\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}", text, re.DOTALL
+            ):
+                candidates.append(match.group())
+            for c in candidates:
+                try:
+                    obj = json.loads(c)
+                    break
+                except Exception:
+                    continue
+            if not obj:
+                s = text.find("{")
+                e = text.rfind("}") + 1
+                if s != -1 and e > s:
+                    try:
+                        obj = json.loads(text[s:e])
+                    except Exception:
+                        pass
+        except Exception:
+            pass
+
+        if not obj or "New step" not in obj:
+            for pat in [
+                r'"?New step"?\s*:\s*"([^"]+)"',
+                r'"?new_step"?\s*:\s*"([^"]+)"',
+                r'"?step"?\s*:\s*"([^"]+)"',
+            ]:
+                m = re.search(pat, text, re.IGNORECASE)
+                if m:
+                    obj["New step"] = m.group(1)
+                    break
+        if "New step" not in obj:
+            m = re.search(
+                r'(?:next[_\s-]?step(?:\s*type)?|step\s*(?:type|choice)?|action)\s*[:\-–]\s*["\']?\s*([^"\':;.\n][^\n:;]{3,150}?)\s*(?:\.|,|\n|"|Tools|Tool|Reasoning|Explanation|$)',
+                text, re.IGNORECASE)
+            if m:
+                cand = m.group(1).strip().strip('"').strip("'").rstrip(".")
+                if cand and len(cand) > 3:
+                    obj["New step"] = cand
+
+        if "Step explanation" not in obj:
+            for pat in [
+                r'"?Step explanation"?\s*:\s*"([^"]*)"',
+                r'"?step_explanation"?\s*:\s*"([^"]*)"',
+                r'"?explanation"?\s*:\s*"([^"]*)"',
+            ]:
+                m2 = re.search(pat, text, re.DOTALL | re.IGNORECASE)
+                if m2:
+                    obj["Step explanation"] = m2.group(1)
+                    break
+        if "Step explanation" not in obj:
+            m2 = re.search(
+                r'(?:reasoning|explanation|justification|why|step\s*explanation)\s*[:\-–]\s*["\']?\s*(.{5,400}?)\s*(?:\n\n|\Z|Tools|Tool:|Step|Next step)',
+                text, re.DOTALL | re.IGNORECASE)
+            if m2:
+                obj["Step explanation"] = m2.group(1).strip().strip('"').strip("'")
+
+        need_mcp = not isinstance(obj.get("MCP_tasks"), dict) or not obj.get("MCP_tasks")
+        if need_mcp:
+            m3 = re.search(
+                r'"?MCP[_ ]tasks"?\s*:\s*(\{[^}]*(?:\{[^}]*\}[^}]*)*\})',
+                text, re.DOTALL | re.IGNORECASE)
+            if m3:
+                try:
+                    obj["MCP_tasks"] = json.loads(m3.group(1))
+                except Exception:
+                    pass
+        if not isinstance(obj.get("MCP_tasks"), dict) or not obj.get("MCP_tasks"):
+            m3 = re.search(
+                r'"?MCP[_ ]tasks"?\s*:\s*\[([^\]]*)\]',
+                text, re.DOTALL | re.IGNORECASE)
+            if m3:
+                keys = re.findall(r'"([^"]+)"', m3.group(1))
+                if keys:
+                    obj["MCP_tasks"] = {k: True for k in keys}
+        if not isinstance(obj.get("MCP_tasks"), dict) or not obj.get("MCP_tasks"):
+            m4 = re.search(
+                r'(?:tools?|mcp(?:[_\s-]?tasks)?)\s*[:\-–]\s*(.{3,200}?)\s*(?:\n\n|\Z|Reasoning|Explanation|Step explanation|Next)',
+                text, re.DOTALL | re.IGNORECASE)
+            if m4:
+                found = _extract_mcp_from_text_stg(m4.group(1))
+                if found:
+                    obj["MCP_tasks"] = {k: "" for k in found}
+        if not isinstance(obj.get("MCP_tasks"), dict) or not obj.get("MCP_tasks"):
+            found = _extract_mcp_from_text_stg(text)
+            if found:
+                obj["MCP_tasks"] = {k: "" for k in found}
+
+        return obj
+
+    return parse
+
+
 # ---------------------------------------------------------------------------
 # Graph prefix adapter (also imported by stage3_grpo_rl.py + evaluate.py)
 # ---------------------------------------------------------------------------
@@ -488,23 +613,16 @@ def main():
             # Decode generated text (skip prefix tokens)
             generated_ids = outputs[:, n_prefix:]
             generated_texts = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
-            
+
+            obj_parser = build_obj_parser()
+
             # Parse and collect data
             for i, gen_text in enumerate(generated_texts):
                 ex_idx = len(csv_rows)
                 if ex_idx < len(test_examples):
                     ex = test_examples[ex_idx]
-                    
-                    # Parse generated text
-                    obj = {}
-                    try:
-                        # Try to parse JSON
-                        if "{" in gen_text and "}" in gen_text:
-                            start = gen_text.index("{")
-                            end = gen_text.rindex("}") + 1
-                            obj = json.loads(gen_text[start:end])
-                    except:
-                        pass
+
+                    obj = obj_parser(gen_text, normalizer)
                     
                     # Extract step prediction
                     pred_step_raw = obj.get("New step", "")

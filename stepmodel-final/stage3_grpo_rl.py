@@ -76,7 +76,7 @@ from config import (
 )
 from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS, StepLabelNormalizer, extract_mcp_labels
 from graph_encoder import Stage1Classifier
-from stage2_sft_qwen import GraphPrefixAdapter, build_prompt, SYSTEM_PROMPT
+from stage2_sft_qwen import GraphPrefixAdapter, build_prompt, SYSTEM_PROMPT, build_obj_parser
 
 random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
@@ -602,6 +602,7 @@ def main():
     
     normalizer = StepLabelNormalizer()
     csv_rows = []
+    _obj_parser = build_obj_parser()
     
     policy.eval()
     adapter.eval()
@@ -620,13 +621,18 @@ def main():
             )
             
             # Build prompt embeddings
-            prompt_text = build_prompt(ex)
-            prompt_embeds, L_prefix_plus_prompt = build_prompt_embeds(
-                prompt_text, tokenizer, embed_layer, prefix_embeds, device, dtype
+            user_prompt = build_prompt(ex)
+            full_prompt = (
+                f"<|system|>\n{SYSTEM_PROMPT}\n"
+                f"<|user|>\n{user_prompt}\n"
+                f"<|assistant|>\n"
             )
-            
+            prompt_embeds, L_prefix_plus_prompt = build_prompt_embeds(
+                full_prompt, tokenizer, embed_layer, prefix_embeds, device, dtype
+            )
+
             attn_prompt = torch.ones(1, L_prefix_plus_prompt, dtype=torch.long, device=device)
-            
+
             # Generate single completion
             gen_out = policy.generate(
                 inputs_embeds=prompt_embeds,
@@ -634,21 +640,16 @@ def main():
                 max_new_tokens=500,
                 do_sample=False,
                 pad_token_id=tokenizer.pad_token_id,
+                eos_token_id=tokenizer.eos_token_id,
+                repetition_penalty=1.1,
             )
-            
+
             # Decode generated text
-            completion_ids = gen_out
-            completion_text = tokenizer.decode(completion_ids[0], skip_special_tokens=True)
-            
+            completion_ids = gen_out[:, L_prefix_plus_prompt:]
+            completion_text = tokenizer.decode(completion_ids[0], skip_special_tokens=True).strip()
+
             # Parse generated text
-            obj = {}
-            try:
-                if "{" in completion_text and "}" in completion_text:
-                    start = completion_text.index("{")
-                    end = completion_text.rindex("}") + 1
-                    obj = json.loads(completion_text[start:end])
-            except:
-                pass
+            obj = _obj_parser(completion_text, normalizer)
             
             # Extract step prediction
             pred_step_raw = obj.get("New step", "")

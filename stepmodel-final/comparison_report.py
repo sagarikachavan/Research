@@ -60,74 +60,121 @@ def parse_mcp_tools(mcp_string):
     return set(tool.strip() for tool in mcp_string.split('|') if tool.strip())
 
 
+def extract_mcp_from_text(text: str):
+    """Fallback: extract MCP tool names from free-form text using regex patterns.
+
+    Uses the same pattern dictionary as data_utils.extract_mcp_labels so tool
+    names match MCP_LABELS exactly.
+    """
+    if not text:
+        return set()
+    import re as _re
+    patterns = {
+        "Nmap": _re.compile(r"\bnmap\b", _re.I),
+        "Metasploit": _re.compile(r"\bmetasploit|msfconsole|msfvenom\b", _re.I),
+        "Netcat": _re.compile(r"\bnetcat|\bnc\b", _re.I),
+        "Dirbuster": _re.compile(r"\bdirbuster|gobuster|dirb|netexec\b", _re.I),
+        "SQLmap": _re.compile(r"\bsqlmap\b", _re.I),
+        "Smb client": _re.compile(r"smb\s*client|smbclient|\bsmb\b", _re.I),
+        "hydra": _re.compile(r"\bhydra\b", _re.I),
+        "John-the-ripper": _re.compile(r"john[\s\-]?the[\s\-]?ripper|\bjohn\b", _re.I),
+        "Google search": _re.compile(r"google\s*search|\bgoogle\b", _re.I),
+        "Interactive CLI": _re.compile(r"interactive\s*cli|\bssh\b|\bbash\b|\bshell\b", _re.I),
+        "Web page interaction": _re.compile(r"web\s*page\s*interaction|\bbrowser\b|\bcurl\b", _re.I),
+    }
+    return {label for label, pat in patterns.items() if pat.search(text)}
+
+
 def evaluate_model(csv_data, model_name):
     """Evaluate a model's predictions from CSV data."""
     if csv_data is None:
         return None
-    
-    metrics = {}
-    
+
+    n_labels = len(STEP_LABELS)
+    UNKNOWN_LABEL = n_labels  # used for UNPARSEABLE / wrong-format preds
+
     # Step classification metrics
     step_preds = []
     step_gold = []
-    
+
     # MCP classification metrics
     mcp_preds = []
     mcp_gold = []
-    
+
     print(f"[Debug] {model_name} CSV fields: {list(csv_data[0].keys()) if csv_data else 'No data'}")
-    
+
     unparseable_count = 0
     total_count = 0
-    
+
     for row in csv_data:
-        # Step classification - try multiple field name variations
-        pred_step = row.get('step_prediction', row.get('predicted_new_step', row.get('pred_step', '')))
-        gold_step = row.get('gold_new_step', row.get('gold_step', row.get('gold_step', '')))
-        
+        pred_step = row.get('step_prediction', row.get('predicted_new_step', row.get('pred_step', ''))) or ''
+        gold_step = row.get('gold_new_step', row.get('gold_step', '')) or ''
+
         total_count += 1
-        
-        if pred_step and gold_step:
+
+        # -------- step label mapping --------
+        if pred_step == "UNPARSEABLE" or pred_step not in STEP_LABELS:
             if pred_step == "UNPARSEABLE":
                 unparseable_count += 1
-                # Count as incorrect prediction
-                if gold_step in STEP_LABELS:
-                    step_preds.append(-1)  # -1 indicates incorrect/unparseable
-                    step_gold.append(STEP_LABELS.index(gold_step))
-            elif pred_step in STEP_LABELS and gold_step in STEP_LABELS:
-                step_preds.append(STEP_LABELS.index(pred_step))
-                step_gold.append(STEP_LABELS.index(gold_step))
-            else:
-                # Debug: show first few mismatched predictions
-                if len(step_preds) < 3:
-                    print(f"[Debug] {model_name} - pred_step: '{pred_step}' in STEP_LABELS: {pred_step in STEP_LABELS}")
-                    print(f"[Debug] {model_name} - gold_step: '{gold_step}' in STEP_LABELS: {gold_step in STEP_LABELS}")
-        
-        # MCP classification - try multiple field name variations
-        pred_mcp_str = row.get('mcp_tool_prediction', row.get('predicted_mcp_tasks', row.get('pred_mcp_tasks', '')))
-        gold_mcp_str = row.get('mcp_tool_gold', row.get('gold_mcp_tasks', row.get('gold_mcp', '')))
-        
+            # Map anything that is not a valid STEP_LABEL to the sentinel class.
+            # sklearn's accuracy + f1 can handle this consistently without crash.
+            p_idx = UNKNOWN_LABEL
+        else:
+            p_idx = STEP_LABELS.index(pred_step)
+
+        if gold_step in STEP_LABELS:
+            g_idx = STEP_LABELS.index(gold_step)
+        else:
+            # If gold format is wrong, skip to avoid corrupting metrics
+            continue
+
+        step_preds.append(p_idx)
+        step_gold.append(g_idx)
+
+        # -------- MCP --------
+        pred_mcp_str = row.get('mcp_tool_prediction', row.get('predicted_mcp_tasks', row.get('pred_mcp_tasks', ''))) or ''
+        gold_mcp_str = row.get('mcp_tool_gold', row.get('gold_mcp_tasks', row.get('gold_mcp', ''))) or ''
+
         pred_mcp = parse_mcp_tools(pred_mcp_str)
         gold_mcp = parse_mcp_tools(gold_mcp_str)
-        
-        # Convert to multi-hot vectors
+
+        # Secondary pass: if MCP was empty but raw_response / other fields mention tools, try to catch them.
+        if not pred_mcp:
+            rr = (row.get('raw_response') or row.get('step_explanation_predicted') or '')
+            if rr:
+                rr_set = extract_mcp_from_text(rr)
+                if rr_set:
+                    pred_mcp = rr_set
+
         pred_vec = [1 if tool in pred_mcp else 0 for tool in MCP_LABELS]
         gold_vec = [1 if tool in gold_mcp else 0 for tool in MCP_LABELS]
-        
+
         mcp_preds.append(pred_vec)
         mcp_gold.append(gold_vec)
-    
-    print(f"[Debug] {model_name} - Unparseable predictions: {unparseable_count}/{total_count} ({100*unparseable_count/total_count if total_count > 0 else 0:.1f}%)")
-    
-    # Calculate metrics
+
+    print(f"[Debug] {model_name} - Unparseable predictions: {unparseable_count}/{total_count} "
+          f"({100 * unparseable_count / total_count if total_count > 0 else 0:.1f}%)")
+
+    labels_all = list(range(n_labels + 1))  # include UNKNOWN sentinel
+    step_metrics = {}
     if step_preds and step_gold:
-        step_metrics = calculate_metrics(step_preds, step_gold, 'step')
-        metrics.update({f'step_{k}': v for k, v in step_metrics.items()})
-    
+        step_metrics['accuracy'] = accuracy_score(step_gold, step_preds)
+        step_metrics['macro_f1'] = f1_score(step_gold, step_preds, average='macro',
+                                            labels=labels_all, zero_division=0)
+        step_metrics['weighted_f1'] = f1_score(step_gold, step_preds, average='weighted',
+                                               labels=labels_all, zero_division=0)
+
+    mcp_metrics = {}
     if mcp_preds and mcp_gold:
-        mcp_metrics = calculate_metrics(np.array(mcp_preds), np.array(mcp_gold), 'mcp')
-        metrics.update({f'mcp_{k}': v for k, v in mcp_metrics.items()})
-    
+        p = np.array(mcp_preds)
+        g = np.array(mcp_gold)
+        mcp_metrics['micro_f1'] = f1_score(g, p, average='micro', zero_division=0)
+        mcp_metrics['macro_f1'] = f1_score(g, p, average='macro', zero_division=0)
+        mcp_metrics['subset_accuracy'] = accuracy_score(g, p)
+
+    metrics = {}
+    metrics.update({f'step_{k}': v for k, v in step_metrics.items()})
+    metrics.update({f'mcp_{k}': v for k, v in mcp_metrics.items()})
     return metrics
 
 
@@ -358,9 +405,9 @@ def main():
         'baseline_zeroshot': 'baseline_zeroshot.csv',
         'baseline_3shot': 'baseline_3shot.csv', 
         'baseline_5shot': 'baseline_5shot.csv',
-        'stage1': 'stage1.csv',
-        'stage2': 'stage2.csv',
-        'stage3': 'stage3.csv',
+        'stage1': 'stage1_gnn_predictions.csv',
+        'stage2': 'stage2_qwen_lora_predictions.csv',
+        'stage3': 'stage3_qwen_grpo_predictions.csv',
     }
     
     # Load all model data
