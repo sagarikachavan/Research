@@ -405,9 +405,9 @@ def main():
         'baseline_zeroshot': 'baseline_zeroshot.csv',
         'baseline_3shot': 'baseline_3shot.csv', 
         'baseline_5shot': 'baseline_5shot.csv',
-        'stage1': 'stage1_gnn_predictions.csv',
-        'stage2': 'stage2_qwen_lora_predictions.csv',
-        'stage3': 'stage3_qwen_grpo_predictions.csv',
+        'stage1': 'stage1.csv',
+        'stage2': 'stage2.csv',
+        'stage3': 'stage3.csv',
     }
     
     # Load all model data

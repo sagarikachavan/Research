@@ -8,18 +8,25 @@ OVERALL PERFORMANCE METRICS
 baseline_zeroshot      0.338741      0.404432             0.104478       0.526119       0.356859          0.561185
    baseline_3shot      0.014371      0.072670             0.007463       0.220149       0.032805          0.079442
    baseline_5shot      0.014371      0.072670             0.007463       0.220149       0.032805          0.079442
-           stage1      0.689176      0.754558             0.544776       1.000000       0.818182          1.000000
+           stage2      0.651378      0.721781             0.567164       0.992537       0.807306          0.994519
+           stage3      0.652040      0.723539             0.563433       0.988806       0.799917          0.991209
 
 KEY IMPROVEMENTS (Stage 2 vs Zero-shot Baseline)
 --------------------------------------------------------------------------------
+mcp_macro_f1             : 0.6514 vs 0.3387 (+0.3126, +92.3%)
+mcp_micro_f1             : 0.7218 vs 0.4044 (+0.3173, +78.5%)
+mcp_subset_accuracy      : 0.5672 vs 0.1045 (+0.4627, +442.9%)
+step_accuracy            : 0.9925 vs 0.5261 (+0.4664, +88.7%)
+step_macro_f1            : 0.8073 vs 0.3569 (+0.4504, +126.2%)
+step_weighted_f1         : 0.9945 vs 0.5612 (+0.4333, +77.2%)
 
 BEST MODEL PER METRIC
 --------------------------------------------------------------------------------
-mcp_macro_f1             : stage1 (0.6892)
-mcp_micro_f1             : stage1 (0.7546)
-mcp_subset_accuracy      : stage1 (0.5448)
-step_accuracy            : stage1 (1.0000)
-step_macro_f1            : stage1 (0.8182)
-step_weighted_f1         : stage1 (1.0000)
+mcp_macro_f1             : stage3 (0.6520)
+mcp_micro_f1             : stage3 (0.7235)
+mcp_subset_accuracy      : stage2 (0.5672)
+step_accuracy            : stage2 (0.9925)
+step_macro_f1            : stage2 (0.8073)
+step_weighted_f1         : stage2 (0.9945)
 
 ================================================================================

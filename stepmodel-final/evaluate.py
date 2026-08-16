@@ -252,7 +252,8 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
 
 def eval_llm(adapter_dir: str, threshold_override=None,
              max_new_tokens: int = 200,
-             save_explanations: str | None = None) -> None:
+             save_explanations: str | None = None,
+             auto_save_csv: bool = False) -> None:
     try:
         from tqdm import tqdm
     except ImportError:
@@ -494,7 +495,7 @@ def eval_llm(adapter_dir: str, threshold_override=None,
         gold_explanations.append(gold_expl)
 
         # Accumulate CSV row
-        if save_explanations:
+        if save_explanations or auto_save_csv:
             csv_rows.append({
                 "machine":          ex["machine"],
                 "gold_step":        STEP_LABELS[ex["step_idx"]],
@@ -540,7 +541,7 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     print_llm_judge_results(llm_results)
 
     # ── Optional CSV dump ─────────────────────────────────────────────────
-    if (save_explanations or args.auto_save_csv) and csv_rows:
+    if (save_explanations or auto_save_csv) and csv_rows:
         import csv
         
         # Create output directory
@@ -554,7 +555,14 @@ def eval_llm(adapter_dir: str, threshold_override=None,
             # Auto-generate path based on adapter directory name
             if adapter_dir:
                 stage_name = os.path.basename(adapter_dir)
-                csv_path = os.path.join(output_dir, f"{stage_name}_predictions.csv")
+                # Map adapter directory names to expected CSV filenames
+                if stage_name == "stage2_qwen_lora":
+                    csv_filename = "stage2.csv"
+                elif stage_name == "stage3_qwen_grpo":
+                    csv_filename = "stage3.csv"
+                else:
+                    csv_filename = f"{stage_name}_predictions.csv"
+                csv_path = os.path.join(output_dir, csv_filename)
             else:
                 csv_path = os.path.join(output_dir, "llm_predictions.csv")
         
@@ -748,6 +756,7 @@ if __name__ == "__main__":
                     threshold_override=args.threshold,
                     max_new_tokens=args.max_new_tokens,
                     save_explanations=args.save_explanations,
+                    auto_save_csv=args.auto_save_csv,
                 )
 
     elif args.model == "gnn":
@@ -775,4 +784,5 @@ if __name__ == "__main__":
             threshold_override=args.threshold,
             max_new_tokens=args.max_new_tokens,
             save_explanations=args.save_explanations,
+            auto_save_csv=args.auto_save_csv,
         )
