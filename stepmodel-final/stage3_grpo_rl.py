@@ -26,25 +26,25 @@ The custom loop is not complicated:
 
 Reward composition:
   r = 0.10 × format_ok          — valid JSON with all 3 required keys
-    + 0.30 × step_exact_match   — exact match against gold step label
+    + 0.30 × step_similarity    — embedding similarity between predicted and gold step
     + 0.30 × mcp_set_F1         — set F1 between predicted and gold tools
-    + 0.30 × explanation_score  — deterministic BERTScore-style cosine sim
-                                   between generated and gold explanation
-                                   using the frozen bge-small-en-v1.5 encoder
-                                   already loaded for graph node embeddings.
-                                   No LLM judge — fully deterministic.
+    + 0.30 × explanation_score  — LLM judge correctness score (0.0-1.0)
+                                   using GPT-4o to evaluate if explanation
+                                   conveys the same meaning as gold explanation.
+                                   Uses caching to avoid repeated API calls.
 
-WHY BERTSCORE FOR EXPLANATION (not BLEU/ROUGE):
-  - BLEU/ROUGE require exact n-gram overlap → punishes valid paraphrases
-  - Cosine similarity over bge-small embeddings captures semantic equivalence
-  - It's the same encoder already in memory → zero extra cost
-  - It's deterministic → no reward variance from a stochastic judge
-  - Threshold: scores below 0.3 are clamped to 0 to avoid rewarding
-    off-topic text that happens to share a few semantic dimensions
+WHY LLM JUDGE FOR EXPLANATION:
+  - Teacher-style evaluation focusing on semantic correctness
+  - Captures whether the explanation conveys the same meaning, not just lexical overlap
+  - More robust to paraphrasing than BERTScore/BLEU/ROUGE
+  - Caching mechanism makes it feasible for training
 """
 import json
 import os
 import random
+import hashlib
+import csv
+from functools import lru_cache
 
 import numpy as np
 import torch
@@ -54,9 +54,11 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch_geometric.data import Batch as PyGBatch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import PeftModel
+import openai
 
 from config import (
     INPUT_TRAIN_JSON,
+    INPUT_TEST_JSON,
     QWEN_MODEL_NAME,
     STAGE1_CKPT,
     STAGE2_ADAPTER_DIR,
@@ -65,12 +67,14 @@ from config import (
     STAGE3_LR,
     STAGE3_STEPS,
     STAGE3_KL_COEF,
-    GNN_OUT_DIM,
-    GRAPH_PREFIX_TOKENS,
-    MCP_LABELS,
     RANDOM_SEED,
+    STEP_LABELS,
+    MCP_LABELS,
+    ROOT,
+    GRAPH_PREFIX_TOKENS,
+    GNN_OUT_DIM,
 )
-from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS
+from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS, StepLabelNormalizer, extract_mcp_labels
 from graph_encoder import Stage1Classifier
 from stage2_sft_qwen import GraphPrefixAdapter, build_prompt, SYSTEM_PROMPT
 
@@ -78,29 +82,99 @@ random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
 
 # ---------------------------------------------------------------------------
-# Explanation quality: deterministic BERTScore via frozen bge-small encoder
+# Explanation quality: LLM judge with caching
 # ---------------------------------------------------------------------------
 
-def _explanation_bertscore(pred_expl: str, gold_expl: str,
-                            min_score: float = 0.30) -> float:
+# LLM judge system prompt for reward computation
+LLM_JUDGE_SYSTEM_PROMPT = """You are an expert penetration-testing instructor evaluating student answers in a pentesting planning system.
+
+You will be given:
+1. A predicted step explanation (what the model/student generated)
+2. A ground truth step explanation (what a human expert wrote)
+
+Your task is to evaluate whether the predicted explanation conveys the SAME MEANING as the ground truth explanation, like a teacher grading a student's answer.
+
+Evaluation Criteria:
+- Does the predicted explanation convey the same core reasoning and justification as the ground truth?
+- Are the technical concepts and logic equivalent, even if worded differently?
+- Would this explanation be acceptable as a correct answer in a classroom setting?
+
+Scoring:
+- Return a correctness score between 0.0 and 1.0
+- 1.0 = Perfect match - conveys exactly the same meaning and reasoning
+- 0.8-0.9 = Very good - minor differences in wording but same core meaning
+- 0.6-0.7 = Good - mostly correct with some minor omissions or slight inaccuracies
+- 0.4-0.5 = Partial - captures some key points but misses important aspects
+- 0.2-0.3 = Poor - misses the main point or has significant errors
+- 0.0-0.1 = Very poor - completely wrong or irrelevant
+
+Respond in JSON format:
+{
+    "correctness_score": <float 0.0-1.0>,
+    "justification": "<brief explanation of why this score was given>",
+    "is_correct": <boolean - true if score >= 0.6, false otherwise>
+}"""
+
+
+def _get_cache_key(pred_expl: str, gold_expl: str) -> str:
+    """Generate a cache key from the explanation pair."""
+    combined = f"{pred_expl}|||{gold_expl}"
+    return hashlib.md5(combined.encode()).hexdigest()
+
+
+@lru_cache(maxsize=1000)
+def _explanation_llm_judge_cached(pred_expl: str, gold_expl: str) -> float:
     """
-    Cosine similarity between bge-small-en-v1.5 embeddings of the generated
-    and gold explanation.
-
-    - Uses the same frozen sentence encoder already loaded for graph nodes
-      (via data_utils._embed_texts) — zero extra cost.
-    - Fully deterministic — no stochastic judge, no variance.
-    - Scores below min_score clamped to 0.0 to avoid rewarding off-topic text.
-
-    Returns float in [0.0, 1.0].
+    LLM judge evaluation with caching to avoid repeated API calls.
+    
+    Returns correctness score (0.0-1.0) using cached results when available.
     """
     if not pred_expl.strip() or not gold_expl.strip():
         return 0.0
-    # _embed_texts returns L2-normalised vectors, so dot = cosine similarity
-    embs = _embed_texts([pred_expl[:512], gold_expl[:512]])  # (2, 384)
-    cos  = float(np.dot(embs[0], embs[1]))                   # scalar in [-1,1]
-    cos  = max(0.0, cos)                                      # clamp negatives
-    return 0.0 if cos < min_score else cos
+    
+    # Check if OpenAI API key is available
+    api_key = os.environ.get("OPENAI_API_KEY")
+    if not api_key:
+        print("[Warning] OPENAI_API_KEY not set, using fallback score of 0.5")
+        return 0.5
+    
+    try:
+        user_prompt = f"""Please evaluate whether the predicted explanation conveys the same meaning as the ground truth explanation:
+
+PREDICTED EXPLANATION: {pred_expl}
+
+GROUND TRUTH EXPLANATION: {gold_expl}
+
+Evaluate whether the predicted explanation is correct and conveys the same meaning as the ground truth.
+Provide your response in JSON format as requested."""
+        
+        response = openai.chat.completions.create(
+            model="gpt-4o",
+            messages=[
+                {"role": "system", "content": LLM_JUDGE_SYSTEM_PROMPT},
+                {"role": "user", "content": user_prompt}
+            ],
+            temperature=0.3,
+            max_tokens=500,
+        )
+        
+        raw_response = response.choices[0].message.content
+        
+        # Parse JSON response
+        if "```json" in raw_response:
+            json_str = raw_response.split("```json")[1].split("```")[0].strip()
+        elif "```" in raw_response:
+            json_str = raw_response.split("```")[1].split("```")[0].strip()
+        else:
+            json_str = raw_response.strip()
+        
+        result = json.loads(json_str)
+        score = result.get("correctness_score", 0.0)
+        return float(score)
+        
+    except Exception as e:
+        print(f"[LLM Judge Error] {e}, using fallback score of 0.5")
+        return 0.5
 
 
 # ---------------------------------------------------------------------------
@@ -118,12 +192,12 @@ def _parse_completion(text: str) -> dict | None:
 
 
 def compute_reward(completion: str, gold: dict,
-                   w_fmt:  float = 0.20,  # Increased weight for format
-                   w_step: float = 0.30,
-                   w_mcp:  float = 0.30,
-                   w_exp:  float = 0.20) -> float:  # Reduced weight for explanation
+                   w_fmt:  float = 0.10,  # Format weight
+                   w_step: float = 0.30,  # Step similarity weight
+                   w_mcp:  float = 0.30,  # MCP F1 weight
+                   w_exp:  float = 0.30) -> float:  # LLM judge weight
     """
-    Composite reward — all components are deterministic.
+    Composite reward with LLM judge for explanation evaluation.
 
     gold keys:
       step_label          str          gold next-step label
@@ -134,8 +208,8 @@ def compute_reward(completion: str, gold: dict,
       fmt_r   — 1.0 if output is valid JSON with all 3 required keys
       step_r  — embedding similarity between predicted and gold step
       mcp_r   — F1 between predicted and gold tool sets
-      exp_r   — BERTScore cosine similarity between explanations
-                (0.0 if below 0.30 threshold, to avoid rewarding off-topic text)
+      exp_r   — LLM judge correctness score between explanations
+                (0.0-1.0, uses caching to avoid repeated API calls)
     """
     obj = _parse_completion(completion)
     if obj is None or not all(k in obj for k in ("New step", "Step explanation", "MCP_tasks")):
@@ -172,10 +246,10 @@ def compute_reward(completion: str, gold: dict,
         rec   = inter / len(gold_mcp) if gold_mcp else 0.0
         mcp_r = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
 
-    # ── Explanation BERTScore ─────────────────────────────────────────────────
+    # ── Explanation LLM Judge ─────────────────────────────────────────────────
     pred_expl = str(obj.get("Step explanation", "")).strip()
     gold_expl = gold.get("gold_step_explanation", "")
-    exp_r = _explanation_bertscore(pred_expl, gold_expl)
+    exp_r = _explanation_llm_judge_cached(pred_expl, gold_expl)
 
     return w_fmt * fmt_r + w_step * step_r + w_mcp * mcp_r + w_exp * exp_r
 
@@ -491,7 +565,7 @@ def main():
                     comp_scores["mcp"].append(2*prec*rec/(prec+rec) if (prec+rec) > 0 else 0.0)
                 pred_expl = str(obj.get("Step explanation","")).strip()
                 comp_scores["exp"].append(
-                    _explanation_bertscore(pred_expl, gold["gold_step_explanation"])
+                    _explanation_llm_judge_cached(pred_expl, gold["gold_step_explanation"])
                 )
 
             avg_step = float(np.mean(comp_scores["step"])) if comp_scores["step"] else 0.0
@@ -521,6 +595,119 @@ def main():
     torch.save(adapter.state_dict(), os.path.join(STAGE3_ADAPTER_DIR, "graph_adapter.pt"))
     tokenizer.save_pretrained(STAGE3_ADAPTER_DIR)
     print(f"\nStage 3 GRPO complete. Policy saved to {STAGE3_ADAPTER_DIR}")
+    
+    # ── Evaluate on test set and save CSV ─────────────────────────────────────
+    print("\n[Stage 3] Evaluating on test set...")
+    test_examples = load_from_input_json(INPUT_TEST_JSON, "test")
+    
+    normalizer = StepLabelNormalizer()
+    csv_rows = []
+    
+    policy.eval()
+    adapter.eval()
+    
+    with torch.no_grad():
+        for ex in test_examples:
+            gold = {
+                "step_label": ex["step_label"],
+                "mcp_labels": ex["mcp_labels"],
+                "gold_step_explanation": ex["gold_step_explanation"],
+            }
+            
+            # Build graph prefix
+            prefix_embeds = build_prefix_embeds(
+                ex["graph"], graph_encoder, adapter, embed_layer, device, dtype
+            )
+            
+            # Build prompt embeddings
+            prompt_text = build_prompt(ex)
+            prompt_embeds, L_prefix_plus_prompt = build_prompt_embeds(
+                prompt_text, tokenizer, embed_layer, prefix_embeds, device, dtype
+            )
+            
+            attn_prompt = torch.ones(1, L_prefix_plus_prompt, dtype=torch.long, device=device)
+            
+            # Generate single completion
+            gen_out = policy.generate(
+                inputs_embeds=prompt_embeds,
+                attention_mask=attn_prompt,
+                max_new_tokens=500,
+                do_sample=False,
+                pad_token_id=tokenizer.pad_token_id,
+            )
+            
+            # Decode generated text
+            completion_ids = gen_out
+            completion_text = tokenizer.decode(completion_ids[0], skip_special_tokens=True)
+            
+            # Parse generated text
+            obj = {}
+            try:
+                if "{" in completion_text and "}" in completion_text:
+                    start = completion_text.index("{")
+                    end = completion_text.rindex("}") + 1
+                    obj = json.loads(completion_text[start:end])
+            except:
+                pass
+            
+            # Extract step prediction
+            pred_step_raw = obj.get("New step", "")
+            pred_step_norm = normalizer.normalize(pred_step_raw) if pred_step_raw else None
+            
+            # Try multiple fallback strategies for step prediction
+            pred_step_label = "UNPARSEABLE"
+            if pred_step_norm and pred_step_norm in STEP_LABELS:
+                pred_step_label = pred_step_norm
+            elif pred_step_raw:
+                # Try direct match
+                if pred_step_raw in STEP_LABELS:
+                    pred_step_label = pred_step_raw
+                else:
+                    # Try fuzzy match - find closest label
+                    import difflib
+                    closest_match = difflib.get_close_matches(pred_step_raw, STEP_LABELS, n=1, cutoff=0.6)
+                    if closest_match:
+                        pred_step_label = closest_match[0]
+            
+            gold_step_label = STEP_LABELS[ex["step_idx"]]
+            
+            # Extract MCP predictions
+            pred_mcp_keys = list(obj.get("MCP_tasks", {}).keys()) if isinstance(obj.get("MCP_tasks"), dict) else []
+            pred_mcp_labels = extract_mcp_labels(str(pred_mcp_keys))
+            pred_mcp_tools = "|".join(pred_mcp_labels)
+            gold_mcp_tools = "|".join(ex["mcp_labels"])
+            
+            # Extract explanations
+            pred_expl = str(obj.get("Step explanation", "")).strip()
+            gold_expl = ex.get("gold_step_explanation", "")
+            
+            csv_rows.append({
+                "machine": ex.get("machine", ""),
+                "new_strategy": ex["context"].get("New strategy", ""),
+                "strategy_explanation": ex["context"].get("Strategy explanation", ""),
+                "step_prediction": pred_step_label,
+                "gold_new_step": gold_step_label,
+                "mcp_tool_prediction": pred_mcp_tools,
+                "mcp_tool_gold": gold_mcp_tools,
+                "step_explanation_predicted": pred_expl,
+                "step_explanation_gold": gold_expl,
+            })
+    
+    # Save CSV
+    output_dir = os.path.join(ROOT, "output")
+    os.makedirs(output_dir, exist_ok=True)
+    csv_path = os.path.join(output_dir, "stage3.csv")
+    
+    if csv_rows:
+        fieldnames = list(csv_rows[0].keys())
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(csv_rows)
+        print(f"[Stage 3] Evaluation CSV saved to: {csv_path}")
+        print(f"[Stage 3] Total test samples evaluated: {len(csv_rows)}")
+    else:
+        print("[Stage 3] Warning: No CSV rows generated")
 
 
 if __name__ == "__main__":

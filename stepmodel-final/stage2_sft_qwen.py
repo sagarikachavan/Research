@@ -22,23 +22,25 @@ Run:
 import json
 import os
 import random
+import csv
+import re
 
 import numpy as np
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset, DataLoader, Subset
 from transformers import AutoTokenizer, AutoModelForCausalLM, get_cosine_schedule_with_warmup
-from peft import LoraConfig, get_peft_model
+from peft import LoraConfig, get_peft_model, PeftModel
 
 from config import (
-    INPUT_TRAIN_JSON, QWEN_MODEL_NAME, GRAPH_PREFIX_TOKENS, GNN_OUT_DIM,
+    INPUT_TRAIN_JSON, INPUT_TEST_JSON, QWEN_MODEL_NAME, GRAPH_PREFIX_TOKENS, GNN_OUT_DIM,
     LORA_R, LORA_ALPHA, LORA_DROPOUT,
     STAGE2_LR, STAGE2_EPOCHS, STAGE2_BATCH_SIZE, STAGE2_GRAD_ACCUM,
     STAGE2_VAL_SPLIT, STAGE2_EARLY_STOP_PATIENCE,
     STAGE1_CKPT, STAGE2_ADAPTER_DIR,
-    RANDOM_SEED,
+    RANDOM_SEED, STEP_LABELS, MCP_LABELS, ROOT,
 )
-from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS
+from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS, StepLabelNormalizer, extract_mcp_labels
 from graph_encoder import Stage1Classifier
 
 random.seed(RANDOM_SEED)
@@ -436,6 +438,132 @@ def main():
         tokenizer.save_pretrained(STAGE2_ADAPTER_DIR)
 
     print(f"[Stage 2] Training complete. Adapter at {STAGE2_ADAPTER_DIR}")
+    
+    # ── Evaluate on test set and save CSV ─────────────────────────────────────
+    print("\n[Stage 2] Evaluating on test set...")
+    test_examples = load_from_input_json(INPUT_TEST_JSON, "test")
+    test_ds = SFTDataset(test_examples, tokenizer)
+    test_loader = DataLoader(
+        test_ds,
+        batch_size=STAGE2_BATCH_SIZE,
+        shuffle=False,
+        collate_fn=lambda b: collate_fn(b, tokenizer.pad_token_id),
+        drop_last=False,
+    )
+    
+    # Load best model
+    model = PeftModel.from_pretrained(base_model, STAGE2_ADAPTER_DIR)
+    adapter.load_state_dict(torch.load(os.path.join(STAGE2_ADAPTER_DIR, "graph_adapter.pt"), map_location=device))
+    model.eval()
+    adapter.eval()
+    
+    normalizer = StepLabelNormalizer()
+    csv_rows = []
+    
+    with torch.no_grad():
+        for input_ids, attn, labels, graphs, field_embs in test_loader:
+            input_ids = input_ids.to(device)
+            attn = attn.to(device)
+            graphs = graphs.to(device)
+            
+            # Get graph embedding
+            graph_emb = graph_encoder(graphs.x, graphs.edge_index, graphs.batch)
+            prefix_embeds = adapter(graph_emb.to(dtype))
+            token_embeds = embed_layer(input_ids).to(dtype)
+            inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
+            
+            n_prefix = prefix_embeds.shape[1]
+            prefix_attn = torch.ones(attn.shape[0], n_prefix, device=device, dtype=attn.dtype)
+            attn_full = torch.cat([prefix_attn, attn], dim=1)
+            
+            # Generate text
+            outputs = model.generate(
+                inputs_embeds=inputs_embeds,
+                attention_mask=attn_full,
+                max_new_tokens=500,
+                do_sample=False,
+                pad_token_id=tokenizer.pad_token_id,
+            )
+            
+            # Decode generated text (skip prefix tokens)
+            generated_ids = outputs[:, n_prefix:]
+            generated_texts = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+            
+            # Parse and collect data
+            for i, gen_text in enumerate(generated_texts):
+                ex_idx = len(csv_rows)
+                if ex_idx < len(test_examples):
+                    ex = test_examples[ex_idx]
+                    
+                    # Parse generated text
+                    obj = {}
+                    try:
+                        # Try to parse JSON
+                        if "{" in gen_text and "}" in gen_text:
+                            start = gen_text.index("{")
+                            end = gen_text.rindex("}") + 1
+                            obj = json.loads(gen_text[start:end])
+                    except:
+                        pass
+                    
+                    # Extract step prediction
+                    pred_step_raw = obj.get("New step", "")
+                    pred_step_norm = normalizer.normalize(pred_step_raw) if pred_step_raw else None
+                    
+                    # Try multiple fallback strategies for step prediction
+                    pred_step_label = "UNPARSEABLE"
+                    if pred_step_norm and pred_step_norm in STEP_LABELS:
+                        pred_step_label = pred_step_norm
+                    elif pred_step_raw:
+                        # Try direct match
+                        if pred_step_raw in STEP_LABELS:
+                            pred_step_label = pred_step_raw
+                        else:
+                            # Try fuzzy match - find closest label
+                            import difflib
+                            closest_match = difflib.get_close_matches(pred_step_raw, STEP_LABELS, n=1, cutoff=0.6)
+                            if closest_match:
+                                pred_step_label = closest_match[0]
+                    
+                    gold_step_label = STEP_LABELS[ex["step_idx"]]
+                    
+                    # Extract MCP predictions
+                    pred_mcp_keys = list(obj.get("MCP_tasks", {}).keys()) if isinstance(obj.get("MCP_tasks"), dict) else []
+                    pred_mcp_labels = extract_mcp_labels(str(pred_mcp_keys))
+                    pred_mcp_tools = "|".join(pred_mcp_labels)
+                    gold_mcp_tools = "|".join(ex["mcp_labels"])
+                    
+                    # Extract explanations
+                    pred_expl = str(obj.get("Step explanation", "")).strip()
+                    gold_expl = ex.get("gold_step_explanation", "")
+                    
+                    csv_rows.append({
+                        "machine": ex.get("machine", ""),
+                        "new_strategy": ex["context"].get("New strategy", ""),
+                        "strategy_explanation": ex["context"].get("Strategy explanation", ""),
+                        "step_prediction": pred_step_label,
+                        "gold_new_step": gold_step_label,
+                        "mcp_tool_prediction": pred_mcp_tools,
+                        "mcp_tool_gold": gold_mcp_tools,
+                        "step_explanation_predicted": pred_expl,
+                        "step_explanation_gold": gold_expl,
+                    })
+    
+    # Save CSV
+    output_dir = os.path.join(ROOT, "output")
+    os.makedirs(output_dir, exist_ok=True)
+    csv_path = os.path.join(output_dir, "stage2.csv")
+    
+    if csv_rows:
+        fieldnames = list(csv_rows[0].keys())
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(csv_rows)
+        print(f"[Stage 2] Evaluation CSV saved to: {csv_path}")
+        print(f"[Stage 2] Total test samples evaluated: {len(csv_rows)}")
+    else:
+        print("[Stage 2] Warning: No CSV rows generated")
 
 
 if __name__ == "__main__":

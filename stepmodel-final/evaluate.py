@@ -12,15 +12,9 @@ Metrics reported for every model:
     per-label precision/recall/F1
 
   STEP EXPLANATION QUALITY  (LLM stages only — GNN doesn't generate text)
-    BLEU-1/2/4          — n-gram overlap with gold explanation
-    ROUGE-L             — longest common subsequence recall
-    BERTScore F1        — semantic similarity via frozen sentence encoder
-                          (BAAI/bge-small-en-v1.5, reused from training)
-    Step Alignment      — do explanation keywords match the predicted step?
-    Context Grounding   — does the explanation reference observed findings?
-    Reasoning Density   — causal/justification language fraction
-    Avg / P25 / P75 token length — completeness sanity checks
-    Empty rate          — fraction of blank/missing explanations
+    LLM Judge Evaluation  — teacher-style evaluation comparing predicted vs gold explanation
+                            Returns correctness score (0.0-1.0) and binary correctness (>= 0.6)
+    Overall Accuracy       — percentage of explanations deemed correct by LLM judge
 
 Usage:
     python evaluate.py                         # evaluate all available models
@@ -30,6 +24,8 @@ Usage:
         --adapter-dir checkpoints/stage3_qwen_grpo
     python evaluate.py --threshold 0.5         # override MCP threshold
     python evaluate.py --save-explanations out.csv   # dump predictions to CSV
+    python evaluate.py --llm-judge-model gpt-4o  # specify LLM judge model (default: gpt-4o)
+    python evaluate.py --llm-judge-samples 100   # limit number of samples for LLM judge evaluation
 """
 from __future__ import annotations
 
@@ -52,7 +48,7 @@ from config import (
     QWEN_MODEL_NAME, ROOT,
 )
 from data_utils import (
-    load_from_input_json, _embed_texts, CONTEXT_COLUMNS,
+    load_from_input_json, CONTEXT_COLUMNS, _embed_texts,
     mcp_multihot, StepLabelNormalizer, extract_mcp_labels,
 )
 from graph_encoder import Stage1Classifier
@@ -100,237 +96,52 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
 
 
 # ---------------------------------------------------------------------------
-# Explanation quality metrics
+# Explanation quality metrics - LLM Judge only
 # ---------------------------------------------------------------------------
 
-def _tokenize(text: str) -> list[str]:
-    return re.sub(r"[^a-z0-9\s]", "", text.lower()).split()
-
-
-def bleu_n(hypothesis: list[str], reference: list[str], n: int) -> float:
-    """Sentence-level BLEU-n (no brevity penalty, just n-gram precision)."""
-    if len(hypothesis) < n or len(reference) < n:
-        return 0.0
-    ref_ngrams: dict[tuple, int] = defaultdict(int)
-    for i in range(len(reference) - n + 1):
-        ref_ngrams[tuple(reference[i : i + n])] += 1
-    clipped = 0
-    for i in range(len(hypothesis) - n + 1):
-        ng = tuple(hypothesis[i : i + n])
-        if ref_ngrams.get(ng, 0) > 0:
-            clipped += 1
-            ref_ngrams[ng] -= 1
-    return clipped / max(len(hypothesis) - n + 1, 1)
-
-
-def rouge_l(hypothesis: list[str], reference: list[str]) -> float:
-    """ROUGE-L F1 via LCS dynamic programming."""
-    m, n = len(reference), len(hypothesis)
-    if m == 0 or n == 0:
-        return 0.0
-    dp = [[0] * (n + 1) for _ in range(m + 1)]
-    for i in range(1, m + 1):
-        for j in range(1, n + 1):
-            if reference[i - 1] == hypothesis[j - 1]:
-                dp[i][j] = dp[i - 1][j - 1] + 1
-            else:
-                dp[i][j] = max(dp[i - 1][j], dp[i][j - 1])
-    lcs = dp[m][n]
-    recall    = lcs / m
-    precision = lcs / max(n, 1)
-    if precision + recall == 0:
-        return 0.0
-    return 2 * precision * recall / (precision + recall)
-
-
-def bertscore_f1_batch(
-    hypotheses: list[str],
-    references: list[str],
-    batch_size: int = 64,
-) -> list[float]:
-    """
-    Sentence-level BERTScore using BAAI/bge-small-en-v1.5 (already loaded).
-    Returns cosine similarity between sentence embeddings — fast, no extra
-    model download needed.
-    """
-    scores = []
-    for i in range(0, len(hypotheses), batch_size):
-        hyp_batch = [h if h.strip() else "empty" for h in hypotheses[i : i + batch_size]]
-        ref_batch = [r if r.strip() else "empty" for r in references[i : i + batch_size]]
-        hyp_emb = _embed_texts(hyp_batch)
-        ref_emb = _embed_texts(ref_batch)
-        scores.extend((hyp_emb * ref_emb).sum(axis=1).tolist())
-    return scores
-
-
-# ── Step-explanation-specific metrics ────────────────────────────────────────
-
-# Keywords associated with each STEP_LABEL index — used for step alignment.
-_STEP_KEYWORDS: list[list[str]] = [
-    ["google", "search", "googled", "web", "query", "look", "find"],    # 0 google search
-    ["enumerate", "enumerat", "version", "hidden", "directory", "service", "scan", "probe"],  # 1 enumerate further
-    ["explore", "suspicious", "file", "command", "summary", "finding", "examine", "check"],  # 2 explore files
-    ["website", "web", "dirb", "gobuster", "directory", "link", "url", "http", "https"],        # 3 enumerate website
-    ["domain", "dns", "subdomain", "ldap", "host", "hostname"],                             # 4 enumerate domain
-    ["exploit", "exploitation", "payload", "metasploit", "shell", "attack", "vulnerability"],      # 5 exploit
-    ["analyz", "outcome", "attack", "path", "vector", "assess", "result", "review"],        # 6 analyze outcomes
-    ["human", "assist", "help", "stuck", "unclear", "manual", "guidance"],                    # 7 ask human
-    ["source", "code", "review", "vuln", "injection", "xss", "sqli", "script", "function"],  # 8 source code
-    ["report", "end", "task", "complet", "finish", "document", "summary"],                     # 9 end task
-]
-
-# Causal / reasoning connectors — presence signals genuine justification.
-_REASONING_TOKENS: set[str] = {
-    "because", "since", "therefore", "thus", "hence", "as", "so",
-    "indicates", "suggests", "shows", "reveals", "found", "identified",
-    "discovered", "confirm", "allows", "enables", "in order", "to", "which",
-    "given", "based", "due", "result", "led", "lead", "indicate",
-}
-
-
-def step_alignment_score(explanation: str, step_idx: int) -> float:
-    """
-    Fraction of step-specific keywords present in the explanation.
-    Measures whether the model actually explains the step it claimed to take.
-
-    Returns 0.0 – 1.0.  A score above ~0.3 is a reasonable signal.
-    """
-    if step_idx < 0 or step_idx >= len(_STEP_KEYWORDS):
-        return 0.0
-    tokens = set(_tokenize(explanation))
-    keywords = _STEP_KEYWORDS[step_idx]
-    if not keywords:
-        return 0.0
-    hits = sum(
-        1 for kw in keywords
-        if any(tok.startswith(kw) for tok in tokens)
-    )
-    return hits / len(keywords)
-
-
-def context_grounding_score(explanation: str, prev_step_result: str) -> float:
-    """
-    Measures how much the explanation references content from the previous
-    step result — i.e. factual grounding in what was actually observed.
-
-    Implementation: unigram recall of "content words" (length ≥ 4, not
-    stop-words) from prev_step_result that appear in the explanation.
-
-    Returns 0.0 – 1.0.
-    """
-    _STOP = {
-        "that", "this", "with", "from", "have", "been", "were", "they",
-        "their", "will", "would", "could", "should", "about", "into",
-        "which", "when", "also", "more", "some", "such", "than", "then",
-        "there", "these", "those", "your", "what", "where", "here",
-    }
-    if not prev_step_result or not prev_step_result.strip():
-        return 0.0
-    result_toks  = {t for t in _tokenize(prev_step_result) if len(t) >= 4 and t not in _STOP}
-    expl_toks    = set(_tokenize(explanation))
-    if not result_toks:
-        return 0.0
-    overlap = result_toks & expl_toks
-    return len(overlap) / len(result_toks)
-
-
-def reasoning_density_score(explanation: str) -> float:
-    """
-    Fraction of tokens in the explanation that are reasoning/causal connectors.
-    A completely generic filler sentence will score near 0; a well-justified
-    explanation that says "because X was found, Y is the next step" scores
-    higher.
-
-    Returns 0.0 – 1.0.
-    """
-    tokens = _tokenize(explanation)
-    if not tokens:
-        return 0.0
-    hits = sum(1 for t in tokens if t in _REASONING_TOKENS)
-    return hits / len(tokens)
-
-
-def compute_explanation_metrics(
+def compute_explanation_metrics_with_llm_judge(
     pred_explanations: list[str],
     gold_explanations: list[str],
     step_preds: list[int] | None = None,
-    prev_step_results: list[str] | None = None,
+    examples: list | None = None,
+    model: str = "gpt-4o",
+    max_samples: int = None,
 ) -> dict:
     """
-    Compute all explanation quality metrics.
-
-    Core metrics (require gold explanation):
-      BLEU-1/2/4, ROUGE-L, BERTScore-F1
-
-    Intrinsic metrics (computed on predictions only):
-      Step Alignment     — keyword overlap with predicted step type
-      Context Grounding  — reference to previous step result terms
-      Reasoning Density  — fraction of causal/justification tokens
-      Length (avg/p25/p75/empty_rate)
+    Compute explanation quality metrics using LLM judge only.
+    
+    Returns:
+        Dictionary with LLM judge results including correctness scores and accuracy
     """
-    bleu1, bleu2, bleu4, rougeL = [], [], [], []
-    valid_preds, valid_refs = [], []
-    lengths = []
-    alignment, grounding, reasoning = [], [], []
-    empty_count = 0
-
-    for idx, (pred, gold) in enumerate(zip(pred_explanations, gold_explanations)):
-        pred_str = pred.strip()
-
-        # ── Length & empty rate ───────────────────────────────────────────
-        tok_len = len(pred_str.split())
-        lengths.append(tok_len)
-        if tok_len == 0:
-            empty_count += 1
-
-        # ── Intrinsic metrics (no gold needed) ────────────────────────────
-        s_idx = step_preds[idx] if step_preds is not None else -1
-        alignment.append(step_alignment_score(pred_str, s_idx))
-
-        prev_res = prev_step_results[idx] if prev_step_results is not None else ""
-        grounding.append(context_grounding_score(pred_str, prev_res))
-
-        reasoning.append(reasoning_density_score(pred_str))
-
-        # ── Reference-based metrics (skip if gold empty) ──────────────────
-        if not gold.strip():
-            continue
-        hyp_tok = _tokenize(pred_str)
-        ref_tok = _tokenize(gold)
-        bleu1.append(bleu_n(hyp_tok, ref_tok, 1))
-        bleu2.append(bleu_n(hyp_tok, ref_tok, 2))
-        bleu4.append(bleu_n(hyp_tok, ref_tok, 4))
-        rougeL.append(rouge_l(hyp_tok, ref_tok))
-        valid_preds.append(pred_str)
-        valid_refs.append(gold)
-
-    bert_scores = bertscore_f1_batch(valid_preds, valid_refs) if valid_preds else []
-
-    def avg(lst: list) -> float:
-        return float(np.mean(lst)) if lst else 0.0
-
-    lengths_arr = np.array(lengths) if lengths else np.array([0])
-
-    return {
-        # Reference-based
-        "bleu1":            avg(bleu1),
-        "bleu2":            avg(bleu2),
-        "bleu4":            avg(bleu4),
-        "rouge_l":          avg(rougeL),
-        "bertscore_f1":     avg(bert_scores),
-        # Intrinsic
-        "step_alignment":   avg(alignment),
-        "ctx_grounding":    avg(grounding),
-        "reasoning_density": avg(reasoning),
-        # Length / completeness
-        "avg_length":       avg(lengths),
-        "p25_length":       float(np.percentile(lengths_arr, 25)),
-        "p75_length":       float(np.percentile(lengths_arr, 75)),
-        "empty_rate":       empty_count / max(len(pred_explanations), 1),
-        # Coverage
-        "n_scored":         len(valid_preds),
-        "n_total":          len(pred_explanations),
-    }
+    if examples is None:
+        raise ValueError("examples list must be provided for LLM judge evaluation")
+    
+    # Prepare examples for LLM judge
+    llm_examples = []
+    for i, ex in enumerate(examples):
+        if i < len(pred_explanations):
+            pred_step_label = "UNPARSEABLE"
+            if len(step_preds) > i and step_preds[i] >= 0:
+                pred_step_label = STEP_LABELS[step_preds[i]]
+            
+            llm_examples.append({
+                "pred_explanation": pred_explanations[i],
+                "gold_explanation": gold_explanations[i],
+                "pred_step": pred_step_label,
+                "gold_step": STEP_LABELS[ex["step_idx"]],
+                "context": ex["context"],
+                "machine": ex["machine"],
+            })
+    
+    # Run LLM judge evaluation
+    llm_results = batch_evaluate_explanations(
+        examples=llm_examples,
+        model=model,
+        max_samples=max_samples,
+        verbose=True,
+    )
+    
+    return llm_results
 
 
 # ---------------------------------------------------------------------------
@@ -508,7 +319,6 @@ def eval_llm(adapter_dir: str, threshold_override=None,
 
     step_preds, mcp_preds, step_gold, mcp_gold       = [], [], [], []
     pred_explanations, gold_explanations               = [], []
-    prev_step_results: list[str]                       = []
     parse_failures                                     = 0
     # rows saved to CSV if --save-explanations is set
     csv_rows: list[dict]                               = []
@@ -553,13 +363,35 @@ def eval_llm(adapter_dir: str, threshold_override=None,
         # ── Parse JSON ────────────────────────────────────────────────────
         obj = {}
         try:
-            # Try to find and parse JSON object
-            start = gen_text.index("{")
-            end   = gen_text.rindex("}") + 1
-            obj   = json.loads(gen_text[start:end])
+            # Try to find and parse JSON object - more robust extraction
+            json_candidates = []
+            # Find all potential JSON objects
+            for match in re.finditer(r'\{[^{}]*(?:\{[^{}]*\}[^{}]*)*\}', gen_text, re.DOTALL):
+                json_candidates.append(match.group())
+            
+            # Try each candidate
+            for candidate in json_candidates:
+                try:
+                    obj = json.loads(candidate)
+                    break  # Successfully parsed
+                except:
+                    continue
+            
+            # If JSON parsing failed, try the original method as fallback
+            if not obj:
+                start = gen_text.find("{")
+                end = gen_text.rfind("}") + 1
+                if start != -1 and end > start:
+                    try:
+                        obj = json.loads(gen_text[start:end])
+                    except:
+                        pass
+                        
         except Exception:
             parse_failures += 1
-            # Enhanced regex fallback with multiple patterns
+            
+        # Enhanced regex fallback with multiple patterns
+        if not obj:
             # Pattern 1: "New step": "value"
             m = re.search(r'"?New step"?\s*:\s*"([^"]+)"', gen_text, re.IGNORECASE)
             if m:
@@ -572,8 +404,12 @@ def eval_llm(adapter_dir: str, threshold_override=None,
             m = re.search(r'"?step"?\s*:\s*"([^"]+)"', gen_text, re.IGNORECASE)
             if m and "New step" not in obj:
                 obj["New step"] = m.group(1)
+            # Pattern 4: Look for step-like patterns in text
+            m = re.search(r'(?:step|next step|action)(?:\s*:| is)\s*["\']?([^"\':.]+)["\']?', gen_text, re.IGNORECASE)
+            if m and "New step" not in obj:
+                obj["New step"] = m.group(1).strip()
             
-            # Step explanation patterns
+            # Step explanation patterns - more comprehensive
             m2 = re.search(r'"?Step explanation"?\s*:\s*"([^"]*)"', gen_text, re.DOTALL | re.IGNORECASE)
             if m2:
                 obj["Step explanation"] = m2.group(1)
@@ -585,6 +421,10 @@ def eval_llm(adapter_dir: str, threshold_override=None,
             m2 = re.search(r'"?explanation"?\s*:\s*"([^"]*)"', gen_text, re.DOTALL | re.IGNORECASE)
             if m2 and "Step explanation" not in obj:
                 obj["Step explanation"] = m2.group(1)
+            # Pattern 4: Look for explanation-like text
+            m2 = re.search(r'(?:explanation|reasoning|rationale)(?:\s*:| is)\s*["\']?([^"\':.]+(?:\s+[^"\':.]+)*)["\']?', gen_text, re.IGNORECASE)
+            if m2 and "Step explanation" not in obj:
+                obj["Step explanation"] = m2.group(1).strip()
             
             # MCP tasks patterns - try to extract tool names
             mcp_pattern = re.search(r'"?MCP[_ ]tasks"?\s*:\s*\[([^\]]*)\]', gen_text, re.DOTALL | re.IGNORECASE)
@@ -600,6 +440,29 @@ def eval_llm(adapter_dir: str, threshold_override=None,
                 tools = re.findall(r'"([^"]+)"\s*:', mcp_obj_pattern.group(1))
                 if tools:
                     obj["MCP_tasks"] = {tool: True for tool in tools}
+            # Pattern 3: Look for tool names directly in text
+            if "MCP_tasks" not in obj:
+                # Look for known tool names
+                known_tools = ["Nmap", "Metasploit", "Netcat", "Dirbuster", "SQLmap", "Smb client", "hydra", "John-the-ripper", "Google search", "Interactive CLI", "Web page interaction"]
+                found_tools = []
+                for tool in known_tools:
+                    if tool.lower() in gen_text.lower():
+                        found_tools.append(tool)
+                if found_tools:
+                    obj["MCP_tasks"] = {tool: True for tool in found_tools}
+        
+        # Final fallback: if still no explanation, use the generated text as explanation
+        if "Step explanation" not in obj or not obj["Step explanation"]:
+            # Extract any meaningful text after the prompt
+            if "Response:" in gen_text:
+                fallback_text = gen_text.split("Response:")[-1].strip()
+            else:
+                fallback_text = gen_text.strip()
+            # Clean up the fallback text
+            fallback_text = re.sub(r'[{}\[\]"\'`]', '', fallback_text)
+            fallback_text = fallback_text[:500]  # Limit length
+            if fallback_text:
+                obj["Step explanation"] = fallback_text
 
         # ── Step classification ───────────────────────────────────────────
         pred_step_raw  = obj.get("New step", "")
@@ -630,11 +493,6 @@ def eval_llm(adapter_dir: str, threshold_override=None,
         pred_explanations.append(pred_expl)
         gold_explanations.append(gold_expl)
 
-        # Keep the previous step result for context-grounding metric
-        prev_step_results.append(
-            ex["context"].get("Previous step result", "") or ""
-        )
-
         # Accumulate CSV row
         if save_explanations:
             csv_rows.append({
@@ -662,49 +520,24 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     # ── Classification report ─────────────────────────────────────────────
     report_classification(step_preds_arr, step_gold_arr, mcp_preds_arr, mcp_gold_arr)
 
-    # ── Explanation quality report ────────────────────────────────────────
+    # ── Explanation quality report (LLM Judge) ────────────────────────────────
     print("\n\n" + "=" * 60)
-    print("STEP EXPLANATION QUALITY")
+    print("STEP EXPLANATION QUALITY - LLM JUDGE")
     print("=" * 60)
-    print("Computing explanation metrics ...")
-    expl_metrics = compute_explanation_metrics(
-        pred_explanations,
-        gold_explanations,
+    print("Using LLM to evaluate explanation quality...")
+    
+    # Run LLM judge evaluation
+    llm_results = compute_explanation_metrics_with_llm_judge(
+        pred_explanations=pred_explanations,
+        gold_explanations=gold_explanations,
         step_preds=step_preds_arr,
-        prev_step_results=prev_step_results,
+        examples=examples,
+        model=getattr(args, 'llm_judge_model', 'gpt-4o'),
+        max_samples=getattr(args, 'llm_judge_samples', None),
     )
-    report_explanation(expl_metrics)
-
-    # ── LLM judge evaluation (if requested) ───────────────────────────────
-    if args.use_llm_judge:
-        print("\n\n" + "=" * 60)
-        print("LLM JUDGE EVALUATION")
-        print("=" * 60)
-        print("Using LLM to evaluate explanation quality...")
-        
-        # Prepare examples for LLM judge
-        llm_examples = []
-        for i, ex in enumerate(examples):
-            if i < len(pred_explanations):
-                llm_examples.append({
-                    "pred_explanation": pred_explanations[i],
-                    "gold_explanation": gold_explanations[i],
-                    "pred_step": STEP_LABELS[step_preds[i]] if step_preds[i] >= 0 else "UNPARSEABLE",
-                    "gold_step": STEP_LABELS[ex["step_idx"]],
-                    "context": ex["context"],
-                    "machine": ex["machine"],
-                })
-        
-        # Run LLM judge evaluation
-        llm_results = batch_evaluate_explanations(
-            examples=llm_examples,
-            model=args.llm_judge_model,
-            max_samples=args.llm_judge_samples,
-            verbose=True,
-        )
-        
-        # Print LLM judge results
-        print_llm_judge_results(llm_results)
+    
+    # Print LLM judge results
+    print_llm_judge_results(llm_results)
 
     # ── Optional CSV dump ─────────────────────────────────────────────────
     if (save_explanations or args.auto_save_csv) and csv_rows:
@@ -806,96 +639,6 @@ def report_classification(
             f"  {label:<22}  {prec[i]:>6.3f}  {rec[i]:>6.3f}  "
             f"{f1[i]:>6.3f}  {int(support[i]):>5}{flag}"
         )
-
-
-def report_explanation(metrics: dict) -> None:
-    n_scored = metrics["n_scored"]
-    n_total  = metrics["n_total"]
-
-    if n_scored < n_total:
-        print(
-            f"  (Reference-based metrics scored on {n_scored}/{n_total} pairs — "
-            f"{n_total - n_scored} skipped because gold explanation was empty)"
-        )
-
-    # ── Reference-based ──────────────────────────────────────────────────────
-    print(f"\n  {'Metric':<26}  {'Score':>8}  Interpretation")
-    print("  " + "-" * 62)
-
-    def _bar(score: float, thresholds: tuple, icons: tuple = ("✗", "~", "✓")) -> str:
-        if score >= thresholds[1]:
-            return icons[2]
-        if score >= thresholds[0]:
-            return icons[1]
-        return icons[0]
-
-    b1 = metrics["bleu1"]
-    b2 = metrics["bleu2"]
-    b4 = metrics["bleu4"]
-    rl = metrics["rouge_l"]
-    bs = metrics["bertscore_f1"]
-    sa = metrics["step_alignment"]
-    cg = metrics["ctx_grounding"]
-    rd = metrics["reasoning_density"]
-
-    print(f"  {'BLEU-1':<26}  {b1:>8.4f}  {_bar(b1,(0.20,0.35))}  n-gram overlap with gold")
-    print(f"  {'BLEU-2':<26}  {b2:>8.4f}  {_bar(b2,(0.10,0.20))}")
-    print(f"  {'BLEU-4':<26}  {b4:>8.4f}  {_bar(b4,(0.03,0.10))}")
-    print(f"  {'ROUGE-L':<26}  {rl:>8.4f}  {_bar(rl,(0.20,0.35))}  longest common subsequence")
-    print(f"  {'BERTScore-F1':<26}  {bs:>8.4f}  {_bar(bs,(0.60,0.75))}  semantic similarity to gold")
-
-    # ── Intrinsic ─────────────────────────────────────────────────────────────
-    print()
-    print(f"  {'Step Alignment':<26}  {sa:>8.4f}  {_bar(sa,(0.20,0.35))}  "
-          f"explanation mentions step keywords")
-    print(f"  {'Context Grounding':<26}  {cg:>8.4f}  {_bar(cg,(0.05,0.15))}  "
-          f"references previous step findings")
-    print(f"  {'Reasoning Density':<26}  {rd:>8.4f}  {_bar(rd,(0.03,0.07))}  "
-          f"causal/justification language")
-
-    # ── Length / completeness ─────────────────────────────────────────────────
-    avg_l = metrics["avg_length"]
-    p25_l = metrics["p25_length"]
-    p75_l = metrics["p75_length"]
-    empty = metrics["empty_rate"]
-    print()
-    print(f"  {'Avg length (tokens)':<26}  {avg_l:>8.1f}")
-    print(f"  {'P25 length':<26}  {p25_l:>8.1f}")
-    print(f"  {'P75 length':<26}  {p75_l:>8.1f}")
-    print(f"  {'Empty rate':<26}  {empty:>8.1%}  "
-          f"{'⚠ high — JSON parsing likely failing' if empty > 0.1 else 'OK'}")
-
-    # ── Summary diagnosis ─────────────────────────────────────────────────────
-    print()
-    print("  Diagnosis:")
-    issues = []
-    if b1 < 0.20:
-        issues.append("  • BLEU-1 < 0.20 — low lexical overlap; model paraphrases heavily "
-                      "or generates off-topic text")
-    if bs < 0.60:
-        issues.append("  • BERTScore < 0.60 — explanations semantically distant from gold; "
-                      "consider more SFT epochs")
-    if sa < 0.20:
-        issues.append("  • Step Alignment < 0.20 — explanation doesn't mention the predicted "
-                      "step keywords; model may be ignoring its own step choice")
-    if cg < 0.05:
-        issues.append("  • Context Grounding < 0.05 — explanation barely references observed "
-                      "findings; model is not anchoring to evidence")
-    if rd < 0.03:
-        issues.append("  • Reasoning Density < 0.03 — very few causal connectors; "
-                      "explanations read as assertions, not justifications")
-    if empty > 0.1:
-        issues.append(f"  • Empty rate {empty:.0%} — many blank explanations; "
-                      "check JSON format compliance (parse_failures above)")
-    if avg_l < 20:
-        issues.append(f"  • Avg length {avg_l:.0f} tokens is very short; "
-                      "model may be truncating — increase max_new_tokens")
-
-    if not issues:
-        print("  ✓ All metrics within acceptable ranges")
-    else:
-        for issue in issues:
-            print(issue)
 
 
 # ---------------------------------------------------------------------------

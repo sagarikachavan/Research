@@ -35,14 +35,17 @@ def search_per_class_thresholds(
     probs: np.ndarray,
     targets: np.ndarray,
     candidates: list[float] | None = None,
+    rare_class_indices: list[int] | None = None,
 ) -> list[float]:
     """
     Grid-search the F1-maximising threshold for each MCP label independently.
+    For rare classes, use more aggressive lower thresholds to improve recall.
 
     Args:
         probs:      (N, num_labels) float array of sigmoid probabilities.
         targets:    (N, num_labels) float binary ground-truth array.
-        candidates: threshold values to try (default: 0.1 … 0.9 in 0.05 steps).
+        candidates: threshold values to try (default: 0.05 … 0.9 in 0.05 steps).
+        rare_class_indices: indices of rare classes that need lower thresholds.
 
     Returns:
         List of length num_labels with the best threshold per label.
@@ -50,15 +53,25 @@ def search_per_class_thresholds(
     from sklearn.metrics import f1_score
 
     if candidates is None:
-        candidates = [round(t, 2) for t in np.arange(0.10, 0.95, 0.05)]
+        candidates = [round(t, 2) for t in np.arange(0.05, 0.95, 0.05)]
 
+    # For rare classes, include even lower thresholds
+    if rare_class_indices is None:
+        rare_class_indices = []
+    
     num_labels = probs.shape[1]
     best_thresholds = []
 
     for label_idx in range(num_labels):
+        # Use more aggressive threshold range for rare classes
+        if label_idx in rare_class_indices:
+            class_candidates = [round(t, 2) for t in np.arange(0.01, 0.5, 0.02)]
+        else:
+            class_candidates = candidates
+            
         best_thr = 0.5
         best_f1 = -1.0
-        for thr in candidates:
+        for thr in class_candidates:
             preds = (probs[:, label_idx] >= thr).astype(int)
             score = f1_score(targets[:, label_idx], preds, zero_division=0)
             if score > best_f1:

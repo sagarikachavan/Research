@@ -26,47 +26,35 @@ from typing import Dict, Any, Tuple
 import openai
 
 
-JUDGE_SYSTEM_PROMPT = """You are an expert penetration-testing instructor evaluating the quality of step explanations in a pentesting planning system.
+JUDGE_SYSTEM_PROMPT = """You are an expert penetration-testing instructor evaluating student answers in a pentesting planning system.
 
 You will be given:
-1. A predicted step explanation (what the model generated)
+1. A predicted step explanation (what the model/student generated)
 2. A ground truth step explanation (what a human expert wrote)
 3. The predicted step (the action being explained)
 4. Context from the previous step and strategy
 
-Your task is to evaluate the predicted explanation on a scale of 1-5 for each dimension:
+Your task is to evaluate whether the predicted explanation conveys the SAME MEANING as the ground truth explanation, like a teacher grading a student's answer.
 
-Evaluation Dimensions:
-- Relevance (1-5): Does the explanation directly relate to and justify the predicted step?
-- Accuracy (1-5): Is the technical information and reasoning correct?
-- Completeness (1-5): Does it cover all important aspects of why this step is appropriate?
-- Clarity (1-5): Is it well-structured, specific, and easy to understand?
+Evaluation Criteria:
+- Does the predicted explanation convey the same core reasoning and justification as the ground truth?
+- Are the technical concepts and logic equivalent, even if worded differently?
+- Would this explanation be acceptable as a correct answer in a classroom setting?
 
-Scoring Guidelines:
-5 = Excellent - Perfectly meets criteria, no improvements needed
-4 = Good - Meets criteria well with minor issues
-3 = Adequate - Meets basic criteria but has notable flaws
-2 = Poor - Fails to meet criteria in significant ways
-1 = Very Poor - Completely fails to meet criteria
-
-After scoring, provide:
-1. A brief justification for each score (1-2 sentences)
-2. One specific suggestion for improvement
-3. An overall quality assessment (Excellent/Good/Adequate/Poor/Very Poor)
+Scoring:
+- Return a correctness score between 0.0 and 1.0
+- 1.0 = Perfect match - conveys exactly the same meaning and reasoning
+- 0.8-0.9 = Very good - minor differences in wording but same core meaning
+- 0.6-0.7 = Good - mostly correct with some minor omissions or slight inaccuracies
+- 0.4-0.5 = Partial - captures some key points but misses important aspects
+- 0.2-0.3 = Poor - misses the main point or has significant errors
+- 0.0-0.1 = Very poor - completely wrong or irrelevant
 
 Respond in JSON format:
 {
-    "relevance_score": <int 1-5>,
-    "relevance_justification": "<string>",
-    "accuracy_score": <int 1-5>,
-    "accuracy_justification": "<string>",
-    "completeness_score": <int 1-5>,
-    "completeness_justification": "<string>",
-    "clarity_score": <int 1-5>,
-    "clarity_justification": "<string>",
-    "suggestion": "<string>",
-    "overall_assessment": "<string>",
-    "average_score": <float>
+    "correctness_score": <float 0.0-1.0>,
+    "justification": "<brief explanation of why this score was given>",
+    "is_correct": <boolean - true if score >= 0.6, false otherwise>
 }"""
 
 
@@ -101,7 +89,7 @@ def evaluate_explanation_with_llm(
         raise ValueError("OpenAI API key not provided and OPENAI_API_KEY environment variable not set")
     
     # Build the evaluation prompt
-    user_prompt = f"""Please evaluate the following step explanation:
+    user_prompt = f"""Please evaluate whether the predicted explanation conveys the same meaning as the ground truth explanation:
 
 PREDICTED STEP: {predicted_step}
 
@@ -116,7 +104,7 @@ CONTEXT:
 - New strategy: {context.get('New strategy', 'N/A')}
 - Strategy explanation: {context.get('Strategy explanation', 'N/A')}
 
-Evaluate the predicted explanation on the dimensions specified in your instructions.
+Evaluate whether the predicted explanation is correct and conveys the same meaning as the ground truth.
 Provide your response in JSON format as requested."""
 
     try:
@@ -150,33 +138,17 @@ Provide your response in JSON format as requested."""
         print(f"[LLM Judge] Raw response: {raw_response}")
         # Return default scores if parsing fails
         return {
-            "relevance_score": 3,
-            "relevance_justification": "Failed to parse judge response",
-            "accuracy_score": 3,
-            "accuracy_justification": "Failed to parse judge response",
-            "completeness_score": 3,
-            "completeness_justification": "Failed to parse judge response",
-            "clarity_score": 3,
-            "clarity_justification": "Failed to parse judge response",
-            "suggestion": "Review judge response parsing",
-            "overall_assessment": "Unknown",
-            "average_score": 3.0
+            "correctness_score": 0.0,
+            "justification": "Failed to parse judge response",
+            "is_correct": False
         }, raw_response
     except Exception as e:
         print(f"[LLM Judge] Error during evaluation: {e}")
         # Return default scores on error
         return {
-            "relevance_score": 3,
-            "relevance_justification": f"Error: {str(e)}",
-            "accuracy_score": 3,
-            "accuracy_justification": f"Error: {str(e)}",
-            "completeness_score": 3,
-            "completeness_justification": f"Error: {str(e)}",
-            "clarity_score": 3,
-            "clarity_justification": f"Error: {str(e)}",
-            "suggestion": "Review error logs",
-            "overall_assessment": "Unknown",
-            "average_score": 3.0
+            "correctness_score": 0.0,
+            "justification": f"Error: {str(e)}",
+            "is_correct": False
         }, str(e)
 
 
@@ -206,11 +178,8 @@ def batch_evaluate_explanations(
     
     results = []
     all_scores = {
-        "relevance": [],
-        "accuracy": [],
-        "completeness": [],
-        "clarity": [],
-        "average": []
+        "correctness": [],
+        "is_correct": []
     }
     
     total = len(examples)
@@ -235,11 +204,8 @@ def batch_evaluate_explanations(
                 "raw_response": raw
             })
             
-            all_scores["relevance"].append(scores["relevance_score"])
-            all_scores["accuracy"].append(scores["accuracy_score"])
-            all_scores["completeness"].append(scores["completeness_score"])
-            all_scores["clarity"].append(scores["clarity_score"])
-            all_scores["average"].append(scores["average_score"])
+            all_scores["correctness"].append(scores["correctness_score"])
+            all_scores["is_correct"].append(scores["is_correct"])
             
         except Exception as e:
             print(f"[LLM Judge] Error evaluating sample {i}: {e}")
@@ -255,13 +221,22 @@ def batch_evaluate_explanations(
     aggregates = {}
     for key, values in all_scores.items():
         if values:
-            aggregates[key] = {
-                "mean": float(np.mean(values)),
-                "std": float(np.std(values)),
-                "min": float(np.min(values)),
-                "max": float(np.max(values)),
-                "median": float(np.median(values))
-            }
+            if key == "is_correct":
+                # Calculate accuracy percentage for boolean values
+                accuracy = sum(values) / len(values) * 100
+                aggregates[key] = {
+                    "accuracy_percent": float(accuracy),
+                    "correct_count": int(sum(values)),
+                    "total_count": len(values)
+                }
+            else:
+                aggregates[key] = {
+                    "mean": float(np.mean(values)),
+                    "std": float(np.std(values)),
+                    "min": float(np.min(values)),
+                    "max": float(np.max(values)),
+                    "median": float(np.median(values))
+                }
     
     return {
         "aggregates": aggregates,
@@ -279,11 +254,19 @@ def print_llm_judge_results(results: Dict[str, Any]):
     
     aggregates = results["aggregates"]
     
-    print("\nAggregate Scores (1-5 scale):")
+    print("\nAggregate Scores:")
     print("-" * 80)
-    for metric, stats in aggregates.items():
-        print(f"{metric.capitalize():15} | Mean: {stats['mean']:.2f} ± {stats['std']:.2f} | "
-              f"Min: {stats['min']:.1f} | Max: {stats['max']:.1f} | Median: {stats['median']:.1f}")
+    
+    # Print correctness statistics
+    if "correctness" in aggregates:
+        stats = aggregates["correctness"]
+        print(f"Correctness Score | Mean: {stats['mean']:.3f} ± {stats['std']:.3f} | "
+              f"Min: {stats['min']:.3f} | Max: {stats['max']:.3f} | Median: {stats['median']:.3f}")
+    
+    # Print accuracy percentage
+    if "is_correct" in aggregates:
+        stats = aggregates["is_correct"]
+        print(f"\nAccuracy: {stats['accuracy_percent']:.2f}% ({stats['correct_count']}/{stats['total_count']} correct)")
     
     print(f"\nTotal evaluated: {results['total_evaluated']}")
     print(f"Total errors: {results['total_errors']}")
@@ -294,8 +277,8 @@ def print_llm_judge_results(results: Dict[str, Any]):
     for i, result in enumerate(results["individual_results"][:3]):
         if "scores" in result:
             print(f"\nSample {i+1} (Machine: {result['machine']}):")
-            print(f"  Overall: {result['scores']['overall_assessment']}")
-            print(f"  Average Score: {result['scores']['average_score']:.2f}")
-            print(f"  Suggestion: {result['scores']['suggestion']}")
+            print(f"  Correctness: {result['scores']['correctness_score']:.3f}")
+            print(f"  Is Correct: {result['scores']['is_correct']}")
+            print(f"  Justification: {result['scores']['justification']}")
     
     print("=" * 80 + "\n")

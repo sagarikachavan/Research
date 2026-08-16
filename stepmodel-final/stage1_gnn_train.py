@@ -10,6 +10,8 @@ Run:
     python stage1_gnn_train.py
 """
 import random
+import csv
+import os
 
 import numpy as np
 import torch
@@ -22,6 +24,7 @@ from sklearn.metrics import (
 from config import (
     INPUT_TRAIN_JSON, INPUT_TEST_JSON, STAGE1_CKPT, STAGE1_LR, STAGE1_EPOCHS,
     STAGE1_BATCH_SIZE, STEP_LOSS_WEIGHT, MCP_LOSS_WEIGHT, RANDOM_SEED, MCP_LABELS,
+    STEP_LABELS, ROOT,
 )
 from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS
 from graph_encoder import Stage1Classifier
@@ -66,11 +69,14 @@ def collate(batch):
     return graphs, field_embs, step_idx, mcp_vec
 
 
-def evaluate(model, loader, device, threshold=0.5, return_probs=False):
+def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=False, csv_path=None, dataset=None):
     model.eval()
     step_preds, step_gold = [], []
     mcp_preds, mcp_gold = [], []
     mcp_probs = []  # Store raw probabilities for threshold optimization
+    csv_rows = []  # Store rows for CSV output
+    global_idx = 0  # Track global index for matching with dataset
+    
     with torch.no_grad():
         for graphs, field_embs, step_idx, mcp_vec in loader:
             graphs = graphs.to(device)
@@ -83,8 +89,43 @@ def evaluate(model, loader, device, threshold=0.5, return_probs=False):
             step_preds.append(step_logits.argmax(-1).cpu().numpy())
             step_gold.append(step_idx.cpu().numpy())
             mcp_probs.append(torch.sigmoid(mcp_logits).cpu().numpy())
-            mcp_preds.append((torch.sigmoid(mcp_logits) >= threshold).float().cpu().numpy())
+            # Handle threshold as list for per-class thresholds
+            if isinstance(threshold, (list, np.ndarray)):
+                threshold_tensor = torch.tensor(threshold, dtype=torch.float32, device=device)
+                mcp_preds.append((torch.sigmoid(mcp_logits) >= threshold_tensor).float().cpu().numpy())
+            else:
+                mcp_preds.append((torch.sigmoid(mcp_logits) >= threshold).float().cpu().numpy())
             mcp_gold.append(mcp_vec.cpu().numpy())
+            
+            # Collect data for CSV output
+            if save_csv and dataset is not None:
+                batch_size = step_idx.shape[0]
+                for i in range(batch_size):
+                    if global_idx < len(dataset):
+                        ex = dataset[global_idx]
+                        pred_step_idx = step_preds[-1][i]
+                        gold_step_idx = step_gold[-1][i]
+                        pred_mcp = mcp_preds[-1][i]
+                        gold_mcp = mcp_gold[-1][i]
+                        
+                        # Convert indices to labels
+                        pred_step_label = STEP_LABELS[pred_step_idx] if 0 <= pred_step_idx < len(STEP_LABELS) else "UNPARSEABLE"
+                        gold_step_label = STEP_LABELS[gold_step_idx] if 0 <= gold_step_idx < len(STEP_LABELS) else "UNPARSEABLE"
+                        
+                        # Convert MCP vectors to tool names
+                        pred_mcp_tools = [MCP_LABELS[j] for j in range(len(MCP_LABELS)) if pred_mcp[j] == 1]
+                        gold_mcp_tools = [MCP_LABELS[j] for j in range(len(MCP_LABELS)) if gold_mcp[j] == 1]
+                        
+                        csv_rows.append({
+                            "machine": ex.get("machine", ""),
+                            "new_strategy": ex["context"].get("New strategy", ""),
+                            "strategy_explanation": ex["context"].get("Strategy explanation", ""),
+                            "step_prediction": pred_step_label,
+                            "gold_new_step": gold_step_label,
+                            "mcp_tool_prediction": "|".join(pred_mcp_tools),
+                            "mcp_tool_gold": "|".join(gold_mcp_tools),
+                        })
+                    global_idx += 1
 
     step_preds = np.concatenate(step_preds)
     step_gold = np.concatenate(step_gold)
@@ -101,6 +142,16 @@ def evaluate(model, loader, device, threshold=0.5, return_probs=False):
         "mcp_macro_f1": f1_score(mcp_gold, mcp_preds, average="macro", zero_division=0),
         "mcp_samples_f1": f1_score(mcp_gold, mcp_preds, average="samples", zero_division=0),
     }
+    
+    # Save CSV if requested
+    if save_csv and csv_path and csv_rows:
+        os.makedirs(os.path.dirname(csv_path), exist_ok=True)
+        fieldnames = list(csv_rows[0].keys())
+        with open(csv_path, "w", newline="", encoding="utf-8") as f:
+            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer.writeheader()
+            writer.writerows(csv_rows)
+        print(f"[Stage 1] Evaluation CSV saved to: {csv_path}")
     
     if return_probs:
         return metrics, mcp_probs, mcp_gold
@@ -133,8 +184,12 @@ def main():
     # Calculate inverse frequency weights (higher weight for rare classes)
     total_samples = mcp_counts.sum()
     class_frequencies = mcp_counts / (total_samples + 1e-8)
-    # Use inverse frequency with smoothing to avoid extreme weights
+    # Use stronger inverse frequency with smoothing to avoid extreme weights
     mcp_class_weights = 1.0 / (class_frequencies + 1e-6)
+    # Apply additional boost for very rare classes
+    rare_class_indices = [i for i, count in enumerate(mcp_counts) if count < 15]  # Very rare classes
+    for idx in rare_class_indices:
+        mcp_class_weights[idx] *= 2.0  # Double weight for very rare classes
     # Normalize weights to have mean of 1.0
     mcp_class_weights = mcp_class_weights / mcp_class_weights.mean()
     mcp_class_weights = torch.tensor(mcp_class_weights, dtype=torch.float32, device=device)
@@ -194,7 +249,12 @@ def main():
     else:
         model.load_state_dict(ckpt)
     val_metrics, mcp_probs, mcp_gold = evaluate(model, val_loader, device, return_probs=True)
-    mcp_thresholds = search_per_class_thresholds(mcp_probs, mcp_gold)
+    
+    # Identify rare classes for aggressive threshold tuning
+    rare_class_indices = [i for i, count in enumerate(mcp_counts) if count < 15]
+    print(f"[Stage 1] Rare class indices for aggressive threshold tuning: {rare_class_indices}")
+    
+    mcp_thresholds = search_per_class_thresholds(mcp_probs, mcp_gold, rare_class_indices=rare_class_indices)
     print(f"[Stage 1] Optimized thresholds: {[round(t, 2) for t in mcp_thresholds]}")
     
     # Re-evaluate with optimized thresholds
@@ -216,6 +276,38 @@ def main():
     }
     torch.save(checkpoint, STAGE1_CKPT)
     print(f"[Stage 1] Saved checkpoint with optimized thresholds to {STAGE1_CKPT}")
+    
+    # ── Evaluate on test set and save CSV ─────────────────────────────────────
+    print("\n[Stage 1] Evaluating on test set...")
+    test_ds = Stage1Dataset(INPUT_TEST_JSON, split="test")
+    test_loader = DataLoader(test_ds, batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
+    test_examples = test_ds.examples
+    
+    # Load best model
+    if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
+        model.load_state_dict(ckpt["model_state_dict"])
+    else:
+        model.load_state_dict(ckpt)
+    
+    # Evaluate with optimized thresholds and save CSV
+    output_dir = os.path.join(ROOT, "output")
+    os.makedirs(output_dir, exist_ok=True)
+    csv_path = os.path.join(output_dir, "stage1.csv")
+    
+    test_metrics = evaluate(
+        model, test_loader, device, 
+        threshold=mcp_thresholds, 
+        save_csv=True, 
+        csv_path=csv_path,
+        dataset=test_examples
+    )
+    
+    print(f"[Stage 1] Test set evaluation:")
+    print(f"  Step Accuracy: {test_metrics['step_accuracy']:.4f}")
+    print(f"  Step Macro F1: {test_metrics['step_macro_f1']:.4f}")
+    print(f"  MCP Micro F1: {test_metrics['mcp_micro_f1']:.4f}")
+    print(f"  MCP Macro F1: {test_metrics['mcp_macro_f1']:.4f}")
+    print(f"  MCP Subset Accuracy: {test_metrics['mcp_subset_accuracy']:.4f}")
 
 
 if __name__ == "__main__":
