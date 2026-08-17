@@ -50,6 +50,9 @@ SYSTEM_PROMPT = (
 STEP_TAXONOMY = ", ".join(STEP_LABELS)
 MCP_TAXONOMY = ", ".join(MCP_LABELS)
 
+IM_START = "<|im_start|>"
+IM_END = "<|im_end|>"
+
 
 def build_prompt(ex: dict) -> str:
     """Build the prompt for a single example."""
@@ -63,6 +66,18 @@ def build_prompt(ex: dict) -> str:
         f"Strategy explanation: {ctx['Strategy explanation']}",
     ]
     return "\n".join(lines)
+
+
+def build_user_content(ex: dict, include_taxonomy: bool = True) -> str:
+    """Build the user-visible content for a query, optionally with taxonomy."""
+    content = ""
+    if include_taxonomy:
+        content += f"Available step types: {STEP_TAXONOMY}\n"
+        content += f"Available MCP tools: {MCP_TAXONOMY}\n\n"
+    content += f"{build_prompt(ex)}\n"
+    content += "IMPORTANT: Respond with ONLY a single JSON object. No other text.\n"
+    content += "Format: {\"New step\": \"...\", \"Step explanation\": \"...\", \"MCP_tasks\": {...}}"
+    return content
 
 
 def build_target(ex: dict) -> str:
@@ -82,36 +97,45 @@ def build_target(ex: dict) -> str:
 
 
 def build_few_shot_prompt(examples: List[dict], test_ex: dict, num_shots: int) -> str:
-    """Build a few-shot prompt with Qwen2.5 chat template.
+    """Build a few-shot prompt using the correct Qwen2.5 ChatML format.
 
-    Uses the standard Qwen2.5-Instruct chat format:
-      <|system|>\n{system}\n<|user|>\n{user}\n<|assistant|>\n
+    Qwen2.5-Instruct uses ChatML tokens: <|im_start|>role and <|im_end|>.
+    The eos_token is '<|im_end|>'. Few-shot examples MUST be formatted as
+    separate user → assistant dialogue turns so the chat-tuned model
+    recognises them as demonstration pairs rather than raw text to continue.
 
-    This is CRITICAL — without these role tokens, the chat-tuned model does
-    not understand where the instruction ends and where it should respond,
-    leading to empty / nonsensical generations.
+    Format (ChatML):
+      <|im_start|>system
+      {system}<|im_end|>
+      <|im_start|>user
+      {example_1_query}<|im_end|>
+      <|im_start|>assistant
+      {example_1_response}<|im_end|>
+      ... (repeated for each few-shot example, taxonomy only on first user msg)
+      <|im_start|>user
+      {test_query}<|im_end|>
+      <|im_start|>assistant
+      (model generates here — no trailing <|im_end|>)
     """
-    user_content = ""
-    user_content += f"Available step types: {STEP_TAXONOMY}\n"
-    user_content += f"Available MCP tools: {MCP_TAXONOMY}\n\n"
+    segments = []
 
-    if num_shots > 0:
-        user_content += "Here are some examples:\n\n"
-        for i, ex in enumerate(examples[:num_shots]):
-            user_content += f"Example {i+1}:\n"
-            user_content += f"{build_prompt(ex)}\n"
-            user_content += f"Response: {build_target(ex)}\n\n"
+    segments.append(f"{IM_START}system\n{SYSTEM_PROMPT}{IM_END}\n")
 
-    user_content += "Now, your task:\n"
-    user_content += f"{build_prompt(test_ex)}\n"
-    user_content += "Respond ONLY with a single JSON object containing the keys: New step, Step explanation, MCP_tasks. Do not add any extra text."
+    shots = examples[:num_shots]
 
-    prompt_text = (
-        f"<|system|>\n{SYSTEM_PROMPT}\n"
-        f"<|user|>\n{user_content}\n"
-        f"<|assistant|>\n"
-    )
-    return prompt_text
+    for i, ex in enumerate(shots):
+        include_taxonomy = (i == 0)
+        user_msg = build_user_content(ex, include_taxonomy=include_taxonomy)
+        assistant_msg = build_target(ex)
+        segments.append(f"{IM_START}user\n{user_msg}{IM_END}\n")
+        segments.append(f"{IM_START}assistant\n{assistant_msg}{IM_END}\n")
+
+    include_taxonomy = (num_shots == 0)
+    test_user_msg = build_user_content(test_ex, include_taxonomy=include_taxonomy)
+    segments.append(f"{IM_START}user\n{test_user_msg}{IM_END}\n")
+    segments.append(f"{IM_START}assistant\n")
+
+    return "".join(segments)
 
 
 def parse_response(response_text: str, normalizer: StepLabelNormalizer) -> Dict:
@@ -253,9 +277,59 @@ def evaluate_baseline(
     test_examples = load_from_input_json(INPUT_TEST_JSON, "test")
     
     # Sample few-shot examples from training data
+    # Use diverse examples with REASONABLE-length explanations to avoid
+    # prompt truncation. (Previously we picked LONGEST explanations, which
+    # caused massive truncation of the actual test query.)
     if num_shots > 0:
-        few_shot_examples = random.sample(train_examples, min(num_shots, len(train_examples)))
-        print(f"[Baseline] Using {len(few_shot_examples)} few-shot examples")
+        # Cap individual example size so the combined prompt fits comfortably.
+        MAX_EXPL_CHARS = 600
+        MAX_PROMPT_CHARS = 1500
+
+        scored_examples = []
+        for ex in train_examples:
+            expl = ex.get("gold_step_explanation", "")
+            prompt_text = build_prompt(ex)
+            target_text = build_target(ex)
+            total_chars = len(prompt_text) + len(target_text)
+            # Prefer medium-length examples: informative but not huge
+            if len(expl) <= MAX_EXPL_CHARS and total_chars <= MAX_PROMPT_CHARS and len(expl) > 80:
+                score = len(expl)
+                scored_examples.append((score, ex))
+
+        # If not enough medium examples, fall back to any examples (still capped)
+        if len(scored_examples) < num_shots * 10:
+            scored_examples = []
+            for ex in train_examples:
+                expl = ex.get("gold_step_explanation", "")
+                prompt_text = build_prompt(ex)
+                target_text = build_target(ex)
+                total_chars = len(prompt_text) + len(target_text)
+                if total_chars <= MAX_PROMPT_CHARS * 1.5 and len(expl) > 40:
+                    score = len(expl)
+                    scored_examples.append((score, ex))
+
+        # Sort by explanation length (descending) within size cap for quality
+        scored_examples.sort(key=lambda x: x[0], reverse=True)
+        top_pool = [ex for _, ex in scored_examples[:max(200, num_shots * 20)]]
+
+        # Select diverse examples from different step groups
+        step_groups = {}
+        for ex in top_pool:
+            step = ex["step_label"]
+            if step not in step_groups:
+                step_groups[step] = []
+            step_groups[step].append(ex)
+
+        available_steps = list(step_groups.keys())
+        random.shuffle(available_steps)
+        few_shot_examples = []
+        for i in range(min(num_shots, len(top_pool))):
+            step = available_steps[i % len(available_steps)]
+            group = step_groups[step]
+            ex = random.choice(group)
+            few_shot_examples.append(ex)
+
+        print(f"[Baseline] Using {len(few_shot_examples)} few-shot examples (diverse, size-capped)")
     else:
         few_shot_examples = []
         print(f"[Baseline] Zero-shot evaluation (no examples)")
@@ -287,16 +361,28 @@ def evaluate_baseline(
             
             prompt_text = build_few_shot_prompt(few_shot_examples, test_ex, num_shots)
             
+            # Qwen2.5-Instruct has 131072-token context window. Use a generous
+            # limit so the prompt + few-shot examples are never truncated.
+            # (Old limit of 2048 silently removed the actual test query and
+            # the <|im_start|>assistant generation marker from the prompt.)
+            PROMPT_MAX_LEN = 16384
             inputs = tokenizer(
                 prompt_text,
                 return_tensors="pt",
                 truncation=True,
-                max_length=2048,
+                max_length=PROMPT_MAX_LEN,
                 padding=True,
                 add_special_tokens=False,
             ).to(model.device)
             
             input_len = inputs.input_ids.shape[1]
+            # Detect and warn if the prompt was actually truncated — this would
+            # silently invalidate the generation result.
+            full_len = len(tokenizer.encode(prompt_text, add_special_tokens=False))
+            if full_len > PROMPT_MAX_LEN:
+                print(f"[WARN] Sample {idx}: prompt truncated ({full_len} > {PROMPT_MAX_LEN} tokens) — generation will be wrong")
+            if idx < 3:
+                print(f"[Debug] Sample {idx} - prompt tokens: {input_len} / {PROMPT_MAX_LEN} (full untruncated would be {full_len})")
             
             outputs = model.generate(
                 **inputs,
@@ -304,8 +390,7 @@ def evaluate_baseline(
                 do_sample=False,
                 pad_token_id=tokenizer.pad_token_id,
                 eos_token_id=tokenizer.eos_token_id,
-                temperature=1.0,
-                repetition_penalty=1.1,
+                repetition_penalty=1.05,
             )
             
             generated_ids = outputs[:, input_len:]
