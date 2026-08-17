@@ -193,9 +193,9 @@ def _parse_completion(text: str) -> dict | None:
 
 def compute_reward(completion: str, gold: dict,
                    w_fmt:  float = 0.10,  # Format weight
-                   w_step: float = 0.30,  # Step similarity weight
-                   w_mcp:  float = 0.30,  # MCP F1 weight
-                   w_exp:  float = 0.30) -> float:  # LLM judge weight
+                   w_step: float = 0.25,  # Step similarity weight (reduced from 0.30)
+                   w_mcp:  float = 0.20,  # MCP F1 weight (reduced from 0.30)
+                   w_exp:  float = 0.45) -> float:  # LLM judge weight (increased from 0.30 to 0.45)
     """
     Composite reward with LLM judge for explanation evaluation.
 
@@ -251,7 +251,31 @@ def compute_reward(completion: str, gold: dict,
     gold_expl = gold.get("gold_step_explanation", "")
     exp_r = _explanation_llm_judge_cached(pred_expl, gold_expl)
 
-    return w_fmt * fmt_r + w_step * step_r + w_mcp * mcp_r + w_exp * exp_r
+    # ── Explanation-specific bonus rewards ────────────────────────────────────
+    exp_bonus = 0.0
+
+    # Length bonus: reward appropriately detailed explanations
+    expl_len = len(pred_expl)
+    if expl_len < 20:
+        exp_bonus -= 0.1  # Penalty for too short
+    elif 50 <= expl_len <= 300:
+        exp_bonus += 0.05  # Bonus for good length
+
+    # Step mention bonus: reward explanations that mention the predicted step
+    if pred_step.lower() in pred_expl.lower():
+        exp_bonus += 0.03
+
+    # Technical term bonus: reward explanations with pentesting terminology
+    tech_terms = ["vulnerability", "exploit", "enumerate", "scan", "privilege", "escalation", 
+                  "credential", "authentication", "service", "port", "attack", "defense"]
+    term_count = sum(1 for term in tech_terms if term.lower() in pred_expl.lower())
+    if term_count >= 2:
+        exp_bonus += 0.02
+
+    # Clamp bonus to reasonable range
+    exp_bonus = max(-0.1, min(0.1, exp_bonus))
+
+    return w_fmt * fmt_r + w_step * step_r + w_mcp * mcp_r + w_exp * (exp_r + exp_bonus)
 
 
 # ---------------------------------------------------------------------------
@@ -404,7 +428,7 @@ def main():
 
     # ── Training loop ─────────────────────────────────────────────────────────
     G          = 8                   # Increased group size for better gradient estimation
-    beta       = 0.05                # Increased KL penalty for more stable training
+    beta       = STAGE3_KL_COEF     # Use config KL penalty (0.02) for more exploration
     grad_accum = 8                   # accumulate before optimizer step
     clip_eps   = 0.2                 # PPO clip range
 

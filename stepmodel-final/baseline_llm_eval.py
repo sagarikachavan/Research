@@ -139,12 +139,13 @@ def build_few_shot_prompt(examples: List[dict], test_ex: dict, num_shots: int) -
 
 
 def parse_response(response_text: str, normalizer: StepLabelNormalizer) -> Dict:
-    """Robust response parser — matches evaluate.py style.
+    """Robust response parser — matches evaluate.py style with improved step extraction.
 
     Tries (in order):
       1. Regex-based nested JSON extraction (handles JSON with inner objects)
       2. Simple brace-based JSON extraction
       3. Regex fallbacks for individual fields ("New step", "Step explanation", etc.)
+      4. Enhanced step extraction with multiple fallback patterns
     """
     obj = {}
     try:
@@ -207,7 +208,9 @@ def parse_response(response_text: str, normalizer: StepLabelNormalizer) -> Dict:
                 if filtered:
                     obj["MCP_tasks"] = {k: "" for k in filtered}
 
+    # Enhanced step extraction with multiple fallback patterns
     if not obj or "New step" not in obj:
+        # Pattern 1: Standard step/action patterns
         m = re.search(
             r'(?:next[_\s-]?step(?:\s*type)?|step\s*(?:type|choice)?|action)\s*[:\-–]\s*["\']?\s*([^"\':;.\n][^\n:;]{3,150}?)\s*(?:\.|,|\n|"|Tools|Tool|Reasoning|Explanation|$)',
             response_text, re.IGNORECASE)
@@ -215,6 +218,40 @@ def parse_response(response_text: str, normalizer: StepLabelNormalizer) -> Dict:
             candidate = m.group(1).strip().strip('"').strip("'").rstrip(".")
             if candidate and len(candidate) > 3:
                 obj["New step"] = candidate
+
+    # Pattern 2: Direct sentence extraction - look for sentences that resemble step labels
+    if not obj or "New step" not in obj:
+        # Split into sentences and check if any match step labels closely
+        sentences = re.split(r'[.!?]\s+', response_text)
+        for sentence in sentences:
+            sentence = sentence.strip()
+            if len(sentence) > 10 and len(sentence) < 200:
+                # Check if sentence contains step-like keywords
+                if any(keyword in sentence.lower() for keyword in ['enumerate', 'exploit', 'search', 'analyze', 'explore', 'end task']):
+                    # Try to normalize and match
+                    normalized = normalizer.normalize(sentence)
+                    if normalized and normalized in STEP_LABELS:
+                        obj["New step"] = normalized
+                        break
+
+    # Pattern 3: Look for quoted text that might be the step
+    if not obj or "New step" not in obj:
+        quoted_text = re.findall(r'"([^"]{10,150})"', response_text)
+        for quote in quoted_text:
+            normalized = normalizer.normalize(quote)
+            if normalized and normalized in STEP_LABELS:
+                obj["New step"] = normalized
+                break
+
+    # Pattern 4: Check if the response contains any step label directly
+    if not obj or "New step" not in obj:
+        for step_label in STEP_LABELS:
+            if step_label.lower() in response_text.lower():
+                # Check if it's not part of a larger word
+                pattern = r'\b' + re.escape(step_label) + r'\b'
+                if re.search(pattern, response_text, re.IGNORECASE):
+                    obj["New step"] = step_label
+                    break
 
     if "Step explanation" not in obj:
         m2 = re.search(

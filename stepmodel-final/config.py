@@ -112,7 +112,7 @@ STAGE2_EARLY_STOP_PATIENCE = 3   # stop if val loss doesn't improve for 3 epochs
 
 STAGE3_GROUP_SIZE = 2            # number of samples per prompt for GRPO
 STAGE3_LR = 5e-6
-STAGE3_STEPS = 1000
-STAGE3_KL_COEF = 0.02
+STAGE3_STEPS = 2000             # Increased from 1000 for better convergence
+STAGE3_KL_COEF = 0.02           # Reduced from 0.05 for more exploration
 
 RANDOM_SEED = 42
