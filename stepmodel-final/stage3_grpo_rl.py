@@ -48,6 +48,7 @@ from functools import lru_cache
 
 import numpy as np
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from torch.optim import AdamW
 from torch.optim.lr_scheduler import CosineAnnealingLR
@@ -80,6 +81,35 @@ from stage2_sft_qwen import GraphPrefixAdapter, build_prompt, SYSTEM_PROMPT, bui
 
 random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
+
+# ---------------------------------------------------------------------------
+# Value function for baseline reduction
+# ---------------------------------------------------------------------------
+
+class ValueHead(nn.Module):
+    """
+    Value function head for computing state value estimates.
+    Used in GRPO to reduce variance by subtracting a learned baseline.
+    """
+    def __init__(self, hidden_size: int):
+        super().__init__()
+        self.value_net = nn.Sequential(
+            nn.Linear(hidden_size, 128),
+            nn.ReLU(),
+            nn.Linear(128, 1)
+        )
+
+    def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
+        """
+        Args:
+            hidden_states: (B, seq_len, hidden_size) or (B, hidden_size)
+        Returns:
+            value: (B, 1) scalar value estimate
+        """
+        if hidden_states.dim() ==3:
+            # Pool over sequence dimension (mean pooling)
+            hidden_states = hidden_states.mean(dim=1)
+        return self.value_net(hidden_states)
 
 # ---------------------------------------------------------------------------
 # Explanation quality: LLM judge with caching
@@ -189,6 +219,35 @@ def _parse_completion(text: str) -> dict | None:
         return json.loads(text[start:end])
     except Exception:
         return None
+
+
+def compute_reward_curriculum(completion: str, gold: dict, step_num: int,
+                              total_steps: int = 2000) -> float:
+    """
+    Curriculum learning reward function that adjusts weights based on training stage.
+
+    Early training (steps 0-500): Focus on format and step prediction
+    Mid training (steps 500-1000): Add MCP tool prediction
+    Late training (steps 1000+): Full reward with explanation quality
+
+    Args:
+        completion: Generated completion text
+        gold: Gold standard dict with step_label, mcp_labels, gold_step_explanation
+        step_num: Current training step number
+        total_steps: Total training steps (default 2000)
+    """
+    # Curriculum learning: adjust weights based on training stage
+    if step_num < 500:
+        # Early: focus on format and step
+        w_fmt, w_step, w_mcp, w_exp = 0.3, 0.5, 0.1, 0.1
+    elif step_num < 1000:
+        # Mid: add MCP
+        w_fmt, w_step, w_mcp, w_exp = 0.2, 0.3, 0.3, 0.2
+    else:
+        # Late: full reward
+        w_fmt, w_step, w_mcp, w_exp = 0.1, 0.25, 0.25, 0.4
+
+    return compute_reward(completion, gold, w_fmt=w_fmt, w_step=w_step, w_mcp=w_mcp, w_exp=w_exp)
 
 
 def compute_reward(completion: str, gold: dict,
@@ -412,11 +471,15 @@ def main():
     # ── Embedding layer (shared, read-only during generation) ────────────────
     embed_layer = policy.get_input_embeddings()
 
+    # ── Value function for baseline reduction ────────────────────────────────
+    value_head = ValueHead(llm_hidden).to(device).to(dtype)
+    value_optimizer = AdamW(value_head.parameters(), lr=STAGE3_LR, weight_decay=0.01)
+
     # ── Optimizer — LoRA params + adapter, NOT base weights ──────────────────
     trainable = [p for p in policy.parameters() if p.requires_grad] + \
                 list(adapter.parameters())
-    # Use very conservative learning rate for stability
-    optimizer = AdamW(trainable, lr=5e-7, weight_decay=0.01)
+    # Use updated learning rate from config for more meaningful updates
+    optimizer = AdamW(trainable, lr=STAGE3_LR, weight_decay=0.01)
     scheduler = CosineAnnealingLR(optimizer, T_max=STAGE3_STEPS)
 
     # ── Dataset ───────────────────────────────────────────────────────────────
@@ -427,9 +490,9 @@ def main():
     os.makedirs(STAGE3_ADAPTER_DIR, exist_ok=True)
 
     # ── Training loop ─────────────────────────────────────────────────────────
-    G          = 8                   # Increased group size for better gradient estimation
-    beta       = STAGE3_KL_COEF     # Use config KL penalty (0.02) for more exploration
-    grad_accum = 8                   # accumulate before optimizer step
+    G          = STAGE3_GROUP_SIZE  # Use config group size (16) for better gradient estimation
+    beta       = STAGE3_KL_COEF     # Use config KL penalty (0.01) for more exploration
+    grad_accum = 4                   # Reduced from 8 for faster updates
     clip_eps   = 0.2                 # PPO clip range
 
     optimizer.zero_grad()
@@ -491,31 +554,49 @@ def main():
             tokenizer.decode(ids, skip_special_tokens=True)
             for ids in completion_ids_list
         ]
+        # Use curriculum learning reward function
         rewards = torch.tensor(
-            [compute_reward(c, gold) for c in completions],
+            [compute_reward_curriculum(c, gold, step) for c in completions],
             dtype=torch.float32,
+            device=device,
         )
 
-        # ── 6. Group-relative advantage  A_i = (r_i - mean) / (std + ε) ──────
-        mean_r = rewards.mean()
-        std_r  = rewards.std()
-        # If all rewards are the same (std=0), use zero advantages to prevent NaN
+        # ── 6. Compute value estimates and advantages ──────────────────────────
+        # Get value estimates from value function (keep gradients for training)
+        value_inputs = {
+            "inputs_embeds": prompt_embeds,
+            "attention_mask": attn_prompt,
+            "output_hidden_states": True,
+        }
+        value_outputs = policy(**value_inputs)
+        # Use last hidden state (mean pooled by ValueHead)
+        value_estimates = value_head(value_outputs.hidden_states[-1])  # (1, 1)
+        baseline = value_estimates.squeeze()  # scalar tensor with gradients
+
+        # Compute advantages with learned baseline
+        advantages = rewards - baseline.detach()  # detach baseline for advantage computation
+        # Normalize advantages for stability
+        mean_r = advantages.mean()
+        std_r  = advantages.std()
         if std_r < 1e-8:
-            advantages = torch.zeros_like(rewards).to(device)
+            advantages = torch.zeros_like(advantages).to(device)
         else:
-            advantages = ((rewards - mean_r) / std_r).to(device)
+            advantages = ((advantages - mean_r) / std_r).to(device)
             # Clip advantages to prevent extreme gradients
             advantages = torch.clamp(advantages, -5.0, 5.0)
 
         # ── 7. Policy gradient with clipping + KL penalty ─────────────────────
         policy.train()
+        value_head.train()
         total_pg_loss = torch.tensor(0.0, device=device, requires_grad=False)
         # We accumulate losses from all G completions then divide
         loss_accum = torch.zeros(1, device=device)
+        value_loss_accum = torch.zeros(1, device=device)
 
         for g_idx in range(G):
             comp_ids = completion_ids_list[g_idx].unsqueeze(0).to(device)  # (1, L_gen)
             adv = advantages[g_idx]                                         # scalar
+            reward = rewards[g_idx].item()                                  # scalar
 
             # Policy log-prob for this completion
             lp_policy = completion_logprobs(
@@ -549,18 +630,32 @@ def main():
             # L = -adv * lp_policy  +  β * KL  - entropy_bonus
             pg_loss = -adv * lp_policy + beta * kl - entropy_bonus
 
+            # Value function loss (MSE between predicted value and actual reward)
+            value_loss = (baseline - reward) ** 2
+
             loss_accum = loss_accum + pg_loss / G
+            value_loss_accum = value_loss_accum + value_loss / G
 
         # Scale by gradient accumulation
         loss_for_backward = loss_accum / grad_accum
-        loss_for_backward.backward()
+        value_loss_for_backward = value_loss_accum / grad_accum
+
+        # Combine losses for single backward pass
+        total_loss = loss_for_backward + value_loss_for_backward
+        total_loss.backward()
 
         # ── 8. Optimizer step every grad_accum steps ──────────────────────────
         if step % grad_accum == 0:
+            # Clip gradients for policy
             torch.nn.utils.clip_grad_norm_(trainable, 1.0)
+            # Clip gradients for value function
+            torch.nn.utils.clip_grad_norm_(value_head.parameters(), 1.0)
+            
             optimizer.step()
+            value_optimizer.step()
             scheduler.step()
             optimizer.zero_grad()
+            value_optimizer.zero_grad()
             global_step += 1
 
         # ── 9. Logging ────────────────────────────────────────────────────────
@@ -603,7 +698,8 @@ def main():
                 f"mcp_r {avg_mcp:.3f} | "
                 f"exp_r {avg_exp:.3f} | "
                 f"fmt_ok {fmt_ok}/{G} | "
-                f"loss {loss_accum.item():.4f}"
+                f"pg_loss {loss_accum.item():.4f} | "
+                f"val_loss {value_loss_accum.item():.4f}"
             )
 
         # ── 10. Checkpoint every 200 steps ────────────────────────────────────
@@ -611,12 +707,14 @@ def main():
             ckpt_path = os.path.join(STAGE3_ADAPTER_DIR, f"step_{step}")
             policy.save_pretrained(ckpt_path)
             torch.save(adapter.state_dict(), os.path.join(ckpt_path, "graph_adapter.pt"))
+            torch.save(value_head.state_dict(), os.path.join(ckpt_path, "value_head.pt"))
             tokenizer.save_pretrained(ckpt_path)
             print(f"  -> checkpoint saved to {ckpt_path}")
 
     # ── Final save ────────────────────────────────────────────────────────────
     policy.save_pretrained(STAGE3_ADAPTER_DIR)
     torch.save(adapter.state_dict(), os.path.join(STAGE3_ADAPTER_DIR, "graph_adapter.pt"))
+    torch.save(value_head.state_dict(), os.path.join(STAGE3_ADAPTER_DIR, "value_head.pt"))
     tokenizer.save_pretrained(STAGE3_ADAPTER_DIR)
     print(f"\nStage 3 GRPO complete. Policy saved to {STAGE3_ADAPTER_DIR}")
     

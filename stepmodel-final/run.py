@@ -34,7 +34,7 @@ STAGES = [
     # ("build_input_json", "build_input_json.py",  []),
     # ("stage1",           "stage1_gnn_train.py",  []),
     # ("stage2",           "stage2_sft_qwen.py",   []),
-    # ("stage3",           "stage3_grpo_rl.py",    []),
+    ("stage3",           "stage3_grpo_rl.py",    []),
     ("evaluate",         "evaluate.py",           []),
     # ("baseline_zeroshot", "baseline_llm_eval.py", ["--num_shots", "0"]),
     # ("baseline_3shot",   "baseline_llm_eval.py", ["--num_shots", "3"]),

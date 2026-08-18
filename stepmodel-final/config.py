@@ -110,9 +110,9 @@ STAGE2_GRAD_ACCUM = 8
 STAGE2_VAL_SPLIT = 0.1           # 10% held-out for validation
 STAGE2_EARLY_STOP_PATIENCE = 3   # stop if val loss doesn't improve for 3 epochs
 
-STAGE3_GROUP_SIZE = 2            # number of samples per prompt for GRPO
-STAGE3_LR = 5e-6
+STAGE3_GROUP_SIZE = 16           # number of samples per prompt for GRPO (increased from 2 for better gradient estimation)
+STAGE3_LR = 1e-6                 # Increased from 5e-7 for more meaningful updates
 STAGE3_STEPS = 2000             # Increased from 1000 for better convergence
-STAGE3_KL_COEF = 0.02           # Reduced from 0.05 for more exploration
+STAGE3_KL_COEF = 0.01           # Further reduced from 0.02 for more exploration
 
 RANDOM_SEED = 42
