@@ -38,6 +38,22 @@ WHY LLM JUDGE FOR EXPLANATION:
   - Captures whether the explanation conveys the same meaning, not just lexical overlap
   - More robust to paraphrasing than BERTScore/BLEU/ROUGE
   - Caching mechanism makes it feasible for training
+
+-----------------------------------------------------------------------------
+FIX (this revision): completion-slicing bug when generating with inputs_embeds
+-----------------------------------------------------------------------------
+When `model.generate()` is called with ONLY `inputs_embeds` (no `input_ids`),
+HF's `generate()` has no token-ID representation of the prompt to prepend to
+its output, so the returned tensor contains ONLY the newly generated tokens
+— it is NOT `[prompt_tokens | generated_tokens]` the way generation with
+`input_ids` would be. The previous version of this file assumed the latter
+and sliced `gen_out[:, L_prefix_plus_prompt:]`, which — since gen_out is
+already shorter than the prompt length — produced an empty tensor on nearly
+every step, causing "No valid completions" warnings almost every step.
+
+The fix: treat `gen_out` itself as the completion batch, and simply trim the
+per-row trailing pad tokens (rows are padded to a common length because
+`num_return_sequences=G` generates a batch of sequences together).
 """
 import json
 import os
@@ -113,7 +129,7 @@ class ValueHead(nn.Module):
         Returns:
             value: (B, 1) scalar value estimate
         """
-        if hidden_states.dim() ==3:
+        if hidden_states.dim() == 3:
             # Pool over sequence dimension (mean pooling)
             hidden_states = hidden_states.mean(dim=1)
         return self.value_net(hidden_states)
@@ -175,13 +191,13 @@ def set_llm_judge_model(model, tokenizer, device):
 def _explanation_llm_judge_cached(pred_expl: str, gold_expl: str) -> float:
     """
     LLM judge evaluation using separate QWEN model for explanation quality assessment.
-    
+
     Returns correctness score (0.0-1.0) using cached results when available.
     Uses a separate model from the one being fine-tuned to avoid bias.
     """
     if not pred_expl.strip() or not gold_expl.strip():
         return 0.0
-    
+
     # If LLM judge model is not available, use heuristic fallback
     if _llm_judge_model is None or _llm_judge_tokenizer is None:
         expl_len = len(pred_expl)
@@ -193,7 +209,7 @@ def _explanation_llm_judge_cached(pred_expl: str, gold_expl: str) -> float:
             return 0.7
         else:
             return 0.8
-    
+
     try:
         judge_prompt = f"""Evaluate whether the predicted explanation conveys the same meaning as the ground truth explanation.
 
@@ -207,14 +223,14 @@ Rate the similarity on a scale of 0.0 to 1.0 where:
 - 1.0: Identical or very similar meaning
 
 Respond with just the number (e.g., 0.7)."""
-        
+
         inputs = _llm_judge_tokenizer(
             judge_prompt,
             return_tensors="pt",
             truncation=True,
             max_length=512
         ).to(_llm_judge_device)
-        
+
         with torch.no_grad():
             outputs = _llm_judge_model.generate(
                 **inputs,
@@ -222,9 +238,9 @@ Respond with just the number (e.g., 0.7)."""
                 do_sample=False,
                 pad_token_id=_llm_judge_tokenizer.pad_token_id
             )
-        
+
         response = _llm_judge_tokenizer.decode(outputs[0], skip_special_tokens=True)
-        
+
         # Extract the score from the response
         import re
         score_match = re.search(r'(\d+\.?\d*)', response)
@@ -233,7 +249,7 @@ Respond with just the number (e.g., 0.7)."""
             return min(max(score, 0.0), 1.0)  # Clamp to [0, 1]
         else:
             return 0.5  # Fallback if parsing fails
-            
+
     except Exception as e:
         print(f"[LLM Judge Error] LLM judge evaluation failed: {e}, using heuristic fallback")
         expl_len = len(pred_expl)
@@ -365,7 +381,7 @@ def compute_reward(completion: str, gold: dict,
         exp_bonus += 0.03
 
     # Technical term bonus: reward explanations with pentesting terminology
-    tech_terms = ["vulnerability", "exploit", "enumerate", "scan", "privilege", "escalation", 
+    tech_terms = ["vulnerability", "exploit", "enumerate", "scan", "privilege", "escalation",
                   "credential", "authentication", "service", "port", "attack", "defense"]
     term_count = sum(1 for term in tech_terms if term.lower() in pred_expl.lower())
     if term_count >= 2:
@@ -410,13 +426,36 @@ def build_prompt_embeds(prompt_text: str, tokenizer, embed_layer, prefix_embeds,
         prompt_text,
         return_tensors="pt",
         add_special_tokens=False,
-        truncation=True,
-        max_length=900,   # leave room for generation
+        truncation=False,  # Don't truncate - let model handle full prompt
     ).input_ids.to(device)
 
     token_embeds = embed_layer(ids).to(dtype)             # (1, T_prompt, H)
     inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)  # (1, n_prefix+T_prompt, H)
     return inputs_embeds, inputs_embeds.shape[1]
+
+
+def trim_generated_row(row: torch.Tensor, eos_id: int, pad_id: int) -> torch.Tensor:
+    """
+    Trim a single generated row down to the "real" generated tokens.
+
+    IMPORTANT: when `generate()` is called with ONLY `inputs_embeds` (no
+    `input_ids`), the returned tensor contains ONLY the newly generated
+    tokens — there is no prompt prefix to slice off. `num_return_sequences=G`
+    does, however, pad all G rows in the batch to a common max length, so we
+    still need to trim trailing pad tokens per row.
+
+    Keeps tokens up to and including the first EOS token if present;
+    otherwise keeps everything up to the last non-pad token.
+    """
+    ids = row.tolist()
+    if eos_id in ids:
+        idx = ids.index(eos_id)
+        return row[: idx + 1]
+    nonpad_positions = (row != pad_id).nonzero(as_tuple=True)[0]
+    if len(nonpad_positions) == 0:
+        return row[:0]
+    last = nonpad_positions[-1].item()
+    return row[: last + 1]
 
 
 # ---------------------------------------------------------------------------
@@ -435,7 +474,7 @@ def completion_logprobs(
     Compute the sum of per-token log-probs for `completion_ids` given the
     prefix represented as `inputs_embeds`.
 
-    IMPORTANT INDEXING FIX:
+    IMPORTANT INDEXING:
     - inputs_embeds contains: [graph_prefix | prompt_tokens], total length = L_prefix
     - When we concatenate [inputs_embeds | completion_embeds], we get a sequence of
       length L_full = L_prefix + L_gen
@@ -640,31 +679,45 @@ def main():
 
         # ── 3. Generate G completions ─────────────────────────────────────────
         policy.eval()   # disable dropout during generation
+
         with torch.no_grad():
             gen_out = policy.generate(
                 inputs_embeds=prompt_embeds,
                 attention_mask=attn_prompt,
-                max_new_tokens=500,
+                max_new_tokens=2000,
                 do_sample=True,
                 temperature=0.7,
                 top_p=0.9,
-                top_k=50,
                 num_return_sequences=G,
                 pad_token_id=tokenizer.pad_token_id,
                 eos_token_id=tokenizer.eos_token_id,
-                no_repeat_ngram_size=3,
-                repetition_penalty=1.05,
             )
-        # ⚠ CRITICAL: when using inputs_embeds, generate() fills prompt-length positions
-        # with dummy pad tokens — we MUST slice them off to keep only NEW tokens.
-        # (Otherwise completion_logprobs would compute probs over garbage tokens.)
-        completion_ids_list = gen_out[:, L_prefix_plus_prompt:]  # (G, L_new) only new tokens
+
+        # ── FIX: gen_out already contains ONLY the newly generated tokens ─────
+        # (generate() cannot prepend the prompt when called with inputs_embeds
+        # only, since the prompt has no token-id representation). We just trim
+        # per-row trailing pad tokens; no slicing by L_prefix_plus_prompt.
+        completion_ids_list = [
+            trim_generated_row(gen_out[i], tokenizer.eos_token_id, tokenizer.pad_token_id)
+            for i in range(gen_out.shape[0])
+        ]
+
+        if step <= 3:
+            lens = [t.shape[0] for t in completion_ids_list]
+            print(f"[Stage 3] Debug step {step}: gen_out shape = {gen_out.shape}, "
+                  f"trimmed completion lengths = {lens}")
 
         # ── 4. Decode and score completions ───────────────────────────────────
         completions = [
             tokenizer.decode(ids, skip_special_tokens=True)
             for ids in completion_ids_list
         ]
+
+        if step <= 3:
+            print(f"[Stage 3] Debug step {step}: First 2 completions:")
+            for i, comp in enumerate(completions[:2]):
+                print(f"  Completion {i}: {comp[:200]}...")
+
         rewards_np = np.array([
             compute_reward_curriculum(c, gold, step, total_steps=STAGE3_STEPS)
             for c in completions
@@ -704,14 +757,16 @@ def main():
         policy.train()
         value_head.train()
 
-        loss_accum = torch.zeros(1, device=device)
-        value_loss_accum = torch.zeros(1, device=device)
+        loss_accum = torch.zeros(1, device=device, requires_grad=True)
+        value_loss_accum = torch.zeros(1, device=device, requires_grad=True)
         total_kl_accum = 0.0
 
+        valid_completions = 0
         for g_idx in range(G):
             comp_ids = completion_ids_list[g_idx].unsqueeze(0).to(device)
             if comp_ids.shape[1] == 0:
-                continue  # skip empty completions
+                continue  # skip genuinely empty completions
+            valid_completions += 1
             adv = advantages[g_idx]
             reward = rewards[g_idx].item()
 
@@ -758,21 +813,27 @@ def main():
             value_loss_accum = value_loss_accum + value_loss / G
 
         # Scale by gradient accumulation
-        loss_for_backward = loss_accum / grad_accum
-        value_loss_for_backward = value_loss_accum / grad_accum
-        total_loss = loss_for_backward + 0.5 * value_loss_for_backward
-        total_loss.backward()
+        if valid_completions > 0:
+            loss_for_backward = loss_accum / grad_accum
+            value_loss_for_backward = value_loss_accum / grad_accum
+            total_loss = loss_for_backward + 0.5 * value_loss_for_backward
+            total_loss.backward()
+        else:
+            print(f"[Stage 3] Warning: No valid completions in step {step}, skipping backward pass")
 
         # ── 7. Optimizer step every grad_accum steps ──────────────────────────
         if step % grad_accum == 0:
-            torch.nn.utils.clip_grad_norm_(trainable, STAGE3_GRAD_CLIP)
-            torch.nn.utils.clip_grad_norm_(value_head.parameters(), STAGE3_GRAD_CLIP)
-            optimizer.step()
-            value_optimizer.step()
-            scheduler.step()
-            optimizer.zero_grad()
-            value_optimizer.zero_grad()
-            global_step += 1
+            if valid_completions > 0:
+                torch.nn.utils.clip_grad_norm_(trainable, STAGE3_GRAD_CLIP)
+                torch.nn.utils.clip_grad_norm_(value_head.parameters(), STAGE3_GRAD_CLIP)
+                optimizer.step()
+                value_optimizer.step()
+                scheduler.step()
+                optimizer.zero_grad()
+                value_optimizer.zero_grad()
+                global_step += 1
+            else:
+                print(f"[Stage 3] Warning: Skipping optimizer step at step {step} due to no valid completions")
 
         # ── 8. Logging ────────────────────────────────────────────────────────
         if step % 50 == 0:
@@ -869,18 +930,18 @@ def main():
             gen_out = policy.generate(
                 inputs_embeds=prompt_embeds,
                 attention_mask=attn_prompt,
-                max_new_tokens=600,
+                max_new_tokens=2000,  # Increased to match training generation
                 do_sample=False,
                 pad_token_id=tokenizer.pad_token_id,
                 eos_token_id=tokenizer.eos_token_id,
-                repetition_penalty=1.05,
-                no_repeat_ngram_size=4,
             )
 
-            completion_ids = gen_out[:, :]
-            if gen_out.shape[1] > L_prefix_plus_prompt:
-                completion_ids = gen_out[:, L_prefix_plus_prompt:]
-            completion_text = tokenizer.decode(completion_ids[0], skip_special_tokens=True).strip()
+            # FIX: gen_out already contains only the newly generated tokens —
+            # do NOT slice by L_prefix_plus_prompt (see note above main()).
+            completion_ids = trim_generated_row(
+                gen_out[0], tokenizer.eos_token_id, tokenizer.pad_token_id
+            )
+            completion_text = tokenizer.decode(completion_ids, skip_special_tokens=True).strip()
 
             obj = _obj_parser(completion_text, normalizer)
 
