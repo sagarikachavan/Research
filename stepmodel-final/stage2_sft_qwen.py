@@ -67,8 +67,19 @@ SYSTEM_PROMPT = (
 
 def build_prompt(ex: dict) -> str:
     ctx = ex["context"]
-    lines = [
-        f"Machine: {ex['machine']}",
+    lines = [f"Machine: {ex['machine']}"]
+    # Previous-step fields are "" for the first row of a machine (no prior
+    # step exists yet) -- only include the block when there's something to
+    # show, so the prompt doesn't imply a fabricated empty "previous step".
+    if ctx.get("Previous strategy") or ctx.get("Previous step") or ctx.get("Previous step result"):
+        lines += [
+            f"Previous strategy: {ctx.get('Previous strategy', '')}",
+            f"Previous step: {ctx.get('Previous step', '')}",
+            f"Previous step result: {ctx.get('Previous step result', '')}",
+        ]
+    else:
+        lines.append("Previous strategy/step: (none -- this is the first step for this machine)")
+    lines += [
         f"New strategy: {ctx['New strategy']}",
         f"Strategy explanation: {ctx['Strategy explanation']}",
     ]

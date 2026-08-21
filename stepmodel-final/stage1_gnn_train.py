@@ -210,8 +210,9 @@ def main():
     train_ds = torch.utils.data.Subset(full_ds, train_idx)
     val_ds = torch.utils.data.Subset(full_ds, val_idx)
 
-    train_loader = DataLoader(train_ds, batch_size=STAGE1_BATCH_SIZE, shuffle=True, collate_fn=collate, drop_last=False)
     val_loader = DataLoader(val_ds, batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
+    # train_loader is built further below (after class weights are computed)
+    # using a WeightedRandomSampler instead of plain shuffle=True.
 
     # ── Calculate MCP class weights for imbalanced data ─────────────────
     print("[Stage 1] Calculating MCP class weights for imbalanced data...")
@@ -256,11 +257,45 @@ def main():
     for i, label in enumerate(STEP_LABELS):
         print(f"  [{i}] {label[:50]:<50}: w={step_class_weights[i].item():.3f}  count={int(step_counts[i])}")
 
+    # ── Rare-class oversampling ──────────────────────────────────────────
+    # Loss reweighting (above) changes how much a rare-class example counts
+    # toward the gradient, but every example still appears exactly once per
+    # epoch regardless of shuffle=True. For very thin classes (e.g. SQLmap
+    # ~24 rows, hydra ~23 rows) that's not enough signal per epoch. Build a
+    # WeightedRandomSampler so rare-class rows are actually drawn more often.
+    print("\n[Stage 1] Building rare-class-aware sampler for training...")
+    mcp_w_np = mcp_class_weights.detach().cpu().numpy()
+    step_w_np = step_class_weights.detach().cpu().numpy()
+    sample_weights = np.ones(len(train_idx), dtype=np.float64)
+    for pos, idx in enumerate(train_idx):
+        ex = full_ds[idx]
+        step_i = ex["step_idx"].item()
+        mcp_vec_i = ex["mcp_vec"].numpy()
+        w = float(step_w_np[step_i])
+        active = mcp_vec_i > 0
+        if active.any():
+            w = max(w, float(mcp_w_np[active].max()))
+        sample_weights[pos] = w
+
+    train_sampler = torch.utils.data.WeightedRandomSampler(
+        weights=torch.as_tensor(sample_weights, dtype=torch.double),
+        num_samples=len(train_idx),
+        replacement=True,
+    )
+    train_loader = DataLoader(
+        train_ds, batch_size=STAGE1_BATCH_SIZE, sampler=train_sampler,
+        collate_fn=collate, drop_last=False,
+    )
+
     model = Stage1Classifier().to(device)
     n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
     print(f"\n[Stage 1] Trainable parameters: {n_params:,}")
 
-    opt = torch.optim.AdamW(model.parameters(), lr=STAGE1_LR, weight_decay=1e-4, betas=(0.9, 0.999), eps=1e-8)
+    from config import STAGE1_WEIGHT_DECAY
+    opt = torch.optim.AdamW(
+        model.parameters(), lr=STAGE1_LR, weight_decay=STAGE1_WEIGHT_DECAY,
+        betas=(0.9, 0.999), eps=1e-8,
+    )
 
     # Cosine annealing with warmup
     steps_per_epoch = len(train_loader)

@@ -21,6 +21,7 @@ except ImportError:  # keep module importable for label-normalization-only usage
 from config import (
     GNN_HIDDEN, GNN_LAYERS, GNN_OUT_DIM, FUSION_HIDDEN,
     TEXT_EMB_DIM, STEP_LABELS, MCP_LABELS, GNN_HEADS, GNN_DROPOUT,
+    EDGE_ATTR_DIM,
 )
 from data_utils import CONTEXT_COLUMNS
 
@@ -112,7 +113,7 @@ class ContextTextProjector(nn.Module):
 
 
 class Stage1Classifier(nn.Module):
-    def __init__(self, edge_dim: int = 3):
+    def __init__(self, edge_dim: int = EDGE_ATTR_DIM):
         super().__init__()
         self.graph_encoder = GraphEncoder(edge_dim=edge_dim)
         self.context_encoder = ContextTextProjector()

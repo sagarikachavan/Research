@@ -33,6 +33,9 @@ from config import (
 )
 
 CONTEXT_COLUMNS = [
+    "Previous strategy",
+    "Previous step",
+    "Previous step result",
     "New strategy",
     "Strategy explanation",
 ]
@@ -240,16 +243,22 @@ def build_graph_from_input_json_graph(graph_dict: dict):
             type_onehot[i, type_map_v2.get(ntype, 0)] = 1.0
 
     # Build edge_list first (support both stepmodelv2 "from"/"to" and stepmodelv3 "source"/"target")
+    # Also keep each edge's semantic "type" (StateTransition/SearchUpdate/
+    # TrackUpdate/Prediction, as emitted by graph_builder.py) alongside it so
+    # edge_attr below can actually encode it instead of discarding it.
     edge_list = []
+    edge_type_list = []
     for e in edges:
         src_id = e.get("from", e.get("source", ""))
         tgt_id = e.get("to", e.get("target", ""))
         if src_id in id2idx and tgt_id in id2idx:
             edge_list.append([id2idx[src_id], id2idx[tgt_id]])
+            edge_type_list.append(e.get("type", ""))
 
     if not edge_list:
         # single self-loop to avoid empty edge_index
         edge_list = [[0, 0]]
+        edge_type_list = ["__self_loop__"]
 
     edge_index = np.array(edge_list, dtype=np.int64).T  # (2, E)
 
@@ -269,17 +278,41 @@ def build_graph_from_input_json_graph(graph_dict: dict):
     # Combine: (N, TEXT_EMB_DIM + 3 + 1) = (N, TEXT_EMB_DIM + 4)
     x = np.concatenate([title_embs, type_onehot, degree_features], axis=1)
 
-    # Build edge_attr: one-hot [type: [parent_child, sequential, self_loop] = 3-dim
-    edge_attr = np.zeros((edge_index.shape[1], 3), dtype=np.float32)
+    # Build edge_attr: one-hot over the actual semantic edge type emitted by
+    # graph_builder.py, not a fixed placeholder.
+    #
+    # PREVIOUS BEHAVIOR (bug): every non-self-loop edge was assigned the
+    # identical [0.5, 0.5, 0] vector regardless of its real "type" field, so
+    # the GNN could never distinguish e.g. "we advanced to a new pentest
+    # state" from "this action's finding fed back into the state" — the
+    # exact structural signal that encodes the pentest strategy. The edge
+    # dicts already carry this via `e["type"]` (see graph_builder.py's
+    # add_edge calls: StateTransition / SearchUpdate / TrackUpdate /
+    # Prediction) — it just wasn't being read.
+    #
+    # dims: [StateTransition, SearchUpdate, TrackUpdate, Prediction, SelfLoop]
+    EDGE_TYPE_TO_DIM = {
+        "StateTransition": 0,
+        "SearchUpdate": 1,
+        "TrackUpdate": 2,
+        "Prediction": 3,
+    }
+    from config import EDGE_ATTR_DIM
+    edge_attr = np.zeros((edge_index.shape[1], EDGE_ATTR_DIM), dtype=np.float32)
     for e_idx in range(edge_index.shape[1]):
         u, v = edge_index[0, e_idx], edge_index[1, e_idx]
         if u == v:
-            edge_attr[e_idx, 2] = 1.0
+            edge_attr[e_idx, 4] = 1.0  # self-loop
+            continue
+        etype = edge_type_list[e_idx] if e_idx < len(edge_type_list) else ""
+        dim = EDGE_TYPE_TO_DIM.get(etype)
+        if dim is not None:
+            edge_attr[e_idx, dim] = 1.0
         else:
-            # Detect sequential/sibling (sequential nodes)
-            edge_attr[e_idx, 1] = 0.5  # default weight — real edge
-            # Parent-child / hierarchical gets boosted based on structure (remain 0 in second dim, 1 in first
-            edge_attr[e_idx, 0] = 0.5
+            # Unknown/missing type (e.g. a malformed or legacy edge dict) —
+            # spread evenly across the 4 semantic types rather than silently
+            # collapsing back to a fixed placeholder.
+            edge_attr[e_idx, 0:4] = 0.25
 
     data = Data(
         x=torch.tensor(x, dtype=torch.float32),
@@ -367,8 +400,20 @@ def load_from_input_json(json_path: str, split: str = "train"):
         strategy_explanation = record.get("strategy_explanation", record.get("Strategy explanation", ""))
         gold_new_step = record.get("gold_new_step", record.get("Gold New step", ""))
         gold_step_explanation = record.get("gold_step_explanation", record.get("Gold Step explanation", ""))
-        
+
+        # Legitimate sequential context: the machine's own PRIOR row, as
+        # populated by build_input_json.py's _collect_rows(). Falls back to
+        # "" for records built before this field existed (old train.json/
+        # test.json) so this loader stays backward-compatible -- just means
+        # those records train with no previous-step signal, not a crash.
+        previous_strategy    = record.get("previous_strategy", "")
+        previous_step        = record.get("previous_step", "")
+        previous_step_result = record.get("previous_step_result", "")
+
         context = {
+            "Previous strategy":    previous_strategy,
+            "Previous step":        previous_step,
+            "Previous step result": previous_step_result,
             "New strategy":         new_strategy,
             "Strategy explanation": strategy_explanation,
         }
@@ -511,19 +556,26 @@ def build_graph_from_ptt(ptt_text: str):
 
     edge_index = np.array(edges, dtype=np.int64).T
 
-    # Simple edge features: [parent_child, sibling, self_loop] one-hot
-    edge_attr = np.zeros((edge_index.shape[1], 3), dtype=np.float32)
+    # Edge features, widened to EDGE_ATTR_DIM (5) to stay shape-compatible
+    # with the primary loader's semantic edge-type encoding (see
+    # build_graph_from_input_json_graph). This fallback has no access to the
+    # real StateTransition/SearchUpdate/TrackUpdate/Prediction types (it's
+    # built straight from PTT text, not the graph_builder.py output), so
+    # parent-child/sibling/self-loop are mapped onto 3 of the 5 slots and the
+    # other 2 are left at zero.
+    from config import EDGE_ATTR_DIM
+    edge_attr = np.zeros((edge_index.shape[1], EDGE_ATTR_DIM), dtype=np.float32)
     sibling_set = set()
     for i in range(len(nodes) - 1):
         sibling_set.add((i, i + 1))
         sibling_set.add((i + 1, i))
     for e_idx, (u, v) in enumerate(edge_index.T):
         if u == v:
-            edge_attr[e_idx, 2] = 1.0  # self-loop
+            edge_attr[e_idx, 4] = 1.0  # self-loop
         elif (int(u), int(v)) in sibling_set:
-            edge_attr[e_idx, 1] = 1.0  # sibling (sequential)
+            edge_attr[e_idx, 1] = 1.0  # sibling (sequential) -> SearchUpdate slot
         else:
-            edge_attr[e_idx, 0] = 1.0  # parent-child (hierarchical)
+            edge_attr[e_idx, 0] = 1.0  # parent-child (hierarchical) -> StateTransition slot
 
     data = Data(
         x=torch.tensor(x, dtype=torch.float32),
