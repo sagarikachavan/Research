@@ -316,6 +316,19 @@ def main():
     no_improve = 0
     early_stop_patience = 8
 
+    # ── Top-K checkpoint averaging (SWA-lite) ────────────────────────────
+    # The val set is small (239 examples / 26 machines), so val_score is
+    # noisy epoch-to-epoch (see run log: 0.013 -> 0.373 -> 0.426 -> 0.572
+    # -> ...). Trusting a single "best" epoch means trusting whichever
+    # epoch happened to land on a lucky val batch. Instead, keep the K
+    # checkpoints with the highest val_score seen during training and
+    # average their weights at the end. This is cheap (K small state
+    # dicts on CPU) and, unlike raising model capacity, doesn't add
+    # overfitting risk. It's checked against the single-best checkpoint
+    # on validation before being trusted -- see below.
+    TOPK_SWA = 3
+    topk_checkpoints = []  # list of (val_score, epoch, cpu_state_dict)
+
     train_losses, val_scores = [], []
 
     for epoch in range(STAGE1_EPOCHS):
@@ -370,6 +383,13 @@ def main():
             f"score {val_score:.4f}"
         )
 
+        # Maintain the top-K checkpoints by val_score for later SWA averaging.
+        # CPU clone so we're not holding K copies of the model on GPU.
+        cpu_state = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+        topk_checkpoints.append((val_score, epoch + 1, cpu_state))
+        topk_checkpoints.sort(key=lambda t: t[0], reverse=True)
+        topk_checkpoints = topk_checkpoints[:TOPK_SWA]
+
         if val_score > best_f1:
             best_f1 = val_score
             best_epoch = epoch + 1
@@ -391,6 +411,35 @@ def main():
                 break
 
     print(f"\n[Stage 1] Training complete. Best combined score: {best_f1:.4f} (epoch {best_epoch})")
+
+    # ── Try SWA: average the top-K checkpoints' weights ──────────────────
+    swa_epochs = [e for _, e, _ in topk_checkpoints]
+    print(f"\n[Stage 1] Averaging top-{len(topk_checkpoints)} checkpoints (epochs {swa_epochs}) for SWA candidate...")
+    swa_state = {}
+    for key in topk_checkpoints[0][2].keys():
+        stacked = torch.stack([sd[key].float() for _, _, sd in topk_checkpoints], dim=0)
+        swa_state[key] = stacked.mean(dim=0)
+
+    swa_model = Stage1Classifier().to(device)
+    swa_model.load_state_dict(swa_state)
+    swa_val_metrics = evaluate(swa_model, val_loader, device)
+    swa_val_score = swa_val_metrics["step_macro_f1"] + swa_val_metrics["mcp_micro_f1"]
+
+    print(f"[Stage 1] SWA val score: {swa_val_score:.4f}  (single-best val score: {best_f1:.4f})")
+
+    if swa_val_score > best_f1:
+        print(f"[Stage 1] SWA beats single-best checkpoint -> using SWA weights.")
+        best_f1 = swa_val_score
+        checkpoint = {
+            "model_state_dict": swa_state,
+            "best_epoch": f"swa({swa_epochs})",
+            "best_score": best_f1,
+            "train_losses": train_losses,
+            "val_scores": val_scores,
+        }
+        torch.save(checkpoint, STAGE1_CKPT)
+    else:
+        print(f"[Stage 1] Single-best checkpoint (epoch {best_epoch}) still wins on val -> keeping it.")
 
     # ── Optimize per-class MCP thresholds on validation set ─────────────
     print("\n[Stage 1] Optimizing per-class MCP thresholds on validation set...")

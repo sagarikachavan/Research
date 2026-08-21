@@ -116,8 +116,8 @@ STAGE1_WARMUP_EPOCHS = 5
 STAGE1_GRAD_CLIP = 1.5
 STAGE1_WEIGHT_DECAY = 1e-2       # was hardcoded 1e-4 in the training script -- stronger reg for small data
 
-QWEN_MODEL_NAME = "Qwen/Qwen3-14B"
-LLM_JUDGE_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"  # Separate model for LLM judge evaluation
+QWEN_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
+LLM_JUDGE_MODEL_NAME = "Qwen/Qwen3-14B"  # Separate model for LLM judge evaluation
 GRAPH_PREFIX_TOKENS = 16          # number of soft-prompt tokens the graph embedding is expanded into
 LORA_R = 32
 LORA_ALPHA = 64
