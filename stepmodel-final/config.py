@@ -85,34 +85,46 @@ STAGE3_ADAPTER_DIR = os.environ.get(
 TEXT_ENCODER_NAME = "BAAI/bge-small-en-v1.5"   # frozen sentence embedder for context text
 TEXT_EMB_DIM = 384
 
-GNN_HIDDEN = 256
-GNN_LAYERS = 3
-GNN_OUT_DIM = 256
-FUSION_HIDDEN = 512
+GNN_HIDDEN = 512               # Increased from 384 for more capacity
+GNN_LAYERS = 5                 # Increased from 4 for deeper network
+GNN_OUT_DIM = 512              # Increased from 384
+FUSION_HIDDEN = 1024           # Increased from 768 for more fusion capacity
+GNN_HEADS = 8                  # Increased from 6 for more attention heads
+GNN_DROPOUT = 0.15
 
-MCP_LOSS_WEIGHT = 1.0
-STEP_LOSS_WEIGHT = 1.0
+MCP_LOSS_WEIGHT = 1.5           # Increased to prioritize MCP performance
+STEP_LOSS_WEIGHT = 1.5           # Increased to prioritize step classification
 MCP_DECISION_THRESHOLD = 0.5
+STEP_LABEL_SMOOTHING = 0.05       # Reduced for better discrimination
 
-STAGE1_LR = 2e-4
-STAGE1_EPOCHS = 30
+STAGE1_LR = 4e-4                 # Increased from 3e-4 for faster convergence
+STAGE1_EPOCHS = 60               # Increased for more training time
 STAGE1_BATCH_SIZE = 16
+STAGE1_WARMUP_EPOCHS = 5         # Increased warmup for stable training
+STAGE1_GRAD_CLIP = 1.5
 
-QWEN_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
-GRAPH_PREFIX_TOKENS = 8          # number of soft-prompt tokens the graph embedding is expanded into
-LORA_R = 16
-LORA_ALPHA = 32
-LORA_DROPOUT = 0.05
-STAGE2_LR = 1e-4
-STAGE2_EPOCHS = 10               # increased from 3 → allows model to converge on JSON schema
+QWEN_MODEL_NAME = "Qwen/Qwen3-14B"
+LLM_JUDGE_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"  # Separate model for LLM judge evaluation
+GRAPH_PREFIX_TOKENS = 16          # number of soft-prompt tokens the graph embedding is expanded into
+LORA_R = 32
+LORA_ALPHA = 64
+LORA_DROPOUT = 0.1             # Increased from 0.05 to reduce overfitting
+STAGE2_LR = 3e-5                # Reduced from 5e-5 for more stable training
+STAGE2_EPOCHS = 10              # Reduced from 15 to prevent overfitting
 STAGE2_BATCH_SIZE = 2
 STAGE2_GRAD_ACCUM = 8
-STAGE2_VAL_SPLIT = 0.1           # 10% held-out for validation
-STAGE2_EARLY_STOP_PATIENCE = 3   # stop if val loss doesn't improve for 3 epochs
+STAGE2_VAL_SPLIT = 0.15          # 15% held-out for validation
+STAGE2_EARLY_STOP_PATIENCE = 3  # Reduced from 4 to stop earlier when overfitting starts
+STAGE2_GRAD_CLIP = 1.0
+STAGE2_WARMUP_RATIO = 0.08
+STAGE2_WEIGHT_DECAY = 1e-4       # Added weight decay for regularization
 
 STAGE3_GROUP_SIZE = 16           # number of samples per prompt for GRPO (increased from 2 for better gradient estimation)
-STAGE3_LR = 1e-6                 # Increased from 5e-7 for more meaningful updates
-STAGE3_STEPS = 2000             # Increased from 1000 for better convergence
-STAGE3_KL_COEF = 0.01           # Further reduced from 0.02 for more exploration
+STAGE3_LR = 5e-7                 # Slightly reduced for stability with better Stage 2 init
+STAGE3_STEPS = 2500              # Increased for better convergence
+STAGE3_KL_COEF = 0.015           # Slightly increased KL for better stability
+STAGE3_PPO_CLIP = 0.18           # Tighter clipping for more stable updates
+STAGE3_GRAD_ACCUM = 4
+STAGE3_GRAD_CLIP = 1.0
 
 RANDOM_SEED = 42

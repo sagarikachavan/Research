@@ -30,15 +30,15 @@ from pathlib import Path
 # ── Stage definitions ──────────────────────────────────────────────────────────
 # Each entry: (name, script_filename, extra_args)
 STAGES = [
-    # ("generate_graphs",  "generate_graphs.py",   []),
-    # ("build_input_json", "build_input_json.py",  []),
-    # ("stage1",           "stage1_gnn_train.py",  []),
-    # ("stage2",           "stage2_sft_qwen.py",   []),
+    ("generate_graphs",  "generate_graphs.py",   []),
+    ("build_input_json", "build_input_json.py",  []),
+    ("stage1",           "stage1_gnn_train.py",  []),
+    ("stage2",           "stage2_sft_qwen.py",   []),
     ("stage3",           "stage3_grpo_rl.py",    []),
     ("evaluate",         "evaluate.py",           []),
-    # ("baseline_zeroshot", "baseline_llm_eval.py", ["--num_shots", "0"]),
-    # ("baseline_3shot",   "baseline_llm_eval.py", ["--num_shots", "3"]),
-    # ("baseline_5shot",   "baseline_llm_eval.py", ["--num_shots", "5"]),
+    ("baseline_zeroshot", "baseline_llm_eval.py", ["--num_shots", "0"]),
+    ("baseline_3shot",   "baseline_llm_eval.py", ["--num_shots", "3"]),
+    ("baseline_5shot",   "baseline_llm_eval.py", ["--num_shots", "5"]),
     ("comparison",       "comparison_report.py", []),
 ]
 

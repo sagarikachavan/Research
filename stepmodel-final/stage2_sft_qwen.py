@@ -36,7 +36,7 @@ from config import (
     INPUT_TRAIN_JSON, INPUT_TEST_JSON, QWEN_MODEL_NAME, GRAPH_PREFIX_TOKENS, GNN_OUT_DIM,
     LORA_R, LORA_ALPHA, LORA_DROPOUT,
     STAGE2_LR, STAGE2_EPOCHS, STAGE2_BATCH_SIZE, STAGE2_GRAD_ACCUM,
-    STAGE2_VAL_SPLIT, STAGE2_EARLY_STOP_PATIENCE,
+    STAGE2_VAL_SPLIT, STAGE2_EARLY_STOP_PATIENCE, STAGE2_GRAD_CLIP, STAGE2_WARMUP_RATIO,
     STAGE1_CKPT, STAGE2_ADAPTER_DIR,
     RANDOM_SEED, STEP_LABELS, MCP_LABELS, ROOT,
 )
@@ -46,6 +46,8 @@ from graph_encoder import Stage1Classifier
 random.seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(RANDOM_SEED)
 
 
 # ---------------------------------------------------------------------------
@@ -67,9 +69,6 @@ def build_prompt(ex: dict) -> str:
     ctx = ex["context"]
     lines = [
         f"Machine: {ex['machine']}",
-        f"Previous strategy: {ctx['Previous strategy']}",
-        f"Previous step: {ctx['Previous step']}",
-        f"Previous step result: {ctx['Previous step result']}",
         f"New strategy: {ctx['New strategy']}",
         f"Strategy explanation: {ctx['Strategy explanation']}",
     ]
@@ -222,28 +221,41 @@ def build_obj_parser():
 
 class GraphPrefixAdapter(nn.Module):
     """
-    Projects a single 256-dim graph embedding into GRAPH_PREFIX_TOKENS
+    Projects a single graph embedding into GRAPH_PREFIX_TOKENS
     soft-prompt embeddings that live in the LLM's hidden space.
 
+    Enhanced version with LayerNorm, residual connections, and dropout for
+    more stable training.
+
         graph_emb (B, GNN_OUT_DIM)
-            → Linear(GNN_OUT_DIM, H*2) → GELU → Linear(H*2, H*n_tokens)
-            → reshape → (B, n_tokens, H)
+            → Linear(GNN_OUT_DIM, H*2) → LN → GELU → Dropout
+            → Linear(H*2, H*2) → LN → GELU → Dropout
+            → Linear(H*2, H*n_tokens) → reshape
+            → (B, n_tokens, H)
     """
 
     def __init__(self, graph_dim: int, llm_hidden: int,
-                 n_tokens: int = GRAPH_PREFIX_TOKENS):
+                 n_tokens: int = GRAPH_PREFIX_TOKENS, dropout: float = 0.1):
         super().__init__()
         self.n_tokens = n_tokens
+        self.llm_hidden = llm_hidden
         self.proj = nn.Sequential(
             nn.Linear(graph_dim, llm_hidden * 2),
+            nn.LayerNorm(llm_hidden * 2),
             nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(llm_hidden * 2, llm_hidden * 2),
+            nn.LayerNorm(llm_hidden * 2),
+            nn.GELU(),
+            nn.Dropout(dropout * 0.5),
             nn.Linear(llm_hidden * 2, llm_hidden * n_tokens),
         )
+        self.output_norm = nn.LayerNorm(llm_hidden)
 
     def forward(self, graph_emb: torch.Tensor) -> torch.Tensor:
-        # (B, graph_dim) → (B, n_tokens, llm_hidden)
         b = graph_emb.shape[0]
-        return self.proj(graph_emb).view(b, self.n_tokens, -1)
+        raw = self.proj(graph_emb).view(b, self.n_tokens, self.llm_hidden)
+        return self.output_norm(raw)
 
 
 # ---------------------------------------------------------------------------
@@ -315,23 +327,33 @@ def collate_fn(batch: list, pad_id: int) -> tuple:
 # ---------------------------------------------------------------------------
 
 def forward_batch(input_ids, attn, labels, graphs, field_embs,
-                  model, stage1_graph_encoder, adapter, embed_layer,
-                  device, dtype):
+                  model, stage1_graph_encoder, stage1_context_encoder,
+                  adapter, embed_layer, device, dtype):
     """
     Prepend graph prefix tokens to the token embeddings, run the model,
     and return the scalar loss.
+
+    Enhanced: field_embs are projected through the stage1 context encoder and
+    combined with the graph embedding via a gated fusion before prefix
+    projection, ensuring the LLM sees both graph AND text context fused
+    together in the soft-prefix (not just the graph alone).
     """
     input_ids = input_ids.to(device)
     attn      = attn.to(device)
     labels    = labels.to(device)
     graphs    = graphs.to(device)
+    field_embs = field_embs.to(device)
 
     with torch.no_grad():
+        edge_attr = getattr(graphs, 'edge_attr', None)
         graph_emb = stage1_graph_encoder(
-            graphs.x, graphs.edge_index, graphs.batch
+            graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
         )  # (B, GNN_OUT_DIM)
+        context_emb = stage1_context_encoder(field_embs)  # (B, GNN_OUT_DIM)
+        alpha = torch.sigmoid((graph_emb * context_emb).sum(-1, keepdim=True))
+        combined_emb = alpha * graph_emb + (1 - alpha) * context_emb
 
-    prefix_embeds = adapter(graph_emb.to(dtype))         # (B, n_tokens, H)
+    prefix_embeds = adapter(combined_emb.to(dtype))      # (B, n_tokens, H)
     token_embeds  = embed_layer(input_ids).to(dtype)     # (B, T, H)
     inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
 
@@ -353,8 +375,8 @@ def forward_batch(input_ids, attn, labels, graphs, field_embs,
 # Validation loop — returns average loss over the val set
 # ---------------------------------------------------------------------------
 
-def run_validation(val_loader, model, stage1_graph_encoder, adapter,
-                   embed_layer, device, dtype) -> float:
+def run_validation(val_loader, model, stage1_graph_encoder, stage1_context_encoder,
+                   adapter, embed_layer, device, dtype) -> float:
     model.eval()
     adapter.eval()
     total_loss = 0.0
@@ -363,8 +385,8 @@ def run_validation(val_loader, model, stage1_graph_encoder, adapter,
         for input_ids, attn, labels, graphs, field_embs in val_loader:
             loss = forward_batch(
                 input_ids, attn, labels, graphs, field_embs,
-                model, stage1_graph_encoder, adapter, embed_layer,
-                device, dtype,
+                model, stage1_graph_encoder, stage1_context_encoder,
+                adapter, embed_layer, device, dtype,
             )
             total_loss += loss.item()
             n_batches  += 1
@@ -412,7 +434,7 @@ def main():
     model = get_peft_model(base_model, lora_cfg)
     model.print_trainable_parameters()
 
-    # ── Frozen Stage-1 graph encoder ──────────────────────────────────────────
+    # ── Frozen Stage-1 graph encoder + context encoder ────────────────────────
     stage1 = Stage1Classifier()
     ckpt = torch.load(STAGE1_CKPT, map_location=device, weights_only=False)
     if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
@@ -420,8 +442,12 @@ def main():
     else:
         stage1.load_state_dict(ckpt)
     graph_encoder = stage1.graph_encoder.to(device).eval()
+    context_encoder = stage1.context_encoder.to(device).eval()
     for p in graph_encoder.parameters():
         p.requires_grad_(False)
+    for p in context_encoder.parameters():
+        p.requires_grad_(False)
+    print("[Stage 2] ✓ Frozen Stage-1 graph_encoder + context_encoder loaded")
 
     # ── GraphPrefixAdapter (trainable) ────────────────────────────────────────
     llm_hidden = model.config.hidden_size
@@ -429,19 +455,45 @@ def main():
 
     embed_layer = model.get_input_embeddings()
 
-    # ── Dataset: load all examples, then split train / val ───────────────────
+    # ── Dataset: load all examples, MACHINE-BASED split train / val ──────────
     all_examples = load_from_input_json(INPUT_TRAIN_JSON, "train")
     n            = len(all_examples)
-    n_val        = max(1, int(n * STAGE2_VAL_SPLIT))
-    n_train      = n - n_val
 
-    rng    = np.random.default_rng(RANDOM_SEED)
-    perm   = rng.permutation(n)
-    val_idx, train_idx = perm[:n_val].tolist(), perm[n_val:].tolist()
+    # DATA LEAKAGE PREVENTION: split by MACHINE ID, not by example index
+    # This ensures no machine's data appears in BOTH train and validation sets
+    all_machines = sorted(set(e["machine"] for e in all_examples))
+    rng_split = np.random.default_rng(RANDOM_SEED + 1)
+    perm_machines = rng_split.permutation(len(all_machines))
+    n_val_machines = max(1, int(len(all_machines) * STAGE2_VAL_SPLIT))
+    val_machine_set = set(all_machines[i] for i in perm_machines[:n_val_machines])
+    train_machine_set = set(all_machines) - val_machine_set
 
-    train_examples = [all_examples[i] for i in train_idx]
-    val_examples   = [all_examples[i] for i in val_idx]
+    # Overlap safety check (should never happen, but verify)
+    machine_overlap = val_machine_set & train_machine_set
+    if machine_overlap:
+        print(f"[Stage 2] ⚠  WARNING: machine overlap detected, fixing...")
+        val_machine_set = val_machine_set - machine_overlap
 
+    train_examples = [e for e in all_examples if e["machine"] in train_machine_set]
+    val_examples   = [e for e in all_examples if e["machine"] in val_machine_set]
+    n_train = len(train_examples)
+    n_val   = len(val_examples)
+
+    # ── Data leakage pre-check: verify train machines don't overlap with TEST machines ──
+    test_examples_precheck = load_from_input_json(INPUT_TEST_JSON, "test")
+    test_machines = set(e["machine"] for e in test_examples_precheck)
+    train_test_overlap = train_machine_set & test_machines
+    val_test_overlap = val_machine_set & test_machines
+    if train_test_overlap:
+        print(f"[Stage 2] ⚠  WARNING: TRAIN/TEST machine overlap: {sorted(train_test_overlap)}")
+    if val_test_overlap:
+        print(f"[Stage 2] ⚠  WARNING: VAL/TEST machine overlap: {sorted(val_test_overlap)}")
+    if not train_test_overlap and not val_test_overlap:
+        print(f"[Stage 2] ✓ No machine overlap between (train ∪ val) and test sets")
+    del test_examples_precheck
+
+    print(f"[Stage 2] Train machines  : {len(train_machine_set)}")
+    print(f"[Stage 2] Val machines    : {len(val_machine_set)}")
     print(f"[Stage 2] Train examples  : {n_train}")
     print(f"[Stage 2] Val examples    : {n_val}")
 
@@ -463,17 +515,23 @@ def main():
         [p for p in model.parameters() if p.requires_grad]
         + list(adapter.parameters())
     )
-    opt = torch.optim.AdamW(trainable_params, lr=STAGE2_LR, weight_decay=0.01)
+    opt = torch.optim.AdamW(
+        trainable_params,
+        lr=STAGE2_LR,
+        weight_decay=0.01,
+        betas=(0.9, 0.95),
+        eps=1e-8,
+    )
 
-    steps_per_epoch  = len(train_loader) // STAGE2_GRAD_ACCUM
+    steps_per_epoch  = max(1, len(train_loader) // STAGE2_GRAD_ACCUM)
     total_steps      = steps_per_epoch * STAGE2_EPOCHS
-    warmup_steps     = max(10, total_steps // 20)
+    warmup_steps     = max(10, int(total_steps * STAGE2_WARMUP_RATIO))
     sched = get_cosine_schedule_with_warmup(
         opt, num_warmup_steps=warmup_steps, num_training_steps=total_steps
     )
 
     print(f"[Stage 2] Steps/epoch     : {steps_per_epoch}")
-    print(f"[Stage 2] Total steps     : {total_steps}  (warmup {warmup_steps})")
+    print(f"[Stage 2] Total steps     : {total_steps}  (warmup {warmup_steps}, ratio={STAGE2_WARMUP_RATIO:.0%})")
 
     # ── Training loop with val + early stopping ────────────────────────────────
     best_val_loss    = float("inf")
@@ -492,7 +550,7 @@ def main():
         for i, (input_ids, attn, labels, graphs, field_embs) in enumerate(train_loader):
             loss = forward_batch(
                 input_ids, attn, labels, graphs, field_embs,
-                model, graph_encoder, adapter, embed_layer,
+                model, graph_encoder, context_encoder, adapter, embed_layer,
                 device, dtype,
             )
 
@@ -501,7 +559,7 @@ def main():
             epoch_loss += loss.item()
 
             if (i + 1) % STAGE2_GRAD_ACCUM == 0:
-                torch.nn.utils.clip_grad_norm_(trainable_params, 1.0)
+                torch.nn.utils.clip_grad_norm_(trainable_params, STAGE2_GRAD_CLIP)
                 opt.step()
                 sched.step()
                 opt.zero_grad()
@@ -515,7 +573,7 @@ def main():
         # ── Validation at end of each epoch ───────────────────────────────────
         avg_train_loss = epoch_loss / max(len(train_loader), 1)
         val_loss       = run_validation(
-            val_loader, model, graph_encoder, adapter, embed_layer, device, dtype
+            val_loader, model, graph_encoder, context_encoder, adapter, embed_layer, device, dtype
         )
 
         improved = val_loss < best_val_loss
@@ -590,10 +648,16 @@ def main():
             input_ids = input_ids.to(device)
             attn = attn.to(device)
             graphs = graphs.to(device)
-            
-            # Get graph embedding
-            graph_emb = graph_encoder(graphs.x, graphs.edge_index, graphs.batch)
-            prefix_embeds = adapter(graph_emb.to(dtype))
+            field_embs = field_embs.to(device)
+
+            # Gated fusion of graph embedding + context embedding (matching training)
+            edge_attr = getattr(graphs, 'edge_attr', None)
+            graph_emb = graph_encoder(graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr)
+            ctx_emb = context_encoder(field_embs)
+            alpha = torch.sigmoid((graph_emb * ctx_emb).sum(-1, keepdim=True))
+            combined_emb = alpha * graph_emb + (1 - alpha) * ctx_emb
+
+            prefix_embeds = adapter(combined_emb.to(dtype))
             token_embeds = embed_layer(input_ids).to(dtype)
             inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
             
@@ -673,6 +737,23 @@ def main():
     csv_path = os.path.join(output_dir, "stage2.csv")
     
     if csv_rows:
+        # Compute Jaccard metrics for Stage 2 evaluation
+        step_jaccards = []
+        mcp_jaccards = []
+        for row in csv_rows:
+            step_j = 1.0 if row["step_prediction"] == row["gold_new_step"] else 0.0
+            step_jaccards.append(step_j)
+            pred_mcp_set = set(row["mcp_tool_prediction"].split("|")) if row["mcp_tool_prediction"] else set()
+            gold_mcp_set = set(row["mcp_tool_gold"].split("|")) if row["mcp_tool_gold"] else set()
+            if not pred_mcp_set and not gold_mcp_set:
+                mcp_j = 1.0
+            else:
+                union = pred_mcp_set | gold_mcp_set
+                mcp_j = len(pred_mcp_set & gold_mcp_set) / len(union) if union else 0.0
+            mcp_jaccards.append(mcp_j)
+            row["step_jaccard"] = step_j
+            row["mcp_jaccard"] = mcp_j
+
         fieldnames = list(csv_rows[0].keys())
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
             writer = csv.DictWriter(f, fieldnames=fieldnames)
@@ -680,6 +761,21 @@ def main():
             writer.writerows(csv_rows)
         print(f"[Stage 2] Evaluation CSV saved to: {csv_path}")
         print(f"[Stage 2] Total test samples evaluated: {len(csv_rows)}")
+
+        step_acc = float(np.mean(step_jaccards))
+        mcp_jac = float(np.mean(mcp_jaccards))
+        combined = (step_acc + mcp_jac) / 2.0
+        step_pass = sum(1 for j in step_jaccards if j == 1.0)
+        mcp_pass = sum(1 for j in mcp_jaccards if j >= 0.5)
+
+        print(f"\n[Stage 2] ═══════════ TEST SET RESULTS ═══════════")
+        print(f"  Step Exact Match     : {step_pass}/{len(csv_rows)}  ({step_acc*100:.2f}%)")
+        print(f"  MCP Jaccard ≥0.5      : {mcp_pass}/{len(csv_rows)}  ({mcp_pass/len(csv_rows)*100:.2f}%)")
+        print(f"  Mean Step Jaccard    : {step_acc:.4f}")
+        print(f"  Mean MCP Jaccard     : {mcp_jac:.4f}")
+        print(f"  Combined (Step+MCP)/2 : {combined:.4f}")
+        print(f"  (Compare to Stage 1 GNN — should show significant improvement)")
+        print(f"[Stage 2] ═══════════════════════════════════════")
     else:
         print("[Stage 2] Warning: No CSV rows generated")
 

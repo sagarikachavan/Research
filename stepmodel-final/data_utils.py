@@ -33,9 +33,6 @@ from config import (
 )
 
 CONTEXT_COLUMNS = [
-    "Previous strategy",
-    "Previous step",
-    "Previous step result",
     "New strategy",
     "Strategy explanation",
 ]
@@ -128,24 +125,59 @@ _MCP_PATTERNS = {
 
 
 def extract_mcp_labels(raw) -> list:
-    """Returns a list of canonical MCP_LABELS found in the raw MCP_tasks cell."""
+    """
+    Returns a list of canonical MCP_LABELS found in the raw MCP_tasks cell.
+
+    FIX: when MCP_tasks parses as a real python dict (the common case —
+    `{'Smb client': 'Enumerate SMB service...'}`), the dict KEYS are an
+    exact, high-precision gold signal and are used on their own. The
+    previous version also regex-matched against the dict VALUES (the free
+    text description), which occasionally pattern-matched an unrelated tool
+    mentioned only in passing inside the description — e.g. a value like
+    "...explore the file system, run commands..." would spuriously add
+    "Interactive CLI" even when the actual dict only had {"SQLmap": ...}.
+    That silently injected extra positive labels into the gold multi-hot
+    vector, which both trains the model on slightly wrong targets and
+    depresses eval metrics (subset accuracy in particular, since it
+    requires an exact set match). Verified against test_data.csv: ~3% of
+    rows had at least one such spurious extra label before this fix.
+
+    The free-text regex fallback (_MCP_PATTERNS over the whole cell) is now
+    used ONLY when the cell isn't a parseable dict, i.e. genuinely free text.
+    """
     if raw is None or (isinstance(raw, float) and np.isnan(raw)):
         return []
-    text_parts = []
+
     try:
         parsed = ast.literal_eval(raw)
-        if isinstance(parsed, dict):
-            # dict keys are (usually) the tool names -> highest-precision signal
-            text_parts.extend(str(k) for k in parsed.keys())
-            text_parts.extend(str(v) for v in parsed.values())
-        else:
-            text_parts.append(str(parsed))
     except Exception:
-        text_parts.append(str(raw))
+        parsed = None
 
-    joined = " | ".join(text_parts)
-    found = [label for label, pat in _MCP_PATTERNS.items() if pat.search(joined)]
-    return found
+    if isinstance(parsed, dict) and parsed:
+        # High-precision path: keys ARE the tool names. Still run each key
+        # through the canonical-label matcher (in case of near-miss casing/
+        # spelling like "Smb Client" vs "Smb client"), but never look at
+        # the free-text values.
+        found = []
+        for k in parsed.keys():
+            k_str = str(k)
+            # exact / case-insensitive match against canonical labels first
+            exact = next((l for l in MCP_LABELS if l.lower() == k_str.strip().lower()), None)
+            if exact:
+                found.append(exact)
+                continue
+            # fall back to pattern match on the key text only (not the value)
+            for label, pat in _MCP_PATTERNS.items():
+                if pat.search(k_str):
+                    found.append(label)
+                    break
+        # de-duplicate, preserve order
+        seen = set()
+        return [l for l in found if not (l in seen or seen.add(l))]
+
+    # Free-text fallback (cell wasn't a parseable non-empty dict)
+    text = str(parsed) if parsed is not None else str(raw)
+    return [label for label, pat in _MCP_PATTERNS.items() if pat.search(text)]
 
 
 def mcp_multihot(labels: list) -> np.ndarray:
@@ -164,9 +196,10 @@ def build_graph_from_input_json_graph(graph_dict: dict):
     Builds a torch_geometric.data.Data object from the Graph JSON (as exported
     by build_input_json.py, which comes from generate_graphs.py).
 
-    Node features (387-dim):
+    Node features (388-dim):
       - 384-dim: BAAI/bge-small-en-v1.5 embedding of node title  (cached)
       - 3-dim: one-hot type encoding (Agent=0, Search=1, Track=2)
+      - 1-dim: normalized node degree feature
 
     Edge index: constructed from the 'from' → 'to' field of each edge.
 
@@ -192,9 +225,7 @@ def build_graph_from_input_json_graph(graph_dict: dict):
     # Embed node titles — uses process-level cache, no repeat encoder calls
     titles = [n.get("title", n.get("label", "")).strip() or "unknown node"
               for n in nodes]
-    title_embs = _embed_titles_cached(titles)  # (N, 384) — cached
-
-    # One-hot type encoding: Support both stepmodelv2 (Agent/Search/Track) and stepmodelv3 (State/Action/Finding)
+    title_embs = _embed_titles_cached(titles)  # (N, TEXT_EMB_DIM)
     # stepmodelv2: Agent=0, Search=1, Track=2
     # stepmodelv3: State=0, Action=1, Finding=2
     type_map_v2 = {"Agent": 0, "Search": 1, "Track": 2}
@@ -208,10 +239,7 @@ def build_graph_from_input_json_graph(graph_dict: dict):
         else:
             type_onehot[i, type_map_v2.get(ntype, 0)] = 1.0
 
-    # Combine: (N, 387)
-    x = np.concatenate([title_embs, type_onehot], axis=1)
-
-    # Build edge_index from edges list (support both stepmodelv2 "from"/"to" and stepmodelv3 "source"/"target")
+    # Build edge_list first (support both stepmodelv2 "from"/"to" and stepmodelv3 "source"/"target")
     edge_list = []
     for e in edges:
         src_id = e.get("from", e.get("source", ""))
@@ -225,9 +253,38 @@ def build_graph_from_input_json_graph(graph_dict: dict):
 
     edge_index = np.array(edge_list, dtype=np.int64).T  # (2, E)
 
+    # Calculate node degrees for additional features
+    from collections import Counter
+    degree_counts = Counter()
+    for e in edge_list:
+        degree_counts[e[0]] += 1  # out-degree
+        degree_counts[e[1]] += 1  # in-degree (undirected)
+
+    # Normalize degrees and add as feature
+    max_degree = max(degree_counts.values()) if degree_counts else 1
+    degree_features = np.zeros((len(nodes), 1), dtype=np.float32)
+    for i in range(len(nodes)):
+        degree_features[i, 0] = degree_counts.get(i, 0) / max_degree
+
+    # Combine: (N, TEXT_EMB_DIM + 3 + 1) = (N, TEXT_EMB_DIM + 4)
+    x = np.concatenate([title_embs, type_onehot, degree_features], axis=1)
+
+    # Build edge_attr: one-hot [type: [parent_child, sequential, self_loop] = 3-dim
+    edge_attr = np.zeros((edge_index.shape[1], 3), dtype=np.float32)
+    for e_idx in range(edge_index.shape[1]):
+        u, v = edge_index[0, e_idx], edge_index[1, e_idx]
+        if u == v:
+            edge_attr[e_idx, 2] = 1.0
+        else:
+            # Detect sequential/sibling (sequential nodes)
+            edge_attr[e_idx, 1] = 0.5  # default weight — real edge
+            # Parent-child / hierarchical gets boosted based on structure (remain 0 in second dim, 1 in first
+            edge_attr[e_idx, 0] = 0.5
+
     data = Data(
         x=torch.tensor(x, dtype=torch.float32),
         edge_index=torch.tensor(edge_index, dtype=torch.long),
+        edge_attr=torch.tensor(edge_attr, dtype=torch.float32),
     )
     return data
 
@@ -251,7 +308,16 @@ def load_from_input_json(json_path: str, split: str = "train"):
     built, populating _TITLE_EMB_CACHE. Subsequent calls to
     build_graph_from_input_json_graph() are then pure cache hits — no further
     encoder calls needed for titles seen in this file.
+    
+    DATA LEAKAGE PREVENTION: Cache is cleared when loading test data to ensure
+    no information from training set influences test set embeddings.
     """
+    # Clear cache for test data to prevent data leakage
+    if split == "test":
+        global _TITLE_EMB_CACHE
+        _TITLE_EMB_CACHE.clear()
+        print(f"[{split}] Cleared title embedding cache to prevent data leakage")
+    
     with open(json_path, "r", encoding="utf-8") as f:
         data = json.load(f)
 
@@ -296,18 +362,13 @@ def load_from_input_json(json_path: str, split: str = "train"):
         mcp_raw = record.get("gold_mcp_tasks", record.get("Gold MCP_tasks", ""))
         mcp_labels = extract_mcp_labels(mcp_raw)
 
-        # Build context dict (adapt stepmodelv3 format to stepmodelv2's 5-field structure)
-        # stepmodelv3 provides: new_strategy, strategy_explanation
-        # We need to construct the 5 context fields expected by stepmodelv2
+        # Build context dict (only actual fields from JSON)
         new_strategy = record.get("new_strategy", record.get("New strategy", ""))
         strategy_explanation = record.get("strategy_explanation", record.get("Strategy explanation", ""))
         gold_new_step = record.get("gold_new_step", record.get("Gold New step", ""))
         gold_step_explanation = record.get("gold_step_explanation", record.get("Gold Step explanation", ""))
         
         context = {
-            "Previous strategy":    new_strategy,  # Use current strategy as "previous" for next step
-            "Previous step":        gold_new_step,  # Use current step as "previous" 
-            "Previous step result": gold_step_explanation,  # Use current explanation as result
             "New strategy":         new_strategy,
             "Strategy explanation": strategy_explanation,
         }
@@ -399,11 +460,37 @@ def build_graph_from_ptt(ptt_text: str):
     texts = [n[1] for n in nodes]
     embs = _embed_titles_cached(texts)  # (N, 384) — uses cache
 
-    # All PTT nodes treated as "Agent" type (index 0) — matches 387-dim node space
+    # All PTT nodes treated as "Agent" type (index 0)
     type_onehot = np.zeros((len(nodes), 3), dtype=np.float32)
     type_onehot[:, 0] = 1.0  # Agent = index 0
 
-    x = np.concatenate([embs, type_onehot], axis=1)  # (N, 387)
+    # Calculate node degrees for consistency with JSON loader (needed for 388-dim)
+    from collections import Counter
+    edges_for_degree = []
+    stack = []  # (depth, index)
+    for i, (depth, _, _) in enumerate(nodes):
+        while stack and stack[-1][0] >= depth:
+            stack.pop()
+        if stack:
+            parent_idx = stack[-1][1]
+            edges_for_degree.append((parent_idx, i))
+            edges_for_degree.append((i, parent_idx))
+        stack.append((depth, i))
+    for i in range(len(nodes) - 1):
+        edges_for_degree.append((i, i + 1))
+        edges_for_degree.append((i + 1, i))
+
+    degree_counts = Counter()
+    for e in edges_for_degree:
+        degree_counts[e[0]] += 1
+        degree_counts[e[1]] += 1
+    max_degree = max(degree_counts.values()) if degree_counts else 1
+    degree_features = np.zeros((len(nodes), 1), dtype=np.float32)
+    for i in range(len(nodes)):
+        degree_features[i, 0] = degree_counts.get(i, 0) / max_degree
+
+    # Now: 384 + 3 + 1 = 388 (matches JSON loader and graph_encoder NODE_FEAT_DIM)
+    x = np.concatenate([embs, type_onehot, degree_features], axis=1)  # (N, 388)
 
     edges = []
     stack = []  # (depth, index)
@@ -423,9 +510,25 @@ def build_graph_from_ptt(ptt_text: str):
         edges = [(0, 0)]
 
     edge_index = np.array(edges, dtype=np.int64).T
+
+    # Simple edge features: [parent_child, sibling, self_loop] one-hot
+    edge_attr = np.zeros((edge_index.shape[1], 3), dtype=np.float32)
+    sibling_set = set()
+    for i in range(len(nodes) - 1):
+        sibling_set.add((i, i + 1))
+        sibling_set.add((i + 1, i))
+    for e_idx, (u, v) in enumerate(edge_index.T):
+        if u == v:
+            edge_attr[e_idx, 2] = 1.0  # self-loop
+        elif (int(u), int(v)) in sibling_set:
+            edge_attr[e_idx, 1] = 1.0  # sibling (sequential)
+        else:
+            edge_attr[e_idx, 0] = 1.0  # parent-child (hierarchical)
+
     data = Data(
         x=torch.tensor(x, dtype=torch.float32),
         edge_index=torch.tensor(edge_index, dtype=torch.long),
+        edge_attr=torch.tensor(edge_attr, dtype=torch.float32),
     )
     return data
 

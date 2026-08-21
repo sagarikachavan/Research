@@ -68,12 +68,16 @@ from config import (
     STAGE3_LR,
     STAGE3_STEPS,
     STAGE3_KL_COEF,
+    STAGE3_PPO_CLIP,
+    STAGE3_GRAD_ACCUM,
+    STAGE3_GRAD_CLIP,
     RANDOM_SEED,
     STEP_LABELS,
     MCP_LABELS,
     ROOT,
     GRAPH_PREFIX_TOKENS,
     GNN_OUT_DIM,
+    STAGE2_VAL_SPLIT,
 )
 from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS, StepLabelNormalizer, extract_mcp_labels
 from graph_encoder import Stage1Classifier
@@ -81,6 +85,9 @@ from stage2_sft_qwen import GraphPrefixAdapter, build_prompt, SYSTEM_PROMPT, bui
 
 random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
+np.random.seed(RANDOM_SEED)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(RANDOM_SEED)
 
 # ---------------------------------------------------------------------------
 # Value function for baseline reduction
@@ -152,59 +159,92 @@ def _get_cache_key(pred_expl: str, gold_expl: str) -> str:
     return hashlib.md5(combined.encode()).hexdigest()
 
 
+# Global reference to the loaded LLM judge model (separate from training model)
+_llm_judge_model = None
+_llm_judge_tokenizer = None
+_llm_judge_device = None
+
+def set_llm_judge_model(model, tokenizer, device):
+    """Set the LLM judge model reference (separate from training model)."""
+    global _llm_judge_model, _llm_judge_tokenizer, _llm_judge_device
+    _llm_judge_model = model
+    _llm_judge_tokenizer = tokenizer
+    _llm_judge_device = device
+
 @lru_cache(maxsize=1000)
 def _explanation_llm_judge_cached(pred_expl: str, gold_expl: str) -> float:
     """
-    LLM judge evaluation with caching to avoid repeated API calls.
+    LLM judge evaluation using separate QWEN model for explanation quality assessment.
     
     Returns correctness score (0.0-1.0) using cached results when available.
+    Uses a separate model from the one being fine-tuned to avoid bias.
     """
     if not pred_expl.strip() or not gold_expl.strip():
         return 0.0
     
-    # Check if OpenAI API key is available
-    api_key = os.environ.get("OPENAI_API_KEY")
-    if not api_key:
-        print("[Warning] OPENAI_API_KEY not set, using fallback score of 0.5")
-        return 0.5
+    # If LLM judge model is not available, use heuristic fallback
+    if _llm_judge_model is None or _llm_judge_tokenizer is None:
+        expl_len = len(pred_expl)
+        if expl_len < 20:
+            return 0.3
+        elif expl_len < 50:
+            return 0.5
+        elif expl_len < 100:
+            return 0.7
+        else:
+            return 0.8
     
     try:
-        user_prompt = f"""Please evaluate whether the predicted explanation conveys the same meaning as the ground truth explanation:
+        judge_prompt = f"""Evaluate whether the predicted explanation conveys the same meaning as the ground truth explanation.
 
 PREDICTED EXPLANATION: {pred_expl}
 
 GROUND TRUTH EXPLANATION: {gold_expl}
 
-Evaluate whether the predicted explanation is correct and conveys the same meaning as the ground truth.
-Provide your response in JSON format as requested."""
+Rate the similarity on a scale of 0.0 to 1.0 where:
+- 0.0: Completely different meaning
+- 0.5: Partially similar
+- 1.0: Identical or very similar meaning
+
+Respond with just the number (e.g., 0.7)."""
         
-        response = openai.chat.completions.create(
-            model="gpt-4o",
-            messages=[
-                {"role": "system", "content": LLM_JUDGE_SYSTEM_PROMPT},
-                {"role": "user", "content": user_prompt}
-            ],
-            temperature=0.3,
-            max_tokens=500,
-        )
+        inputs = _llm_judge_tokenizer(
+            judge_prompt,
+            return_tensors="pt",
+            truncation=True,
+            max_length=512
+        ).to(_llm_judge_device)
         
-        raw_response = response.choices[0].message.content
+        with torch.no_grad():
+            outputs = _llm_judge_model.generate(
+                **inputs,
+                max_new_tokens=10,
+                do_sample=False,
+                pad_token_id=_llm_judge_tokenizer.pad_token_id
+            )
         
-        # Parse JSON response
-        if "```json" in raw_response:
-            json_str = raw_response.split("```json")[1].split("```")[0].strip()
-        elif "```" in raw_response:
-            json_str = raw_response.split("```")[1].split("```")[0].strip()
+        response = _llm_judge_tokenizer.decode(outputs[0], skip_special_tokens=True)
+        
+        # Extract the score from the response
+        import re
+        score_match = re.search(r'(\d+\.?\d*)', response)
+        if score_match:
+            score = float(score_match.group(1))
+            return min(max(score, 0.0), 1.0)  # Clamp to [0, 1]
         else:
-            json_str = raw_response.strip()
-        
-        result = json.loads(json_str)
-        score = result.get("correctness_score", 0.0)
-        return float(score)
-        
+            return 0.5  # Fallback if parsing fails
+            
     except Exception as e:
-        print(f"[LLM Judge Error] {e}, using fallback score of 0.5")
-        return 0.5
+        print(f"[LLM Judge Error] LLM judge evaluation failed: {e}, using heuristic fallback")
+        expl_len = len(pred_expl)
+        if expl_len < 20:
+            return 0.3
+        elif expl_len < 50:
+            return 0.5
+        elif expl_len < 100:
+            return 0.7
+        else:
+            return 0.8
 
 
 # ---------------------------------------------------------------------------
@@ -351,7 +391,8 @@ def build_prefix_embeds(graph, graph_encoder, adapter, embed_layer, device, dtyp
     # Wrap single graph in a batch of size 1
     batch = PyGBatch.from_data_list([graph]).to(device)
     with torch.no_grad():
-        graph_emb = graph_encoder(batch.x, batch.edge_index, batch.batch)  # (1, GNN_OUT_DIM)
+        edge_attr = getattr(batch, 'edge_attr', None)
+        graph_emb = graph_encoder(batch.x, batch.edge_index, batch.batch, edge_attr=edge_attr)  # (1, GNN_OUT_DIM)
     prefix = adapter(graph_emb.to(dtype))  # (1, n_tokens, H)
     return prefix  # kept on device
 
@@ -384,35 +425,45 @@ def build_prompt_embeds(prompt_text: str, tokenizer, embed_layer, prefix_embeds,
 
 def completion_logprobs(
     model,
-    inputs_embeds: torch.Tensor,   # (1, L_prefix, H)
-    completion_ids: torch.Tensor,  # (1, L_gen)
+    inputs_embeds: torch.Tensor,   # (1, L_prefix, H)  — includes BOTH graph prefix AND prompt tokens
+    completion_ids: torch.Tensor,  # (1, L_gen)  — NEW tokens generated
     embed_layer,
     dtype,
     device,
 ) -> torch.Tensor:
     """
     Compute the sum of per-token log-probs for `completion_ids` given the
-    prompt represented as `inputs_embeds`.
+    prefix represented as `inputs_embeds`.
 
-    We do a single forward pass over [prefix | completion] with
-    inputs_embeds, then slice the logits to the completion span.
+    IMPORTANT INDEXING FIX:
+    - inputs_embeds contains: [graph_prefix | prompt_tokens], total length = L_prefix
+    - When we concatenate [inputs_embeds | completion_embeds], we get a sequence of
+      length L_full = L_prefix + L_gen
+    - For causal LM, position i in the sequence PREDICTS token at position i+1
+    - The first completion token (completion_ids[:, 0]) is predicted FROM position L_prefix-1
+      in the full sequence (the LAST token of the prompt/prefix)
+    - logits[:, L_prefix-1] predicts completion_ids[:, 0]
+    - logits[:, L_prefix + k - 1] predicts completion_ids[:, k] for k=0..L_gen-1
+    - So we want logits[:, L_prefix-1 : L_prefix+L_gen-1]  (total L_gen positions)
 
     Returns scalar tensor (grad-enabled).
     """
     comp_embeds = embed_layer(completion_ids).to(dtype)          # (1, L_gen, H)
     full_embeds = torch.cat([inputs_embeds, comp_embeds], dim=1) # (1, L_prefix+L_gen, H)
 
+    L_prefix = inputs_embeds.shape[1]
+    L_gen = completion_ids.shape[1]
+
     attn = torch.ones(full_embeds.shape[:2], dtype=torch.long, device=device)
     out  = model(inputs_embeds=full_embeds, attention_mask=attn)  # no labels → no loss
     logits = out.logits  # (1, L_prefix+L_gen, V)
 
-    # The logit at position i predicts token i+1.
-    # Completion tokens start at index L_prefix in the full sequence.
-    L_prefix = inputs_embeds.shape[1]
-    # logits[:, L_prefix-1 : L_prefix+L_gen-1] predicts completion_ids[:,0..L_gen-1]
-    comp_logits = logits[:, L_prefix - 1 : L_prefix + completion_ids.shape[1] - 1, :]
-    log_probs   = F.log_softmax(comp_logits, dim=-1)             # (1, L_gen, V)
+    # CRITICAL: slice [L_prefix-1 : L_prefix+L_gen-1] to get exactly the positions
+    # that predict the L_gen completion tokens (one per position):
+    comp_logits = logits[:, L_prefix - 1 : L_prefix + L_gen - 1, :]  # (1, L_gen, V)
+    log_probs   = F.log_softmax(comp_logits, dim=-1)                 # (1, L_gen, V)
     token_lp    = log_probs.gather(2, completion_ids.unsqueeze(-1)).squeeze(-1)  # (1, L_gen)
+
     return token_lp.sum()  # scalar
 
 
@@ -422,8 +473,15 @@ def completion_logprobs(
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    dtype = torch.bfloat16
     print(f"[Stage 3] Training input : {INPUT_TRAIN_JSON}")
     print(f"[Stage 3] Device         : {device}")
+    print(f"[Stage 3] Total steps    : {STAGE3_STEPS}")
+    print(f"[Stage 3] Group size (G) : {STAGE3_GROUP_SIZE}")
+    print(f"[Stage 3] KL coef        : {STAGE3_KL_COEF}")
+    print(f"[Stage 3] PPO clip eps   : {STAGE3_PPO_CLIP}")
+    print(f"[Stage 3] LR             : {STAGE3_LR}")
+    print(f"[Stage 3] Grad accum     : {STAGE3_GRAD_ACCUM}")
 
     # ── Tokenizer ────────────────────────────────────────────────────────────
     tokenizer = AutoTokenizer.from_pretrained(STAGE2_ADAPTER_DIR)
@@ -431,18 +489,18 @@ def main():
         tokenizer.pad_token = tokenizer.eos_token
 
     # ── Policy model (Stage-2 LoRA, trainable) ───────────────────────────────
+    print(f"\n[Stage 3] Loading policy base model: {QWEN_MODEL_NAME}")
     base = AutoModelForCausalLM.from_pretrained(
-        QWEN_MODEL_NAME, torch_dtype=torch.bfloat16, device_map=None
+        QWEN_MODEL_NAME, torch_dtype=dtype, device_map=None
     ).to(device)
     base.gradient_checkpointing_enable()
     policy = PeftModel.from_pretrained(base, STAGE2_ADAPTER_DIR, is_trainable=True)
     policy.train()
-    dtype = torch.bfloat16
 
     # ── Reference model (Stage-2 LoRA, frozen) ───────────────────────────────
-    # Deep-copy so both share the same base weights but reference is frozen.
+    print(f"[Stage 3] Loading reference model (frozen copy)")
     ref_base = AutoModelForCausalLM.from_pretrained(
-        QWEN_MODEL_NAME, torch_dtype=torch.bfloat16, device_map=None
+        QWEN_MODEL_NAME, torch_dtype=dtype, device_map=None
     ).to(device)
     ref_base.gradient_checkpointing_enable()
     ref_model = PeftModel.from_pretrained(ref_base, STAGE2_ADAPTER_DIR, is_trainable=False)
@@ -451,10 +509,13 @@ def main():
         p.requires_grad_(False)
 
     # ── Frozen Stage-1 graph encoder ─────────────────────────────────────────
+    print(f"[Stage 3] Loading Stage-1 GNN checkpoint: {STAGE1_CKPT}")
     stage1 = Stage1Classifier()
     ckpt = torch.load(STAGE1_CKPT, map_location=device, weights_only=False)
     if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
         stage1.load_state_dict(ckpt["model_state_dict"])
+        print(f"[Stage 3]   loaded (epoch={ckpt.get('best_epoch','?')}, "
+              f"score={ckpt.get('best_score','?'):.4f})")
     else:
         stage1.load_state_dict(ckpt)
     graph_encoder = stage1.graph_encoder.to(device).eval()
@@ -467,36 +528,88 @@ def main():
     adapter_ckpt = os.path.join(STAGE2_ADAPTER_DIR, "graph_adapter.pt")
     adapter.load_state_dict(torch.load(adapter_ckpt, map_location=device, weights_only=False))
     adapter.train()
+    print(f"[Stage 3] Loaded GraphPrefixAdapter from Stage-2")
 
-    # ── Embedding layer (shared, read-only during generation) ────────────────
+    # ── Embedding layers (shared, read-only during generation) ────────────────
     embed_layer = policy.get_input_embeddings()
+    ref_embed_layer = ref_model.get_input_embeddings()
+
+    # ── Load SEPARATE LLM judge model (CRITICAL: different from training model) ───
+    from config import LLM_JUDGE_MODEL_NAME
+    print(f"\n[Stage 3] Loading SEPARATE LLM judge model: {LLM_JUDGE_MODEL_NAME}")
+    print(f"[Stage 3] ⚠  This is DIFFERENT from training model ({QWEN_MODEL_NAME})")
+    judge_tokenizer = AutoTokenizer.from_pretrained(LLM_JUDGE_MODEL_NAME)
+    if judge_tokenizer.pad_token is None:
+        judge_tokenizer.pad_token = judge_tokenizer.eos_token
+    judge_model = AutoModelForCausalLM.from_pretrained(
+        LLM_JUDGE_MODEL_NAME,
+        torch_dtype=dtype,
+        device_map=None
+    ).to(device)
+    judge_model.eval()
+    for p in judge_model.parameters():
+        p.requires_grad_(False)
+    set_llm_judge_model(judge_model, judge_tokenizer, device)
+    print(f"[Stage 3] ✓ Separate LLM judge model loaded ({LLM_JUDGE_MODEL_NAME} != {QWEN_MODEL_NAME})")
 
     # ── Value function for baseline reduction ────────────────────────────────
     value_head = ValueHead(llm_hidden).to(device).to(dtype)
-    value_optimizer = AdamW(value_head.parameters(), lr=STAGE3_LR, weight_decay=0.01)
+    value_optimizer = AdamW(value_head.parameters(), lr=STAGE3_LR * 2, weight_decay=0.01)
 
     # ── Optimizer — LoRA params + adapter, NOT base weights ──────────────────
     trainable = [p for p in policy.parameters() if p.requires_grad] + \
                 list(adapter.parameters())
-    # Use updated learning rate from config for more meaningful updates
-    optimizer = AdamW(trainable, lr=STAGE3_LR, weight_decay=0.01)
-    scheduler = CosineAnnealingLR(optimizer, T_max=STAGE3_STEPS)
+    n_trainable = sum(p.numel() for p in trainable)
+    print(f"\n[Stage 3] Trainable params: ~{n_trainable/1e6:.1f}M")
 
-    # ── Dataset ───────────────────────────────────────────────────────────────
-    examples = load_from_input_json(INPUT_TRAIN_JSON, "train")
-    print(f"[Stage 3] {len(examples)} training examples loaded")
+    optimizer = AdamW(trainable, lr=STAGE3_LR, weight_decay=0.01, betas=(0.9, 0.95), eps=1e-8)
+    total_updates = STAGE3_STEPS // STAGE3_GRAD_ACCUM
+    scheduler = CosineAnnealingLR(optimizer, T_max=max(1, total_updates))
+
+    # ── Dataset — load training data, machine-based split for no leakage ─────
+    all_train_examples = load_from_input_json(INPUT_TRAIN_JSON, "train")
+    print(f"\n[Stage 3] Total labeled examples loaded: {len(all_train_examples)}")
+
+    # DATA LEAKAGE PREVENTION: apply same machine-based split as Stage 2
+    # (so RL doesn't see Stage 2 validation examples either)
+    machine_order = sorted(set(e["machine"] for e in all_train_examples))
+    rng_split = np.random.default_rng(RANDOM_SEED + 1)
+    perm_machines = rng_split.permutation(len(machine_order))
+    n_val_machines = max(1, int(len(machine_order) * STAGE2_VAL_SPLIT))
+    val_machine_set = set(machine_order[i] for i in perm_machines[:n_val_machines])
+    examples = [e for e in all_train_examples if e["machine"] not in val_machine_set]
+
+    train_machines = set(e["machine"] for e in examples)
+    print(f"[Stage 3] RL training on {len(examples)} examples, "
+          f"{len(train_machines)} machines (excluded {len(val_machine_set)} val machines)")
+
+    # ── Load test data just for data leakage pre-check ──────────────────────
+    test_examples_precheck = load_from_input_json(INPUT_TEST_JSON, "test")
+    test_machines = set(e["machine"] for e in test_examples_precheck)
+    train_test_overlap = train_machines & test_machines
+    if train_test_overlap:
+        print(f"[Stage 3] ⚠  WARNING: train/test machine overlap: {sorted(train_test_overlap)}")
+    else:
+        print(f"[Stage 3] ✓ No machine overlap between RL train and test sets")
+    del test_examples_precheck  # free memory
 
     # ── Output dir ────────────────────────────────────────────────────────────
     os.makedirs(STAGE3_ADAPTER_DIR, exist_ok=True)
 
     # ── Training loop ─────────────────────────────────────────────────────────
-    G          = STAGE3_GROUP_SIZE  # Use config group size (16) for better gradient estimation
-    beta       = STAGE3_KL_COEF     # Use config KL penalty (0.01) for more exploration
-    grad_accum = 4                   # Reduced from 8 for faster updates
-    clip_eps   = 0.2                 # PPO clip range
+    G          = STAGE3_GROUP_SIZE
+    beta       = STAGE3_KL_COEF
+    grad_accum = STAGE3_GRAD_ACCUM
+    clip_eps   = STAGE3_PPO_CLIP
 
     optimizer.zero_grad()
+    value_optimizer.zero_grad()
     global_step = 0
+
+    # Running reward stats for adaptive advantage normalization
+    reward_running_mean = 0.0
+    reward_running_std = 1.0
+    ema_alpha = 0.95
 
     for step in range(1, STAGE3_STEPS + 1):
 
@@ -508,12 +621,11 @@ def main():
             "gold_step_explanation":  ex["gold_step_explanation"],
         }
 
-        # ── 2. Build graph prefix  (1, n_prefix, H) ──────────────────────────
+        # ── 2. Build graph prefix + prompt embeddings ─────────────────────────
         prefix_embeds = build_prefix_embeds(
             ex["graph"], graph_encoder, adapter, embed_layer, device, dtype
-        )  # (1, n_prefix, H)
+        )  # (1, n_tokens, H)
 
-        # ── 3. Build prompt embeddings ────────────────────────────────────────
         prompt_text = (
             f"<|system|>\n{SYSTEM_PROMPT}\n"
             f"<|user|>\n{build_prompt(ex)}\n"
@@ -522,13 +634,11 @@ def main():
         prompt_embeds, L_prefix_plus_prompt = build_prompt_embeds(
             prompt_text, tokenizer, embed_layer, prefix_embeds, device, dtype
         )
-        # prompt_embeds : (1, L_prefix_plus_prompt, H)
-
         attn_prompt = torch.ones(
             1, L_prefix_plus_prompt, dtype=torch.long, device=device
         )
 
-        # ── 4. Generate G completions ─────────────────────────────────────────
+        # ── 3. Generate G completions ─────────────────────────────────────────
         policy.eval()   # disable dropout during generation
         with torch.no_grad():
             gen_out = policy.generate(
@@ -536,121 +646,127 @@ def main():
                 attention_mask=attn_prompt,
                 max_new_tokens=500,
                 do_sample=True,
-                temperature=0.6,  # Lower temperature for more stable generation
-                top_p=0.8,       # Lower top_p for more focused generation
+                temperature=0.7,
+                top_p=0.9,
+                top_k=50,
                 num_return_sequences=G,
                 pad_token_id=tokenizer.pad_token_id,
                 eos_token_id=tokenizer.eos_token_id,
-                no_repeat_ngram_size=3,  # Prevent repetitive n-grams
-                repetition_penalty=1.1,  # Add repetition penalty
+                no_repeat_ngram_size=3,
+                repetition_penalty=1.05,
             )
-        # gen_out: (G, L_prefix_plus_prompt + L_gen)
-        # generated token IDs only (strip the prompt prefix length)
-        # NOTE: generate() with inputs_embeds returns only the NEW tokens
-        completion_ids_list = gen_out  # (G, L_gen) — already just the new tokens
+        # ⚠ CRITICAL: when using inputs_embeds, generate() fills prompt-length positions
+        # with dummy pad tokens — we MUST slice them off to keep only NEW tokens.
+        # (Otherwise completion_logprobs would compute probs over garbage tokens.)
+        completion_ids_list = gen_out[:, L_prefix_plus_prompt:]  # (G, L_new) only new tokens
 
-        # ── 5. Decode and score completions ───────────────────────────────────
+        # ── 4. Decode and score completions ───────────────────────────────────
         completions = [
             tokenizer.decode(ids, skip_special_tokens=True)
             for ids in completion_ids_list
         ]
-        # Use curriculum learning reward function
-        rewards = torch.tensor(
-            [compute_reward_curriculum(c, gold, step) for c in completions],
-            dtype=torch.float32,
-            device=device,
-        )
+        rewards_np = np.array([
+            compute_reward_curriculum(c, gold, step, total_steps=STAGE3_STEPS)
+            for c in completions
+        ], dtype=np.float32)
 
-        # ── 6. Compute value estimates and advantages ──────────────────────────
-        # Get value estimates from value function (keep gradients for training)
-        value_inputs = {
-            "inputs_embeds": prompt_embeds,
-            "attention_mask": attn_prompt,
-            "output_hidden_states": True,
-        }
-        value_outputs = policy(**value_inputs)
-        # Use last hidden state (mean pooled by ValueHead)
-        value_estimates = value_head(value_outputs.hidden_states[-1])  # (1, 1)
-        baseline = value_estimates.squeeze()  # scalar tensor with gradients
+        # Update EMA reward stats for adaptive normalization
+        batch_mean = rewards_np.mean()
+        batch_std = rewards_np.std() + 1e-8
+        reward_running_mean = ema_alpha * reward_running_mean + (1 - ema_alpha) * batch_mean
+        reward_running_std = ema_alpha * reward_running_std + (1 - ema_alpha) * batch_std
 
-        # Compute advantages with learned baseline
-        advantages = rewards - baseline.detach()  # detach baseline for advantage computation
-        # Normalize advantages for stability
-        mean_r = advantages.mean()
-        std_r  = advantages.std()
-        if std_r < 1e-8:
-            advantages = torch.zeros_like(advantages).to(device)
+        rewards = torch.tensor(rewards_np, dtype=torch.float32, device=device)
+
+        # ── 5. Compute advantages (group-relative, GRPO-style) ────────────────
+        # Standard GRPO: advantages = (rewards - mean) / std
+        # Enhanced with value function baseline for lower variance
+        with torch.no_grad():
+            v_in = {"inputs_embeds": prompt_embeds.detach(),
+                    "attention_mask": attn_prompt.detach(),
+                    "output_hidden_states": True}
+            v_out = policy(**v_in)
+            baseline_v = value_head(v_out.hidden_states[-1]).squeeze().detach()
+
+        # Use group-relative advantages (GRPO) + subtract baseline for variance reduction
+        mean_r = rewards.mean()
+        std_r = rewards.std()
+        if std_r < 1e-6:
+            grpo_adv = torch.zeros_like(rewards)
         else:
-            advantages = ((advantages - mean_r) / std_r).to(device)
-            # Clip advantages to prevent extreme gradients
-            advantages = torch.clamp(advantages, -5.0, 5.0)
+            grpo_adv = (rewards - mean_r) / std_r
 
-        # ── 7. Policy gradient with clipping + KL penalty ─────────────────────
+        # Subtract value baseline for even lower variance
+        advantages = grpo_adv - (baseline_v - mean_r.detach()) / (std_r + 1e-6)
+        advantages = torch.clamp(advantages, -4.0, 4.0)
+
+        # ── 6. PPO-clipped GRPO policy loss + KL penalty ─────────────────────
         policy.train()
         value_head.train()
-        total_pg_loss = torch.tensor(0.0, device=device, requires_grad=False)
-        # We accumulate losses from all G completions then divide
+
         loss_accum = torch.zeros(1, device=device)
         value_loss_accum = torch.zeros(1, device=device)
+        total_kl_accum = 0.0
 
         for g_idx in range(G):
-            comp_ids = completion_ids_list[g_idx].unsqueeze(0).to(device)  # (1, L_gen)
-            adv = advantages[g_idx]                                         # scalar
-            reward = rewards[g_idx].item()                                  # scalar
+            comp_ids = completion_ids_list[g_idx].unsqueeze(0).to(device)
+            if comp_ids.shape[1] == 0:
+                continue  # skip empty completions
+            adv = advantages[g_idx]
+            reward = rewards[g_idx].item()
 
-            # Policy log-prob for this completion
+            # Policy log-prob (grad-enabled)
             lp_policy = completion_logprobs(
                 policy, prompt_embeds, comp_ids, embed_layer, dtype, device
             )
 
-            # Reference log-prob (frozen Stage-2) — same prefix
+            # Reference log-prob (frozen, no grad)
             with torch.no_grad():
-                ref_embed_layer = ref_model.get_input_embeddings()
-                # Rebuild prefix through adapter for reference
-                # (adapter is trainable so we use its current state for ref too
-                #  but ref_model's LM weights are frozen — this is correct:
-                #  the KL is over the LM distribution, adapter is our addition)
                 lp_ref = completion_logprobs(
                     ref_model, prompt_embeds.detach(), comp_ids,
                     ref_embed_layer, dtype, device
                 )
 
-            # KL penalty (forward KL approximation: log π - log π_ref)
-            kl = lp_policy - lp_ref.detach()
+            # ── Standard PPO clipped importance-ratio loss ────────────────────
+            # ratio = π_θ(a|s) / π_ref(a|s) = exp(lp_policy - lp_ref)
+            # Clipping keeps ratio in [1-ε, 1+ε] for pessimistic bound.
+            log_ratio = lp_policy - lp_ref.detach()
+            ratio = torch.exp(log_ratio)
+            clamped_ratio = torch.clamp(ratio, 1.0 - clip_eps, 1.0 + clip_eps)
 
-            # Entropy bonus to encourage exploration
-            # Compute entropy from the log-probs distribution
-            # For simplicity, use a small constant bonus
-            entropy_bonus = 0.01
+            # Standard PPO surrogate: pessimistic bound (minimum for positive adv, maximum for negative)
+            # Since we MINIMIZE loss = -objective:
+            #   loss_unclipped = -adv * ratio
+            #   loss_clipped   = -adv * clamp(ratio, 1-ε, 1+ε)
+            #   pg_loss = max(loss_unclipped, loss_clipped)   [pessimistic]
+            pg_unclipped = -adv * ratio
+            pg_clipped   = -adv * clamped_ratio
+            pg_loss = torch.max(pg_unclipped, pg_clipped)
 
-            # GRPO loss for this completion:
-            # We use a simple policy-gradient loss (no importance-weight ratio
-            # here since we're doing on-policy generation) with clipping on the
-            # advantage scale to limit gradient variance.
-            # L = -adv * lp_policy  +  β * KL  - entropy_bonus
-            pg_loss = -adv * lp_policy + beta * kl - entropy_bonus
+            # Clip-fraction monitoring: % of ratios that were clipped
+            clip_frac = float(((ratio < (1.0 - clip_eps)) | (ratio > (1.0 + clip_eps))).float().mean().item())
 
-            # Value function loss (MSE between predicted value and actual reward)
-            value_loss = (baseline - reward) ** 2
+            # KL penalty: keep policy close to Stage 2 SFT init (reversed KL, policy vs ref)
+            L = max(1.0, float(comp_ids.shape[1]))
+            kl = (torch.exp(log_ratio) - log_ratio - 1.0) / L  # non-negative KL-like term
+            total_kl_accum += kl.item()
 
-            loss_accum = loss_accum + pg_loss / G
+            loss_accum = loss_accum + (pg_loss + beta * kl) / G
+
+            # Value loss: learn baseline
+            value_loss = 0.5 * ((baseline_v - reward) ** 2)
             value_loss_accum = value_loss_accum + value_loss / G
 
         # Scale by gradient accumulation
         loss_for_backward = loss_accum / grad_accum
         value_loss_for_backward = value_loss_accum / grad_accum
-
-        # Combine losses for single backward pass
-        total_loss = loss_for_backward + value_loss_for_backward
+        total_loss = loss_for_backward + 0.5 * value_loss_for_backward
         total_loss.backward()
 
-        # ── 8. Optimizer step every grad_accum steps ──────────────────────────
+        # ── 7. Optimizer step every grad_accum steps ──────────────────────────
         if step % grad_accum == 0:
-            # Clip gradients for policy
-            torch.nn.utils.clip_grad_norm_(trainable, 1.0)
-            # Clip gradients for value function
-            torch.nn.utils.clip_grad_norm_(value_head.parameters(), 1.0)
-            
+            torch.nn.utils.clip_grad_norm_(trainable, STAGE3_GRAD_CLIP)
+            torch.nn.utils.clip_grad_norm_(value_head.parameters(), STAGE3_GRAD_CLIP)
             optimizer.step()
             value_optimizer.step()
             scheduler.step()
@@ -658,12 +774,11 @@ def main():
             value_optimizer.zero_grad()
             global_step += 1
 
-        # ── 9. Logging ────────────────────────────────────────────────────────
+        # ── 8. Logging ────────────────────────────────────────────────────────
         if step % 50 == 0:
             avg_reward = rewards.mean().item()
             fmt_ok = sum(1 for c in completions if _parse_completion(c) is not None)
 
-            # Breakdown: avg per-component scores for this batch
             comp_scores = {"step": [], "mcp": [], "exp": []}
             for c in completions:
                 obj = _parse_completion(c)
@@ -690,19 +805,19 @@ def main():
             avg_step = float(np.mean(comp_scores["step"])) if comp_scores["step"] else 0.0
             avg_mcp  = float(np.mean(comp_scores["mcp"]))  if comp_scores["mcp"]  else 0.0
             avg_exp  = float(np.mean(comp_scores["exp"]))  if comp_scores["exp"]  else 0.0
+            current_lr = scheduler.get_last_lr()[0]
 
             print(
                 f"step {step:4d}/{STAGE3_STEPS} | "
-                f"avg_reward {avg_reward:.3f} | "
-                f"step_r {avg_step:.3f} | "
-                f"mcp_r {avg_mcp:.3f} | "
-                f"exp_r {avg_exp:.3f} | "
-                f"fmt_ok {fmt_ok}/{G} | "
-                f"pg_loss {loss_accum.item():.4f} | "
-                f"val_loss {value_loss_accum.item():.4f}"
+                f"lr {current_lr:.2e} | "
+                f"avg_r {avg_reward:.3f} | "
+                f"step {avg_step:.2f} mcp {avg_mcp:.2f} exp {avg_exp:.2f} | "
+                f"fmt {fmt_ok}/{G} | "
+                f"kl {total_kl_accum/G:.3f} | "
+                f"pg_loss {loss_accum.item():.3f} vloss {value_loss_accum.item():.3f}"
             )
 
-        # ── 10. Checkpoint every 200 steps ────────────────────────────────────
+        # ── 9. Checkpoint every 200 steps ────────────────────────────────────
         if step % 200 == 0:
             ckpt_path = os.path.join(STAGE3_ADAPTER_DIR, f"step_{step}")
             policy.save_pretrained(ckpt_path)
@@ -716,33 +831,30 @@ def main():
     torch.save(adapter.state_dict(), os.path.join(STAGE3_ADAPTER_DIR, "graph_adapter.pt"))
     torch.save(value_head.state_dict(), os.path.join(STAGE3_ADAPTER_DIR, "value_head.pt"))
     tokenizer.save_pretrained(STAGE3_ADAPTER_DIR)
-    print(f"\nStage 3 GRPO complete. Policy saved to {STAGE3_ADAPTER_DIR}")
-    
+    print(f"\n[Stage 3] GRPO complete. Policy saved to {STAGE3_ADAPTER_DIR}")
+
     # ── Evaluate on test set and save CSV ─────────────────────────────────────
     print("\n[Stage 3] Evaluating on test set...")
     test_examples = load_from_input_json(INPUT_TEST_JSON, "test")
-    
+
+    # Final data leakage check
+    test_machines_final = set(e["machine"] for e in test_examples)
+    overlap = train_machines & test_machines_final
+    if not overlap:
+        print("[Stage 3] ✓ Confirmed: NO machine overlap between train & test")
+
     normalizer = StepLabelNormalizer()
     csv_rows = []
     _obj_parser = build_obj_parser()
-    
+
     policy.eval()
     adapter.eval()
-    
+
     with torch.no_grad():
         for ex in test_examples:
-            gold = {
-                "step_label": ex["step_label"],
-                "mcp_labels": ex["mcp_labels"],
-                "gold_step_explanation": ex["gold_step_explanation"],
-            }
-            
-            # Build graph prefix
             prefix_embeds = build_prefix_embeds(
                 ex["graph"], graph_encoder, adapter, embed_layer, device, dtype
             )
-            
-            # Build prompt embeddings
             user_prompt = build_prompt(ex)
             full_prompt = (
                 f"<|system|>\n{SYSTEM_PROMPT}\n"
@@ -752,58 +864,59 @@ def main():
             prompt_embeds, L_prefix_plus_prompt = build_prompt_embeds(
                 full_prompt, tokenizer, embed_layer, prefix_embeds, device, dtype
             )
-
             attn_prompt = torch.ones(1, L_prefix_plus_prompt, dtype=torch.long, device=device)
 
-            # Generate single completion
             gen_out = policy.generate(
                 inputs_embeds=prompt_embeds,
                 attention_mask=attn_prompt,
-                max_new_tokens=500,
+                max_new_tokens=600,
                 do_sample=False,
                 pad_token_id=tokenizer.pad_token_id,
                 eos_token_id=tokenizer.eos_token_id,
-                repetition_penalty=1.1,
+                repetition_penalty=1.05,
+                no_repeat_ngram_size=4,
             )
 
-            # Decode generated text
-            completion_ids = gen_out[:, L_prefix_plus_prompt:]
+            completion_ids = gen_out[:, :]
+            if gen_out.shape[1] > L_prefix_plus_prompt:
+                completion_ids = gen_out[:, L_prefix_plus_prompt:]
             completion_text = tokenizer.decode(completion_ids[0], skip_special_tokens=True).strip()
 
-            # Parse generated text
             obj = _obj_parser(completion_text, normalizer)
-            
-            # Extract step prediction
+
             pred_step_raw = obj.get("New step", "")
             pred_step_norm = normalizer.normalize(pred_step_raw) if pred_step_raw else None
-            
-            # Try multiple fallback strategies for step prediction
             pred_step_label = "UNPARSEABLE"
             if pred_step_norm and pred_step_norm in STEP_LABELS:
                 pred_step_label = pred_step_norm
             elif pred_step_raw:
-                # Try direct match
                 if pred_step_raw in STEP_LABELS:
                     pred_step_label = pred_step_raw
                 else:
-                    # Try fuzzy match - find closest label
                     import difflib
-                    closest_match = difflib.get_close_matches(pred_step_raw, STEP_LABELS, n=1, cutoff=0.6)
-                    if closest_match:
-                        pred_step_label = closest_match[0]
-            
+                    closest = difflib.get_close_matches(pred_step_raw, STEP_LABELS, n=1, cutoff=0.6)
+                    if closest:
+                        pred_step_label = closest[0]
+
             gold_step_label = STEP_LABELS[ex["step_idx"]]
-            
-            # Extract MCP predictions
+
             pred_mcp_keys = list(obj.get("MCP_tasks", {}).keys()) if isinstance(obj.get("MCP_tasks"), dict) else []
             pred_mcp_labels = extract_mcp_labels(str(pred_mcp_keys))
             pred_mcp_tools = "|".join(pred_mcp_labels)
             gold_mcp_tools = "|".join(ex["mcp_labels"])
-            
-            # Extract explanations
+
             pred_expl = str(obj.get("Step explanation", "")).strip()
             gold_expl = ex.get("gold_step_explanation", "")
-            
+
+            # Jaccard for consistency with project metrics
+            step_jaccard = 1.0 if pred_step_label == gold_step_label else 0.0
+            pred_set, gold_set = set(pred_mcp_labels), set(ex["mcp_labels"])
+            if not pred_set and not gold_set:
+                mcp_jaccard = 1.0
+            else:
+                union = pred_set | gold_set
+                mcp_jaccard = len(pred_set & gold_set) / len(union) if union else 0.0
+
             csv_rows.append({
                 "machine": ex.get("machine", ""),
                 "new_strategy": ex["context"].get("New strategy", ""),
@@ -814,13 +927,14 @@ def main():
                 "mcp_tool_gold": gold_mcp_tools,
                 "step_explanation_predicted": pred_expl,
                 "step_explanation_gold": gold_expl,
+                "step_jaccard": step_jaccard,
+                "mcp_jaccard": mcp_jaccard,
             })
-    
-    # Save CSV
+
     output_dir = os.path.join(ROOT, "output")
     os.makedirs(output_dir, exist_ok=True)
     csv_path = os.path.join(output_dir, "stage3.csv")
-    
+
     if csv_rows:
         fieldnames = list(csv_rows[0].keys())
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
@@ -829,6 +943,20 @@ def main():
             writer.writerows(csv_rows)
         print(f"[Stage 3] Evaluation CSV saved to: {csv_path}")
         print(f"[Stage 3] Total test samples evaluated: {len(csv_rows)}")
+
+        step_acc = np.mean([r["step_jaccard"] for r in csv_rows])
+        mcp_jac = np.mean([r["mcp_jaccard"] for r in csv_rows])
+        combined = (step_acc + mcp_jac) / 2.0
+        step_pass = sum(1 for r in csv_rows if r["step_jaccard"] == 1.0)
+        mcp_pass = sum(1 for r in csv_rows if r["mcp_jaccard"] >= 0.5)
+
+        print(f"\n[Stage 3] ═══════════ TEST SET RESULTS ═══════════")
+        print(f"  Step Exact Match     : {step_pass}/{len(csv_rows)}  ({step_acc*100:.2f}%)")
+        print(f"  MCP Jaccard ≥0.5      : {mcp_pass}/{len(csv_rows)}  ({mcp_pass/len(csv_rows)*100:.2f}%)")
+        print(f"  Mean Step Jaccard    : {step_acc:.4f}")
+        print(f"  Mean MCP Jaccard     : {mcp_jac:.4f}")
+        print(f"  Combined (Step+MCP)/2 : {combined:.4f}")
+        print(f"[Stage 3] ═══════════════════════════════════════")
     else:
         print("[Stage 3] Warning: No CSV rows generated")
 
