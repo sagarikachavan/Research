@@ -28,7 +28,7 @@ import re
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import Dataset, DataLoader, Subset
+from torch.utils.data import Dataset, DataLoader, Subset, WeightedRandomSampler
 from transformers import AutoTokenizer, AutoModelForCausalLM, get_cosine_schedule_with_warmup
 from peft import LoraConfig, get_peft_model, PeftModel
 
@@ -57,7 +57,7 @@ if torch.cuda.is_available():
 SYSTEM_PROMPT = (
     "You are an autonomous penetration-testing planning assistant operating "
     "strictly within an authorized lab environment. Given the current "
-    "reconnaissance graph state and the previous/new strategy context, "
+    "reconnaissance graph state and the new strategy context, "
     "choose exactly one next-step type from the fixed taxonomy, exactly one "
     "or more tool(s) from the fixed MCP taxonomy, and explain your reasoning. "
     "IMPORTANT: Your step explanation MUST explicitly mention the chosen step "
@@ -66,20 +66,13 @@ SYSTEM_PROMPT = (
 
 
 def build_prompt(ex: dict) -> str:
+    # Input contract: machine + graph (fed separately via the graph-prefix
+    # adapter) + new_strategy + strategy_explanation ONLY. No previous-step
+    # fields -- see CONTEXT_COLUMNS / EXTRA_OUTPUT_KEYS in data_utils.py and
+    # build_input_json.py for why they were removed.
     ctx = ex["context"]
-    lines = [f"Machine: {ex['machine']}"]
-    # Previous-step fields are "" for the first row of a machine (no prior
-    # step exists yet) -- only include the block when there's something to
-    # show, so the prompt doesn't imply a fabricated empty "previous step".
-    if ctx.get("Previous strategy") or ctx.get("Previous step") or ctx.get("Previous step result"):
-        lines += [
-            f"Previous strategy: {ctx.get('Previous strategy', '')}",
-            f"Previous step: {ctx.get('Previous step', '')}",
-            f"Previous step result: {ctx.get('Previous step result', '')}",
-        ]
-    else:
-        lines.append("Previous strategy/step: (none -- this is the first step for this machine)")
-    lines += [
+    lines = [
+        f"Machine: {ex['machine']}",
         f"New strategy: {ctx['New strategy']}",
         f"Strategy explanation: {ctx['Strategy explanation']}",
     ]
@@ -511,14 +504,38 @@ def main():
     train_ds = SFTDataset(train_examples, tokenizer)
     val_ds   = SFTDataset(val_examples,   tokenizer)
 
-    make_loader = lambda ds, shuffle: DataLoader(
+    # ── Class-balanced sampling for training ──────────────────────────────
+    # step_label support is heavily skewed (e.g. "Exploit the selected
+    # exploitations" ~92 vs "Analyze the outcomes..." ~3 in the eval split;
+    # training data is similarly skewed). Plain shuffle=True lets the model
+    # minimize token-level loss mostly by getting good at the majority
+    # class, which is consistent with the low recall on rare classes (e.g.
+    # "Do a google search for more information" recall 0.05). Stage 1's GNN
+    # avoids this via focal loss + explicit class weights (see
+    # graph_encoder.Stage1Classifier.loss); Stage 2/3 are next-token SFT so
+    # the equivalent lever is a weighted *sampler* — inverse-frequency
+    # per-example weights so every step class is seen roughly equally often
+    # per epoch, without discarding any majority-class examples.
+    train_step_idxs = [e["step_idx"] for e in train_examples]
+    step_counts = np.bincount(train_step_idxs, minlength=len(STEP_LABELS)).astype(np.float64)
+    step_counts[step_counts == 0] = 1.0  # guard against unseen classes in this split
+    inv_freq = 1.0 / step_counts
+    sample_weights = np.array([inv_freq[i] for i in train_step_idxs], dtype=np.float64)
+    train_sampler = WeightedRandomSampler(
+        weights=torch.as_tensor(sample_weights, dtype=torch.double),
+        num_samples=len(train_examples),
+        replacement=True,
+    )
+
+    make_loader = lambda ds, shuffle, sampler=None: DataLoader(
         ds,
         batch_size=STAGE2_BATCH_SIZE,
-        shuffle=shuffle,
+        shuffle=shuffle if sampler is None else False,
+        sampler=sampler,
         collate_fn=lambda b: collate_fn(b, tokenizer.pad_token_id),
         drop_last=False,
     )
-    train_loader = make_loader(train_ds, shuffle=True)
+    train_loader = make_loader(train_ds, shuffle=False, sampler=train_sampler)
     val_loader   = make_loader(val_ds,   shuffle=False)
 
     # ── Optimizer + scheduler ─────────────────────────────────────────────────

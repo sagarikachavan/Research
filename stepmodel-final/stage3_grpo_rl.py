@@ -622,6 +622,18 @@ def main():
     print(f"[Stage 3] RL training on {len(examples)} examples, "
           f"{len(train_machines)} machines (excluded {len(val_machine_set)} val machines)")
 
+    # Class-balanced example sampling — same rationale as Stage 2's
+    # WeightedRandomSampler (see stage2_sft_qwen.py): step_label support is
+    # heavily skewed, and uniform random.choice() over `examples` means the
+    # policy sees the majority class ("Exploit the selected exploitations")
+    # far more often than rare ones, which biases what GRPO has gradient
+    # signal to improve. Precompute inverse-frequency sampling weights once.
+    example_step_idxs = [e["step_idx"] for e in examples]
+    example_step_counts = np.bincount(example_step_idxs, minlength=len(STEP_LABELS)).astype(np.float64)
+    example_step_counts[example_step_counts == 0] = 1.0
+    example_inv_freq = 1.0 / example_step_counts
+    example_sample_weights = [example_inv_freq[i] for i in example_step_idxs]
+
     # ── Load test data just for data leakage pre-check ──────────────────────
     test_examples_precheck = load_from_input_json(INPUT_TEST_JSON, "test")
     test_machines = set(e["machine"] for e in test_examples_precheck)
@@ -652,8 +664,8 @@ def main():
 
     for step in range(1, STAGE3_STEPS + 1):
 
-        # ── 1. Sample one training example ───────────────────────────────────
-        ex = random.choice(examples)
+        # ── 1. Sample one training example (class-balanced) ───────────────────
+        ex = random.choices(examples, weights=example_sample_weights, k=1)[0]
         gold = {
             "step_label":             ex["step_label"],
             "mcp_labels":             ex["mcp_labels"],

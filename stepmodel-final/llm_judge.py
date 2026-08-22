@@ -185,11 +185,21 @@ def _save_cache(key: str, payload: dict) -> None:
 # ---------------------------------------------------------------------------
 
 def _extract_json_block(text: str) -> Optional[str]:
+    # Strip any thinking block first — even with enable_thinking=False some
+    # tokenizer/model combos still emit a stray <think>...</think> (e.g. if
+    # it was left open across the max_new_tokens budget on an earlier bug).
+    text = re.sub(r"<think>.*?</think>", "", text, flags=re.DOTALL)
+    text = re.sub(r"^.*?</think>", "", text, flags=re.DOTALL)  # unterminated leading think block
+
     if "```json" in text:
         return text.split("```json", 1)[1].split("```", 1)[0].strip()
     if "```" in text:
         return text.split("```", 1)[1].split("```", 1)[0].strip()
-    # last resort: grab the first {...} block
+    # last resort: grab the LAST {...} block (prefer the final answer over
+    # any JSON-shaped example the model may have echoed while reasoning)
+    matches = list(re.finditer(r"\{[^{}]*\}", text, re.DOTALL))
+    if matches:
+        return matches[-1].group()
     start = text.find("{")
     end = text.rfind("}")
     if start != -1 and end != -1 and end > start:
@@ -226,19 +236,51 @@ def _score_from_rubric(rubric: Dict[str, int]) -> float:
 
 
 def _run_judge_generation(user_prompt: str) -> str:
+    """
+    BUG FIX: this used to tokenize `user_prompt` as raw text and hand it
+    straight to `.generate()` — i.e. plain next-token completion on an
+    instruction-tuned/chat model, with no chat template at all. The judge
+    model here (Qwen3) is a *thinking* model: without the chat template
+    telling it that thinking is off, or without the special tokens that
+    mark the assistant turn, it doesn't reliably follow "respond with ONLY
+    this JSON" — it either free-associates past the "ground truth"/"context"
+    text in the raw prompt, or (worse) emits a `<think>...</think>` block
+    that alone can eat the whole 200-token budget, leaving zero JSON tokens
+    generated. That is the direct cause of the near-100% judge parse-failure
+    rate seen in eval logs (264/268 and 262/268 unparseable).
+    Fix: build a proper chat-formatted prompt via apply_chat_template, with
+    thinking explicitly disabled (enable_thinking=False) so the model goes
+    straight to the JSON answer, and give it a larger token budget as a
+    safety margin in case a particular tokenizer/model combo still emits a
+    short thinking preamble despite the flag.
+    """
+    messages = [
+        {"role": "system", "content": "Respond with ONLY the requested JSON object. Do not think out loud, do not use <think> tags, do not add commentary."},
+        {"role": "user", "content": user_prompt},
+    ]
+    try:
+        chat_text = _llm_judge_tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True, enable_thinking=False,
+        )
+    except TypeError:
+        # tokenizer's template doesn't accept enable_thinking (non-Qwen3 model)
+        chat_text = _llm_judge_tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True,
+        )
+
     inputs = _llm_judge_tokenizer(
-        user_prompt, return_tensors="pt", truncation=True, max_length=768
+        chat_text, return_tensors="pt", truncation=True, max_length=1536, add_special_tokens=False,
     ).to(_llm_judge_device)
     with torch.no_grad():
         outputs = _llm_judge_model.generate(
             **inputs,
-            max_new_tokens=200,
+            max_new_tokens=500,  # headroom for an occasional thinking preamble + the JSON itself
             do_sample=False,   # greedy — no sampling randomness
             num_beams=1,
             temperature=None,
             top_p=None,
             top_k=None,
-            pad_token_id=_llm_judge_tokenizer.pad_token_id,
+            pad_token_id=_llm_judge_tokenizer.pad_token_id or _llm_judge_tokenizer.eos_token_id,
         )
     return _llm_judge_tokenizer.decode(
         outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True

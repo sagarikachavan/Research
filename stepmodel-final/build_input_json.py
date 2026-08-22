@@ -75,16 +75,16 @@ CSV_TO_OUTPUT = {
     "MCP_tasks": "gold_mcp_tasks",
 }
 
-# Synthesized "what happened last turn" context fields. These are NOT read
-# from a CSV column -- they're carried forward from the SAME machine's PRIOR
-# row in _collect_rows() below. This intentionally revives the idea behind
-# an earlier "Previous strategy"/"Previous step"/"Previous step result"
-# context (removed from this codebase because it leaked: it had been
-# populated with the CURRENT row's own new_strategy/gold_new_step/
-# gold_step_explanation, i.e. the label predicting itself). Done correctly,
-# this is legitimate sequential context -- the actual previous step for that
-# machine -- and carries no information about the current row's own label.
-EXTRA_OUTPUT_KEYS = ["previous_strategy", "previous_step", "previous_step_result"]
+# INPUT CONTRACT: each record's model input is machine + graph +
+# new_strategy + strategy_explanation ONLY. No other fields are carried
+# into the model input. (A previous version of this file also carried
+# forward "previous_strategy"/"previous_step"/"previous_step_result" from
+# the same machine's prior row -- removed: it wasn't part of the requested
+# input schema, and "previous_step" duplicated the gold "New step" label
+# text of the prior row, letting the model partly solve step classification
+# by copying step-to-step transition frequency instead of reasoning over
+# the graph + strategy.)
+EXTRA_OUTPUT_KEYS = []
 
 
 def safe_str(value):
@@ -100,10 +100,6 @@ def _collect_rows(csv_path: pathlib.Path, limit=None):
 
     rows, skipped_rows = [], []
     machine_row_counter = {}
-    # Most recently seen (new_strategy, gold_new_step, gold_step_explanation)
-    # per machine, used to populate the NEXT row's previous_* context. Never
-    # read from within the same iteration that produces a row's own labels.
-    machine_last_step = {}
 
     for csv_row_idx, row in df.iterrows():
         machine = safe_str(row.get("Machine", ""))
@@ -121,28 +117,15 @@ def _collect_rows(csv_path: pathlib.Path, limit=None):
         row_num = machine_row_counter.get(machine, 0)
         machine_row_counter[machine] = row_num + 1
 
-        prev = machine_last_step.get(machine)
         entry = {
             "machine": machine,
             "row_index": row_num,
             "ptt_text": row.get("PTT", ""),
             "csv_row_index": int(csv_row_idx),
-            "previous_strategy":     prev["new_strategy"] if prev else "",
-            "previous_step":         prev["gold_new_step"] if prev else "",
-            "previous_step_result":  prev["gold_step_explanation"] if prev else "",
         }
         for csv_col, out_key in CSV_TO_OUTPUT.items():
             entry[out_key] = safe_str(row.get(csv_col, ""))
         rows.append(entry)
-
-        # This row's own labels become the "previous" context for the NEXT
-        # row of the same machine -- recorded only after entry is built, so
-        # it can never leak into the row that produced it.
-        machine_last_step[machine] = {
-            "new_strategy":         entry["new_strategy"],
-            "gold_new_step":        entry["gold_new_step"],
-            "gold_step_explanation": entry["gold_step_explanation"],
-        }
 
     return rows, skipped_rows
 

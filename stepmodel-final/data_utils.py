@@ -32,10 +32,16 @@ from config import (
     INPUT_TRAIN_JSON, INPUT_TEST_JSON,
 )
 
+# INPUT CONTRACT: the model input is machine + graph + new_strategy +
+# strategy_explanation ONLY. No "previous step" fields -- those used to be
+# carried forward from the same machine's prior CSV row and fed into every
+# stage, which (a) is not part of the requested input schema, and (b) is a
+# soft label leak: "previous_step" is literally the gold "New step" label
+# text of the immediately preceding row for that machine, drawn from the
+# same STEP_LABELS taxonomy as the thing being predicted, so a model can
+# partly solve step classification by pattern-matching step-to-step
+# transition frequency instead of reasoning over the graph + strategy.
 CONTEXT_COLUMNS = [
-    "Previous strategy",
-    "Previous step",
-    "Previous step result",
     "New strategy",
     "Strategy explanation",
 ]
@@ -401,19 +407,12 @@ def load_from_input_json(json_path: str, split: str = "train"):
         gold_new_step = record.get("gold_new_step", record.get("Gold New step", ""))
         gold_step_explanation = record.get("gold_step_explanation", record.get("Gold Step explanation", ""))
 
-        # Legitimate sequential context: the machine's own PRIOR row, as
-        # populated by build_input_json.py's _collect_rows(). Falls back to
-        # "" for records built before this field existed (old train.json/
-        # test.json) so this loader stays backward-compatible -- just means
-        # those records train with no previous-step signal, not a crash.
-        previous_strategy    = record.get("previous_strategy", "")
-        previous_step        = record.get("previous_step", "")
-        previous_step_result = record.get("previous_step_result", "")
-
+        # Input contract: machine + graph + new_strategy + strategy_explanation
+        # ONLY. Any "previous_*" keys that may still be present in older
+        # input/train.json or input/test.json files (from a prior version of
+        # build_input_json.py) are intentionally ignored here -- they are not
+        # part of the model input.
         context = {
-            "Previous strategy":    previous_strategy,
-            "Previous step":        previous_step,
-            "Previous step result": previous_step_result,
             "New strategy":         new_strategy,
             "Strategy explanation": strategy_explanation,
         }
