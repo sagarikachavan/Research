@@ -368,7 +368,22 @@ def main():
         current_lr = sched.get_last_lr()[0]
         val_metrics = evaluate(model, val_loader, device)
         train_losses.append(total_loss / n_batches)
-        val_score = val_metrics["step_macro_f1"] + val_metrics["mcp_micro_f1"]
+        # ── FIX: selection objective now matches the actual target metric ──
+        # This used to be `step_macro_f1 + mcp_micro_f1`, which is NOT what
+        # gets reported as "Combined Score" at test time (that's
+        # `step_accuracy*0.5 + mcp_micro_f1*0.5`). Early stopping, best-
+        # checkpoint selection, and SWA candidate averaging were all
+        # therefore optimizing a different objective than the one being
+        # targeted (85-90% step accuracy / 70-80% MCP). Aligning the
+        # selection score with the reported/target metric so "best epoch"
+        # actually means best-for-what-we-care-about. step_macro_f1 is kept
+        # as a small tiebreaker so we don't select a checkpoint that gamed
+        # accuracy by ignoring rare classes entirely.
+        val_score = (
+            0.45 * val_metrics["step_accuracy"]
+            + 0.45 * val_metrics["mcp_micro_f1"]
+            + 0.10 * val_metrics["step_macro_f1"]
+        )
         val_scores.append(val_score)
 
         print(
@@ -423,7 +438,13 @@ def main():
     swa_model = Stage1Classifier().to(device)
     swa_model.load_state_dict(swa_state)
     swa_val_metrics = evaluate(swa_model, val_loader, device)
-    swa_val_score = swa_val_metrics["step_macro_f1"] + swa_val_metrics["mcp_micro_f1"]
+    # ── FIX: use the same aligned scoring formula as training-time selection
+    # (was step_macro_f1 + mcp_micro_f1, inconsistent with the fix above) ──
+    swa_val_score = (
+        0.45 * swa_val_metrics["step_accuracy"]
+        + 0.45 * swa_val_metrics["mcp_micro_f1"]
+        + 0.10 * swa_val_metrics["step_macro_f1"]
+    )
 
     print(f"[Stage 1] SWA val score: {swa_val_score:.4f}  (single-best val score: {best_f1:.4f})")
 

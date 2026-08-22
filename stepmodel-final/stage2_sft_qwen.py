@@ -646,7 +646,25 @@ def main():
     )
     
     # Load best model
-    model = PeftModel.from_pretrained(base_model, STAGE2_ADAPTER_DIR)
+    # ── FIX: load the saved adapter onto a FRESH base model, not `base_model` ──
+    # `base_model` above was already wrapped in-place by get_peft_model() and
+    # trained all the way to the early-stopping epoch (epoch 6 in the observed
+    # run), not the best epoch (epoch 3) that was actually saved to disk.
+    # Calling PeftModel.from_pretrained(base_model, ...) on that already-
+    # wrapped, already-trained object is what produced the
+    # "Already found a peft_config attribute in the model... multiple
+    # adapters" warning -- it stacks a second adapter on top of the
+    # in-memory (overfit, wrong-epoch) weights instead of cleanly giving you
+    # just the best-epoch checkpoint. Reloading a clean base model guarantees
+    # eval actually reflects the saved best checkpoint and nothing else.
+    del model
+    del base_model
+    if device == "cuda" or (hasattr(device, "type") and device.type == "cuda"):
+        torch.cuda.empty_cache()
+    eval_base_model = AutoModelForCausalLM.from_pretrained(
+        QWEN_MODEL_NAME, torch_dtype=dtype, device_map=None
+    ).to(device)
+    model = PeftModel.from_pretrained(eval_base_model, STAGE2_ADAPTER_DIR)
     adapter.load_state_dict(torch.load(os.path.join(STAGE2_ADAPTER_DIR, "graph_adapter.pt"), map_location=device))
     model.eval()
     adapter.eval()
@@ -685,9 +703,18 @@ def main():
                 pad_token_id=tokenizer.pad_token_id,
             )
             
-            # Decode generated text (skip prefix tokens)
-            generated_ids = outputs[:, n_prefix:]
-            generated_texts = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)
+            # ── FIX: outputs already contains ONLY the newly generated tokens ──
+            # When model.generate() is called with ONLY inputs_embeds (no
+            # input_ids), HF has no token-ID representation of the prompt/prefix
+            # to prepend to the returned sequence, so `outputs` IS the
+            # completion -- there is nothing to slice off. The previous
+            # `outputs[:, n_prefix:]` chopped off the first n_prefix (16)
+            # tokens of the actual generated response (where the opening
+            # `{"New step": ...` JSON almost always lives), which is why the
+            # eval below was calling nearly every row "UNPARSEABLE". This is
+            # the same bug already identified and fixed in stage3_grpo_rl.py
+            # (see the header comment there) -- ported the fix here.
+            generated_texts = tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
             obj_parser = build_obj_parser()
 
