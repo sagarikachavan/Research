@@ -133,7 +133,15 @@ STAGE2_WARMUP_RATIO = 0.08
 STAGE2_WEIGHT_DECAY = 1e-4       # Added weight decay for regularization
 
 STAGE3_GROUP_SIZE = 16           # number of samples per prompt for GRPO (increased from 2 for better gradient estimation)
-STAGE3_LR = 5e-7                 # Slightly reduced for stability with better Stage 2 init
+# LR was 5e-7. That was chased down to compensate for a double-baseline bug in
+# the advantage calc (see stage3_grpo_rl.py "Compute advantages" section) that
+# was pinning `advantages` at the +-4.0 clamp on most steps -- i.e. instability
+# from a bug, not from LR being genuinely too high. With that fixed, 5e-7 is
+# too low to move a LoRA policy meaningfully in 625 optimizer updates (2500
+# steps / grad_accum=4) before CosineAnnealingLR decays it to ~0. Raised 6x;
+# re-tune from here (watch kl and clip_frac -- if kl grows past ~0.1-0.2 or
+# clip_frac stays high, come back down).
+STAGE3_LR = 3e-6
 STAGE3_STEPS = 2500              # Increased for better convergence
 STAGE3_KL_COEF = 0.015           # Slightly increased KL for better stability
 STAGE3_PPO_CLIP = 0.18           # Tighter clipping for more stable updates

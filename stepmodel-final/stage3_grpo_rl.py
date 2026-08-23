@@ -292,11 +292,20 @@ def compute_reward_curriculum(completion: str, gold: dict, step_num: int,
         step_num: Current training step number
         total_steps: Total training steps (default 2000)
     """
-    # Curriculum learning: adjust weights based on training stage
-    if step_num < 500:
+    # Curriculum learning: adjust weights based on training stage.
+    # BUG FIX: the breakpoints used to be hardcoded at absolute step counts
+    # (500 / 1000) while ignoring the `total_steps` argument entirely, so
+    # a STAGE3_STEPS=2500 run spent a shrinking, no-longer-intentional
+    # fraction of training in each phase (20% early / 20% mid / 60% late)
+    # versus whatever fraction was actually intended when those constants
+    # were picked. Scale the breakpoints by total_steps so the curriculum's
+    # early/mid/late proportions (20%/20%/60%) hold regardless of run length.
+    early_cutoff = 0.20 * total_steps
+    mid_cutoff   = 0.40 * total_steps
+    if step_num < early_cutoff:
         # Early: focus on format and step
         w_fmt, w_step, w_mcp, w_exp = 0.3, 0.5, 0.1, 0.1
-    elif step_num < 1000:
+    elif step_num < mid_cutoff:
         # Mid: add MCP
         w_fmt, w_step, w_mcp, w_exp = 0.2, 0.3, 0.3, 0.2
     else:
@@ -628,10 +637,14 @@ def main():
     # policy sees the majority class ("Exploit the selected exploitations")
     # far more often than rare ones, which biases what GRPO has gradient
     # signal to improve. Precompute inverse-frequency sampling weights once.
+    # Same gentler sqrt + capped-ratio reweighting as Stage 2 (see
+    # stage2_sft_qwen.py) -- raw 1/count overshot and flipped the imbalance
+    # rather than correcting it.
     example_step_idxs = [e["step_idx"] for e in examples]
     example_step_counts = np.bincount(example_step_idxs, minlength=len(STEP_LABELS)).astype(np.float64)
     example_step_counts[example_step_counts == 0] = 1.0
-    example_inv_freq = 1.0 / example_step_counts
+    example_inv_freq = 1.0 / np.sqrt(example_step_counts)
+    example_inv_freq = np.clip(example_inv_freq, example_inv_freq.max() / 4.0, example_inv_freq.max())
     example_sample_weights = [example_inv_freq[i] for i in example_step_idxs]
 
     # ── Load test data just for data leakage pre-check ──────────────────────
@@ -744,26 +757,40 @@ def main():
         rewards = torch.tensor(rewards_np, dtype=torch.float32, device=device)
 
         # ── 5. Compute advantages (group-relative, GRPO-style) ────────────────
-        # Standard GRPO: advantages = (rewards - mean) / std
-        # Enhanced with value function baseline for lower variance
+        # BUG FIX: this used to compute the standard GRPO group-relative
+        # advantage (rewards - mean) / std -- which is *already* a properly
+        # normalized, roughly unit-variance quantity by construction (that's
+        # the whole point of GRPO: the group itself is the baseline, no
+        # critic needed) -- and then subtract a SECOND baseline term
+        # ((value_head output) - mean) / std on top of it. Stacking two
+        # baselines like that double-counts the normalization and routinely
+        # pushed `advantages` several std devs past the +-4.0 clamp, which
+        # is visible directly in the training log: pg_loss lands on almost
+        # exactly the same value (-4.719 = -4.0 * (1+clip_eps)) at steps 50,
+        # 200, 600, 800, 1650, 1900, 2000, 2200... regardless of how avg_r or
+        # kl vary at those steps. That constant value is what
+        # `-adv_clamped * clamped_ratio` evaluates to once `adv` is pinned at
+        # the clamp boundary -- i.e. most updates were being driven by the
+        # clamp constant, not by the actual per-sample reward signal, which
+        # is consistent with Stage 3 ending up statistically indistinguishable
+        # from (or slightly worse than) the Stage 2 SFT checkpoint it started
+        # from. Fix: use the plain GRPO group-relative advantage; the value
+        # head is still trained below (as a monitoring/critic signal you can
+        # inspect) but no longer feeds into the policy advantage.
+        mean_r = rewards.mean()
+        std_r = rewards.std()
+        if std_r < 1e-6:
+            advantages = torch.zeros_like(rewards)
+        else:
+            advantages = (rewards - mean_r) / std_r
+        advantages = torch.clamp(advantages, -4.0, 4.0)
+
         with torch.no_grad():
             v_in = {"inputs_embeds": prompt_embeds.detach(),
                     "attention_mask": attn_prompt.detach(),
                     "output_hidden_states": True}
             v_out = policy(**v_in)
             baseline_v = value_head(v_out.hidden_states[-1]).squeeze().detach()
-
-        # Use group-relative advantages (GRPO) + subtract baseline for variance reduction
-        mean_r = rewards.mean()
-        std_r = rewards.std()
-        if std_r < 1e-6:
-            grpo_adv = torch.zeros_like(rewards)
-        else:
-            grpo_adv = (rewards - mean_r) / std_r
-
-        # Subtract value baseline for even lower variance
-        advantages = grpo_adv - (baseline_v - mean_r.detach()) / (std_r + 1e-6)
-        advantages = torch.clamp(advantages, -4.0, 4.0)
 
         # ── 6. PPO-clipped GRPO policy loss + KL penalty ─────────────────────
         policy.train()

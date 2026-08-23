@@ -516,10 +516,23 @@ def main():
     # the equivalent lever is a weighted *sampler* — inverse-frequency
     # per-example weights so every step class is seen roughly equally often
     # per epoch, without discarding any majority-class examples.
+    # NOTE: a plain 1/count inverse-frequency weight is TOO aggressive here —
+    # with e.g. "Exploit the selected exploitations" at ~90+ examples vs
+    # "Analyze the outcomes..." at ~3, raw inverse frequency gives the rare
+    # class ~30x the sampling weight of the majority class per epoch. That
+    # overshoots: the model starts over-predicting the formerly-rare classes
+    # (e.g. "Do a google search" recall going to 100% but precision crashing
+    # to ~34%) while the majority class's own recall collapses (85% -> 38%).
+    # sqrt(1/count) is the standard, much gentler correction (used e.g. in
+    # class-balanced loss / effective-number weighting): it upweights rare
+    # classes without inverting the imbalance. Additionally clip the
+    # weight ratio to a max of 4x the smallest per-class weight so no single
+    # class can dominate or vanish from a batch.
     train_step_idxs = [e["step_idx"] for e in train_examples]
     step_counts = np.bincount(train_step_idxs, minlength=len(STEP_LABELS)).astype(np.float64)
     step_counts[step_counts == 0] = 1.0  # guard against unseen classes in this split
-    inv_freq = 1.0 / step_counts
+    inv_freq = 1.0 / np.sqrt(step_counts)
+    inv_freq = np.clip(inv_freq, inv_freq.max() / 4.0, inv_freq.max())
     sample_weights = np.array([inv_freq[i] for i in train_step_idxs], dtype=np.float64)
     train_sampler = WeightedRandomSampler(
         weights=torch.as_tensor(sample_weights, dtype=torch.double),
