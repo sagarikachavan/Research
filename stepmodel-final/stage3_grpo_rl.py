@@ -283,6 +283,47 @@ def _parse_completion(text: str) -> dict | None:
 _step_normalizer = StepLabelNormalizer()
 
 
+_MCP_WEIGHT_CACHE = None
+
+
+def _mcp_label_weights() -> dict:
+    """
+    Inverse-sqrt-frequency weights per MCP_LABELS, computed once from
+    INPUT_TRAIN_JSON's gold_mcp_tasks and cached for the process lifetime.
+
+    sqrt (not plain inverse-frequency) so a label with 10x fewer examples
+    gets ~3x the weight, not 10x -- plain inverse-frequency over-corrects
+    on a dataset this small (Netcat=14 vs Interactive CLI=152 support would
+    otherwise imply an ~11x weight, which can make the reward gradient
+    dominated by a handful of rare-tool examples and destabilize GRPO's
+    group-relative advantage estimate). Weights are normalized to mean 1.0
+    so the *overall scale* of w_mcp in compute_reward is unaffected --
+    only the relative balance across labels shifts.
+
+    Falls back to uniform weights (all 1.0) if the training file can't be
+    read, so this never hard-fails a training run.
+    """
+    global _MCP_WEIGHT_CACHE
+    if _MCP_WEIGHT_CACHE is not None:
+        return _MCP_WEIGHT_CACHE
+    counts = {l: 0 for l in MCP_LABELS}
+    try:
+        rows = load_from_input_json(INPUT_TRAIN_JSON)
+        for row in rows:
+            for l in extract_mcp_labels(str(row.get("gold_mcp_tasks", ""))):
+                if l in counts:
+                    counts[l] += 1
+    except Exception:
+        pass
+    if sum(counts.values()) == 0:
+        _MCP_WEIGHT_CACHE = {l: 1.0 for l in MCP_LABELS}
+        return _MCP_WEIGHT_CACHE
+    raw = {l: 1.0 / np.sqrt(c + 1.0) for l, c in counts.items()}
+    mean_w = sum(raw.values()) / len(raw)
+    _MCP_WEIGHT_CACHE = {l: v / mean_w for l, v in raw.items()}
+    return _MCP_WEIGHT_CACHE
+
+
 def compute_reward_curriculum(completion: str, gold: dict, step_num: int,
                               total_steps: int = 2000) -> float:
     """
@@ -384,7 +425,7 @@ def compute_reward(completion: str, gold: dict,
         step_sim = max(0.0, float(np.dot(step_embs[0], step_embs[1])))
         step_r = 0.3 * step_sim  # shaped partial credit, capped well below exact match
 
-    # ── MCP set F1 ────────────────────────────────────────────────────────────
+    # ── MCP set F1 (rarity-weighted) ────────────────────────────────────────
     # FIX: previously this did `set(mcp_val.keys()) & set(MCP_LABELS)`, a
     # case-/whitespace-sensitive exact intersection -- a generated key like
     # "smb client" (lowercase) or "Smb Client " (trailing space) silently
@@ -392,18 +433,38 @@ def compute_reward(completion: str, gold: dict,
     # predicted keys through the same extract_mcp_labels() canonicalizer
     # used to build the gold training labels, so casing/formatting drift
     # in the LLM's own output no longer costs reward.
+    #
+    # RARITY WEIGHTING (new): plain set-F1 is a *micro* statistic -- every
+    # true positive counts the same regardless of label, so a policy can
+    # already score well by nailing "Interactive CLI" (support 152) and
+    # "Nmap" (support 28) while never predicting "Netcat"/"hydra"/"SQLmap"
+    # (support 3-14). That is exactly the failure mode visible across all
+    # three eval runs (Netcat recall 0.07-0.21, hydra 0.0-0.33, SQLmap
+    # 0.0-0.71) -- the reward the policy was chasing under-weighted the
+    # rare tools relative to how eval.py's macro-F1/per-label report scores
+    # them. Re-weighting each gold/predicted label by inverse training
+    # frequency (computed once from INPUT_TRAIN_JSON, cached at import
+    # time) makes a missed "hydra" cost the policy roughly as much reward
+    # as a missed "Interactive CLI", pulling the optimized signal toward
+    # macro-F1 rather than micro-F1.
     mcp_val = obj.get("MCP_tasks", {})
     if isinstance(mcp_val, dict) and mcp_val:
         pred_mcp = set(extract_mcp_labels(str(mcp_val)))
     else:
         pred_mcp = set()
     gold_mcp = set(gold["mcp_labels"])
+    w = _mcp_label_weights()
     if not pred_mcp and not gold_mcp:
         mcp_r = 1.0
     else:
-        inter = len(pred_mcp & gold_mcp)
-        prec  = inter / len(pred_mcp) if pred_mcp else 0.0
-        rec   = inter / len(gold_mcp) if gold_mcp else 0.0
+        tp = pred_mcp & gold_mcp
+        fp = pred_mcp - gold_mcp
+        fn = gold_mcp - pred_mcp
+        w_tp = sum(w[l] for l in tp)
+        w_fp = sum(w[l] for l in fp)
+        w_fn = sum(w[l] for l in fn)
+        prec = w_tp / (w_tp + w_fp) if (w_tp + w_fp) > 0 else 0.0
+        rec  = w_tp / (w_tp + w_fn) if (w_tp + w_fn) > 0 else 0.0
         mcp_r = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
 
     # ── Explanation LLM Judge ─────────────────────────────────────────────────
@@ -442,19 +503,32 @@ def compute_reward(completion: str, gold: dict,
 # Embedding helpers
 # ---------------------------------------------------------------------------
 
-def build_prefix_embeds(graph, graph_encoder, adapter, embed_layer, device, dtype):
+def build_prefix_embeds(graph, field_embs, stage1, adapter, embed_layer, device, dtype):
     """
-    Given a single torch_geometric Data object, produce the (1, n_tokens, H)
-    soft-prompt prefix that gets prepended to every prompt/completion.
+    Given a single torch_geometric Data object + its context field
+    embeddings, produce the (1, n_tokens, H) soft-prompt prefix that gets
+    prepended to every prompt/completion.
 
-    graph_encoder and adapter must already be on device.
+    FIX: this previously ran graph_encoder ALONE (no context/strategy-text
+    fusion at all -- not even the crude blend Stage 2 used), so the
+    GraphPrefixAdapter loaded from the Stage-2 checkpoint (which WAS
+    trained on a graph+context representation) was fed an out-of-
+    distribution input throughout RL. Now calls
+    stage1.encode_and_predict(...) -- the same fused representation Stage
+    2 now trains against (see stage2_sft_qwen.py / graph_encoder.py) -- so
+    GRPO fine-tunes the adapter starting from the distribution it was
+    actually initialized on.
+
+    stage1 and adapter must already be on device.
     """
-    # Wrap single graph in a batch of size 1
     batch = PyGBatch.from_data_list([graph]).to(device)
+    field_embs = field_embs.to(device)
     with torch.no_grad():
         edge_attr = getattr(batch, 'edge_attr', None)
-        graph_emb = graph_encoder(batch.x, batch.edge_index, batch.batch, edge_attr=edge_attr)  # (1, GNN_OUT_DIM)
-    prefix = adapter(graph_emb.to(dtype))  # (1, n_tokens, H)
+        combined_emb, _, _ = stage1.encode_and_predict(
+            batch.x, batch.edge_index, batch.batch, field_embs, edge_attr=edge_attr
+        )  # (1, FUSION_HIDDEN // 2)
+    prefix = adapter(combined_emb.to(dtype))  # (1, n_tokens, H)
     return prefix  # kept on device
 
 
@@ -602,13 +676,19 @@ def main():
               f"score={ckpt.get('best_score','?'):.4f})")
     else:
         stage1.load_state_dict(ckpt)
-    graph_encoder = stage1.graph_encoder.to(device).eval()
-    for p in graph_encoder.parameters():
+    # FIX: keep the whole frozen Stage-1 classifier (encoders + gates +
+    # fusion), not just graph_encoder -- see build_prefix_embeds and
+    # graph_encoder.Stage1Classifier.encode_and_predict for why.
+    stage1 = stage1.to(device).eval()
+    for p in stage1.parameters():
         p.requires_grad_(False)
 
     # ── GraphPrefixAdapter (trainable — loaded from Stage-2 checkpoint) ──────
+    # Dim must match GRAPH_PREFIX_SRC_DIM = FUSION_HIDDEN // 2 used by
+    # stage2_sft_qwen.py, since we're loading ITS checkpoint here.
+    from stage2_sft_qwen import GRAPH_PREFIX_SRC_DIM
     llm_hidden = policy.config.hidden_size
-    adapter = GraphPrefixAdapter(GNN_OUT_DIM, llm_hidden).to(device).to(dtype)
+    adapter = GraphPrefixAdapter(GRAPH_PREFIX_SRC_DIM, llm_hidden).to(device).to(dtype)
     adapter_ckpt = os.path.join(STAGE2_ADAPTER_DIR, "graph_adapter.pt")
     adapter.load_state_dict(torch.load(adapter_ckpt, map_location=device, weights_only=False))
     adapter.train()
@@ -667,6 +747,20 @@ def main():
     print(f"[Stage 3] RL training on {len(examples)} examples, "
           f"{len(train_machines)} machines (excluded {len(val_machine_set)} val machines)")
 
+    # ── Stage-1 classifier hints + per-example field embeddings ──────────────
+    # Same rationale as stage2_sft_qwen.py's precompute_stage1_hints: gives
+    # the prompt an explicit (fallible) text hint of Stage 1's own
+    # prediction, and precomputes field_embs once so build_prefix_embeds
+    # doesn't need to call the sentence encoder on every rollout step.
+    from stage2_sft_qwen import precompute_stage1_hints
+    print("[Stage 3] Precomputing Stage-1 classifier hints for prompts...")
+    precompute_stage1_hints(examples, stage1, device, dtype)
+    for ex in examples:
+        ex["_field_embs"] = torch.tensor(
+            _embed_texts([ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]),
+            dtype=torch.float32,
+        ).unsqueeze(0)
+
     # Class-balanced example sampling — same rationale as Stage 2's
     # WeightedRandomSampler (see stage2_sft_qwen.py): step_label support is
     # heavily skewed, and uniform random.choice() over `examples` means the
@@ -723,7 +817,7 @@ def main():
 
         # ── 2. Build graph prefix + prompt embeddings ─────────────────────────
         prefix_embeds = build_prefix_embeds(
-            ex["graph"], graph_encoder, adapter, embed_layer, device, dtype
+            ex["graph"], ex["_field_embs"], stage1, adapter, embed_layer, device, dtype
         )  # (1, n_tokens, H)
 
         prompt_text = (
@@ -976,6 +1070,12 @@ def main():
     # ── Evaluate on test set and save CSV ─────────────────────────────────────
     print("\n[Stage 3] Evaluating on test set...")
     test_examples = load_from_input_json(INPUT_TEST_JSON, "test")
+    precompute_stage1_hints(test_examples, stage1, device, dtype)
+    for ex in test_examples:
+        ex["_field_embs"] = torch.tensor(
+            _embed_texts([ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]),
+            dtype=torch.float32,
+        ).unsqueeze(0)
 
     # Final data leakage check
     test_machines_final = set(e["machine"] for e in test_examples)
@@ -993,7 +1093,7 @@ def main():
     with torch.no_grad():
         for ex in test_examples:
             prefix_embeds = build_prefix_embeds(
-                ex["graph"], graph_encoder, adapter, embed_layer, device, dtype
+                ex["graph"], ex["_field_embs"], stage1, adapter, embed_layer, device, dtype
             )
             user_prompt = build_prompt(ex)
             full_prompt = (

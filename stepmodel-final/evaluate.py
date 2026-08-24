@@ -269,8 +269,10 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     from torch_geometric.data import Batch as PyGBatch
     from stage2_sft_qwen import (
         build_prompt, SYSTEM_PROMPT, GraphPrefixAdapter,
+        GRAPH_PREFIX_SRC_DIM, precompute_stage1_hints,
     )
     from graph_encoder import Stage1Classifier
+    from data_utils import _embed_texts, CONTEXT_COLUMNS
     from llm_judge import set_llm_judge_model
 
     # Resolve LLM judge model name
@@ -330,13 +332,21 @@ def eval_llm(adapter_dir: str, threshold_override=None,
         stage1.load_state_dict(ckpt["model_state_dict"])
     else:
         stage1.load_state_dict(ckpt)
-    graph_encoder = stage1.graph_encoder.to(device).eval()
-    for p in graph_encoder.parameters():
+    # FIX: keep the whole frozen Stage-1 classifier (not just graph_encoder)
+    # so generation-time inference matches what Stage 2/3 training actually
+    # conditioned on -- see graph_encoder.Stage1Classifier.encode_and_predict.
+    # Previously this used graph_encoder ALONE (no context/strategy fusion
+    # at all), which was out-of-distribution relative to both Stage 2's
+    # training-time fusion and this fix's own training-time fusion, and is
+    # the most likely single cause of Stage 2/3's generation-time accuracy
+    # being far below their own training-time (teacher-forced) metrics.
+    stage1 = stage1.to(device).eval()
+    for p in stage1.parameters():
         p.requires_grad_(False)
 
-    from config import GNN_OUT_DIM, GRAPH_PREFIX_TOKENS
+    from config import GRAPH_PREFIX_TOKENS
     llm_hidden = llm_model.config.hidden_size
-    adapter = GraphPrefixAdapter(GNN_OUT_DIM, llm_hidden).to(device).to(dtype)
+    adapter = GraphPrefixAdapter(GRAPH_PREFIX_SRC_DIM, llm_hidden).to(device).to(dtype)
     adapter_ckpt = os.path.join(adapter_dir, "graph_adapter.pt")
     if os.path.exists(adapter_ckpt):
         adapter.load_state_dict(torch.load(adapter_ckpt, map_location=device))
@@ -349,6 +359,7 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     embed_layer = llm_model.get_input_embeddings()
 
     examples = load_from_input_json(INPUT_TEST_JSON, "test")
+    precompute_stage1_hints(examples, stage1, device, dtype)
     normalizer = StepLabelNormalizer()
 
     step_preds, mcp_preds, step_gold, mcp_gold       = [], [], [], []
@@ -368,10 +379,14 @@ def eval_llm(adapter_dir: str, threshold_override=None,
         with torch.no_grad():
             pyg_batch = PyGBatch.from_data_list([ex["graph"]]).to(device)
             edge_attr = getattr(pyg_batch, 'edge_attr', None)
-            graph_emb = graph_encoder(
-                pyg_batch.x, pyg_batch.edge_index, pyg_batch.batch, edge_attr=edge_attr
+            field_embs = torch.tensor(
+                _embed_texts([ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]),
+                dtype=torch.float32,
+            ).unsqueeze(0).to(device)
+            combined_emb, _, _ = stage1.encode_and_predict(
+                pyg_batch.x, pyg_batch.edge_index, pyg_batch.batch, field_embs, edge_attr=edge_attr
             )
-            prefix_embeds = adapter(graph_emb.to(dtype))
+            prefix_embeds = adapter(combined_emb.to(dtype))
             ids = tokenizer(
                 full_prompt,
                 return_tensors="pt",

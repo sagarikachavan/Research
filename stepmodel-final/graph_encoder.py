@@ -14,7 +14,8 @@ import torch.nn as nn
 import torch.nn.functional as F
 
 try:
-    from torch_geometric.nn import GATv2Conv, global_mean_pool, global_max_pool
+    from torch_geometric.nn import GATv2Conv, global_mean_pool, global_max_pool, global_add_pool
+    from torch_geometric.nn.aggr import AttentionalAggregation
 except ImportError:  # keep module importable for label-normalization-only usage
     GATv2Conv = None
 
@@ -49,8 +50,24 @@ class GraphEncoder(nn.Module):
             )
             self.norms.append(nn.LayerNorm(hidden))
         self.dropout = nn.Dropout(dropout)
+        # ---------------------------------------------------------------
+        # Attentional (learned) readout, added alongside mean/max/layer-mean.
+        # WHY: on shallow PTT trees (3-8 nodes typically), the node that
+        # actually decides the next step is usually the terminal
+        # state/Prediction node, not "the average node". Mean/max pooling
+        # treat every node as equally informative regardless of its role;
+        # a learned gate lets the model down-weight boilerplate
+        # Agent/Search scaffolding nodes and up-weight the
+        # StateTransition/Prediction node(s) that carry the decision-
+        # relevant signal. Cheap (one extra linear gate) and safe for
+        # small data since it degrades gracefully to ~mean pooling if the
+        # gate saturates uniform.
+        # ---------------------------------------------------------------
+        self.attn_pool = AttentionalAggregation(
+            gate_nn=nn.Sequential(nn.Linear(hidden, hidden // 2), nn.GELU(), nn.Linear(hidden // 2, 1))
+        )
         self.out_proj = nn.Sequential(
-            nn.Linear(hidden * 3, hidden),
+            nn.Linear(hidden * 4, hidden),
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(hidden, out_dim),
@@ -72,6 +89,7 @@ class GraphEncoder(nn.Module):
             layer_outputs.append(h)
         mean_pool = global_mean_pool(h, batch)
         max_pool = global_max_pool(h, batch)
+        attn_pool = self.attn_pool(h, batch)
         # Mean of per-layer mean pools (dense multi-scale aggregation)
         device = h.device
         dtype = h.dtype
@@ -80,7 +98,7 @@ class GraphEncoder(nn.Module):
         for lo in layer_outputs:
             layer_mean_accum = layer_mean_accum + global_mean_pool(lo, batch)
         layer_mean_pool = layer_mean_accum / max(1, len(layer_outputs))
-        pooled = torch.cat([mean_pool, max_pool, layer_mean_pool], dim=-1)
+        pooled = torch.cat([mean_pool, max_pool, attn_pool, layer_mean_pool], dim=-1)
         return self.out_proj(pooled)  # (batch, GNN_OUT_DIM)
 
 
@@ -142,16 +160,58 @@ class Stage1Classifier(nn.Module):
         self.mcp_head = nn.Linear(FUSION_HIDDEN // 2, len(MCP_LABELS))
 
     def forward(self, x, edge_index, batch, field_embs, edge_attr=None):
-        g = self.graph_encoder(x, edge_index, batch, edge_attr=edge_attr)           # (B, GNN_OUT_DIM)
-        c = self.context_encoder(field_embs)                    # (B, GNN_OUT_DIM)
+        h, step_logits, mcp_logits = self.encode_and_predict(
+            x, edge_index, batch, field_embs, edge_attr=edge_attr
+        )
+        # NOTE: 3rd return value changed from the raw pooled graph embedding
+        # `g` to the fused representation `h` (see encode_and_predict's
+        # docstring for why). Every existing call site (stage1_gnn_train.py,
+        # evaluate.py) unpacks this as `step_logits, mcp_logits, _` and
+        # discards it, so this is a safe change for Stage 1 training/eval --
+        # it only matters to code that starts consuming it, which should now
+        # get the better representation by default.
+        return step_logits, mcp_logits, h
+
+    def encode_and_predict(self, x, edge_index, batch, field_embs, edge_attr=None):
+        """
+        Full frozen-inference path meant for the LLM stages (Stage 2 SFT,
+        Stage 3 GRPO, and evaluate.py's Stage-2/3 generation) to call
+        directly, instead of each reimplementing their own recombination
+        of graph_encoder + context_encoder.
+
+        WHY THIS EXISTS: forward()'s 3rd return value used to be `g`, the
+        RAW pooled graph embedding computed BEFORE this model's own
+        graph_gate/context_gate/fusion stack -- on the theory that the LLM
+        stages should learn their own fusion of graph+context via the
+        GraphPrefixAdapter/LoRA rather than inherit a fusion tuned for a
+        9-way/11-way classification head. In practice, Stage 2 and Stage 3
+        each reimplemented their OWN, much weaker recombination instead:
+        Stage 2 used a parameter-free sigmoid-gated average of g and c
+        (`sigmoid((g*c).sum(-1))`, i.e. no learned weights at all); Stage 3
+        used the graph embedding ALONE, dropping context/strategy-text
+        entirely. Both discard exactly the representation `h` below --
+        which is what step_head/mcp_head are actually calibrated against,
+        and what gets this model to ~75% step accuracy / ~0.72 combined
+        Jaccard -- and ask a LoRA adapter to reconstruct something
+        equivalent from next-token language-modeling gradient alone on
+        ~1.5k rows. That is a much weaker training signal than the direct
+        classification loss this module was actually trained with.
+
+        Returns:
+            h            (B, FUSION_HIDDEN//2)  -- the fused, decision-ready
+                          representation. Feed THIS into GraphPrefixAdapter,
+                          not the raw graph embedding.
+            step_logits  (B, len(STEP_LABELS))
+            mcp_logits   (B, len(MCP_LABELS))
+        """
+        g = self.graph_encoder(x, edge_index, batch, edge_attr=edge_attr)   # (B, GNN_OUT_DIM)
+        c = self.context_encoder(field_embs)                                # (B, GNN_OUT_DIM)
         g_gate = self.graph_gate(g)
         c_gate = self.context_gate(c)
-        g_weighted = g * g_gate
-        c_weighted = c * c_gate
-        h = self.fusion(torch.cat([g_weighted, c_weighted], dim=-1))  # (B, FUSION_HIDDEN//2)
+        h = self.fusion(torch.cat([g * g_gate, c * c_gate], dim=-1))        # (B, FUSION_HIDDEN//2)
         step_logits = self.step_head(h)
         mcp_logits = self.mcp_head(h)
-        return step_logits, mcp_logits, g  # g is reused as the LLM graph-prefix source
+        return h, step_logits, mcp_logits
 
     def loss(self, step_logits, mcp_logits, step_labels, mcp_targets,
               step_w=1.0, mcp_w=1.0, mcp_class_weights=None, use_focal=True, focal_gamma=2.0,

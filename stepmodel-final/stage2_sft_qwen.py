@@ -34,12 +34,21 @@ from peft import LoraConfig, get_peft_model, PeftModel
 
 from config import (
     INPUT_TRAIN_JSON, INPUT_TEST_JSON, QWEN_MODEL_NAME, GRAPH_PREFIX_TOKENS, GNN_OUT_DIM,
+    FUSION_HIDDEN, MCP_DECISION_THRESHOLD,
     LORA_R, LORA_ALPHA, LORA_DROPOUT,
     STAGE2_LR, STAGE2_EPOCHS, STAGE2_BATCH_SIZE, STAGE2_GRAD_ACCUM,
     STAGE2_VAL_SPLIT, STAGE2_EARLY_STOP_PATIENCE, STAGE2_GRAD_CLIP, STAGE2_WARMUP_RATIO,
     STAGE1_CKPT, STAGE2_ADAPTER_DIR,
-    RANDOM_SEED, STEP_LABELS, MCP_LABELS, ROOT,
+    RANDOM_SEED, STEP_LABELS, MCP_LABELS, IDX2STEP, IDX2MCP, ROOT,
 )
+
+# Dimensionality of the representation handed to GraphPrefixAdapter.
+# Was GNN_OUT_DIM (raw pooled graph embedding); now the fused,
+# classification-calibrated representation from Stage1Classifier.encode_and_predict
+# (see graph_encoder.py). Kept as a module constant so stage3_grpo_rl.py and
+# evaluate.py can import it and stay dimensionally consistent with whatever
+# checkpoint this file produces.
+GRAPH_PREFIX_SRC_DIM = FUSION_HIDDEN // 2
 from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS, StepLabelNormalizer, extract_mcp_labels
 from graph_encoder import Stage1Classifier
 
@@ -76,7 +85,59 @@ def build_prompt(ex: dict) -> str:
         f"New strategy: {ctx['New strategy']}",
         f"Strategy explanation: {ctx['Strategy explanation']}",
     ]
+    # Stage-1 classifier hint (optional -- set by precompute_stage1_hints()).
+    # WHY: the graph-prefix soft tokens already encode Stage 1's fused
+    # representation, but a 7B model with LoRA has no guarantee of reliably
+    # DECODING a specific classification decision out of 16 continuous
+    # vectors purely from language-modeling loss on ~1.5k rows. Spelling
+    # the classifier's own (possibly wrong) top prediction out as TEXT gives
+    # the model a floor roughly equal to Stage 1's accuracy for free, and
+    # lets it spend its capacity on: (a) rendering the exact canonical
+    # label string correctly, (b) writing a good explanation, (c) refining
+    # MCP tool selection, and (d) OVERRIDING the hint on the examples where
+    # the fuller strategy text makes the graph-only classifier's guess
+    # wrong. It is explicitly labeled as fallible so the model isn't
+    # trained to treat it as ground truth.
+    if ex.get("stage1_hint"):
+        lines.append(ex["stage1_hint"])
     return "\n".join(lines)
+
+
+def format_stage1_hint(step_label: str, mcp_labels: list) -> str:
+    tools = ", ".join(mcp_labels) if mcp_labels else "none confident"
+    return (
+        f"Classifier signal (a graph-only model's best guess, may be wrong -- "
+        f"verify against the strategy above and correct it if needed): "
+        f"most likely next step = \"{step_label}\"; likely tool(s) = {tools}."
+    )
+
+
+def precompute_stage1_hints(examples: list, stage1, device, dtype) -> None:
+    """
+    Runs the frozen Stage-1 classifier once over every example and attaches
+    ex["stage1_hint"] (a text string; see build_prompt / format_stage1_hint).
+    Mutates `examples` in place. One-time cost (~seconds for ~1.5k rows),
+    done once in main() before dataset/prompt construction so
+    __getitem__ doesn't need model access.
+    """
+    from torch_geometric.data import Batch as PyGBatch
+    stage1.eval()
+    with torch.no_grad():
+        for ex in examples:
+            graph = PyGBatch.from_data_list([ex["graph"]]).to(device)
+            field_embs = torch.tensor(
+                _embed_texts([ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]),
+                dtype=torch.float32,
+            ).unsqueeze(0).to(device)
+            edge_attr = getattr(graph, "edge_attr", None)
+            _, step_logits, mcp_logits = stage1.encode_and_predict(
+                graph.x, graph.edge_index, graph.batch, field_embs, edge_attr=edge_attr
+            )
+            step_pred = IDX2STEP[int(step_logits.argmax(-1).item())]
+            mcp_probs = torch.sigmoid(mcp_logits).squeeze(0)
+            mcp_pred = [IDX2MCP[i] for i in range(len(MCP_LABELS))
+                        if mcp_probs[i].item() >= MCP_DECISION_THRESHOLD]
+            ex["stage1_hint"] = format_stage1_hint(step_pred, mcp_pred)
 
 
 def build_target(ex: dict) -> str:
@@ -371,8 +432,7 @@ def collate_fn(batch: list, pad_id: int) -> tuple:
 # ---------------------------------------------------------------------------
 
 def forward_batch(input_ids, attn, labels, graphs, field_embs,
-                  model, stage1_graph_encoder, stage1_context_encoder,
-                  adapter, embed_layer, device, dtype, return_logits=False):
+                  model, stage1, adapter, embed_layer, device, dtype, return_logits=False):
     """
     Prepend graph prefix tokens to the token embeddings, run the model,
     and return the scalar loss (and, if return_logits=True, the raw logits
@@ -381,10 +441,14 @@ def forward_batch(input_ids, attn, labels, graphs, field_embs,
     n_prefix relative to the un-prefixed input_ids/labels/step_spans this
     function was called with).
 
-    Enhanced: field_embs are projected through the stage1 context encoder and
-    combined with the graph embedding via a gated fusion before prefix
-    projection, ensuring the LLM sees both graph AND text context fused
-    together in the soft-prefix (not just the graph alone).
+    FIX: previously this recombined the frozen Stage-1 graph_encoder and
+    context_encoder outputs via `sigmoid((graph_emb*context_emb).sum(-1))`
+    -- a hand-written, PARAMETER-FREE heuristic (not even a learned gate)
+    that discarded Stage-1's actual trained graph_gate/context_gate/fusion
+    stack. Now calls stage1.encode_and_predict(...) directly, so the
+    GraphPrefixAdapter is conditioned on exactly the representation Stage
+    1's step_head/mcp_head were trained against (see graph_encoder.py's
+    encode_and_predict docstring for the full rationale).
     """
     input_ids = input_ids.to(device)
     attn      = attn.to(device)
@@ -394,12 +458,9 @@ def forward_batch(input_ids, attn, labels, graphs, field_embs,
 
     with torch.no_grad():
         edge_attr = getattr(graphs, 'edge_attr', None)
-        graph_emb = stage1_graph_encoder(
-            graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
-        )  # (B, GNN_OUT_DIM)
-        context_emb = stage1_context_encoder(field_embs)  # (B, GNN_OUT_DIM)
-        alpha = torch.sigmoid((graph_emb * context_emb).sum(-1, keepdim=True))
-        combined_emb = alpha * graph_emb + (1 - alpha) * context_emb
+        combined_emb, _, _ = stage1.encode_and_predict(
+            graphs.x, graphs.edge_index, graphs.batch, field_embs, edge_attr=edge_attr
+        )  # (B, FUSION_HIDDEN // 2)
 
     prefix_embeds = adapter(combined_emb.to(dtype))      # (B, n_tokens, H)
     token_embeds  = embed_layer(input_ids).to(dtype)     # (B, T, H)
@@ -445,8 +506,7 @@ def forward_batch(input_ids, attn, labels, graphs, field_embs,
 # the post-training test-set loop below), but it isolates the signal that
 # actually matters for checkpoint selection instead of drowning it in
 # explanation-text loss.
-def run_validation(val_loader, model, stage1_graph_encoder, stage1_context_encoder,
-                   adapter, embed_layer, device, dtype):
+def run_validation(val_loader, model, stage1, adapter, embed_layer, device, dtype):
     model.eval()
     adapter.eval()
     total_loss = 0.0
@@ -457,8 +517,7 @@ def run_validation(val_loader, model, stage1_graph_encoder, stage1_context_encod
         for input_ids, attn, labels, graphs, field_embs, step_spans in val_loader:
             loss, logits, n_prefix = forward_batch(
                 input_ids, attn, labels, graphs, field_embs,
-                model, stage1_graph_encoder, stage1_context_encoder,
-                adapter, embed_layer, device, dtype, return_logits=True,
+                model, stage1, adapter, embed_layer, device, dtype, return_logits=True,
             )
             total_loss += loss.item()
             n_batches  += 1
@@ -531,24 +590,31 @@ def main():
     model = get_peft_model(base_model, lora_cfg)
     model.print_trainable_parameters()
 
-    # ── Frozen Stage-1 graph encoder + context encoder ────────────────────────
+    # ── Frozen Stage-1 classifier (whole model, not just the two encoders) ────
+    # FIX: previously only `stage1.graph_encoder` / `stage1.context_encoder`
+    # were kept, discarding stage1.graph_gate / context_gate / fusion --
+    # i.e. exactly the trained layers that turn those two encoder outputs
+    # into the representation step_head/mcp_head actually use. Keep the
+    # whole frozen model so forward_batch can call
+    # stage1.encode_and_predict(...) and reuse that trained fusion.
     stage1 = Stage1Classifier()
     ckpt = torch.load(STAGE1_CKPT, map_location=device, weights_only=False)
     if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
         stage1.load_state_dict(ckpt["model_state_dict"])
     else:
         stage1.load_state_dict(ckpt)
-    graph_encoder = stage1.graph_encoder.to(device).eval()
-    context_encoder = stage1.context_encoder.to(device).eval()
-    for p in graph_encoder.parameters():
+    stage1 = stage1.to(device).eval()
+    for p in stage1.parameters():
         p.requires_grad_(False)
-    for p in context_encoder.parameters():
-        p.requires_grad_(False)
-    print("[Stage 2] ✓ Frozen Stage-1 graph_encoder + context_encoder loaded")
+    print("[Stage 2] ✓ Frozen Stage-1 classifier (encoders + gates + fusion) loaded")
 
     # ── GraphPrefixAdapter (trainable) ────────────────────────────────────────
+    # Input dim changed from GNN_OUT_DIM (raw graph embedding) to
+    # GRAPH_PREFIX_SRC_DIM = FUSION_HIDDEN // 2 (the fused representation
+    # from stage1.encode_and_predict). Checkpoints trained before this fix
+    # are NOT compatible -- retrain Stage 2 from scratch after this change.
     llm_hidden = model.config.hidden_size
-    adapter = GraphPrefixAdapter(GNN_OUT_DIM, llm_hidden).to(device).to(dtype)
+    adapter = GraphPrefixAdapter(GRAPH_PREFIX_SRC_DIM, llm_hidden).to(device).to(dtype)
 
     embed_layer = model.get_input_embeddings()
 
@@ -593,6 +659,11 @@ def main():
     print(f"[Stage 2] Val machines    : {len(val_machine_set)}")
     print(f"[Stage 2] Train examples  : {n_train}")
     print(f"[Stage 2] Val examples    : {n_val}")
+
+    # ── Precompute Stage-1 classifier hints (see build_prompt) ────────────────
+    print("[Stage 2] Precomputing Stage-1 classifier hints for prompts...")
+    precompute_stage1_hints(train_examples, stage1, device, dtype)
+    precompute_stage1_hints(val_examples, stage1, device, dtype)
 
     train_ds = SFTDataset(train_examples, tokenizer)
     val_ds   = SFTDataset(val_examples,   tokenizer)
@@ -693,7 +764,7 @@ def main():
         for i, (input_ids, attn, labels, graphs, field_embs, _step_spans) in enumerate(train_loader):
             loss = forward_batch(
                 input_ids, attn, labels, graphs, field_embs,
-                model, graph_encoder, context_encoder, adapter, embed_layer,
+                model, stage1, adapter, embed_layer,
                 device, dtype,
             )
 
@@ -716,7 +787,7 @@ def main():
         # ── Validation at end of each epoch ───────────────────────────────────
         avg_train_loss = epoch_loss / max(len(train_loader), 1)
         val_loss, step_field_acc = run_validation(
-            val_loader, model, graph_encoder, context_encoder, adapter, embed_layer, device, dtype
+            val_loader, model, stage1, adapter, embed_layer, device, dtype
         )
 
         # Primary: step_field_acc (higher is better). Tiebreak: lower val_loss.
@@ -773,6 +844,7 @@ def main():
     # ── Evaluate on test set and save CSV ─────────────────────────────────────
     print("\n[Stage 2] Evaluating on test set...")
     test_examples = load_from_input_json(INPUT_TEST_JSON, "test")
+    precompute_stage1_hints(test_examples, stage1, device, dtype)
     test_ds = SFTDataset(test_examples, tokenizer)
     test_loader = DataLoader(
         test_ds,
@@ -816,12 +888,17 @@ def main():
             graphs = graphs.to(device)
             field_embs = field_embs.to(device)
 
-            # Gated fusion of graph embedding + context embedding (matching training)
+            # Fused Stage-1 representation (matching training -- see
+            # forward_batch / encode_and_predict). Was an ad hoc
+            # parameter-free graph/context blend that did NOT match what
+            # forward_batch used during training; both now call the same
+            # stage1.encode_and_predict(...) so train and eval-time
+            # generation see the identical distribution.
             edge_attr = getattr(graphs, 'edge_attr', None)
-            graph_emb = graph_encoder(graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr)
-            ctx_emb = context_encoder(field_embs)
-            alpha = torch.sigmoid((graph_emb * ctx_emb).sum(-1, keepdim=True))
-            combined_emb = alpha * graph_emb + (1 - alpha) * ctx_emb
+            with torch.no_grad():
+                combined_emb, _, _ = stage1.encode_and_predict(
+                    graphs.x, graphs.edge_index, graphs.batch, field_embs, edge_attr=edge_attr
+                )
 
             prefix_embeds = adapter(combined_emb.to(dtype))
             token_embeds = embed_layer(input_ids).to(dtype)
