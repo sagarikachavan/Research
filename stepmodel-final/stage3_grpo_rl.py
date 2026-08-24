@@ -277,6 +277,12 @@ def _parse_completion(text: str) -> dict | None:
         return None
 
 
+# Shared normalizer instance so the RL reward's step-correctness check uses
+# EXACTLY the same canonicalization evaluate.py uses to compute the
+# "Step Exact Match" metric this reward is meant to optimize toward.
+_step_normalizer = StepLabelNormalizer()
+
+
 def compute_reward_curriculum(completion: str, gold: dict, step_num: int,
                               total_steps: int = 2000) -> float:
     """
@@ -349,18 +355,48 @@ def compute_reward(completion: str, gold: dict,
     # ── Format ────────────────────────────────────────────────────────────────
     fmt_r = 1.0
 
-    # ── Step similarity (use embedding similarity instead of exact match) ──────
+    # ── Step correctness ────────────────────────────────────────────────────
+    # FIX: previously this reward was a continuous embedding cosine
+    # similarity, but evaluate.py scores step correctness as EXACT MATCH
+    # after StepLabelNormalizer canonicalization ("Step Exact Match" /
+    # step_jaccard). Because STEP_LABELS are semantically close to each
+    # other by construction (e.g. "Enumerate further on the X service..."
+    # vs "Further Enumerate the website..." vs "Enumerate the domain" are
+    # all enumeration-flavored), cosine similarity routinely scored 0.6-0.8
+    # for a WRONG-but-related class -- i.e. GRPO was being rewarded for
+    # confusing exactly the classes evaluate.py counts as failures. That
+    # mismatch between the optimized signal and the measured metric is a
+    # likely cause of the non-monotonic avg_r curve across training.
+    #
+    # Exact-match-after-canonicalization is now the dominant term (1.0 vs
+    # a cosine-similarity-based term capped at 0.3), so the reward the
+    # policy chases matches what "Step Exact Match" actually measures.
+    # Cosine similarity is kept as a small dense-shaping term only, so a
+    # completely-wrong-vocabulary generation still receives *some*
+    # gradient signal early in training instead of a hard 0.
     pred_step = obj["New step"].strip()
-    gold_step = gold["step_label"]
-    # Use embedding similarity for more continuous reward
-    step_embs = _embed_texts([pred_step, gold_step])
-    step_sim = float(np.dot(step_embs[0], step_embs[1]))
-    step_sim = max(0.0, step_sim)  # clamp negatives
-    step_r = step_sim  # continuous similarity score
+    gold_step = gold["step_label"]  # already canonical (drawn from STEP_LABELS)
+    pred_step_norm = _step_normalizer.normalize(pred_step)
+    if pred_step_norm == gold_step:
+        step_r = 1.0
+    else:
+        step_embs = _embed_texts([pred_step, gold_step])
+        step_sim = max(0.0, float(np.dot(step_embs[0], step_embs[1])))
+        step_r = 0.3 * step_sim  # shaped partial credit, capped well below exact match
 
     # ── MCP set F1 ────────────────────────────────────────────────────────────
-    mcp_val  = obj.get("MCP_tasks", {})
-    pred_mcp = set(mcp_val.keys() if isinstance(mcp_val, dict) else []) & set(MCP_LABELS)
+    # FIX: previously this did `set(mcp_val.keys()) & set(MCP_LABELS)`, a
+    # case-/whitespace-sensitive exact intersection -- a generated key like
+    # "smb client" (lowercase) or "Smb Client " (trailing space) silently
+    # scored zero overlap even though it was semantically correct. Route
+    # predicted keys through the same extract_mcp_labels() canonicalizer
+    # used to build the gold training labels, so casing/formatting drift
+    # in the LLM's own output no longer costs reward.
+    mcp_val = obj.get("MCP_tasks", {})
+    if isinstance(mcp_val, dict) and mcp_val:
+        pred_mcp = set(extract_mcp_labels(str(mcp_val)))
+    else:
+        pred_mcp = set()
     gold_mcp = set(gold["mcp_labels"])
     if not pred_mcp and not gold_mcp:
         mcp_r = 1.0
@@ -884,11 +920,15 @@ def main():
                 obj = _parse_completion(c)
                 if obj is None:
                     continue
+                pred_step_dbg = obj.get("New step", "").strip()
                 comp_scores["step"].append(
-                    1.0 if obj.get("New step","").strip() == gold["step_label"] else 0.0
+                    1.0 if _step_normalizer.normalize(pred_step_dbg) == gold["step_label"] else 0.0
                 )
-                mcp_val  = obj.get("MCP_tasks", {})
-                pred_mcp = set(mcp_val.keys() if isinstance(mcp_val, dict) else []) & set(MCP_LABELS)
+                mcp_val = obj.get("MCP_tasks", {})
+                if isinstance(mcp_val, dict) and mcp_val:
+                    pred_mcp = set(extract_mcp_labels(str(mcp_val)))
+                else:
+                    pred_mcp = set()
                 gold_mcp = set(gold["mcp_labels"])
                 if not pred_mcp and not gold_mcp:
                     comp_scores["mcp"].append(1.0)

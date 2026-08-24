@@ -128,12 +128,31 @@ def _write_graph(graph, machine_dir, row_index):
         f.write(to_html(graph))
 
 
+def _write_validation_report(split_dir, split, row_problems, disagreements):
+    if row_problems:
+        with open(split_dir / "_validation_report.json", "w", encoding="utf-8") as f:
+            json.dump(row_problems, f, indent=2, ensure_ascii=False)
+        n_rows = len({(p["machine"], p["row_index"]) for p in row_problems})
+        print(f"  {split}: *** {len(row_problems)} validation problem(s) across {n_rows} row(s) -- "
+              f"see _validation_report.json ***")
+    else:
+        print(f"  {split}: validation clean -- every row passed all structural + hard-rule checks")
+    if disagreements:
+        with open(split_dir / "_llm_disagreements.json", "w", encoding="utf-8") as f:
+            json.dump(disagreements, f, indent=2, ensure_ascii=False)
+        print(f"  {split}: LLM overrode the deterministic classification on {len(disagreements)} "
+              f"item(s) -- see _llm_disagreements.json for the full audit trail")
+
+
 def process_csv_deterministic(csv_path: pathlib.Path, split: str):
+    from graph_builder import validate_row_graph
+
     split_dir = OUT_DIR / split
     split_dir.mkdir(parents=True, exist_ok=True)
 
     rows, skipped_rows, n_machines = _collect_rows(csv_path, csv_path.name)
     registry = DirnameRegistry()
+    row_problems = []
 
     for i, entry in enumerate(rows, 1):
         graph = ptt_parser.build_row_graph(
@@ -141,6 +160,14 @@ def process_csv_deterministic(csv_path: pathlib.Path, split: str):
             extra_meta={"csv_row_index": entry["csv_row_index"], "source_csv": entry["source_csv"],
                         "source": "deterministic"},
         )
+        parsed = ptt_parser.parse_ptt(entry["ptt_text"])
+        items = [{"number": it["number"], "title": it["title"],
+                  "type": "State" if ptt_parser.classify(it) == "state" else "Action",
+                  "status": it["status"], "payload": it["payload"]} for it in parsed]
+        problems = validate_row_graph(items, graph, entry["machine"], entry["row_index"])
+        if problems:
+            row_problems.append({"machine": entry["machine"], "row_index": entry["row_index"],
+                                  "problems": problems})
         machine_dir = registry.resolve(entry["machine"], split_dir)
         _write_graph(graph, machine_dir, entry["row_index"])
         if i % 50 == 0 or i == len(rows):
@@ -153,12 +180,13 @@ def process_csv_deterministic(csv_path: pathlib.Path, split: str):
               f"(see _skipped_rows.json)")
         with open(split_dir / "_skipped_rows.json", "w", encoding="utf-8") as f:
             json.dump(skipped_rows, f, indent=2, ensure_ascii=False)
+    _write_validation_report(split_dir, split, row_problems, [])
 
 
 def process_csv_llm(csv_path: pathlib.Path, split: str, client, model: str, workers: int):
     from concurrent.futures import ThreadPoolExecutor, as_completed
     from llm_ptt_parser import parse_ptt_items
-    from graph_builder import build_graph_from_items
+    from graph_builder import build_graph_from_items, validate_row_graph
 
     split_dir = OUT_DIR / split
     split_dir.mkdir(parents=True, exist_ok=True)
@@ -166,6 +194,7 @@ def process_csv_llm(csv_path: pathlib.Path, split: str, client, model: str, work
     rows, skipped_rows, n_machines = _collect_rows(csv_path, csv_path.name)
     registry = DirnameRegistry()
     sources = {"llm": 0, "llm_cache": 0, "fallback_regex": 0}
+    row_problems = []
 
     def _build_and_write(entry):
         items, source = parse_ptt_items(entry["machine"], entry["ptt_text"], client, model=model)
@@ -174,16 +203,19 @@ def process_csv_llm(csv_path: pathlib.Path, split: str, client, model: str, work
             extra_meta={"csv_row_index": entry["csv_row_index"], "source_csv": entry["source_csv"],
                         "llm_source": source},
         )
+        problems = validate_row_graph(items, graph, entry["machine"], entry["row_index"])
         machine_dir = registry.resolve(entry["machine"], split_dir)
         _write_graph(graph, machine_dir, entry["row_index"])
-        return source
+        return source, entry["machine"], entry["row_index"], problems
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = [pool.submit(_build_and_write, entry) for entry in rows]
         done = 0
         for fut in as_completed(futures):
-            source = fut.result()
+            source, machine, row_index, problems = fut.result()
             sources[source] = sources.get(source, 0) + 1
+            if problems:
+                row_problems.append({"machine": machine, "row_index": row_index, "problems": problems})
             done += 1
             if done % 25 == 0 or done == len(rows):
                 print(f"  ... {done}/{len(rows)} rows processed", end="\r")
@@ -196,27 +228,89 @@ def process_csv_llm(csv_path: pathlib.Path, split: str, client, model: str, work
               f"(see _skipped_rows.json)")
         with open(split_dir / "_skipped_rows.json", "w", encoding="utf-8") as f:
             json.dump(skipped_rows, f, indent=2, ensure_ascii=False)
+    _write_validation_report(split_dir, split, row_problems, [])
+
+
+def process_csv_hybrid(csv_path: pathlib.Path, split: str, client, model: str, workers: int):
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from llm_ptt_parser import parse_ptt_items_hybrid
+    from graph_builder import build_graph_from_items, validate_row_graph
+
+    split_dir = OUT_DIR / split
+    split_dir.mkdir(parents=True, exist_ok=True)
+
+    rows, skipped_rows, n_machines = _collect_rows(csv_path, csv_path.name)
+    registry = DirnameRegistry()
+    sources = {"llm": 0, "llm_cache": 0, "fallback_regex": 0}
+    row_problems, all_disagreements = [], []
+    lock = Lock()
+
+    def _build_and_write(entry):
+        disagreement_log = []
+        items, source = parse_ptt_items_hybrid(
+            entry["machine"], entry["ptt_text"], client, model=model,
+            disagreement_log=disagreement_log,
+        )
+        graph = build_graph_from_items(
+            entry["machine"], entry["row_index"], items,
+            extra_meta={"csv_row_index": entry["csv_row_index"], "source_csv": entry["source_csv"],
+                        "source": "hybrid", "llm_source": source},
+        )
+        problems = validate_row_graph(items, graph, entry["machine"], entry["row_index"])
+        machine_dir = registry.resolve(entry["machine"], split_dir)
+        _write_graph(graph, machine_dir, entry["row_index"])
+        return source, entry["machine"], entry["row_index"], problems, disagreement_log
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = [pool.submit(_build_and_write, entry) for entry in rows]
+        done = 0
+        for fut in as_completed(futures):
+            source, machine, row_index, problems, disagreement_log = fut.result()
+            with lock:
+                sources[source] = sources.get(source, 0) + 1
+                if problems:
+                    row_problems.append({"machine": machine, "row_index": row_index, "problems": problems})
+                all_disagreements.extend(disagreement_log)
+            done += 1
+            if done % 25 == 0 or done == len(rows):
+                print(f"  ... {done}/{len(rows)} rows processed", end="\r")
+    print()
+    print(f"  sources: {sources}")
+
+    print(f"  {split}: wrote {len(rows)} row graphs across {n_machines} machines -> {split_dir}")
+    if skipped_rows:
+        print(f"  {split}: skipped {len(skipped_rows)} row(s) with a corrupted/invalid Machine value "
+              f"(see _skipped_rows.json)")
+        with open(split_dir / "_skipped_rows.json", "w", encoding="utf-8") as f:
+            json.dump(skipped_rows, f, indent=2, ensure_ascii=False)
+    _write_validation_report(split_dir, split, row_problems, all_disagreements)
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--use-llm", action="store_true",
-                         help="parse each PTT cell with an LLM instead of the deterministic rule engine")
-    parser.add_argument("--model", default=None, help="OpenAI model for --use-llm (default: gpt-4o-mini)")
-    parser.add_argument("--workers", type=int, default=8, help="parallel API calls, --use-llm only")
+    parser.add_argument("--mode", choices=["rule", "llm", "hybrid"], default="rule",
+                         help="rule = deterministic only (default, no API key needed); "
+                              "llm = LLM parses structure + classification from scratch; "
+                              "hybrid = deterministic structure + LLM classifies only the "
+                              "ambiguous items (recommended -- best accuracy, fewest tokens)")
+    parser.add_argument("--use-llm", action="store_true", help="deprecated alias for --mode llm")
+    parser.add_argument("--model", default=None, help="OpenAI model for --mode llm/hybrid (default: gpt-4o-mini)")
+    parser.add_argument("--workers", type=int, default=8, help="parallel API calls, --mode llm/hybrid only")
     args = parser.parse_args()
+    mode = "llm" if args.use_llm else args.mode
 
     OUT_DIR.mkdir(parents=True, exist_ok=True)
 
-    if args.use_llm:
+    if mode in ("llm", "hybrid"):
         from llm_ptt_parser import get_openai_client, DEFAULT_MODEL
         client = get_openai_client()
         model = args.model or DEFAULT_MODEL
+        fn = process_csv_llm if mode == "llm" else process_csv_hybrid
 
-        print("=== Processing training_data.csv [LLM] ===")
-        process_csv_llm(DATA_DIR / "training_data.csv", "train", client, model, args.workers)
-        print("=== Processing test_data.csv [LLM] ===")
-        process_csv_llm(DATA_DIR / "test_data.csv", "test", client, model, args.workers)
+        print(f"=== Processing training_data.csv [{mode}] ===")
+        fn(DATA_DIR / "training_data.csv", "train", client, model, args.workers)
+        print(f"=== Processing test_data.csv [{mode}] ===")
+        fn(DATA_DIR / "test_data.csv", "test", client, model, args.workers)
     else:
         print("=== Processing training_data.csv [deterministic] ===")
         process_csv_deterministic(DATA_DIR / "training_data.csv", "train")

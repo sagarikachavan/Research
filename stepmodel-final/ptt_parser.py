@@ -157,7 +157,7 @@ ACTION_STEMS = [
     "updat", "perform", "identif", "gain", "escalat", "download", "upload",
     "crack", "brute", "decod", "decrypt", "inject", "bypass", "extract",
     "transfer", "execut", "run", "test", "verify", "confirm", "analyz",
-    "review", "search", "discover", "access", "connect", "attack",
+    "review", "search", "google", "google search", "search google", "discover", "access", "connect", "attack",
     "harvest", "dump", "list", "view", "read", "writ", "modif", "creat",
     "install", "configur", "examin", "investigat", "assess", "look",
     "find", "locat", "retriev", "captur", "monitor", "quer", "prob",
@@ -173,29 +173,139 @@ ACTION_STEM_RE = re.compile("|".join(ACTION_STEMS), re.IGNORECASE)
 # data field, the same as "Target IP" or "Host Status" -- not something the
 # pentester "did". Matched as a whole title (ignoring a trailing
 # parenthetical like "(Port 443)") so it doesn't over-match real actions.
+# ----------------------------------------------------------------------
+# IDENTITY / LOCATION fields -- the ONLY class of titles that stay a State
+# node even when they carry a Findings payload. These describe *what the
+# target is* (its address, name, OS, domain), not something the pentester
+# did to produce a result. Everything else with a payload is an Action
+# whose payload is its Finding -- see classify() below and the worked
+# "SMB Enumeration" example in the module docstring / prompt history,
+# where leaf items like "Connection Details", "User Credentials", "Shares
+# Enumerated" are all Actions despite having no verb in their title.
+# Kept intentionally narrow: it is much cheaper to under-collapse (an
+# occasional identity-ish item becomes its own Action+Finding pair, which
+# is harmless) than to over-collapse (a real finding gets swallowed into a
+# State node and silently disappears from the Action/Finding layer that
+# the model is trained to reason over).
 NON_ACTION_LABEL_RE = re.compile(
-    r"^(scan duration|target ip|ip address|host status|mac address|"
-    r"ssh hostkey|ssh version|http server headers?|http titles?|"
-    r"ssl certificate|smb version|os version|service version)s?"
+    r"^(target\s*ip|ip\s*address(es)?|ip|mac\s*address(es)?|host\s*name|"
+    r"hostname|machine\s*name|machine|target|fqdn|domain(\s*name)?|"
+    r"os(\s*version)?|operating\s*system|host\s*info(rmation)?|"
+    r"os\s*and\s*hostname)s?"
     r"(\s*\(.*\))?$",
     re.IGNORECASE,
 )
 
-# Trailing "field label" nouns. A title *ending* in one of these is a data
-# field being reported (e.g. "Authentication Status", "SMB1 Status", "Host
-# Info", "Shared Resources"), never an action the pentester performed --
-# even when the noun itself shares a root with one of the ACTION_STEMS
-# below (e.g. "Authentication" contains the stem "authenticat", but
-# "Authentication Status" is a fact being stated, not a command). Checked
-# BEFORE the action-stem search so it always wins for these unambiguous
-# label endings. Deliberately excludes nouns that legitimately end real
-# action titles too (e.g. "password", "credentials", "hash" -- "Crack the
-# password" / "Decrypt the hash" are genuine actions), to avoid the
-# opposite mistake.
+# A label like "Target IP" / "IP Address" / "IP" followed directly by an
+# actual dotted-quad address (e.g. "Target IP: 10.129.229.26 - (updated)",
+# "IP 10.129.237.18") is unambiguously identity data even though the full
+# title doesn't exactly equal the bare label -- unlike NON_ACTION_LABEL_RE
+# above, this is prefix-anchored, not whole-title, but the required
+# trailing IP literal keeps it from ever matching an unrelated action
+# title (e.g. "OS Identification" has no digits, so it's untouched).
+IP_LABEL_WITH_VALUE_RE = re.compile(
+    r"^(target\s*ip|ip\s*address(es)?|ip)\s*[:\-]?\s*\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}",
+    re.IGNORECASE,
+)
+
+# ----------------------------------------------------------------------
+# classify() v3 -- corrected against the idurar walkthrough
+# ----------------------------------------------------------------------
+# The previous version (default: ACTION unless the whole title matched a
+# narrow identity whitelist) over-classified passively-observed recon
+# facts as Action -- e.g. idurar row 0's "1.5 Host Status", "1.6 SSH
+# Hostkey", "1.7 HTTP Server Headers", "1.8 HTTP Titles", "1.9 SSL
+# Certificate (Port 443)", "1.10 OS", "1.11 Scan Duration" all carry a
+# Findings payload but describe *what the target is/has*, exactly like
+# "Target IP" already correctly handled -- not something the pentester
+# separately "did". None of them start with a verb.
+#
+# So classify() now flips the default for payload-bearing items: STATE
+# unless the title clearly opens with an action verb (a real command the
+# pentester issued -- "Perform a port scan", "Determine the services...",
+# "Enumerate HTTP service", "Explore the directories", "Exploit the PHP
+# files", "Check user privileges", "Obtain reverse shell...", "Update
+# test.py file..."). This matches every worked bashed-machine example in
+# the spec (all of them lead with a verb) while no longer promoting
+# passive report fields to Action just because they happen to carry data.
+#
+# Two more signals feed the decision, each checked in a fixed order so
+# the result is deterministic and auditable:
+#   - LEAD_VERB_RE: title (after stripping a leading article) opens with
+#     one of ~60 pentest action-verb stems -> Action.
+#   - INFO_SUFFIX_RE: title ends in a reporting/data-field noun (Status,
+#     Hostkey, Headers, Titles, Certificate, Duration, Banner, Version,
+#     Fingerprint, Protocol, Info...) -> State, even if a verb stem
+#     happens to appear elsewhere in the title (e.g. "Scan Duration"
+#     contains "Scan" but is a field, not a command).
+# Items that hit neither signal (no verb lead, no denylist suffix) default
+# to State (the conservative choice -- see module docstring) and are
+# flagged `ambiguous=True` so the hybrid/LLM pass (llm_ptt_parser.py) can
+# adjudicate them specifically, instead of guessing silently.
+ACTION_LEAD_VERBS = [
+    "perform", "determine", "enumerate", "explore", "exploit", "check",
+    "obtain", "identify", "escalate", "update", "crack", "brute",
+    "bypass", "inject", "upload", "download", "transfer", "execute",
+    "run", "capture", "exfiltrate", "dump", "extract", "connect",
+    "login", "log in", "authenticat", "gain", "attempt", "verify",
+    "confirm", "test", "analyz", "analys", "investigat", "discover",
+    "access", "attack", "harvest", "fuzz", "spray", "guess", "establish",
+    "generat", "request", "send", "submit", "scan", "review", "search",
+    "google", "google search",
+    "list", "view", "read", "writ", "modify", "create", "install",
+    "configur", "examin", "monitor", "quer", "prob", "decode", "decrypt",
+    "navigat", "browse", "interact", "clone", "compile", "reverse",
+    "pivot", "tunnel", "spoof", "sniff", "intercept", "manipulat",
+    "retriev", "locat", "find", "look", "research", "prepar", "deliver",
+    "validat", "plan", "develop",
+]
+LEAD_VERB_RE = re.compile(
+    r"^(?:the|a|an)?\s*(?:further|then|next|additionally|also|finally|now)?\s*"
+    r"(" + "|".join(sorted(ACTION_LEAD_VERBS, key=len, reverse=True)) + r")",
+    re.IGNORECASE,
+)
+
+# Second action signal: gerund/noun-form activity phrases that name an
+# action but in "<object> <activity-noun>" word order instead of leading
+# with an imperative verb -- "Network scanning", "Port Scanning", "SQL
+# Injection", "Service enumeration", "Subdomain discovery". Audited across
+# both CSVs: titles ending in one of these nouns are, with the phase-name
+# exceptions carved out below, actions the pentester performed, not
+# passively-reported facts.
+ACTION_NOUN_HEADS = [
+    "scanning", "enumeration", "discovery", "injection", "authentication",
+    "extraction", "decryption", "cracking", "mapping", "spidering",
+    "crawling", "harvesting", "fuzzing", "spraying", "sniffing",
+    "spoofing", "tunneling", "tunnelling", "pivoting", "testing",
+    "research", "access", "brute forcing", "bruteforcing", "brute-forcing",
+    "analysis", "assessment", "upload", "identification", "upgrade",
+]
+ACTION_NOUN_HEAD_RE = re.compile(
+    r"(" + "|".join(sorted(ACTION_NOUN_HEADS, key=len, reverse=True)) + r")\s*$",
+    re.IGNORECASE,
+)
+
+# Canonical pentest phase / MITRE-tactic-style labels: these stay State
+# even when logged as a payload-bearing sub-item (e.g. "2.1 Privilege
+# Escalation - {Findings: shell as www-data}") because the title itself
+# names the CURRENT PHASE, not a discrete action -- matches the worked
+# bashed-machine spec, which has "Privilege Escalation" as a state node.
+# Exact/near-exact match only (not a substring), so "Credential Discovery"
+# or "Network Discovery" (real actions) aren't caught by this.
+PHASE_NAME_RE = re.compile(
+    r"^(reconnaissance|passive\s+information\s+gathering|"
+    r"active\s+information\s+gathering|initial\s+access|"
+    r"initial\s+foothold|foothold|exploitation|privilege\s+escalation|"
+    r"lateral\s+movement|post[\s-]exploitation|persistence|"
+    r"defense\s+evasion|credential\s+access|command\s+and\s+control|"
+    r"exfiltration|impact|discovery)\s*$",
+    re.IGNORECASE,
+)
+
 INFO_SUFFIX_RE = re.compile(
-    r"(status|info|information|address(es)?|sessions?|resources?|duration|"
-    r"details?|summary|type|count|headers?|banner|titles?|version|hostname|"
-    r"domain)\s*$",
+    r"(status|host\s*keys?|hostkeys?|headers?|titles?|certificate|duration|"
+    r"banner|fingerprint|protocol|version|response\s*headers?)"
+    r"(\s*\(.*\))?\s*$",
     re.IGNORECASE,
 )
 
@@ -352,39 +462,72 @@ def classify(item):
     are derived separately, from an action's payload).
 
     Decision order (each rule only applies if the previous one didn't
-    already decide):
+    already decide) -- see the classify() v3 comment block above for the
+    idurar-derived rationale:
       1. A top-level item (no dot in its number, e.g. "1", "2") is always
          a pentest phase -> state.
-      2. No finding/data payload attached -> state, always, even if the
-         title reads like a command. Nothing has been produced yet, so
-         there's nothing to hang an Action+Finding pair off of -- it's
-         just the current (to-do/in-progress/completed) phase or sub-phase.
+      2. No finding/data payload attached -> state, always.
       3. A payload IS present:
-         a. Title is a known non-action data label (Target IP, IP Address,
-            Host Status, ...) -> state (payload stays attached to the
-            state node itself, no separate Finding node).
-         b. Title ENDS in a field-label noun (Status, Info, Address,
-            Sessions, Resources, ...) -> state, same reasoning -- these
-            are facts being reported, not actions performed, regardless
-            of any action-stem substring elsewhere in the title.
-         c. Title contains a recognizable action verb stem (perform,
-            enumerate, exploit, check, determine, obtain, ...) -> action.
-            The payload becomes a separate Finding node connected to it.
-         d. Otherwise -> state (conservative default: only promote to
-            Action when there's a clear verb signal).
+         a. Title is a known identity/location label (Target IP, IP
+            Address, hostname, machine name, OS, domain, ...) -> state.
+         b. Title opens with a recognizable action verb (Perform,
+            Determine, Enumerate, Explore, Exploit, Check, Obtain,
+            Identify, Update, ...) -> action. The payload becomes a
+            separate Finding node connected to it.
+         c. Title ends in a reporting/data-field noun (Status, Hostkey,
+            Headers, Titles, Certificate, Duration, Banner, Version,
+            Fingerprint, Protocol, ...) -> state, even if a verb-like
+            substring appears elsewhere in the title.
+         d. Otherwise -> state (conservative default). `classify()`
+            itself always returns a definite label; use
+            `is_ambiguous(item)` separately to find items that hit this
+            fallback so they can be routed to the LLM classifier.
     """
     if item["depth"] == 0:
         return "state"
     if not item["payload"]:
         return "state"
     title = item["title"].strip()
-    if NON_ACTION_LABEL_RE.match(title):
+    if NON_ACTION_LABEL_RE.match(title) or IP_LABEL_WITH_VALUE_RE.match(title):
         return "state"
-    if INFO_SUFFIX_RE.search(title):
+    if PHASE_NAME_RE.match(title):
         return "state"
-    if ACTION_STEM_RE.search(title):
+    lead_verb = bool(LEAD_VERB_RE.match(title))
+    noun_head = bool(ACTION_NOUN_HEAD_RE.search(title))
+    action_signal = lead_verb or noun_head
+    info_suffix = bool(INFO_SUFFIX_RE.search(title))
+    if action_signal and info_suffix:
+        # Both signals fire -- e.g. "Scan Duration" (leads with the verb
+        # stem "scan" but is really the field "Duration") vs. "Enumerate
+        # Zabbix version" (leads with "Enumerate" and IS a real action
+        # that happens to end in "version"). Empirically (audited across
+        # both CSVs) the false-positive verb match only ever happens on
+        # bare two-word "<Word> <Field>" titles with no article/object/
+        # connective -- every longer title where both match is a genuine
+        # action. So: short title -> the field-noun wins (state); longer
+        # title -> the leading verb wins (action).
+        return "state" if len(title.split()) <= 2 else "action"
+    if action_signal:
         return "action"
+    if info_suffix:
+        return "state"
     return "state"
+
+
+def is_ambiguous(item):
+    """True if this item hit classify()'s conservative default (payload
+    present, not an identity field, no leading verb, no denylist suffix)
+    -- i.e. classify() guessed 'state' with no positive signal either way.
+    Used by llm_ptt_parser.py to decide which items are worth an LLM call;
+    everything else is resolved deterministically with high confidence."""
+    if item["depth"] == 0 or not item["payload"]:
+        return False
+    title = item["title"].strip()
+    if NON_ACTION_LABEL_RE.match(title) or IP_LABEL_WITH_VALUE_RE.match(title) or PHASE_NAME_RE.match(title):
+        return False
+    if LEAD_VERB_RE.match(title) or ACTION_NOUN_HEAD_RE.search(title) or INFO_SUFFIX_RE.search(title):
+        return False  # classify() has a confident, decided answer either way
+    return True
 
 
 def short(text, n=70):

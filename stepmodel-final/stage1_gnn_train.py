@@ -314,7 +314,10 @@ def main():
     best_f1 = -1
     best_epoch = -1
     no_improve = 0
-    early_stop_patience = 8
+    early_stop_patience = 12  # was 8 -- tuned against the old graph data, which had a
+    # fabricated-to-do-node shortcut cue since removed (see graph_builder.py fix);
+    # the task is now genuinely harder and was cutting off training (epoch 18) before
+    # confirming it had actually plateaued rather than just hit a noisy val dip.
 
     # ── Top-K checkpoint averaging (SWA-lite) ────────────────────────────
     # The val set is small (239 examples / 26 machines), so val_score is

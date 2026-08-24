@@ -123,11 +123,18 @@ LORA_R = 32
 LORA_ALPHA = 64
 LORA_DROPOUT = 0.1             # Increased from 0.05 to reduce overfitting
 STAGE2_LR = 3e-5                # Reduced from 5e-5 for more stable training
-STAGE2_EPOCHS = 10              # Reduced from 15 to prevent overfitting
+STAGE2_EPOCHS = 14              # was 10 -- see STAGE2_EARLY_STOP_PATIENCE note below
 STAGE2_BATCH_SIZE = 2
 STAGE2_GRAD_ACCUM = 8
 STAGE2_VAL_SPLIT = 0.15          # 15% held-out for validation
-STAGE2_EARLY_STOP_PATIENCE = 3  # Reduced from 4 to stop earlier when overfitting starts
+STAGE2_EARLY_STOP_PATIENCE = 5  # was 3 (itself reduced from 4) -- both reductions were
+# tuned against the old graph data, which had a fabricated-to-do-node shortcut cue
+# since removed (see graph_builder.py fix). Combined with checkpoint selection now
+# using step_field_acc instead of blended val_loss (see stage2_sft_qwen.py), a patience
+# of 3 was stopping training (e.g. the "Do a google search" class collapsing to 0/22
+# correct) before the model had a real chance to relearn the harder, less-leaky signal.
+# If you see clear overfitting again (train_loss falling while step_field_acc also
+# falls for several consecutive epochs, not just noise), lower this back down.
 STAGE2_GRAD_CLIP = 1.0
 STAGE2_WARMUP_RATIO = 0.08
 STAGE2_WEIGHT_DECAY = 1e-4       # Added weight decay for regularization

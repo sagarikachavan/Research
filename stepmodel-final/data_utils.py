@@ -133,26 +133,65 @@ _MCP_PATTERNS = {
 }
 
 
+def _split_structured_keys(raw: str) -> list:
+    """
+    Fallback key extraction for the majority MCP_tasks format that is NOT
+    valid python-dict-repr: 'Tool: description; Tool: description' free
+    text (measured at ~83% of rows in training_data.csv, vs ~17% real
+    dicts). Splits the cell on ';'/newline, then takes only the text
+    BEFORE the first ':' on each segment as the candidate tool name.
+
+    This never looks at the description text itself, so a tool name
+    mentioned only in passing inside another tool's description can no
+    longer inject a spurious extra label -- e.g.
+        "Metasploit: Use auxiliary/scanner/ssh/ssh_login module; ..."
+    used to regex-match "ssh" anywhere in the cell and add a spurious
+    "Interactive CLI" label even though only Metasploit was actually used
+    for that step. Restricting the scan to the ~2-4 word key segment fixes
+    that without losing the free-text format's real signal.
+    """
+    keys = []
+    for part in re.split(r"[;\n]", raw):
+        part = part.strip()
+        if ":" not in part:
+            continue
+        k = part.split(":", 1)[0].strip()
+        if 0 < len(k) <= 40:  # guard against grabbing a whole sentence
+            keys.append(k)
+    return keys
+
+
 def extract_mcp_labels(raw) -> list:
     """
     Returns a list of canonical MCP_LABELS found in the raw MCP_tasks cell.
 
-    FIX: when MCP_tasks parses as a real python dict (the common case —
-    `{'Smb client': 'Enumerate SMB service...'}`), the dict KEYS are an
-    exact, high-precision gold signal and are used on their own. The
-    previous version also regex-matched against the dict VALUES (the free
-    text description), which occasionally pattern-matched an unrelated tool
-    mentioned only in passing inside the description — e.g. a value like
-    "...explore the file system, run commands..." would spuriously add
-    "Interactive CLI" even when the actual dict only had {"SQLmap": ...}.
-    That silently injected extra positive labels into the gold multi-hot
-    vector, which both trains the model on slightly wrong targets and
-    depresses eval metrics (subset accuracy in particular, since it
-    requires an exact set match). Verified against test_data.csv: ~3% of
-    rows had at least one such spurious extra label before this fix.
+    Three extraction paths, cheapest/highest-precision first:
+      (a) Real python-dict string (~17% of rows) — dict KEYS are the gold
+          signal, matched against MCP_LABELS directly. Values are never
+          regex-scanned (see historical note below).
+      (b) 'Tool: description; Tool: description' free text (~83% of rows)
+          — same key-only matching, but the "key" is recovered by splitting
+          on ';'/newline and taking the text before the first ':' on each
+          segment, via _split_structured_keys(). This was previously
+          handled by scanning the ENTIRE cell (including every tool's
+          description) with the same _MCP_PATTERNS regexes used for (a)'s
+          fallback -- overly generic patterns for "Interactive CLI"
+          (\\bssh\\b|\\bbash\\b|\\bshell\\b) and "Web page interaction"
+          (\\bcurl\\b|\\bbrowser\\b) then matched incidentally inside other
+          tools' descriptions on ~24.5% of all training rows, injecting a
+          spurious extra positive label (verified against training_data.csv).
+      (c) Genuinely unstructured text (no ':' anywhere in the cell) — last
+          resort whole-cell regex scan, same as before.
 
-    The free-text regex fallback (_MCP_PATTERNS over the whole cell) is now
-    used ONLY when the cell isn't a parseable dict, i.e. genuinely free text.
+    Historical note (dict-value scanning): the previous version also
+    regex-matched dict VALUES (the free text description) in path (a),
+    which occasionally pattern-matched an unrelated tool mentioned only in
+    passing inside the description — e.g. a value like "...explore the
+    file system, run commands..." would spuriously add "Interactive CLI"
+    even when the actual dict only had {"SQLmap": ...}. That was already
+    fixed (values are never scanned in path (a)); this revision extends
+    the same key-only discipline to path (b), which is the majority format
+    and where most of the remaining label noise was coming from.
     """
     if raw is None or (isinstance(raw, float) and np.isnan(raw)):
         return []
@@ -163,28 +202,30 @@ def extract_mcp_labels(raw) -> list:
         parsed = None
 
     if isinstance(parsed, dict) and parsed:
-        # High-precision path: keys ARE the tool names. Still run each key
-        # through the canonical-label matcher (in case of near-miss casing/
-        # spelling like "Smb Client" vs "Smb client"), but never look at
-        # the free-text values.
+        keys = list(parsed.keys())
+    else:
+        raw_str = str(raw).strip() if raw is not None else ""
+        keys = _split_structured_keys(raw_str) if raw_str else []
+
+    if keys:
         found = []
-        for k in parsed.keys():
+        for k in keys:
             k_str = str(k)
             # exact / case-insensitive match against canonical labels first
             exact = next((l for l in MCP_LABELS if l.lower() == k_str.strip().lower()), None)
             if exact:
                 found.append(exact)
                 continue
-            # fall back to pattern match on the key text only (not the value)
+            # fall back to pattern match on the key text only (not the
+            # full cell / not another tool's description)
             for label, pat in _MCP_PATTERNS.items():
                 if pat.search(k_str):
                     found.append(label)
                     break
-        # de-duplicate, preserve order
         seen = set()
         return [l for l in found if not (l in seen or seen.add(l))]
 
-    # Free-text fallback (cell wasn't a parseable non-empty dict)
+    # Last resort: no ':' found anywhere -> genuinely unstructured text.
     text = str(parsed) if parsed is not None else str(raw)
     return [label for label, pat in _MCP_PATTERNS.items() if pat.search(text)]
 

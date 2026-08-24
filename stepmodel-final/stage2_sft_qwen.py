@@ -94,25 +94,21 @@ def build_target(ex: dict) -> str:
     )
 
 
-_MCP_PATTERNS_STG = {
-    "Nmap": re.compile(r"\bnmap\b", re.I),
-    "Metasploit": re.compile(r"\bmetasploit|msfconsole|msfvenom\b", re.I),
-    "Netcat": re.compile(r"\bnetcat|\bnc\b", re.I),
-    "Dirbuster": re.compile(r"\bdirbuster|gobuster|dirb|netexec\b", re.I),
-    "SQLmap": re.compile(r"\bsqlmap\b", re.I),
-    "Smb client": re.compile(r"smb\s*client|smbclient|\bsmb\b", re.I),
-    "hydra": re.compile(r"\bhydra\b", re.I),
-    "John-the-ripper": re.compile(r"john[\s\-]?the[\s\-]?ripper|\bjohn\b", re.I),
-    "Google search": re.compile(r"google\s*search|\bgoogle\b", re.I),
-    "Interactive CLI": re.compile(r"interactive\s*cli|\bssh\b|\bbash\b|\bshell\b", re.I),
-    "Web page interaction": re.compile(r"web\s*page\s*interaction|\bbrowser\b|\bcurl\b", re.I),
-}
-
-
+# NOTE: this file previously carried its own copy of the MCP tool regex
+# patterns (_MCP_PATTERNS_STG) and its own free-text extraction helper
+# (_extract_mcp_from_text_stg), duplicated from data_utils.py and allowed
+# to drift out of sync with the (fixed) canonical version there. Removed --
+# use extract_mcp_labels (imported from data_utils above) everywhere a
+# free-text MCP_tasks-like string needs to be turned into canonical
+# MCP_LABELS. It applies the same key-only extraction (dict keys, or the
+# text before each ';'-separated segment's first ':') that fixed the
+# ~24.5% spurious-label rate the old whole-cell regex scan had on
+# "Interactive CLI" / "Web page interaction" (e.g. matching "ssh"/"curl"
+# inside an unrelated tool's own description text).
 def _extract_mcp_from_text_stg(text: str):
     if not text:
         return []
-    return [label for label, pat in _MCP_PATTERNS_STG.items() if pat.search(text)]
+    return extract_mcp_labels(text)
 
 
 def build_obj_parser():
@@ -285,14 +281,56 @@ class SFTDataset(Dataset):
         target_text = build_target(ex)
 
         prompt_ids = self.tok(prompt_text, add_special_tokens=False)["input_ids"]
-        target_ids = (
-            self.tok(target_text, add_special_tokens=False)["input_ids"]
-            + [self.tok.eos_token_id]
-        )
+        try:
+            target_enc = self.tok(target_text, add_special_tokens=False, return_offsets_mapping=True)
+        except (NotImplementedError, ValueError):
+            # Slow (non-"Fast") tokenizer fallback: offset_mapping isn't
+            # available. Don't crash training over a checkpoint-selection
+            # nicety -- just tokenize normally and mark the step span as
+            # "not found" below, which run_validation already treats as
+            # "skip this row" rather than misattributing garbage tokens.
+            target_enc = {"input_ids": self.tok(target_text, add_special_tokens=False)["input_ids"],
+                          "offset_mapping": []}
+        target_ids = target_enc["input_ids"] + [self.tok.eos_token_id]
 
         input_ids = (prompt_ids + target_ids)[: self.max_len]
         # Only target tokens contribute to loss
         labels = ([-100] * len(prompt_ids) + target_ids)[: self.max_len]
+
+        # ── Step-value token span (for checkpoint-selection metric) ────────
+        # Locate the "New step" value's character range inside target_text
+        # (build_target's json.dumps puts it right after `{"New step": "`),
+        # then map that to a token range using the offset_mapping the
+        # tokenizer itself returns for target_text's actual tokenization.
+        #
+        # NOTE: an earlier version of this computed the span by re-tokenizing
+        # target_text[:char_start] and target_text[:char_start+len(step_val)]
+        # independently and diffing token counts. That's unsound: a BPE/word
+        # boundary token can merge characters across the cut point (e.g. a
+        # trailing `"` before the value gets fused with the value's first
+        # word when tokenized as part of the full string, but becomes its
+        # own separate token when the prefix is tokenized in isolation),
+        # silently shifting the recovered span by a token and corrupting the
+        # very metric this is meant to fix. offset_mapping reports each
+        # token's real character span from the SAME tokenize call used to
+        # build target_ids, so it can't disagree with itself this way.
+        step_val = ex["step_label"]
+        char_start = target_text.find(step_val)
+        step_tok_start, step_tok_end = 0, 0  # default: span not found -> excluded from metric
+        if char_start >= 0:
+            char_end = char_start + len(step_val)
+            offsets = target_enc["offset_mapping"]
+            found_start = None
+            found_end = None
+            for tok_i, (a, b) in enumerate(offsets):
+                if a < char_end and b > char_start:  # this token overlaps the value's char range
+                    if found_start is None:
+                        found_start = tok_i
+                    found_end = tok_i + 1
+            if found_start is not None:
+                step_tok_start = len(prompt_ids) + found_start
+                step_tok_end = min(len(prompt_ids) + found_end, self.max_len)
+                step_tok_start = min(step_tok_start, step_tok_end)
 
         field_embs = _embed_texts(
             [ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]
@@ -302,6 +340,7 @@ class SFTDataset(Dataset):
             "labels":     torch.tensor(labels),
             "graph":      ex["graph"],          # torch_geometric Data (pre-built)
             "field_embs": torch.tensor(field_embs, dtype=torch.float32),
+            "step_span":  torch.tensor([step_tok_start, step_tok_end], dtype=torch.long),
         }
 
 
@@ -323,7 +362,8 @@ def collate_fn(batch: list, pad_id: int) -> tuple:
 
     graphs     = PyGBatch.from_data_list([b["graph"] for b in batch])
     field_embs = torch.stack([b["field_embs"] for b in batch])
-    return input_ids, attn, labels, graphs, field_embs
+    step_spans = torch.stack([b["step_span"] for b in batch])  # (B, 2) = [start, end)
+    return input_ids, attn, labels, graphs, field_embs, step_spans
 
 
 # ---------------------------------------------------------------------------
@@ -332,10 +372,14 @@ def collate_fn(batch: list, pad_id: int) -> tuple:
 
 def forward_batch(input_ids, attn, labels, graphs, field_embs,
                   model, stage1_graph_encoder, stage1_context_encoder,
-                  adapter, embed_layer, device, dtype):
+                  adapter, embed_layer, device, dtype, return_logits=False):
     """
     Prepend graph prefix tokens to the token embeddings, run the model,
-    and return the scalar loss.
+    and return the scalar loss (and, if return_logits=True, the raw logits
+    plus n_prefix -- needed by run_validation to score just the "New step"
+    value span, since the graph-prefix tokens shift every index by
+    n_prefix relative to the un-prefixed input_ids/labels/step_spans this
+    function was called with).
 
     Enhanced: field_embs are projected through the stage1 context encoder and
     combined with the graph embedding via a gated fusion before prefix
@@ -372,31 +416,80 @@ def forward_batch(input_ids, attn, labels, graphs, field_embs,
         attention_mask=attn_full,
         labels=labels_full,
     )
+    if return_logits:
+        return out.loss, out.logits, n_prefix
     return out.loss
 
 
 # ---------------------------------------------------------------------------
-# Validation loop — returns average loss over the val set
+# Validation loop — returns (avg_loss, step_field_accuracy) over the val set
 # ---------------------------------------------------------------------------
-
+#
+# FIX: previously this returned only avg_loss (cross-entropy averaged over
+# EVERY target token: the "New step" value, the free-text explanation, and
+# every MCP_tasks JSON key/value/punctuation token combined). Checkpoint
+# selection and early stopping picked whichever epoch minimized that blended
+# average -- which is dominated by the much-longer explanation text, and is
+# not the same thing evaluate.py measures ("Step Exact Match" / step
+# accuracy). An epoch can lower the blended loss (e.g. by getting more
+# confident/fluent on explanation text or the majority classes) while
+# getting WORSE at a specific, less-frequent step class -- exactly the
+# failure mode a class going from strong recall to 0/22 correct looks like.
+#
+# step_field_accuracy is a teacher-forced argmax-vs-gold accuracy computed
+# ONLY over the token span the "New step" value occupies (see SFTDataset's
+# step_span computation) -- i.e. "if the model had to predict each of these
+# specific tokens one at a time with the correct history so far, how often
+# does it pick the right one". It's not identical to greedy-decode exact
+# match (that needs actual generation, done separately in evaluate.py /
+# the post-training test-set loop below), but it isolates the signal that
+# actually matters for checkpoint selection instead of drowning it in
+# explanation-text loss.
 def run_validation(val_loader, model, stage1_graph_encoder, stage1_context_encoder,
-                   adapter, embed_layer, device, dtype) -> float:
+                   adapter, embed_layer, device, dtype):
     model.eval()
     adapter.eval()
     total_loss = 0.0
     n_batches  = 0
+    step_correct = 0
+    step_total   = 0
     with torch.no_grad():
-        for input_ids, attn, labels, graphs, field_embs in val_loader:
-            loss = forward_batch(
+        for input_ids, attn, labels, graphs, field_embs, step_spans in val_loader:
+            loss, logits, n_prefix = forward_batch(
                 input_ids, attn, labels, graphs, field_embs,
                 model, stage1_graph_encoder, stage1_context_encoder,
-                adapter, embed_layer, device, dtype,
+                adapter, embed_layer, device, dtype, return_logits=True,
             )
             total_loss += loss.item()
             n_batches  += 1
+
+            # logits[b, t] predicts the token at position t+1 of the
+            # PREFIXED sequence; step_spans are defined relative to the
+            # un-prefixed input_ids, so shift by n_prefix, and by -1 to
+            # align a prediction position with the label it's predicting.
+            preds = logits.argmax(-1)  # (B, n_prefix + T)
+            B = input_ids.shape[0]
+            for b in range(B):
+                s, e = step_spans[b, 0].item(), step_spans[b, 1].item()
+                if e <= s:
+                    continue  # span not found for this row (see SFTDataset) -- skip
+                lo = n_prefix + s - 1
+                hi = n_prefix + e - 1
+                lo = max(lo, 0)
+                if hi <= lo:
+                    continue
+                gold_tok = input_ids[b, s:e].to(device)
+                pred_tok = preds[b, lo:hi]
+                if pred_tok.shape[0] != gold_tok.shape[0]:
+                    continue  # truncated by max_len -- skip rather than misalign
+                step_correct += (pred_tok == gold_tok).all().item()  # whole-span exact match
+                step_total   += 1
+
     model.train()
     adapter.train()
-    return total_loss / max(n_batches, 1)
+    avg_loss = total_loss / max(n_batches, 1)
+    step_field_acc = step_correct / max(step_total, 1)
+    return avg_loss, step_field_acc
 
 
 # ---------------------------------------------------------------------------
@@ -575,10 +668,19 @@ def main():
     print(f"[Stage 2] Total steps     : {total_steps}  (warmup {warmup_steps}, ratio={STAGE2_WARMUP_RATIO:.0%})")
 
     # ── Training loop with val + early stopping ────────────────────────────────
-    best_val_loss    = float("inf")
-    best_epoch       = -1
-    no_improve_count = 0
-    global_step      = 0
+    # FIX: selection metric changed from raw val_loss to step_field_acc (see
+    # run_validation docstring) -- picking "lowest blended token loss" was
+    # optimizing a different thing than step-classification correctness,
+    # which is very plausibly why an early checkpoint with a collapsed class
+    # (0/22 correct on one step type) could still look like the "best"
+    # checkpoint by loss. val_loss is still tracked and used as a tiebreaker
+    # when step_field_acc ties, so this doesn't ignore explanation/MCP
+    # quality entirely -- it just stops letting them outvote step accuracy.
+    best_val_loss     = float("inf")
+    best_step_acc      = -1.0
+    best_epoch         = -1
+    no_improve_count   = 0
+    global_step        = 0
 
     best_ckpt_dir = os.path.join(STAGE2_ADAPTER_DIR, "best")
 
@@ -588,7 +690,7 @@ def main():
         epoch_loss = 0.0
         opt.zero_grad()
 
-        for i, (input_ids, attn, labels, graphs, field_embs) in enumerate(train_loader):
+        for i, (input_ids, attn, labels, graphs, field_embs, _step_spans) in enumerate(train_loader):
             loss = forward_batch(
                 input_ids, attn, labels, graphs, field_embs,
                 model, graph_encoder, context_encoder, adapter, embed_layer,
@@ -613,33 +715,38 @@ def main():
 
         # ── Validation at end of each epoch ───────────────────────────────────
         avg_train_loss = epoch_loss / max(len(train_loader), 1)
-        val_loss       = run_validation(
+        val_loss, step_field_acc = run_validation(
             val_loader, model, graph_encoder, context_encoder, adapter, embed_layer, device, dtype
         )
 
-        improved = val_loss < best_val_loss
+        # Primary: step_field_acc (higher is better). Tiebreak: lower val_loss.
+        improved = (step_field_acc > best_step_acc) or (
+            step_field_acc == best_step_acc and val_loss < best_val_loss
+        )
         marker   = "  ← best" if improved else ""
         print(f"epoch {epoch+1:02d}/{STAGE2_EPOCHS} | "
               f"train_loss {avg_train_loss:.4f} | "
-              f"val_loss {val_loss:.4f}{marker}")
+              f"val_loss {val_loss:.4f} | "
+              f"val_step_field_acc {step_field_acc:.4f}{marker}")
 
         if improved:
-            best_val_loss    = val_loss
-            best_epoch       = epoch + 1
-            no_improve_count = 0
+            best_val_loss     = val_loss
+            best_step_acc      = step_field_acc
+            best_epoch         = epoch + 1
+            no_improve_count   = 0
             # Save best checkpoint
             os.makedirs(best_ckpt_dir, exist_ok=True)
             model.save_pretrained(best_ckpt_dir)
             torch.save(adapter.state_dict(),
                        os.path.join(best_ckpt_dir, "graph_adapter.pt"))
             tokenizer.save_pretrained(best_ckpt_dir)
-            print(f"  → best checkpoint saved  (val_loss={best_val_loss:.4f})")
+            print(f"  → best checkpoint saved  (val_step_field_acc={best_step_acc:.4f}, val_loss={best_val_loss:.4f})")
         else:
             no_improve_count += 1
             print(f"  → no improvement for {no_improve_count}/{STAGE2_EARLY_STOP_PATIENCE} epochs")
             if no_improve_count >= STAGE2_EARLY_STOP_PATIENCE:
                 print(f"\n[Stage 2] Early stopping at epoch {epoch+1}. "
-                      f"Best was epoch {best_epoch} (val_loss={best_val_loss:.4f})")
+                      f"Best was epoch {best_epoch} (val_step_field_acc={best_step_acc:.4f}, val_loss={best_val_loss:.4f})")
                 break
 
     # ── Copy best checkpoint to the canonical STAGE2_ADAPTER_DIR ─────────────
@@ -703,7 +810,7 @@ def main():
     csv_rows = []
     
     with torch.no_grad():
-        for input_ids, attn, labels, graphs, field_embs in test_loader:
+        for input_ids, attn, labels, graphs, field_embs, _step_spans in test_loader:
             input_ids = input_ids.to(device)
             attn = attn.to(device)
             graphs = graphs.to(device)
