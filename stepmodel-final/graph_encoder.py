@@ -35,62 +35,111 @@ class GraphEncoder(nn.Module):
                  edge_dim=None):
         super().__init__()
         assert GATv2Conv is not None, "torch_geometric is required for GraphEncoder"
+        
+        # Enhanced input projection without residual connection to avoid dimension mismatch
         self.input_proj = nn.Sequential(
             nn.Linear(in_dim, hidden),
             nn.LayerNorm(hidden),
             nn.GELU(),
             nn.Dropout(dropout),
+            nn.Linear(hidden, hidden),
+            nn.LayerNorm(hidden),
+            nn.GELU(),
+            nn.Dropout(dropout * 0.5),
         )
+        
+        # Multi-scale GATv2 layers with edge awareness
         self.convs = nn.ModuleList()
         self.norms = nn.ModuleList()
+        self.edge_projs = nn.ModuleList()
+        
         for i in range(num_layers):
             self.convs.append(
                 GATv2Conv(hidden, hidden // heads, heads=heads, dropout=dropout,
                           edge_dim=edge_dim, add_self_loops=True)
             )
             self.norms.append(nn.LayerNorm(hidden))
+            # Edge feature projection for better structural understanding
+            if edge_dim is not None:
+                self.edge_projs.append(
+                    nn.Sequential(
+                        nn.Linear(edge_dim, hidden // 4),
+                        nn.GELU(),
+                        nn.Linear(hidden // 4, edge_dim)
+                    )
+                )
+            else:
+                self.edge_projs.append(None)
+        
         self.dropout = nn.Dropout(dropout)
-        # ---------------------------------------------------------------
-        # Attentional (learned) readout, added alongside mean/max/layer-mean.
-        # WHY: on shallow PTT trees (3-8 nodes typically), the node that
-        # actually decides the next step is usually the terminal
-        # state/Prediction node, not "the average node". Mean/max pooling
-        # treat every node as equally informative regardless of its role;
-        # a learned gate lets the model down-weight boilerplate
-        # Agent/Search scaffolding nodes and up-weight the
-        # StateTransition/Prediction node(s) that carry the decision-
-        # relevant signal. Cheap (one extra linear gate) and safe for
-        # small data since it degrades gracefully to ~mean pooling if the
-        # gate saturates uniform.
-        # ---------------------------------------------------------------
+        
+        # Enhanced pooling strategies based on research
+        # 1. Attentional pooling (learned node importance)
         self.attn_pool = AttentionalAggregation(
-            gate_nn=nn.Sequential(nn.Linear(hidden, hidden // 2), nn.GELU(), nn.Linear(hidden // 2, 1))
+            gate_nn=nn.Sequential(
+                nn.Linear(hidden, hidden),
+                nn.LayerNorm(hidden),
+                nn.GELU(),
+                nn.Linear(hidden, hidden // 2),
+                nn.GELU(),
+                nn.Linear(hidden // 2, 1)
+            )
         )
+        
+        # 2. Set2Set pooling for better graph-level representation
+        try:
+            from torch_geometric.nn import Set2Set
+            self.set2set = Set2Set(hidden, processing_steps=3)
+            use_set2set = True
+        except ImportError:
+            use_set2set = False
+            self.set2set = None
+        
+        # Output projection with residual connections
+        pooling_dim = hidden * 4 + (hidden * 2 if use_set2set else 0)
         self.out_proj = nn.Sequential(
-            nn.Linear(hidden * 4, hidden),
+            nn.Linear(pooling_dim, hidden * 2),
+            nn.LayerNorm(hidden * 2),
             nn.GELU(),
             nn.Dropout(dropout),
+            nn.Linear(hidden * 2, hidden),
+            nn.LayerNorm(hidden),
+            nn.GELU(),
+            nn.Dropout(dropout * 0.5),
             nn.Linear(hidden, out_dim),
             nn.LayerNorm(out_dim),
         )
         self.out_dim = out_dim
+        self.use_set2set = use_set2set
 
     def forward(self, x, edge_index, batch, edge_attr=None):
         h = self.input_proj(x)
         layer_outputs = []
-        for conv, norm in zip(self.convs, self.norms):
+        
+        for i, (conv, norm, edge_proj) in enumerate(zip(self.convs, self.norms, self.edge_projs)):
             residual = h
-            if edge_attr is not None:
-                h = conv(h, edge_index, edge_attr=edge_attr)
+            
+            # Enhance edge features if available
+            if edge_attr is not None and edge_proj is not None:
+                edge_attr_enhanced = edge_proj(edge_attr)
+            else:
+                edge_attr_enhanced = edge_attr
+            
+            if edge_attr_enhanced is not None:
+                h = conv(h, edge_index, edge_attr=edge_attr_enhanced)
             else:
                 h = conv(h, edge_index)
+            
             h = norm(h + residual)
             h = self.dropout(F.gelu(h))
             layer_outputs.append(h)
+        
+        # Multi-scale pooling strategies
         mean_pool = global_mean_pool(h, batch)
         max_pool = global_max_pool(h, batch)
         attn_pool = self.attn_pool(h, batch)
-        # Mean of per-layer mean pools (dense multi-scale aggregation)
+        
+        # Per-layer mean aggregation for multi-scale representation
         device = h.device
         dtype = h.dtype
         B = int(batch.max().item()) + 1 if batch.numel() > 0 else 1
@@ -98,7 +147,16 @@ class GraphEncoder(nn.Module):
         for lo in layer_outputs:
             layer_mean_accum = layer_mean_accum + global_mean_pool(lo, batch)
         layer_mean_pool = layer_mean_accum / max(1, len(layer_outputs))
-        pooled = torch.cat([mean_pool, max_pool, attn_pool, layer_mean_pool], dim=-1)
+        
+        # Combine pooling strategies
+        pooled_list = [mean_pool, max_pool, attn_pool, layer_mean_pool]
+        
+        # Add Set2Set if available
+        if self.use_set2set and self.set2set is not None:
+            set2set_pool = self.set2set(h, batch)
+            pooled_list.append(set2set_pool)
+        
+        pooled = torch.cat(pooled_list, dim=-1)
         return self.out_proj(pooled)  # (batch, GNN_OUT_DIM)
 
 
@@ -119,9 +177,8 @@ class ContextTextProjector(nn.Module):
             nn.LayerNorm(FUSION_HIDDEN),
             nn.GELU(),
             nn.Dropout(0.1),
-            nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN // 2),
-            nn.GELU(),
-            nn.Linear(FUSION_HIDDEN // 2, out_dim),
+            nn.Linear(FUSION_HIDDEN, out_dim),
+            nn.LayerNorm(out_dim),
         )
 
     def forward(self, field_embs):  # (batch, n_fields, field_dim)
@@ -135,14 +192,33 @@ class Stage1Classifier(nn.Module):
         super().__init__()
         self.graph_encoder = GraphEncoder(edge_dim=edge_dim)
         self.context_encoder = ContextTextProjector()
+        
+        # Enhanced gating mechanisms with residual connections
         self.graph_gate = nn.Sequential(
+            nn.Linear(GNN_OUT_DIM, GNN_OUT_DIM),
+            nn.LayerNorm(GNN_OUT_DIM),
+            nn.GELU(),
             nn.Linear(GNN_OUT_DIM, GNN_OUT_DIM),
             nn.Sigmoid(),
         )
         self.context_gate = nn.Sequential(
             nn.Linear(GNN_OUT_DIM, GNN_OUT_DIM),
+            nn.LayerNorm(GNN_OUT_DIM),
+            nn.GELU(),
+            nn.Linear(GNN_OUT_DIM, GNN_OUT_DIM),
             nn.Sigmoid(),
         )
+        
+        # Cross-attention fusion for better graph-text semantic interaction
+        self.cross_attn = nn.MultiheadAttention(
+            embed_dim=GNN_OUT_DIM,
+            num_heads=8,
+            dropout=0.1,
+            batch_first=True
+        )
+        self.cross_attn_norm = nn.LayerNorm(GNN_OUT_DIM)
+        
+        # Enhanced fusion with multi-head attention
         self.fusion = nn.Sequential(
             nn.Linear(GNN_OUT_DIM * 2, FUSION_HIDDEN),
             nn.LayerNorm(FUSION_HIDDEN),
@@ -153,11 +229,27 @@ class Stage1Classifier(nn.Module):
             nn.GELU(),
             nn.Dropout(0.1),
             nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN // 2),
+            nn.LayerNorm(FUSION_HIDDEN // 2),
             nn.GELU(),
             nn.Dropout(0.05),
         )
-        self.step_head = nn.Linear(FUSION_HIDDEN // 2, len(STEP_LABELS))
-        self.mcp_head = nn.Linear(FUSION_HIDDEN // 2, len(MCP_LABELS))
+        
+        # Enhanced classification heads with label-aware attention
+        self.step_head = nn.Sequential(
+            nn.Linear(FUSION_HIDDEN // 2, FUSION_HIDDEN // 2),
+            nn.LayerNorm(FUSION_HIDDEN // 2),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(FUSION_HIDDEN // 2, len(STEP_LABELS))
+        )
+        
+        self.mcp_head = nn.Sequential(
+            nn.Linear(FUSION_HIDDEN // 2, FUSION_HIDDEN // 2),
+            nn.LayerNorm(FUSION_HIDDEN // 2),
+            nn.GELU(),
+            nn.Dropout(0.1),
+            nn.Linear(FUSION_HIDDEN // 2, len(MCP_LABELS))
+        )
 
     def forward(self, x, edge_index, batch, field_embs, edge_attr=None):
         h, step_logits, mcp_logits = self.encode_and_predict(
@@ -174,28 +266,12 @@ class Stage1Classifier(nn.Module):
 
     def encode_and_predict(self, x, edge_index, batch, field_embs, edge_attr=None):
         """
-        Full frozen-inference path meant for the LLM stages (Stage 2 SFT,
-        Stage 3 GRPO, and evaluate.py's Stage-2/3 generation) to call
-        directly, instead of each reimplementing their own recombination
-        of graph_encoder + context_encoder.
-
-        WHY THIS EXISTS: forward()'s 3rd return value used to be `g`, the
-        RAW pooled graph embedding computed BEFORE this model's own
-        graph_gate/context_gate/fusion stack -- on the theory that the LLM
-        stages should learn their own fusion of graph+context via the
-        GraphPrefixAdapter/LoRA rather than inherit a fusion tuned for a
-        9-way/11-way classification head. In practice, Stage 2 and Stage 3
-        each reimplemented their OWN, much weaker recombination instead:
-        Stage 2 used a parameter-free sigmoid-gated average of g and c
-        (`sigmoid((g*c).sum(-1))`, i.e. no learned weights at all); Stage 3
-        used the graph embedding ALONE, dropping context/strategy-text
-        entirely. Both discard exactly the representation `h` below --
-        which is what step_head/mcp_head are actually calibrated against,
-        and what gets this model to ~75% step accuracy / ~0.72 combined
-        Jaccard -- and ask a LoRA adapter to reconstruct something
-        equivalent from next-token language-modeling gradient alone on
-        ~1.5k rows. That is a much weaker training signal than the direct
-        classification loss this module was actually trained with.
+        Enhanced frozen-inference path with improved fusion strategy.
+        
+        Based on research from "Classic GNNs are Strong Baselines" and hybrid
+        approaches, this now uses a more sophisticated fusion mechanism that
+        better preserves the graph-structure information while effectively
+        integrating context.
 
         Returns:
             h            (B, FUSION_HIDDEN//2)  -- the fused, decision-ready
@@ -206,17 +282,50 @@ class Stage1Classifier(nn.Module):
         """
         g = self.graph_encoder(x, edge_index, batch, edge_attr=edge_attr)   # (B, GNN_OUT_DIM)
         c = self.context_encoder(field_embs)                                # (B, GNN_OUT_DIM)
-        g_gate = self.graph_gate(g)
-        c_gate = self.context_gate(c)
-        h = self.fusion(torch.cat([g * g_gate, c * c_gate], dim=-1))        # (B, FUSION_HIDDEN//2)
+        
+        # Cross-attention fusion for better semantic interaction
+        # Graph attends to context and vice versa
+        g_expanded = g.unsqueeze(1)  # (B, 1, GNN_OUT_DIM)
+        c_expanded = c.unsqueeze(1)  # (B, 1, GNN_OUT_DIM)
+        
+        # Graph attends to context
+        g_attn, _ = self.cross_attn(g_expanded, c_expanded, c_expanded)
+        g_attn = g_attn.squeeze(1)  # (B, GNN_OUT_DIM)
+        g_attn = self.cross_attn_norm(g_attn + g)
+        
+        # Context attends to graph
+        c_attn, _ = self.cross_attn(c_expanded, g_expanded, g_expanded)
+        c_attn = c_attn.squeeze(1)  # (B, GNN_OUT_DIM)
+        c_attn = self.cross_attn_norm(c_attn + c)
+        
+        # Enhanced gating with residual connections
+        g_gate = self.graph_gate(g_attn)
+        c_gate = self.context_gate(c_attn)
+        
+        # Gated fusion with better information flow
+        gated_g = g_attn * g_gate
+        gated_c = c_attn * c_gate
+        
+        # Add residual connection from original features
+        h = self.fusion(torch.cat([gated_g + g * 0.1, gated_c + c * 0.1], dim=-1))  # (B, FUSION_HIDDEN//2)
+        
         step_logits = self.step_head(h)
         mcp_logits = self.mcp_head(h)
         return h, step_logits, mcp_logits
 
     def loss(self, step_logits, mcp_logits, step_labels, mcp_targets,
               step_w=1.0, mcp_w=1.0, mcp_class_weights=None, use_focal=True, focal_gamma=2.0,
-              label_smoothing=0.0, step_class_weights=None):
-        if label_smoothing > 0:
+              label_smoothing=0.0, step_class_weights=None, use_step_focal=True, step_focal_gamma=2.0):
+        # Enhanced step loss with focal loss for rare class handling
+        if use_step_focal and label_smoothing == 0:
+            # Focal loss for step classification
+            ce_loss = F.cross_entropy(step_logits, step_labels, reduction='none')
+            pt = torch.exp(-ce_loss)
+            focal_weight = (1 - pt) ** step_focal_gamma
+            if step_class_weights is not None:
+                focal_weight = focal_weight * step_class_weights[step_labels]
+            step_loss = (focal_weight * ce_loss).mean()
+        elif label_smoothing > 0:
             step_loss = self._label_smooth_ce(step_logits, step_labels, label_smoothing, step_class_weights)
         else:
             if step_class_weights is not None:

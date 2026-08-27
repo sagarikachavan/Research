@@ -15,6 +15,7 @@ import os
 
 import numpy as np
 import torch
+import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader
 from torch_geometric.data import Batch
 from sklearn.metrics import (
@@ -67,6 +68,54 @@ def collate(batch):
     step_idx = torch.stack([b["step_idx"] for b in batch])
     mcp_vec = torch.stack([b["mcp_vec"] for b in batch])
     return graphs, field_embs, step_idx, mcp_vec
+
+
+def adaptive_cost_sensitive_loss(step_logits, step_labels, base_weights, 
+                                  class_counts, alpha=0.1, beta=0.5):
+    """
+    Adaptive cost-sensitive loss that adjusts class weights based on performance.
+    
+    Args:
+        step_logits: Model predictions (B, num_classes)
+        step_labels: Ground truth labels (B,)
+        base_weights: Base class weights from frequency
+        class_counts: Number of samples per class
+        alpha: Learning rate for weight adaptation
+        beta: Balance between frequency-based and performance-based weights
+    
+    Returns:
+        loss: Computed loss
+        updated_weights: Updated class weights
+    """
+    # Compute per-class accuracy
+    with torch.no_grad():
+        preds = step_logits.argmax(dim=-1)
+        class_correct = torch.zeros(len(base_weights), device=step_logits.device)
+        class_total = torch.zeros(len(base_weights), device=step_logits.device)
+        
+        for c in range(len(base_weights)):
+            mask = (step_labels == c)
+            if mask.sum() > 0:
+                class_correct[c] = (preds[mask] == c).float().sum()
+                class_total[c] = mask.sum()
+        
+        # Compute per-class accuracy
+        class_acc = class_correct / (class_total + 1e-8)
+        
+        # Performance-based weights: lower accuracy = higher weight
+        perf_weights = 1.0 / (class_acc + 1e-8)
+        perf_weights = perf_weights / perf_weights.mean()
+        
+        # Combine frequency-based and performance-based weights
+        adaptive_weights = beta * base_weights + (1 - beta) * perf_weights
+        
+        # Smooth update from base weights to adaptive weights
+        updated_weights = (1 - alpha) * base_weights + alpha * adaptive_weights
+    
+    # Compute weighted cross-entropy loss
+    loss = F.cross_entropy(step_logits, step_labels, weight=updated_weights)
+    
+    return loss, updated_weights
 
 
 def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=False, csv_path=None, dataset=None):
@@ -339,6 +388,9 @@ def main():
         total_loss = 0.0
         step_losses, mcp_losses = 0.0, 0.0
         n_batches = 0
+        
+        # Enable adaptive cost-sensitive learning after warmup
+        use_adaptive_loss = epoch >= STAGE1_WARMUP_EPOCHS
 
         for graphs, field_embs, step_idx, mcp_vec in train_loader:
             graphs = graphs.to(device)
@@ -350,14 +402,29 @@ def main():
                 graphs.x, graphs.edge_index, graphs.batch, field_embs,
                 edge_attr=edge_attr,
             )
-            loss, step_l, mcp_l = model.loss(
+            
+            # Use adaptive cost-sensitive loss for step classification
+            if use_adaptive_loss:
+                step_l, step_class_weights = adaptive_cost_sensitive_loss(
+                    step_logits, step_idx, step_class_weights, step_counts,
+                    alpha=0.1, beta=0.5
+                )
+            else:
+                step_l = F.cross_entropy(step_logits, step_idx, weight=step_class_weights)
+            
+            # MCP loss remains unchanged
+            mcp_l = model.loss(
                 step_logits, mcp_logits, step_idx, mcp_vec,
                 step_w=STEP_LOSS_WEIGHT, mcp_w=MCP_LOSS_WEIGHT,
                 mcp_class_weights=mcp_class_weights,
                 use_focal=True, focal_gamma=2.0,
                 label_smoothing=STEP_LABEL_SMOOTHING,
                 step_class_weights=step_class_weights,
-            )
+                use_step_focal=False,  # Disabled as it hurt performance
+            )[0]  # Get only the loss, ignore step and mcp components
+            
+            loss = STEP_LOSS_WEIGHT * step_l + MCP_LOSS_WEIGHT * mcp_l
+            
             opt.zero_grad()
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), STAGE1_GRAD_CLIP)

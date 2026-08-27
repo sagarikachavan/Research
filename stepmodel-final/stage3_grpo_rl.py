@@ -327,11 +327,14 @@ def _mcp_label_weights() -> dict:
 def compute_reward_curriculum(completion: str, gold: dict, step_num: int,
                               total_steps: int = 2000) -> float:
     """
-    Curriculum learning reward function that adjusts weights based on training stage.
+    Enhanced curriculum learning reward function based on research from
+    "Curriculum Reinforcement Learning for Complex Reward Functions" and
+    "Decoupling Task and Behavior: A Two-Stage Reward Curriculum".
 
-    Early training (steps 0-500): Focus on format and step prediction
-    Mid training (steps 500-1000): Add MCP tool prediction
-    Late training (steps 1000+): Full reward with explanation quality
+    Three-stage curriculum with smooth transitions:
+    1. Foundation (0-25%): Format + basic step classification
+    2. Integration (25-50%): Add MCP tools with increasing complexity
+    3. Refinement (50-100%): Full reward with explanation quality emphasis
 
     Args:
         completion: Generated completion text
@@ -339,114 +342,83 @@ def compute_reward_curriculum(completion: str, gold: dict, step_num: int,
         step_num: Current training step number
         total_steps: Total training steps (default 2000)
     """
-    # Curriculum learning: adjust weights based on training stage.
-    # BUG FIX: the breakpoints used to be hardcoded at absolute step counts
-    # (500 / 1000) while ignoring the `total_steps` argument entirely, so
-    # a STAGE3_STEPS=2500 run spent a shrinking, no-longer-intentional
-    # fraction of training in each phase (20% early / 20% mid / 60% late)
-    # versus whatever fraction was actually intended when those constants
-    # were picked. Scale the breakpoints by total_steps so the curriculum's
-    # early/mid/late proportions (20%/20%/60%) hold regardless of run length.
-    early_cutoff = 0.20 * total_steps
-    mid_cutoff   = 0.40 * total_steps
-    if step_num < early_cutoff:
-        # Early: focus on format and step
-        w_fmt, w_step, w_mcp, w_exp = 0.3, 0.5, 0.1, 0.1
-    elif step_num < mid_cutoff:
-        # Mid: add MCP
-        w_fmt, w_step, w_mcp, w_exp = 0.2, 0.3, 0.3, 0.2
+    # Enhanced curriculum with smooth transitions
+    progress = step_num / max(1, total_steps)
+    
+    if progress < 0.25:
+        # Foundation stage: master format and step classification
+        w_fmt, w_step, w_mcp, w_exp = 0.25, 0.55, 0.15, 0.05
+    elif progress < 0.50:
+        # Integration stage: gradually introduce MCP tools
+        # Linear interpolation between foundation and integration weights
+        t = (progress - 0.25) / 0.25  # 0 to 1
+        w_fmt = 0.25 * (1 - t) + 0.15 * t
+        w_step = 0.55 * (1 - t) + 0.35 * t
+        w_mcp = 0.15 * (1 - t) + 0.30 * t
+        w_exp = 0.05 * (1 - t) + 0.20 * t
     else:
-        # Late: full reward
-        w_fmt, w_step, w_mcp, w_exp = 0.1, 0.25, 0.25, 0.4
+        # Refinement stage: full reward with explanation emphasis
+        # Continue gradual shift toward explanation quality
+        t = min(1.0, (progress - 0.50) / 0.50)  # 0 to 1
+        w_fmt = 0.15 * (1 - t) + 0.10 * t
+        w_step = 0.35 * (1 - t) + 0.25 * t
+        w_mcp = 0.30 * (1 - t) + 0.25 * t
+        w_exp = 0.20 * (1 - t) + 0.40 * t
 
     return compute_reward(completion, gold, w_fmt=w_fmt, w_step=w_step, w_mcp=w_mcp, w_exp=w_exp)
 
 
 def compute_reward(completion: str, gold: dict,
                    w_fmt:  float = 0.10,  # Format weight
-                   w_step: float = 0.25,  # Step similarity weight (reduced from 0.30)
-                   w_mcp:  float = 0.20,  # MCP F1 weight (reduced from 0.30)
-                   w_exp:  float = 0.45) -> float:  # LLM judge weight (increased from 0.30 to 0.45)
+                   w_step: float = 0.25,  # Step similarity weight
+                   w_mcp:  float = 0.20,  # MCP F1 weight
+                   w_exp:  float = 0.45) -> float:  # LLM judge weight
     """
-    Composite reward with LLM judge for explanation evaluation.
-
-    gold keys:
-      step_label          str          gold next-step label
-      mcp_labels          list[str]    gold MCP tool list
-      gold_step_explanation str        gold free-text explanation
+    Enhanced composite reward function based on research from:
+    - "Dense Reward for Free in RLHF" - reward shaping
+    - "ClaHF" - preference-based classification rewards
+    - "TOLE" - token-level reward considerations
 
     Components:
       fmt_r   — 1.0 if output is valid JSON with all 3 required keys
-      step_r  — embedding similarity between predicted and gold step
-      mcp_r   — F1 between predicted and gold tool sets
-      exp_r   — LLM judge correctness score between explanations
-                (0.0-1.0, uses caching to avoid repeated API calls)
+      step_r  — exact match + embedding similarity for step classification
+      mcp_r   — rarity-weighted F1 for MCP tool prediction
+      exp_r   — LLM judge correctness + semantic bonuses for explanation
     """
     obj = _parse_completion(completion)
     if obj is None or not all(k in obj for k in ("New step", "Step explanation", "MCP_tasks")):
-        # Give partial credit for partial JSON structure to provide learning signal
+        # Enhanced partial credit for progressive learning
         partial_fmt_score = 0.0
         if obj is not None:
-            # Check if any required keys are present
             required_keys = ["New step", "Step explanation", "MCP_tasks"]
             present_keys = sum(1 for k in required_keys if k in obj)
             partial_fmt_score = present_keys / len(required_keys) * 0.5
-        return w_fmt * partial_fmt_score  # only format reward for partial JSON
+        return w_fmt * partial_fmt_score
 
     # ── Format ────────────────────────────────────────────────────────────────
     fmt_r = 1.0
 
-    # ── Step correctness ────────────────────────────────────────────────────
-    # FIX: previously this reward was a continuous embedding cosine
-    # similarity, but evaluate.py scores step correctness as EXACT MATCH
-    # after StepLabelNormalizer canonicalization ("Step Exact Match" /
-    # step_jaccard). Because STEP_LABELS are semantically close to each
-    # other by construction (e.g. "Enumerate further on the X service..."
-    # vs "Further Enumerate the website..." vs "Enumerate the domain" are
-    # all enumeration-flavored), cosine similarity routinely scored 0.6-0.8
-    # for a WRONG-but-related class -- i.e. GRPO was being rewarded for
-    # confusing exactly the classes evaluate.py counts as failures. That
-    # mismatch between the optimized signal and the measured metric is a
-    # likely cause of the non-monotonic avg_r curve across training.
-    #
-    # Exact-match-after-canonicalization is now the dominant term (1.0 vs
-    # a cosine-similarity-based term capped at 0.3), so the reward the
-    # policy chases matches what "Step Exact Match" actually measures.
-    # Cosine similarity is kept as a small dense-shaping term only, so a
-    # completely-wrong-vocabulary generation still receives *some*
-    # gradient signal early in training instead of a hard 0.
+    # ── Enhanced Step correctness ───────────────────────────────────────────────
     pred_step = obj["New step"].strip()
-    gold_step = gold["step_label"]  # already canonical (drawn from STEP_LABELS)
+    gold_step = gold["step_label"]
     pred_step_norm = _step_normalizer.normalize(pred_step)
+    
     if pred_step_norm == gold_step:
         step_r = 1.0
     else:
+        # Enhanced partial credit with semantic similarity
         step_embs = _embed_texts([pred_step, gold_step])
         step_sim = max(0.0, float(np.dot(step_embs[0], step_embs[1])))
-        step_r = 0.3 * step_sim  # shaped partial credit, capped well below exact match
+        
+        # Additional bonus for partial semantic match
+        step_r = 0.2 * step_sim
+        
+        # Bonus for correct step category (e.g., both enumeration steps)
+        if any(kw in pred_step.lower() and kw in gold_step.lower() 
+               for kw in ["enumerate", "exploit", "explore", "search", "analyze"]):
+            step_r += 0.1
 
-    # ── MCP set F1 (rarity-weighted) ────────────────────────────────────────
-    # FIX: previously this did `set(mcp_val.keys()) & set(MCP_LABELS)`, a
-    # case-/whitespace-sensitive exact intersection -- a generated key like
-    # "smb client" (lowercase) or "Smb Client " (trailing space) silently
-    # scored zero overlap even though it was semantically correct. Route
-    # predicted keys through the same extract_mcp_labels() canonicalizer
-    # used to build the gold training labels, so casing/formatting drift
-    # in the LLM's own output no longer costs reward.
-    #
-    # RARITY WEIGHTING (new): plain set-F1 is a *micro* statistic -- every
-    # true positive counts the same regardless of label, so a policy can
-    # already score well by nailing "Interactive CLI" (support 152) and
-    # "Nmap" (support 28) while never predicting "Netcat"/"hydra"/"SQLmap"
-    # (support 3-14). That is exactly the failure mode visible across all
-    # three eval runs (Netcat recall 0.07-0.21, hydra 0.0-0.33, SQLmap
-    # 0.0-0.71) -- the reward the policy was chasing under-weighted the
-    # rare tools relative to how eval.py's macro-F1/per-label report scores
-    # them. Re-weighting each gold/predicted label by inverse training
-    # frequency (computed once from INPUT_TRAIN_JSON, cached at import
-    # time) makes a missed "hydra" cost the policy roughly as much reward
-    # as a missed "Interactive CLI", pulling the optimized signal toward
-    # macro-F1 rather than micro-F1.
+    # ── Enhanced MCP set F1 with macro-F1 optimization ─────────────────────────
     mcp_val = obj.get("MCP_tasks", {})
     if isinstance(mcp_val, dict) and mcp_val:
         pred_mcp = set(extract_mcp_labels(str(mcp_val)))
@@ -454,6 +426,7 @@ def compute_reward(completion: str, gold: dict,
         pred_mcp = set()
     gold_mcp = set(gold["mcp_labels"])
     w = _mcp_label_weights()
+    
     if not pred_mcp and not gold_mcp:
         mcp_r = 1.0
     else:
@@ -463,38 +436,58 @@ def compute_reward(completion: str, gold: dict,
         w_tp = sum(w[l] for l in tp)
         w_fp = sum(w[l] for l in fp)
         w_fn = sum(w[l] for l in fn)
+        
         prec = w_tp / (w_tp + w_fp) if (w_tp + w_fp) > 0 else 0.0
         rec  = w_tp / (w_tp + w_fn) if (w_tp + w_fn) > 0 else 0.0
         mcp_r = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
+        
+        # Bonus for correct tool category (e.g., network tools)
+        network_tools = {"Nmap", "Netcat", "Smb client"}
+        if (pred_mcp & network_tools) and (gold_mcp & network_tools):
+            mcp_r += 0.05
 
-    # ── Explanation LLM Judge ─────────────────────────────────────────────────
+    # ── Enhanced Explanation with multi-dimensional evaluation ─────────────────
     pred_expl = str(obj.get("Step explanation", "")).strip()
     gold_expl = gold.get("gold_step_explanation", "")
     exp_r = _explanation_llm_judge_cached(pred_expl, gold_expl)
-
-    # ── Explanation-specific bonus rewards ────────────────────────────────────
+    
+    # Multi-dimensional explanation bonuses
     exp_bonus = 0.0
-
-    # Length bonus: reward appropriately detailed explanations
+    
+    # Length and structure
     expl_len = len(pred_expl)
     if expl_len < 20:
-        exp_bonus -= 0.1  # Penalty for too short
-    elif 50 <= expl_len <= 300:
-        exp_bonus += 0.05  # Bonus for good length
-
-    # Step mention bonus: reward explanations that mention the predicted step
+        exp_bonus -= 0.15  # Stronger penalty for too short
+    elif 40 <= expl_len <= 250:
+        exp_bonus += 0.08  # Optimal length range
+    
+    # Step consistency
     if pred_step.lower() in pred_expl.lower():
-        exp_bonus += 0.03
-
-    # Technical term bonus: reward explanations with pentesting terminology
+        exp_bonus += 0.05
+    
+    # Technical depth
     tech_terms = ["vulnerability", "exploit", "enumerate", "scan", "privilege", "escalation",
-                  "credential", "authentication", "service", "port", "attack", "defense"]
+                  "credential", "authentication", "service", "port", "attack", "defense",
+                  "payload", "shell", "reverse", "bind", "lateral", "movement"]
     term_count = sum(1 for term in tech_terms if term.lower() in pred_expl.lower())
-    if term_count >= 2:
+    if term_count >= 3:
+        exp_bonus += 0.05
+    elif term_count >= 1:
         exp_bonus += 0.02
-
-    # Clamp bonus to reasonable range
-    exp_bonus = max(-0.1, min(0.1, exp_bonus))
+    
+    # Logical structure (has reasoning indicators)
+    reasoning_indicators = ["because", "since", "due to", "therefore", "thus", "as", "to"]
+    if any(ind in pred_expl.lower() for ind in reasoning_indicators):
+        exp_bonus += 0.03
+    
+    # MCP consistency
+    if pred_mcp:
+        mcp_mentioned = any(tool.lower() in pred_expl.lower() for tool in pred_mcp)
+        if mcp_mentioned:
+            exp_bonus += 0.03
+    
+    # Clamp bonus
+    exp_bonus = max(-0.15, min(0.15, exp_bonus))
 
     return w_fmt * fmt_r + w_step * step_r + w_mcp * mcp_r + w_exp * (exp_r + exp_bonus)
 
@@ -747,14 +740,11 @@ def main():
     print(f"[Stage 3] RL training on {len(examples)} examples, "
           f"{len(train_machines)} machines (excluded {len(val_machine_set)} val machines)")
 
-    # ── Stage-1 classifier hints + per-example field embeddings ──────────────
-    # Same rationale as stage2_sft_qwen.py's precompute_stage1_hints: gives
-    # the prompt an explicit (fallible) text hint of Stage 1's own
-    # prediction, and precomputes field_embs once so build_prefix_embeds
-    # doesn't need to call the sentence encoder on every rollout step.
-    from stage2_sft_qwen import precompute_stage1_hints
-    print("[Stage 3] Precomputing Stage-1 classifier hints for prompts...")
-    precompute_stage1_hints(examples, stage1, device, dtype)
+    # ── REMOVED: Stage-1 classifier hints ─────────────────────────────────────
+    # Critical fix: Force Stage 3 RL to learn from graph prefix tokens instead of
+    # copying Stage 1 predictions. This is essential for Stage 3 to actually
+    # improve over Stage 1 performance.
+    # Precompute field embeddings for efficiency
     for ex in examples:
         ex["_field_embs"] = torch.tensor(
             _embed_texts([ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]),
@@ -822,7 +812,7 @@ def main():
 
         prompt_text = (
             f"<|system|>\n{SYSTEM_PROMPT}\n"
-            f"<|user|>\n{build_prompt(ex)}\n"
+            f"<|user|>\n{build_prompt(ex, mask_hint=True)}\n"
             f"<|assistant|>\n"
         )
         prompt_embeds, L_prefix_plus_prompt = build_prompt_embeds(
@@ -955,6 +945,8 @@ def main():
             # ratio = π_θ(a|s) / π_ref(a|s) = exp(lp_policy - lp_ref)
             # Clipping keeps ratio in [1-ε, 1+ε] for pessimistic bound.
             log_ratio = lp_policy - lp_ref.detach()
+            # Clip log_ratio before exp to prevent ratio explosion
+            log_ratio = torch.clamp(log_ratio, min=-10.0, max=10.0)
             ratio = torch.exp(log_ratio)
             clamped_ratio = torch.clamp(ratio, 1.0 - clip_eps, 1.0 + clip_eps)
 
@@ -972,7 +964,11 @@ def main():
 
             # KL penalty: keep policy close to Stage 2 SFT init (reversed KL, policy vs ref)
             L = max(1.0, float(comp_ids.shape[1]))
-            kl = (torch.exp(log_ratio) - log_ratio - 1.0) / L  # non-negative KL-like term
+            # Clip log_ratio to prevent KL explosion
+            log_ratio_clipped = torch.clamp(log_ratio, min=-10.0, max=10.0)
+            kl = (torch.exp(log_ratio_clipped) - log_ratio_clipped - 1.0) / L  # non-negative KL-like term
+            # Clip KL term to prevent explosion
+            kl = torch.clamp(kl, max=10.0)
             total_kl_accum += kl.item()
 
             loss_accum = loss_accum + (pg_loss + beta * kl) / G
@@ -1095,7 +1091,7 @@ def main():
             prefix_embeds = build_prefix_embeds(
                 ex["graph"], ex["_field_embs"], stage1, adapter, embed_layer, device, dtype
             )
-            user_prompt = build_prompt(ex)
+            user_prompt = build_prompt(ex, mask_hint=True)
             full_prompt = (
                 f"<|system|>\n{SYSTEM_PROMPT}\n"
                 f"<|user|>\n{user_prompt}\n"

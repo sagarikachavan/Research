@@ -74,16 +74,31 @@ SYSTEM_PROMPT = (
 )
 
 
-def build_prompt(ex: dict) -> str:
-    # Input contract: machine + graph (fed separately via the graph-prefix
+def build_prompt(ex: dict, mask_hint: bool = False) -> str:
+    """
+    Enhanced prompt building based on research from GTA and ReFT papers.
+    Structured prompt with clear sections for better reasoning guidance.
+
+    Input contract: machine + graph (fed separately via the graph-prefix
     # adapter) + new_strategy + strategy_explanation ONLY. No previous-step
     # fields -- see CONTEXT_COLUMNS / EXTRA_OUTPUT_KEYS in data_utils.py and
     # build_input_json.py for why they were removed.
+
+    Args:
+        ex: Example dictionary with context and optional stage1_hint
+        mask_hint: If True, omit the Stage 1 hint to force learning from graph tokens
+    """
     ctx = ex["context"]
     lines = [
+        "# Context",
         f"Machine: {ex['machine']}",
+        "",
+        "# Strategy",
         f"New strategy: {ctx['New strategy']}",
         f"Strategy explanation: {ctx['Strategy explanation']}",
+        "",
+        "# Task",
+        "Based on the machine and strategy above, determine the next step, the tools needed, and explain your reasoning.",
     ]
     # Stage-1 classifier hint (optional -- set by precompute_stage1_hints()).
     # WHY: the graph-prefix soft tokens already encode Stage 1's fused
@@ -98,7 +113,14 @@ def build_prompt(ex: dict) -> str:
     # the fuller strategy text makes the graph-only classifier's guess
     # wrong. It is explicitly labeled as fallible so the model isn't
     # trained to treat it as ground truth.
-    if ex.get("stage1_hint"):
+    #
+    # HINT MASKING: During training, we randomly mask the hint (mask_hint=True)
+    # to force the model to learn from the graph prefix tokens directly.
+    # This prevents the model from simply copying the hint and ignoring the
+    # graph conditioning.
+    if not mask_hint and ex.get("stage1_hint"):
+        lines.append("")
+        lines.append("# Suggested Step (verify against strategy above)")
         lines.append(ex["stage1_hint"])
     return "\n".join(lines)
 
@@ -141,6 +163,10 @@ def precompute_stage1_hints(examples: list, stage1, device, dtype) -> None:
 
 
 def build_target(ex: dict) -> str:
+    """
+    Enhanced target building with better structure for learning.
+    Based on research from GTA and ReFT for better reasoning guidance.
+    """
     mcp_dict = {
         label: f"Use {label} as part of: {ex['step_label']}"
         for label in ex["mcp_labels"]
@@ -152,6 +178,7 @@ def build_target(ex: dict) -> str:
             "MCP_tasks": mcp_dict,
         },
         ensure_ascii=False,
+        indent=2  # Better formatting for easier parsing
     )
 
 
@@ -324,10 +351,12 @@ class GraphPrefixAdapter(nn.Module):
 # ---------------------------------------------------------------------------
 
 class SFTDataset(Dataset):
-    def __init__(self, examples: list, tokenizer, max_len: int = 2560):
+    def __init__(self, examples: list, tokenizer, max_len: int = 2560, mask_hint_prob: float = 0.0, is_training: bool = True):
         self.examples = examples
         self.tok = tokenizer
         self.max_len = max_len
+        self.mask_hint_prob = mask_hint_prob
+        self.is_training = is_training
 
     def __len__(self) -> int:
         return len(self.examples)
@@ -336,7 +365,7 @@ class SFTDataset(Dataset):
         ex = self.examples[idx]
         prompt_text = (
             f"<|system|>\n{SYSTEM_PROMPT}\n"
-            f"<|user|>\n{build_prompt(ex)}\n"
+            f"<|user|>\n{build_prompt(ex, mask_hint=(np.random.random() < self.mask_hint_prob) if self.is_training else True)}\n"
             f"<|assistant|>\n"
         )
         target_text = build_target(ex)
@@ -660,13 +689,13 @@ def main():
     print(f"[Stage 2] Train examples  : {n_train}")
     print(f"[Stage 2] Val examples    : {n_val}")
 
-    # ── Precompute Stage-1 classifier hints (see build_prompt) ────────────────
-    print("[Stage 2] Precomputing Stage-1 classifier hints for prompts...")
-    precompute_stage1_hints(train_examples, stage1, device, dtype)
-    precompute_stage1_hints(val_examples, stage1, device, dtype)
+    # ── REMOVED: Precompute Stage-1 classifier hints ─────────────────────────
+    # Critical fix: Force model to learn from graph prefix tokens instead of
+    # copying Stage 1 predictions. This is essential for Stage 2 to actually
+    # improve over Stage 1 performance.
 
-    train_ds = SFTDataset(train_examples, tokenizer)
-    val_ds   = SFTDataset(val_examples,   tokenizer)
+    train_ds = SFTDataset(train_examples, tokenizer, mask_hint_prob=0.5, is_training=True)
+    val_ds   = SFTDataset(val_examples,   tokenizer, mask_hint_prob=1.0, is_training=False)
 
     # ── Class-balanced sampling for training ──────────────────────────────
     # step_label support is heavily skewed (e.g. "Exploit the selected
@@ -970,17 +999,19 @@ def main():
                     # Extract explanations
                     pred_expl = str(obj.get("Step explanation", "")).strip()
                     gold_expl = ex.get("gold_step_explanation", "")
-                    
+
+                    prompt = build_prompt(ex, mask_hint=True)
                     csv_rows.append({
                         "machine": ex.get("machine", ""),
-                        "new_strategy": ex["context"].get("New strategy", ""),
-                        "strategy_explanation": ex["context"].get("Strategy explanation", ""),
+                        "new_strategy": ex.get("new strategy", ""),
+                        "strategy_explanation": ex.get("new strategy explanation", ""),
                         "step_prediction": pred_step_label,
                         "gold_new_step": gold_step_label,
                         "mcp_tool_prediction": pred_mcp_tools,
                         "mcp_tool_gold": gold_mcp_tools,
                         "step_explanation_predicted": pred_expl,
                         "step_explanation_gold": gold_expl,
+                        "prompt": prompt,
                     })
     
     # Save CSV

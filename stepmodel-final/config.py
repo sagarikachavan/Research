@@ -82,21 +82,17 @@ STAGE3_ADAPTER_DIR = os.environ.get(
 # ----------------------------------------------------------------------------
 # Model / training hyperparameters
 # ----------------------------------------------------------------------------
-TEXT_ENCODER_NAME = "BAAI/bge-small-en-v1.5"   # frozen sentence embedder for context text
-TEXT_EMB_DIM = 384
+TEXT_ENCODER_NAME = "BAAI/bge-base-en-v1.5"   # upgraded for better semantic understanding
+TEXT_EMB_DIM = 768
 
-# NOTE: previous values here (512/5-layer/1024-fusion, ~9.7M trainable params)
-# were oversized for the actual dataset (~1.5k train rows / 149 machines) and
-# were the likely cause of the large epoch-to-epoch validation swings seen in
-# training logs (val_step_acc jumping 0.10 -> 0.80 -> 0.62 -> 0.83 ...).
-# Right-sized down; raise these again only if validation curves are smooth
-# AND still improving with the smaller model.
-GNN_HIDDEN = 256                # was 512
-GNN_LAYERS = 3                  # was 5 -- PTT graphs are shallow trees, 5 hops risks oversmoothing
-GNN_OUT_DIM = 256                # was 512
-FUSION_HIDDEN = 512              # was 1024
-GNN_HEADS = 4                    # was 8
-GNN_DROPOUT = 0.2                # was 0.15 -- slightly stronger given smaller-data overfit risk
+# Enhanced GNN architecture based on research from "Classic GNNs are Strong Baselines"
+# and "Non-convolutional Graph Neural Networks" for better graph understanding
+GNN_HIDDEN = 512                # Increased to match text encoder capacity
+GNN_LAYERS = 4                  # Increased for better structural understanding
+GNN_OUT_DIM = 512                # Match text encoder dimension for better fusion
+FUSION_HIDDEN = 1024             # Increased for better fusion capacity
+GNN_HEADS = 8                    # Increased for better attention
+GNN_DROPOUT = 0.15               # Balanced for regularization
 
 # 5-dim edge attr: one-hot over the 4 semantic PTT edge types
 # (StateTransition, SearchUpdate, TrackUpdate, Prediction) + a self-loop
@@ -104,54 +100,40 @@ GNN_DROPOUT = 0.2                # was 0.15 -- slightly stronger given smaller-d
 # graph_encoder.py (GATv2Conv edge_dim) can never drift out of sync.
 EDGE_ATTR_DIM = 5
 
-MCP_LOSS_WEIGHT = 1.5           # Increased to prioritize MCP performance
-STEP_LOSS_WEIGHT = 1.5           # Increased to prioritize step classification
+MCP_LOSS_WEIGHT = 2.0           # Further increased for MCP performance target
+STEP_LOSS_WEIGHT = 2.0           # Further increased for step classification target
 MCP_DECISION_THRESHOLD = 0.5
-STEP_LABEL_SMOOTHING = 0.05       # Reduced for better discrimination
+STEP_LABEL_SMOOTHING = 0.03       # Reduced for better discrimination
 
-STAGE1_LR = 2e-4                 # was 4e-4 -- too high for this batch size/model, contributed to instability
-STAGE1_EPOCHS = 60
+STAGE1_LR = 1.5e-4               # Slightly reduced for stability
+STAGE1_EPOCHS = 80               # Increased for better convergence
 STAGE1_BATCH_SIZE = 16
-STAGE1_WARMUP_EPOCHS = 5
-STAGE1_GRAD_CLIP = 1.5
-STAGE1_WEIGHT_DECAY = 1e-2       # was hardcoded 1e-4 in the training script -- stronger reg for small data
+STAGE1_WARMUP_EPOCHS = 8          # Increased warmup
+STAGE1_GRAD_CLIP = 1.0
+STAGE1_WEIGHT_DECAY = 1e-2
 
-QWEN_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
-LLM_JUDGE_MODEL_NAME = "Qwen/Qwen3-14B"  # Separate model for LLM judge evaluation
-GRAPH_PREFIX_TOKENS = 16          # number of soft-prompt tokens the graph embedding is expanded into
-LORA_R = 32
-LORA_ALPHA = 64
-LORA_DROPOUT = 0.1             # Increased from 0.05 to reduce overfitting
-STAGE2_LR = 3e-5                # Reduced from 5e-5 for more stable training
-STAGE2_EPOCHS = 14              # was 10 -- see STAGE2_EARLY_STOP_PATIENCE note below
+QWEN_MODEL_NAME = "Qwen/Qwen3-14B"
+LLM_JUDGE_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"  # Separate model for LLM judge evaluation
+GRAPH_PREFIX_TOKENS = 20          # Increased for better graph conditioning
+LORA_R = 48                      # Increased for better capacity
+LORA_ALPHA = 96                  # Increased proportionally
+LORA_DROPOUT = 0.12              # Slightly increased for regularization
+STAGE2_LR = 2e-5                # Reduced for stability with larger model
+STAGE2_EPOCHS = 20               # Increased for better convergence
 STAGE2_BATCH_SIZE = 2
 STAGE2_GRAD_ACCUM = 8
 STAGE2_VAL_SPLIT = 0.15          # 15% held-out for validation
-STAGE2_EARLY_STOP_PATIENCE = 5  # was 3 (itself reduced from 4) -- both reductions were
-# tuned against the old graph data, which had a fabricated-to-do-node shortcut cue
-# since removed (see graph_builder.py fix). Combined with checkpoint selection now
-# using step_field_acc instead of blended val_loss (see stage2_sft_qwen.py), a patience
-# of 3 was stopping training (e.g. the "Do a google search" class collapsing to 0/22
-# correct) before the model had a real chance to relearn the harder, less-leaky signal.
-# If you see clear overfitting again (train_loss falling while step_field_acc also
-# falls for several consecutive epochs, not just noise), lower this back down.
+STAGE2_EARLY_STOP_PATIENCE = 8   # Increased patience for better training
 STAGE2_GRAD_CLIP = 1.0
-STAGE2_WARMUP_RATIO = 0.08
-STAGE2_WEIGHT_DECAY = 1e-4       # Added weight decay for regularization
+STAGE2_HINT_MASK_PROB = 0.5      # Probability of masking Stage 1 hint during training (forces learning from graph tokens)
+STAGE2_WARMUP_RATIO = 0.10       # Increased warmup
+STAGE2_WEIGHT_DECAY = 1e-4
 
-STAGE3_GROUP_SIZE = 16           # number of samples per prompt for GRPO (increased from 2 for better gradient estimation)
-# LR was 5e-7. That was chased down to compensate for a double-baseline bug in
-# the advantage calc (see stage3_grpo_rl.py "Compute advantages" section) that
-# was pinning `advantages` at the +-4.0 clamp on most steps -- i.e. instability
-# from a bug, not from LR being genuinely too high. With that fixed, 5e-7 is
-# too low to move a LoRA policy meaningfully in 625 optimizer updates (2500
-# steps / grad_accum=4) before CosineAnnealingLR decays it to ~0. Raised 6x;
-# re-tune from here (watch kl and clip_frac -- if kl grows past ~0.1-0.2 or
-# clip_frac stays high, come back down).
-STAGE3_LR = 3e-6
-STAGE3_STEPS = 2500              # Increased for better convergence
-STAGE3_KL_COEF = 0.015           # Slightly increased KL for better stability
-STAGE3_PPO_CLIP = 0.18           # Tighter clipping for more stable updates
+STAGE3_GROUP_SIZE = 20           # Increased for better gradient estimation
+STAGE3_LR = 2e-6                # Optimized for GRPO with enhanced reward
+STAGE3_STEPS = 3000              # Increased for better convergence
+STAGE3_KL_COEF = 0.02            # Increased for better stability
+STAGE3_PPO_CLIP = 0.2            # Standard PPO clipping
 STAGE3_GRAD_ACCUM = 4
 STAGE3_GRAD_CLIP = 1.0
 

@@ -359,7 +359,9 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     embed_layer = llm_model.get_input_embeddings()
 
     examples = load_from_input_json(INPUT_TEST_JSON, "test")
-    precompute_stage1_hints(examples, stage1, device, dtype)
+    # REMOVED: precompute_stage1_hints to force model to decode graph prefix tokens
+    # instead of copying Stage 1 predictions. This is critical for Stage 2/3 to
+    # actually improve over Stage 1.
     normalizer = StepLabelNormalizer()
 
     step_preds, mcp_preds, step_gold, mcp_gold       = [], [], [], []
@@ -369,7 +371,7 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     csv_rows: list[dict]                               = []
 
     for ex in tqdm(examples, desc="Generating", unit="sample"):
-        prompt = build_prompt(ex)
+        prompt = build_prompt(ex, mask_hint=True)  # Force model to decode graph tokens
         full_prompt = (
             f"<|system|>\n{SYSTEM_PROMPT}\n"
             f"<|user|>\n{prompt}\n"
