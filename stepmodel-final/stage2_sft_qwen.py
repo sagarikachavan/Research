@@ -351,7 +351,7 @@ class GraphPrefixAdapter(nn.Module):
 # ---------------------------------------------------------------------------
 
 class SFTDataset(Dataset):
-    def __init__(self, examples: list, tokenizer, max_len: int = 2560, mask_hint_prob: float = 0.0, is_training: bool = True):
+    def __init__(self, examples: list, tokenizer, max_len: int = 1536, mask_hint_prob: float = 0.0, is_training: bool = True):
         self.examples = examples
         self.tok = tokenizer
         self.max_len = max_len

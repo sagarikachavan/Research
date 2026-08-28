@@ -32,7 +32,7 @@ from pathlib import Path
 STAGES = [
     # ("generate_graphs",  "generate_graphs.py",   []),
     # ("build_input_json", "build_input_json.py",  []),
-    ("stage1",           "stage1_gnn_train.py",  []),
+    # ("stage1",           "stage1_gnn_train.py",  []),
     ("stage2",           "stage2_sft_qwen.py",   []),
     ("stage3",           "stage3_grpo_rl.py",    []),
     ("evaluate",         "evaluate.py",           []),
