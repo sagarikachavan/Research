@@ -70,8 +70,8 @@ import ptt_parser
 from ptt_parser import is_valid_machine_name
 
 BASE_DIR = pathlib.Path(__file__).parent
-DATA_DIR = BASE_DIR / "data"
-OUTPUT_DIR = BASE_DIR / "input"
+DATA_DIR = BASE_DIR.parent / "data"
+OUTPUT_DIR = BASE_DIR.parent / "input"
 
 # CSV column -> output key
 CSV_TO_OUTPUT = {

@@ -56,8 +56,8 @@ import ptt_parser
 from ptt_parser import is_valid_machine_name, to_html
 
 BASE_DIR = pathlib.Path(__file__).parent
-DATA_DIR = BASE_DIR / "data"
-OUT_DIR = BASE_DIR / "processed_graph"
+DATA_DIR = BASE_DIR.parent / "data"
+OUT_DIR = BASE_DIR.parent / "processed_graph"
 
 
 def sanitize_dirname(name: str, max_len: int = 60) -> str:
