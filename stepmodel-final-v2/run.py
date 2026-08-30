@@ -31,11 +31,11 @@ from pathlib import Path
 # Each entry: (name, script_path relative to this file, extra_args)
 # Paths reflect the restructured layout: data_prep/, training/, eval/.
 STAGES = [
-    ("generate_graphs",   "data_prep/generate_graphs.py",  []),
-    ("build_input_json",  "data_prep/build_input_json.py", []),
-    ("stage1",            "training/stage1_gnn_train.py",  []),
-    ("stage2",            "training/stage2_sft_qwen.py",   []),
-    ("stage3",             "training/stage3_grpo_rl.py",    []),
+    # ("generate_graphs",   "data_prep/generate_graphs.py",  []),
+    # ("build_input_json",  "data_prep/build_input_json.py", []),
+    # ("stage1",            "training/stage1_gnn_train.py",  []),
+    # ("stage2",            "training/stage2_sft_qwen.py",   []),
+    # ("stage3",             "training/stage3_grpo_rl.py",    []),
     ("evaluate",           "eval/evaluate.py",              []),
     ("baseline_zeroshot", "eval/baseline_llm_eval.py",     ["--num_shots", "0"]),
     ("baseline_3shot",    "eval/baseline_llm_eval.py",     ["--num_shots", "3"]),

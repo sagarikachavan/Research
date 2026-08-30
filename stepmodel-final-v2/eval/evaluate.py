@@ -323,6 +323,7 @@ def eval_llm(adapter_dir: str, threshold_override=None,
             print(f"[eval] ⚠ Failed to load LLM judge model: {e}")
             print("[eval]   Continuing without LLM judge — explanation quality will use heuristics.")
 
+    # Load tokenizer from adapter directory
     tokenizer = AutoTokenizer.from_pretrained(adapter_dir)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
@@ -330,7 +331,11 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     base = AutoModelForCausalLM.from_pretrained(
         QWEN_MODEL_NAME, torch_dtype=dtype
     ).to(device)
-    llm_model = PeftModel.from_pretrained(base, adapter_dir).eval()
+    
+    # Load adapter using load_adapter method to bypass HuggingFace hub validation
+    base.load_adapter(adapter_dir)
+    llm_model = base
+    llm_model.eval()
 
     # ── Graph prefix adapter ──────────────────────────────────────────────
     stage1 = Stage1Classifier()

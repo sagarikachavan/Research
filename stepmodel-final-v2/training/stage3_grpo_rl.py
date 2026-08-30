@@ -105,7 +105,7 @@ from config import (
 )
 from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS, StepLabelNormalizer, extract_mcp_labels
 from graph_encoder import Stage1Classifier
-from stage2_sft_qwen import GraphPrefixAdapter, build_prompt, SYSTEM_PROMPT, build_obj_parser
+from stage2_sft_qwen import GraphPrefixAdapter, build_prompt, SYSTEM_PROMPT, build_obj_parser, precompute_stage1_hints
 
 random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)

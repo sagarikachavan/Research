@@ -29,8 +29,10 @@ import pathlib
 import pandas as pd
 
 BASE_DIR = pathlib.Path(__file__).parent.parent
-DATA_DIR = BASE_DIR / "data"
-OUTPUT_DIR = BASE_DIR / "experiment" / "input"
+# Use main pipeline's data directory
+MAIN_ROOT = BASE_DIR.parent
+DATA_DIR = MAIN_ROOT / "data"
+OUTPUT_DIR = BASE_DIR / "input"
 
 # CSV column -> output key
 CSV_TO_OUTPUT = {
