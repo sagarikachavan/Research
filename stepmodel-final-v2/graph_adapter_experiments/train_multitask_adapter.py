@@ -87,7 +87,7 @@ def main():
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     base = AutoModelForCausalLM.from_pretrained(config.QWEN_MODEL_NAME, torch_dtype=dtype).to(device)
-    model = PeftModel.from_pretrained(base, init_from, is_trainable=True)
+    model = PeftModel.from_pretrained(base, init_from, is_trainable=True, local_files_only=True)
     model.gradient_checkpointing_enable()
     model.train()
 

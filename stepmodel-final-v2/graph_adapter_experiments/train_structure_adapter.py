@@ -193,11 +193,11 @@ def main():
     ex_index = index_examples_by_key(examples)
 
     print(f"[train_structure_adapter] Loading base model from {init_from} ...")
-    tokenizer = AutoTokenizer.from_pretrained(init_from)
+    tokenizer = AutoTokenizer.from_pretrained(init_from, local_files_only=True)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
     base = AutoModelForCausalLM.from_pretrained(config.QWEN_MODEL_NAME, torch_dtype=dtype).to(device)
-    model = PeftModel.from_pretrained(base, init_from, is_trainable=True)
+    model = PeftModel.from_pretrained(base, init_from, is_trainable=True, local_files_only=True)
     model.gradient_checkpointing_enable()
     model.train()
 

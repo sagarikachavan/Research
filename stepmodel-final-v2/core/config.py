@@ -129,7 +129,7 @@ STAGE2_HINT_MASK_PROB = 0.5      # Probability of masking Stage 1 hint during tr
 STAGE2_WARMUP_RATIO = 0.10       # Increased warmup
 STAGE2_WEIGHT_DECAY = 1e-4
 
-STAGE3_GROUP_SIZE = 20           # Increased for better gradient estimation
+STAGE3_GROUP_SIZE = 4            # Reduced to avoid CUDA OOM
 STAGE3_LR = 2e-6                # Optimized for GRPO with enhanced reward
 STAGE3_STEPS = 3000              # Increased for better convergence
 STAGE3_KL_COEF = 0.02            # Increased for better stability

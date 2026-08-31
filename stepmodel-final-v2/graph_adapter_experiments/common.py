@@ -130,7 +130,7 @@ def load_model_for_eval(adapter_dir: str, device: Optional[str] = None,
 
     base = AutoModelForCausalLM.from_pretrained(QWEN_MODEL_NAME, torch_dtype=dtype).to(device)
     try:
-        llm = PeftModel.from_pretrained(base, adapter_dir).eval()
+        llm = PeftModel.from_pretrained(base, adapter_dir, local_files_only=True).eval()
     except Exception as e:
         print(f"[common] No LoRA adapter found / failed to load ({e}); using base model unmodified.")
         llm = base.eval()
@@ -320,7 +320,7 @@ def format_task_prompt(item: dict) -> str:
     return build_structure_prompt(q)
 
 
-
+def build_structure_prompt(question: str) -> str:
     """
     A minimal, task-neutral instruction wrapper. `node_id_map`, if given, is
     an {anonymized_id: ...} hint block telling the LLM which anonymized
