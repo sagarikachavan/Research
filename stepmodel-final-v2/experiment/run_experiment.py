@@ -24,23 +24,37 @@ from pathlib import Path
 
 
 def run_command(cmd, cwd, description):
-    """Run a command and print output."""
+    """Run a command and stream its output live.
+
+    IMPORTANT: subprocess.run(..., capture_output=True) buffers ALL stdout
+    (including tqdm progress bars) until the process exits. For a
+    multi-hour training stage that means the terminal shows nothing at
+    all until the stage finishes -- indistinguishable from a hang. We use
+    Popen + unbuffered pass-through instead so progress is visible the
+    whole time.
+    """
     print(f"\n{'='*60}")
     print(f"Running: {description}")
     print(f"Command: {' '.join(cmd)}")
     print(f"Working directory: {cwd}")
     print(f"{'='*60}\n")
-    
-    result = subprocess.run(cmd, cwd=cwd, capture_output=True, text=True)
-    
-    print(result.stdout)
-    if result.stderr:
-        print("STDERR:", result.stderr, file=sys.stderr)
-    
-    if result.returncode != 0:
-        print(f"\n❌ {description} failed with exit code {result.returncode}", file=sys.stderr)
+
+    env = os.environ.copy()
+    env["PYTHONUNBUFFERED"] = "1"  # make the child's own prints flush immediately
+
+    process = subprocess.Popen(
+        cmd, cwd=cwd, env=env,
+        stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+        text=True, bufsize=1,
+    )
+    for line in process.stdout:
+        print(line, end="", flush=True)
+    process.wait()
+
+    if process.returncode != 0:
+        print(f"\n❌ {description} failed with exit code {process.returncode}", file=sys.stderr)
         sys.exit(1)
-    
+
     print(f"\n✅ {description} completed successfully")
     return True
 

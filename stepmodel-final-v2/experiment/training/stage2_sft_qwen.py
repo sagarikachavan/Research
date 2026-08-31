@@ -151,6 +151,10 @@ def main():
     np.random.seed(RANDOM_SEED)
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"Using device: {device}")
+    if device.type == "cpu":
+        print("WARNING: no CUDA device found. Fine-tuning a 14B-parameter model on CPU "
+              "will be extremely slow and may look 'stuck' even though it's just very "
+              "slow. A GPU is strongly recommended.")
     
     # Load data
     all_examples = load_from_input_json(INPUT_TRAIN_JSON, "train")

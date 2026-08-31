@@ -9,10 +9,25 @@ Usage:
     python evaluate.py --stage 2  # Evaluate Stage 2
     python evaluate.py --stage 3  # Evaluate Stage 3
     python evaluate.py --stage all  # Evaluate all stages
+
+--------------------------------------------------------------------------
+FIXES:
+1. Added an existence check for the adapter directory before calling
+   PeftModel.from_pretrained(). If a local path doesn't exist, PEFT
+   silently treats it as a Hugging Face Hub repo ID and tries to resolve
+   it over the network -- which can hang for a long time (or fail with a
+   confusing error) instead of clearly telling you the checkpoint isn't
+   there yet.
+2. `--stage all` loads a full 14B model for Stage 2, then loads ANOTHER
+   full 14B model for Stage 3 without freeing the first one. Added
+   explicit cleanup (del + gc.collect + torch.cuda.empty_cache) between
+   stages so the second load doesn't OOM.
+--------------------------------------------------------------------------
 """
 
 import os
 import sys
+import gc
 import json
 import argparse
 import numpy as np
@@ -164,7 +179,13 @@ def main():
         print(f"\n{'='*50}")
         print(f"Evaluating Stage {stage}")
         print(f"{'='*50}")
-        
+
+        adapter_dir = STAGE2_ADAPTER_DIR if stage == "2" else STAGE3_ADAPTER_DIR
+        if not os.path.isdir(adapter_dir) or not os.listdir(adapter_dir):
+            print(f"⚠️  Skipping Stage {stage}: no checkpoint found at {adapter_dir}. "
+                  f"(Run the Stage {stage} training script first.)")
+            continue
+
         # Load tokenizer and model
         tokenizer = AutoTokenizer.from_pretrained(QWEN_MODEL_NAME, trust_remote_code=True)
         tokenizer.pad_token = tokenizer.eos_token
@@ -176,7 +197,6 @@ def main():
             trust_remote_code=True
         )
         
-        adapter_dir = STAGE2_ADAPTER_DIR if stage == "2" else STAGE3_ADAPTER_DIR
         model = PeftModel.from_pretrained(base_model, adapter_dir)
         model = model.merge_and_unload()
         
@@ -196,6 +216,14 @@ def main():
                 'results': results,
             }, f, indent=2, ensure_ascii=False)
         print(f"Saved results to {output_path}")
+
+        # Free the full 14B model before the next stage's model is loaded --
+        # without this, evaluating "all" loads a second full copy on top of
+        # the first and risks an OOM right at the last step of the pipeline.
+        del model, base_model, tokenizer
+        gc.collect()
+        if torch.cuda.is_available():
+            torch.cuda.empty_cache()
 
 
 if __name__ == "__main__":
