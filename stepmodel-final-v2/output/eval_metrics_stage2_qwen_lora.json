@@ -1,0 +1,106 @@
+{
+  "model_tag": "stage2_qwen_lora",
+  "timestamp": "2026-09-03T12:48:17.085338+00:00",
+  "n_samples": 268,
+  "mcp_thresholds": [
+    0.45,
+    0.45,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.5,
+    0.7,
+    0.5,
+    0.4
+  ],
+  "step": {
+    "accuracy": 0.8246268656716418,
+    "macro_f1": 0.7371525567306192,
+    "weighted_f1": 0.8306715266621714,
+    "jaccard_exact_match": 0.8246268656716418
+  },
+  "mcp": {
+    "subset_accuracy": 0.6119402985074627,
+    "micro_f1": 0.7353407290015848,
+    "macro_f1": 0.6629810974178154,
+    "samples_f1": 0.7621890547263681,
+    "samples_precision": 0.8339552238805971,
+    "samples_recall": 0.7313432835820896,
+    "micro_precision": 0.8467153284671532,
+    "micro_recall": 0.6498599439775911,
+    "hamming_loss": 0.05664857530529172,
+    "jaccard_mean": 0.7235696517412936,
+    "jaccard_pass_rate_at_0.5": 0.7985074626865671,
+    "per_label": {
+      "Nmap": {
+        "precision": 0.896551724137931,
+        "recall": 0.9285714285714286,
+        "f1": 0.9122807017543859,
+        "support": 28
+      },
+      "Metasploit": {
+        "precision": 0.6818181818181818,
+        "recall": 0.8823529411764706,
+        "f1": 0.7692307692307693,
+        "support": 17
+      },
+      "Netcat": {
+        "precision": 1.0,
+        "recall": 0.14285714285714285,
+        "f1": 0.25,
+        "support": 14
+      },
+      "Dirbuster": {
+        "precision": 0.8,
+        "recall": 0.6956521739130435,
+        "f1": 0.7441860465116279,
+        "support": 23
+      },
+      "SQLmap": {
+        "precision": 1.0,
+        "recall": 0.42857142857142855,
+        "f1": 0.6,
+        "support": 7
+      },
+      "Smb client": {
+        "precision": 0.9166666666666666,
+        "recall": 0.6470588235294118,
+        "f1": 0.7586206896551724,
+        "support": 17
+      },
+      "hydra": {
+        "precision": 0.5,
+        "recall": 0.3333333333333333,
+        "f1": 0.4,
+        "support": 3
+      },
+      "John-the-ripper": {
+        "precision": 0.7692307692307693,
+        "recall": 0.8333333333333334,
+        "f1": 0.8,
+        "support": 12
+      },
+      "Google search": {
+        "precision": 0.7407407407407407,
+        "recall": 0.7142857142857143,
+        "f1": 0.7272727272727273,
+        "support": 28
+      },
+      "Interactive CLI": {
+        "precision": 0.9051724137931034,
+        "recall": 0.6907894736842105,
+        "f1": 0.7835820895522388,
+        "support": 152
+      },
+      "Web page interaction": {
+        "precision": 0.8214285714285714,
+        "recall": 0.4107142857142857,
+        "f1": 0.5476190476190477,
+        "support": 56
+      }
+    }
+  },
+  "combined_jaccard_step_mcp": 0.7740982587064678
+}

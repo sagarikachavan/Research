@@ -8,8 +8,15 @@ Metrics reported for every model:
     confusion matrix
 
   MCP TOOL CLASSIFICATION  (multi-label)
-    Subset (exact-match) accuracy, Micro-F1, Macro-F1, Samples-F1,
-    per-label precision/recall/F1
+    Subset (exact-match) accuracy, Micro-F1 (sklearn, pooled over the whole
+    matrix), Macro-F1 (per-label average), Samples-F1/-precision/-recall
+    (per-row average — the paper-comparable "Micro F1" definition used by
+    train_step_CNN.py / test_step_CNN.py and arXiv:2605.04499 Table 3 — NOT
+    the same number as sklearn micro-F1 above), Hamming loss, Jaccard mean,
+    micro-precision vs micro-recall (tells you whether errors skew toward
+    extra predicted tools or missing ones), per-label precision/recall/F1.
+    A machine-readable summary of every metric above is also written to
+    `output/eval_metrics_<model_tag>.json` on each run.
 
   STEP EXPLANATION QUALITY  (LLM stages only — GNN doesn't generate text)
     LLM Judge Evaluation  — teacher-style evaluation comparing predicted vs gold explanation
@@ -40,8 +47,9 @@ import numpy as np
 import torch
 from sklearn.metrics import (
     accuracy_score, f1_score, classification_report, confusion_matrix,
-    precision_recall_fscore_support,
+    precision_recall_fscore_support, hamming_loss, precision_score, recall_score,
 )
+from datetime import datetime, timezone
 
 # ── Path bootstrap (folder was restructured into core/ data_prep/ training/ eval/) ──
 import os as _os, sys as _sys
@@ -204,7 +212,8 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
     step_gold  = np.array(step_gold)
     mcp_gold   = np.stack(mcp_gold)
 
-    report_classification(step_preds, step_gold, mcp_preds, mcp_gold)
+    report_classification(step_preds, step_gold, mcp_preds, mcp_gold,
+                           model_tag="stage1_gnn", mcp_thresholds=use_thresholds)
 
     # GNN has no text generation — note this explicitly
     print("\n  [Explanation quality: N/A — GNN is a classifier, not a text generator]")
@@ -582,7 +591,9 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     mcp_gold_arr   = np.stack(mcp_gold)
 
     # ── Classification report ─────────────────────────────────────────────
-    report_classification(step_preds_arr, step_gold_arr, mcp_preds_arr, mcp_gold_arr)
+    llm_model_tag = os.path.basename(os.path.normpath(adapter_dir)) or "llm"
+    report_classification(step_preds_arr, step_gold_arr, mcp_preds_arr, mcp_gold_arr,
+                           model_tag=llm_model_tag, mcp_thresholds=use_thresholds)
 
     # ── Explanation quality report (LLM Judge) ────────────────────────────────
     print("\n\n" + "=" * 60)
@@ -599,8 +610,11 @@ def eval_llm(adapter_dir: str, threshold_override=None,
             model=llm_judge_model_name,
             max_samples=llm_judge_samples,
         )
-        # Print LLM judge results
-        print_llm_judge_results(llm_results)
+        # Print LLM judge results, plus save a qualitative markdown report
+        # (full predicted vs. gold explanation text for a stratified sample)
+        judge_report_path = os.path.join(ROOT, "output", f"llm_judge_examples_{llm_model_tag}.md")
+        os.makedirs(os.path.dirname(judge_report_path), exist_ok=True)
+        print_llm_judge_results(llm_results, n_examples=8, save_path=judge_report_path)
     else:
         print("LLM judge evaluation disabled (--no-llm-judge).")
         # Compute heuristic explanation quality as fallback
@@ -677,7 +691,29 @@ def report_classification(
     step_gold: np.ndarray,
     mcp_preds: np.ndarray,
     mcp_gold: np.ndarray,
-) -> None:
+    model_tag: str = "model",
+    mcp_thresholds: list | None = None,
+) -> dict:
+    """
+    Prints the full metric set for both heads and also returns (and saves to
+    `output/eval_metrics_<model_tag>.json`) a plain-dict summary, so results
+    are comparable across runs/models without re-parsing console output.
+
+    STEP (single-label): accuracy, macro-F1, weighted-F1.
+    MCP (multi-label, "which tools" set prediction): subset (exact-match)
+    accuracy, micro-F1 (sklearn's pooled-over-the-whole-matrix definition),
+    samples-F1 (per-row F1 averaged across rows — this is the number the
+    Pen-Strategist paper / train_step_CNN.py / test_step_CNN.py report as
+    "Micro F1"; it is NOT the same number as sklearn micro-F1 above, and the
+    two can diverge under label imbalance — compare against the paper using
+    samples-F1, not micro-F1), macro-F1 (per-label average, catches silent
+    failure on rare tools like hydra/John-the-ripper), Hamming loss (fraction
+    of individual tool-slots wrong), Jaccard mean (intersection/union per
+    row, a stricter middle ground between exact-match and F1), and
+    micro-precision/micro-recall reported separately so you can tell whether
+    errors skew toward extra predicted tools (low precision) or missing ones
+    (low recall) -- F1 alone hides that direction.
+    """
     # ── Jaccard metrics (consistent with Stage 2/3 evaluation) ──
     step_jaccards = []
     mcp_jaccards = []
@@ -692,12 +728,17 @@ def report_classification(
     mcp_jac_pass = sum(1 for j in mcp_jaccards if j >= 0.5)
     combined_jac = (mean_step_jac + mean_mcp_jac) / 2.0
 
+    # ── STEP metrics ──
+    step_acc = float(accuracy_score(step_gold, step_preds))
+    step_macro_f1 = float(f1_score(step_gold, step_preds, average='macro', zero_division=0))
+    step_weighted_f1 = float(f1_score(step_gold, step_preds, average='weighted', zero_division=0))
+
     print("\n" + "=" * 60)
     print("STEP CLASSIFICATION")
     print("=" * 60)
-    print(f"  Accuracy      : {accuracy_score(step_gold, step_preds):.4f}")
-    print(f"  Macro F1      : {f1_score(step_gold, step_preds, average='macro',    zero_division=0):.4f}")
-    print(f"  Weighted F1   : {f1_score(step_gold, step_preds, average='weighted', zero_division=0):.4f}")
+    print(f"  Accuracy      : {step_acc:.4f}")
+    print(f"  Macro F1      : {step_macro_f1:.4f}")
+    print(f"  Weighted F1   : {step_weighted_f1:.4f}")
     print(f"  [Jaccard] Step: {mean_step_jac:.4f}  (exact match ratio)")
 
     labels_present = sorted(
@@ -719,13 +760,32 @@ def report_classification(
     cm = confusion_matrix(step_gold, step_preds, labels=list(range(len(STEP_LABELS))))
     print(cm)
 
+    # ── MCP metrics ──
+    subset_acc = float(accuracy_score(mcp_gold, mcp_preds))
+    micro_f1 = float(f1_score(mcp_gold, mcp_preds, average='micro', zero_division=0))
+    macro_f1 = float(f1_score(mcp_gold, mcp_preds, average='macro', zero_division=0))
+    samples_f1 = float(f1_score(mcp_gold, mcp_preds, average='samples', zero_division=0))
+    samples_precision = float(precision_score(mcp_gold, mcp_preds, average='samples', zero_division=0))
+    samples_recall = float(recall_score(mcp_gold, mcp_preds, average='samples', zero_division=0))
+    micro_precision = float(precision_score(mcp_gold, mcp_preds, average='micro', zero_division=0))
+    micro_recall = float(recall_score(mcp_gold, mcp_preds, average='micro', zero_division=0))
+    hamming = float(hamming_loss(mcp_gold, mcp_preds))
+
     print("\n" + "=" * 60)
     print("MCP TOOL CLASSIFICATION  (multi-label)")
     print("=" * 60)
-    print(f"  Subset (exact-match) accuracy : {accuracy_score(mcp_gold, mcp_preds):.4f}")
-    print(f"  Micro F1                      : {f1_score(mcp_gold, mcp_preds, average='micro',   zero_division=0):.4f}")
-    print(f"  Macro F1                      : {f1_score(mcp_gold, mcp_preds, average='macro',   zero_division=0):.4f}")
-    print(f"  Samples F1                    : {f1_score(mcp_gold, mcp_preds, average='samples', zero_division=0):.4f}")
+    print(f"  Subset (exact-match) accuracy : {subset_acc:.4f}")
+    print(f"  Micro F1  (pooled over matrix): {micro_f1:.4f}")
+    print(f"  Macro F1  (per-label avg)     : {macro_f1:.4f}")
+    print(f"  Samples F1 (per-row avg, ***paper-comparable Micro F1***): {samples_f1:.4f}")
+    print(f"    Samples precision           : {samples_precision:.4f}")
+    print(f"    Samples recall              : {samples_recall:.4f}")
+    print(f"  Micro precision                : {micro_precision:.4f}  "
+          f"(low -> over-predicting / extra tools)")
+    print(f"  Micro recall                   : {micro_recall:.4f}  "
+          f"(low -> under-predicting / missing tools)")
+    print(f"  Hamming loss                   : {hamming:.4f}  "
+          f"(fraction of tool-slots wrong, lower is better)")
     print(f"  [Jaccard] MCP mean: {mean_mcp_jac:.4f}  "
           f"(≥0.5 pass: {mcp_jac_pass}/{len(mcp_jaccards)} = {mcp_jac_pass/len(mcp_jaccards)*100:.2f}%)")
     print(f"\n  ═══════════════════════════════════════════════")
@@ -735,6 +795,7 @@ def report_classification(
     prec, rec, f1, support = precision_recall_fscore_support(
         mcp_gold, mcp_preds, average=None, zero_division=0
     )
+    per_label = {}
     print("\n  Per-label metrics:")
     print(f"  {'Label':<22}  {'P':>6}  {'R':>6}  {'F1':>6}  {'Sup':>5}")
     print("  " + "-" * 52)
@@ -744,6 +805,47 @@ def report_classification(
             f"  {label:<22}  {prec[i]:>6.3f}  {rec[i]:>6.3f}  "
             f"{f1[i]:>6.3f}  {int(support[i]):>5}{flag}"
         )
+        per_label[label] = {
+            "precision": float(prec[i]), "recall": float(rec[i]),
+            "f1": float(f1[i]), "support": int(support[i]),
+        }
+
+    # ── save a single machine-readable summary alongside the console report ──
+    summary = {
+        "model_tag": model_tag,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
+        "n_samples": int(len(step_gold)),
+        "mcp_thresholds": [float(t) for t in mcp_thresholds] if mcp_thresholds else None,
+        "step": {
+            "accuracy": step_acc,
+            "macro_f1": step_macro_f1,
+            "weighted_f1": step_weighted_f1,
+            "jaccard_exact_match": mean_step_jac,
+        },
+        "mcp": {
+            "subset_accuracy": subset_acc,
+            "micro_f1": micro_f1,
+            "macro_f1": macro_f1,
+            "samples_f1": samples_f1,
+            "samples_precision": samples_precision,
+            "samples_recall": samples_recall,
+            "micro_precision": micro_precision,
+            "micro_recall": micro_recall,
+            "hamming_loss": hamming,
+            "jaccard_mean": mean_mcp_jac,
+            "jaccard_pass_rate_at_0.5": mcp_jac_pass / len(mcp_jaccards) if mcp_jaccards else 0.0,
+            "per_label": per_label,
+        },
+        "combined_jaccard_step_mcp": combined_jac,
+    }
+    out_dir = os.path.join(ROOT, "output")
+    os.makedirs(out_dir, exist_ok=True)
+    out_path = os.path.join(out_dir, f"eval_metrics_{model_tag}.json")
+    with open(out_path, "w", encoding="utf-8") as f:
+        json.dump(summary, f, indent=2)
+    print(f"\n  [eval] Metrics summary saved to: {out_path}")
+
+    return summary
 
 
 # ---------------------------------------------------------------------------

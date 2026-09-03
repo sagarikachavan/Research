@@ -95,6 +95,9 @@ from config import (
     STAGE3_PPO_CLIP,
     STAGE3_GRAD_ACCUM,
     STAGE3_GRAD_CLIP,
+    STAGE3_DUAL_CLIP_COEF,
+    STAGE3_KL_HARD_CAP,
+    STAGE3_EARLY_STOP_PATIENCE,
     RANDOM_SEED,
     STEP_LABELS,
     MCP_LABELS,
@@ -378,9 +381,17 @@ def compute_reward_curriculum(completion: str, gold: dict, step_num: int,
 
 def compute_reward(completion: str, gold: dict,
                    w_fmt:  float = 0.10,  # Format weight
-                   w_step: float = 0.25,  # Step similarity weight
+                   w_step: float = 0.35,  # Step similarity weight (was 0.25 --
+                                           # raised because step_accuracy was
+                                           # tying/regressing vs Stage 2; the
+                                           # explanation/judge term was
+                                           # dominating the blended reward, so
+                                           # RL had little pressure to actually
+                                           # nail the step label. See
+                                           # DOCUMENTATION.md 'Stage 3'.)
                    w_mcp:  float = 0.20,  # MCP F1 weight
-                   w_exp:  float = 0.45) -> float:  # LLM judge weight
+                   w_exp:  float = 0.35,  # LLM judge weight (was 0.45)
+                   return_components: bool = False):
     """
     Enhanced composite reward function based on research from:
     - "Dense Reward for Free in RLHF" - reward shaping
@@ -401,7 +412,10 @@ def compute_reward(completion: str, gold: dict,
             required_keys = ["New step", "Step explanation", "MCP_tasks"]
             present_keys = sum(1 for k in required_keys if k in obj)
             partial_fmt_score = present_keys / len(required_keys) * 0.5
-        return w_fmt * partial_fmt_score
+        total = w_fmt * partial_fmt_score
+        if return_components:
+            return {"total": total, "fmt": partial_fmt_score, "step": 0.0, "mcp": 0.0, "exp": 0.0}
+        return total
 
     # ── Format ────────────────────────────────────────────────────────────────
     fmt_r = 1.0
@@ -497,7 +511,11 @@ def compute_reward(completion: str, gold: dict,
     # Clamp bonus
     exp_bonus = max(-0.15, min(0.15, exp_bonus))
 
-    return w_fmt * fmt_r + w_step * step_r + w_mcp * mcp_r + w_exp * (exp_r + exp_bonus)
+    exp_component = exp_r + exp_bonus
+    total = w_fmt * fmt_r + w_step * step_r + w_mcp * mcp_r + w_exp * exp_component
+    if return_components:
+        return {"total": total, "fmt": fmt_r, "step": step_r, "mcp": mcp_r, "exp": exp_component}
+    return total
 
 
 # ---------------------------------------------------------------------------
@@ -631,7 +649,7 @@ def completion_logprobs(
 # ---------------------------------------------------------------------------
 
 def evaluate_policy_on_val(policy, adapter, stage1, embed_layer, tokenizer,
-                            val_examples, device, dtype, max_examples: int = 32) -> float:
+                            val_examples, device, dtype, max_examples: int = 32) -> dict:
     """
     Greedy-decode the current policy on a capped sample of the held-out
     (machine-level) validation set and score it with the *fixed* (non-curriculum)
@@ -646,13 +664,22 @@ def evaluate_policy_on_val(policy, adapter, stage1, embed_layer, tokenizer,
     non-stationary curriculum weights), the last step is not reliably the
     best step -- which is consistent with Stage 3 finishing statistically
     indistinguishable from (or slightly worse than) Stage 2 in practice.
+
+    Returns a dict of mean component scores {"total","fmt","step","mcp","exp"}
+    instead of a single scalar. The scalar `total` blends step-label
+    correctness (25-35%) with an LLM-judge explanation score (35-45%), so a
+    single-number gate can promote a checkpoint that improved MCP/explanation
+    quality while quietly trading away step accuracy. The "step" component is
+    tracked separately so the caller can require step performance not to
+    regress before promoting a checkpoint (see the model-selection block in
+    `main()`).
     """
     was_training = policy.training
     policy.eval()
     rng = random.Random(RANDOM_SEED)
     sample = val_examples if len(val_examples) <= max_examples else rng.sample(val_examples, max_examples)
 
-    rewards = []
+    components = {"total": [], "fmt": [], "step": [], "mcp": [], "exp": []}
     with torch.no_grad():
         for ex in sample:
             gold = {
@@ -686,11 +713,13 @@ def evaluate_policy_on_val(policy, adapter, stage1, embed_layer, tokenizer,
             completion_text = tokenizer.decode(completion_ids, skip_special_tokens=True)
             # Fixed weights (not the curriculum schedule) so scores are
             # comparable at step 0, step 1000, and step 3000 alike.
-            rewards.append(compute_reward(completion_text, gold))
+            comp = compute_reward(completion_text, gold, return_components=True)
+            for k in components:
+                components[k].append(comp[k])
 
     if was_training:
         policy.train()
-    return float(np.mean(rewards)) if rewards else 0.0
+    return {k: (float(np.mean(v)) if v else 0.0) for k, v in components.items()}
 
 
 def _save_policy_snapshot(policy, adapter, value_head, tokenizer, out_dir):
@@ -710,6 +739,8 @@ def main():
     print(f"[Stage 3] Group size (G) : {STAGE3_GROUP_SIZE}")
     print(f"[Stage 3] KL coef        : {STAGE3_KL_COEF}")
     print(f"[Stage 3] PPO clip eps   : {STAGE3_PPO_CLIP}")
+    print(f"[Stage 3] Dual-clip coef : {STAGE3_DUAL_CLIP_COEF}  (loss ceiling for adv<0 samples)")
+    print(f"[Stage 3] KL hard cap    : {STAGE3_KL_HARD_CAP}  (per micro-batch; that micro-batch's gradient is discarded above this, other micro-batches in the same window are unaffected)")
     print(f"[Stage 3] LR             : {STAGE3_LR}")
     print(f"[Stage 3] Grad accum     : {STAGE3_GRAD_ACCUM}")
 
@@ -876,12 +907,22 @@ def main():
     # of shipping a regression (see the end of the loop below). ──────────────
     print("\n[Stage 3] Scoring Stage-2 starting checkpoint on held-out val set "
           f"({min(len(val_examples), 32)} examples) — this is the bar Stage 3 must clear...")
-    baseline_val_score = evaluate_policy_on_val(
+    baseline_val = evaluate_policy_on_val(
         policy, adapter, stage1, embed_layer, tokenizer, val_examples, device, dtype
     )
-    print(f"[Stage 3] Baseline (Stage 2) val reward: {baseline_val_score:.4f}")
+    baseline_val_score = baseline_val["total"]
+    baseline_step_component = baseline_val["step"]
+    print(f"[Stage 3] Baseline (Stage 2) val reward: {baseline_val_score:.4f} "
+          f"(step component: {baseline_step_component:.4f})")
     best_val_score = baseline_val_score
     best_step = 0
+    best_step_component = baseline_step_component
+    # A promoted checkpoint must not let the step component drop by more than
+    # this much relative to the Stage-2 baseline, even if the blended reward
+    # improves overall (e.g. via a big MCP/explanation gain). This is what
+    # stops Stage 3 from "improving" on paper while tying or losing ground on
+    # step accuracy specifically, which was the behavior you were seeing.
+    STEP_REGRESSION_TOLERANCE = 0.01
     EVAL_EVERY = 200  # aligned with existing checkpoint cadence
 
     # ── Training loop ─────────────────────────────────────────────────────────
@@ -898,6 +939,18 @@ def main():
     reward_running_mean = 0.0
     reward_running_std = 1.0
     ema_alpha = 0.95
+
+    # Rolling KL values across the current grad-accumulation window, used by
+    # the KL circuit breaker below to veto an optimizer step outright if the
+    # policy has drifted too far within this window (belt-and-braces on top
+    # of the dual-clip fix — dual-clip bounds any single sample's gradient
+    # contribution, this catches the case where several samples in the same
+    # window each drifted moderately and together still add up to a large,
+    # policy-damaging step).
+    window_kl_values: list = []
+    window_microbatches_applied = 0
+    kl_skipped_steps = 0
+    evals_without_improvement = 0
 
     for step in range(1, STAGE3_STEPS + 1):
 
@@ -1063,6 +1116,27 @@ def main():
             pg_clipped   = -adv * clamped_ratio
             pg_loss = torch.max(pg_unclipped, pg_clipped)
 
+            # ── DUAL-CLIP PPO (fixes the pg_loss/kl explosion) ────────────────
+            # Standard PPO-clip above only bounds the loss for adv >= 0. For
+            # adv < 0, pg_unclipped = -adv*ratio grows WITHOUT BOUND as ratio
+            # grows (adv negative, ratio positive and potentially huge -> very
+            # large positive loss), and max(unclipped, clipped) always keeps
+            # the larger of the two, so the explosion passes straight through.
+            # With log_ratio clamped only at +-10 (ratio up to e^10 ~ 22000)
+            # and advantage clamped to +-4.0, a single diverged sample among
+            # only G=4 completions can swing pg_loss into the thousands —
+            # exactly what's in the log (127 / 2897 / 8255 / 8175 at steps
+            # 350/800/850/1000), each followed by held-out val reward
+            # dropping further. Dual-clip (Ye et al. 2020, standard in DAPO /
+            # verl / TRL's GRPO trainers) adds a second, unconditional floor
+            # for the adv < 0 case: the loss can never exceed
+            # DUAL_CLIP_COEF * |adv| (a large-but-finite number), so one
+            # diverged sample can still push the policy back down hard, but
+            # can no longer single-handedly blow up the batch gradient.
+            if STAGE3_DUAL_CLIP_COEF is not None and STAGE3_DUAL_CLIP_COEF > 1.0:
+                dual_clip_loss = -STAGE3_DUAL_CLIP_COEF * adv  # positive & finite since adv<0 in this branch
+                pg_loss = torch.where(adv < 0, torch.min(pg_loss, dual_clip_loss), pg_loss)
+
             # Clip-fraction monitoring: % of ratios that were clipped
             clip_frac = float(((ratio < (1.0 - clip_eps)) | (ratio > (1.0 + clip_eps))).float().mean().item())
 
@@ -1083,16 +1157,47 @@ def main():
 
         # Scale by gradient accumulation
         if valid_completions > 0:
-            loss_for_backward = loss_accum / grad_accum
-            value_loss_for_backward = value_loss_accum / grad_accum
-            total_loss = loss_for_backward + 0.5 * value_loss_for_backward
-            total_loss.backward()
+            microbatch_mean_kl = total_kl_accum / valid_completions
+
+            # ── KL circuit breaker (now per-microbatch, not per-window) ────────
+            # Originally this rejected the WHOLE grad-accum window (all
+            # STAGE3_GRAD_ACCUM=4 micro-batches) whenever their AVERAGE kl
+            # exceeded the cap. In practice a single noisy micro-batch (kl
+            # 2-5, occurring every ~10-20 steps) was enough to drag the
+            # 4-batch mean over a cap of 1.0 and discard 3 otherwise-fine
+            # micro-batches' gradients along with it — 90 of ~325 windows
+            # (~28%) were being thrown away by step 1300, most of that for
+            # nothing: dual-clip PPO already keeps pg_loss bounded even when
+            # an individual micro-batch's kl spikes (e.g. kl=5.636 ->
+            # pg_loss only 0.787, kl=5.031 -> pg_loss only 0.732 in the last
+            # run — proof dual-clip is doing its job). So the breaker's
+            # original purpose (stop a runaway pg_loss) is already covered;
+            # what's left is now a much rarer, genuinely-extreme-only
+            # safety net, applied to just the offending micro-batch instead
+            # of punishing its whole window:
+            if microbatch_mean_kl > STAGE3_KL_HARD_CAP:
+                kl_skipped_steps += 1
+                print(f"[Stage 3] step {step:4d}: micro-batch mean KL {microbatch_mean_kl:.3f} > "
+                      f"hard cap {STAGE3_KL_HARD_CAP} — discarding THIS micro-batch's gradient only "
+                      f"(total discarded so far: {kl_skipped_steps}/{step})")
+            else:
+                loss_for_backward = loss_accum / grad_accum
+                value_loss_for_backward = value_loss_accum / grad_accum
+                total_loss = loss_for_backward + 0.5 * value_loss_for_backward
+                total_loss.backward()
+                window_kl_values.append(microbatch_mean_kl)
+                window_microbatches_applied += 1
         else:
             print(f"[Stage 3] Warning: No valid completions in step {step}, skipping backward pass")
 
         # ── 7. Optimizer step every grad_accum steps ──────────────────────────
         if step % grad_accum == 0:
-            if valid_completions > 0:
+            if window_microbatches_applied > 0:
+                # Note: still divides effective LR by the full grad_accum
+                # count above even when fewer than grad_accum micro-batches
+                # contributed (some were discarded) — that's a deliberately
+                # conservative under-weighting of this window rather than an
+                # error; it errs toward smaller steps, never larger ones.
                 torch.nn.utils.clip_grad_norm_(trainable, STAGE3_GRAD_CLIP)
                 torch.nn.utils.clip_grad_norm_(value_head.parameters(), STAGE3_GRAD_CLIP)
                 optimizer.step()
@@ -1102,7 +1207,15 @@ def main():
                 value_optimizer.zero_grad()
                 global_step += 1
             else:
-                print(f"[Stage 3] Warning: Skipping optimizer step at step {step} due to no valid completions")
+                # every micro-batch in this window was rejected (rare) or
+                # none had valid completions
+                optimizer.zero_grad()
+                value_optimizer.zero_grad()
+                print(f"[Stage 3] step {step:4d}: all micro-batches in this window were rejected "
+                      f"or invalid — skipping optimizer step entirely")
+
+            window_kl_values = []
+            window_microbatches_applied = 0
 
         # ── 8. Logging ────────────────────────────────────────────────────────
         if step % 50 == 0:
@@ -1164,17 +1277,36 @@ def main():
             print(f"  -> checkpoint saved to {ckpt_path}")
 
         if step % EVAL_EVERY == 0 or step == STAGE3_STEPS:
-            val_score = evaluate_policy_on_val(
+            val = evaluate_policy_on_val(
                 policy, adapter, stage1, embed_layer, tokenizer, val_examples, device, dtype
             )
+            val_score = val["total"]
+            step_ok = val["step"] >= baseline_step_component - STEP_REGRESSION_TOLERANCE
             flag = ""
-            if val_score > best_val_score:
+            if val_score > best_val_score and step_ok:
                 best_val_score = val_score
+                best_step_component = val["step"]
                 best_step = step
                 _save_policy_snapshot(policy, adapter, value_head, tokenizer, BEST_DIR)
                 flag = "  <-- new best, saved to best/"
+                evals_without_improvement = 0
+            else:
+                evals_without_improvement += 1
+                if val_score > best_val_score and not step_ok:
+                    flag = (f"  <-- higher blended reward but step component "
+                            f"{val['step']:.4f} < baseline {baseline_step_component:.4f} "
+                            f"- epsilon; NOT promoted")
             print(f"[Stage 3] step {step:4d} | held-out val reward: {val_score:.4f} "
-                  f"(baseline {baseline_val_score:.4f}, best {best_val_score:.4f} @ step {best_step}){flag}")
+                  f"(step {val['step']:.4f}, mcp {val['mcp']:.4f}) | "
+                  f"baseline {baseline_val_score:.4f} (step {baseline_step_component:.4f}) | "
+                  f"best {best_val_score:.4f} @ step {best_step}{flag}")
+
+            if (STAGE3_EARLY_STOP_PATIENCE is not None
+                    and evals_without_improvement >= STAGE3_EARLY_STOP_PATIENCE):
+                print(f"[Stage 3] No new best in {evals_without_improvement} consecutive "
+                      f"evals (every {EVAL_EVERY} steps) — early-stopping at step {step}/{STAGE3_STEPS}. "
+                      f"Best remains step {best_step} (val reward {best_val_score:.4f}).")
+                break
 
 
     # ── Final save: PROMOTE THE BEST CHECKPOINT, NOT THE LAST STEP ─────────────
@@ -1184,8 +1316,13 @@ def main():
     # one happened rather than silently shipping whatever came out last:
     print("\n" + "=" * 70)
     print("[Stage 3] Model selection")
-    print(f"  Stage-2 baseline val reward : {baseline_val_score:.4f}")
-    print(f"  Best RL val reward          : {best_val_score:.4f}  (step {best_step})")
+    print(f"  Stage-2 baseline val reward : {baseline_val_score:.4f}  (step component {baseline_step_component:.4f})")
+    print(f"  Best RL val reward          : {best_val_score:.4f}  (step component {best_step_component:.4f}, step {best_step})")
+    print(f"  A checkpoint only counts as 'best' if it beat the baseline reward "
+          f"AND its step component stayed within {STEP_REGRESSION_TOLERANCE} of the baseline.")
+    print(f"  Micro-batches discarded by KL circuit breaker: {kl_skipped_steps}/{STAGE3_STEPS} "
+          f"(micro-batch mean KL > {STAGE3_KL_HARD_CAP}; other micro-batches in the same "
+          f"window still contributed normally)")
     print("=" * 70)
 
     if best_step > 0 and best_val_score > baseline_val_score:

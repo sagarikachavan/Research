@@ -18,7 +18,9 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score
+from sklearn.metrics import (
+    accuracy_score, f1_score, precision_score, recall_score, hamming_loss,
+)
 from pathlib import Path
 
 # ── Path bootstrap (folder was restructured into core/ data_prep/ training/ eval/) ──
@@ -58,6 +60,16 @@ def calculate_metrics(predictions, gold_labels, task_type='step'):
             'macro_f1': f1_score(gold_labels, predictions, average='macro', zero_division=0),
             'subset_accuracy': accuracy_score(gold_labels, predictions),
         }
+
+
+def _jaccard(pred_set, gold_set) -> float:
+    """1.0 if both empty, else |intersection| / |union|. Symmetric, punishes
+    both extra (FP) and missing (FN) tools without the all-or-nothing
+    harshness of exact-match / subset accuracy."""
+    if not pred_set and not gold_set:
+        return 1.0
+    union = pred_set | gold_set
+    return len(pred_set & gold_set) / len(union) if union else 0.0
 
 
 def parse_mcp_tools(mcp_string):
@@ -178,6 +190,44 @@ def evaluate_model(csv_data, model_name):
         mcp_metrics['micro_f1'] = f1_score(g, p, average='micro', zero_division=0)
         mcp_metrics['macro_f1'] = f1_score(g, p, average='macro', zero_division=0)
         mcp_metrics['subset_accuracy'] = accuracy_score(g, p)
+
+        # --- additional metrics for evaluating a "which tools" multi-label task ---
+        # samples_f1: precision/recall/F1 computed PER ROW then averaged across rows.
+        #   This is what the Pen-Strategist paper (and train_step_CNN.py /
+        #   test_step_CNN.py) report as "Micro F1" for the MCP head — it is NOT
+        #   the same number as sklearn's average='micro' (which pools all
+        #   TP/FP/FN across the whole matrix first). Report both; they can
+        #   diverge under label imbalance, and only samples_f1 is directly
+        #   comparable to the numbers in Table 3 of the paper / the two
+        #   reference scripts.
+        mcp_metrics['samples_f1'] = f1_score(g, p, average='samples', zero_division=0)
+        mcp_metrics['samples_precision'] = precision_score(g, p, average='samples', zero_division=0)
+        mcp_metrics['samples_recall'] = recall_score(g, p, average='samples', zero_division=0)
+
+        # hamming_loss: fraction of individual tool slots (present/absent)
+        # that are wrong, across all rows and all 11 tools. Lower is better.
+        # Good "how far off, on average" summary that neither exact-match nor
+        # F1 gives you directly.
+        mcp_metrics['hamming_loss'] = hamming_loss(g, p)
+
+        # jaccard_mean: |predicted ∩ gold| / |predicted ∪ gold| per row, averaged.
+        # A stricter middle ground between subset_accuracy (all-or-nothing) and
+        # samples_f1 (rewards partial overlap fairly generously). Extra tools
+        # in the prediction and missing tools both shrink the union, so both
+        # error types are penalized symmetrically.
+        jaccards = []
+        for pi, gi in zip(mcp_preds, mcp_gold):
+            pred_set = {MCP_LABELS[j] for j, v in enumerate(pi) if v == 1}
+            gold_set = {MCP_LABELS[j] for j, v in enumerate(gi) if v == 1}
+            jaccards.append(_jaccard(pred_set, gold_set))
+        mcp_metrics['jaccard_mean'] = float(np.mean(jaccards)) if jaccards else 0.0
+
+        # Global micro precision/recall make the extra-vs-missing tradeoff
+        # explicit: low precision means the model over-predicts tools (lots of
+        # FPs / extra tools not in gold), low recall means it under-predicts
+        # (lots of FNs / missing tools).
+        mcp_metrics['micro_precision'] = precision_score(g, p, average='micro', zero_division=0)
+        mcp_metrics['micro_recall'] = recall_score(g, p, average='micro', zero_division=0)
 
     metrics = {}
     metrics.update({f'step_{k}': v for k, v in step_metrics.items()})
@@ -412,6 +462,10 @@ def main():
         'baseline_zeroshot': 'baseline_zeroshot.csv',
         'baseline_3shot': 'baseline_3shot.csv', 
         'baseline_5shot': 'baseline_5shot.csv',
+        # Reference implementation from the Pen-Strategist paper / GitHub repo
+        # (frozen-GPT2 + dual-head TextCNN, same "New strategy\nStrategy
+        # explanation" input). Produced by eval/baseline_paper_cnn.py.
+        'paper_stepcnn_gpt2': 'baseline_paper_cnn.csv',
         'stage1': 'stage1.csv',
         'stage2': 'stage2.csv',
         'stage3': 'stage3.csv',

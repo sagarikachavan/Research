@@ -137,4 +137,55 @@ STAGE3_PPO_CLIP = 0.2            # Standard PPO clipping
 STAGE3_GRAD_ACCUM = 4
 STAGE3_GRAD_CLIP = 1.0
 
+# --- Stability fixes for the pg_loss/kl explosions seen in real runs ---
+# (e.g. pg_loss 127 -> 2897 -> 8255 -> 8175 at steps 350/800/850/1000,
+# followed by held-out val reward collapsing from 0.454 at step 600 down to
+# 0.29 by step 1000, and fmt compliance dropping to 1/4). Root cause: for a
+# NEGATIVE-advantage sample whose importance ratio ratio=pi_new/pi_ref has
+# drifted far above 1 (policy now assigns much higher probability than the
+# reference to something that turned out low-reward), standard PPO-clip's
+# min(unclipped, clipped) objective does NOT bound the loss in that specific
+# quadrant — only the "good news" direction is capped. With log_ratio
+# clamped at +-10, ratio can reach e^10 ~ 22000, and with advantage clamped
+# to +-4.0 that's an unclipped |pg_loss| up to ~4 * 22000 ~ 88000 for a
+# single one of only 4 completions in the group, which then dominates the
+# averaged batch loss and produces exactly the kind of single-step gradient
+# spike visible in the log.
+STAGE3_DUAL_CLIP_COEF = 3.0      # Dual-clip PPO (Ye et al. 2020 / used in DAPO,
+                                  # verl, TRL GRPO trainers): for advantage < 0,
+                                  # additionally floor the objective at
+                                  # DUAL_CLIP_COEF * advantage instead of letting
+                                  # it run to -inf as ratio explodes. Must be > 1.
+STAGE3_KL_HARD_CAP = 4.0         # Per-MICRO-BATCH mean-KL cap (not per-window
+                                  # — see training/stage3_grpo_rl.py). Originally
+                                  # set to 1.0 and applied to the whole 4-batch
+                                  # window average, which caused ~28% of windows
+                                  # to be discarded (including good micro-batches
+                                  # riding along with one noisy one) for no real
+                                  # safety benefit: real runs show dual-clip
+                                  # alone already keeps pg_loss bounded even when
+                                  # an individual micro-batch's kl spikes to 5-6
+                                  # (kl=5.636 -> pg_loss only 0.787; kl=5.031 ->
+                                  # pg_loss only 0.732). Raised to 4.0 and moved
+                                  # to per-micro-batch granularity so this is now
+                                  # a rare, genuinely-extreme-only safety net
+                                  # rather than a routine filter — tune down if
+                                  # you see pg_loss/kl explosions again despite
+                                  # dual-clip, tune up (or disable by setting a
+                                  # very large value) if it's still discarding a
+                                  # meaningful fraction of micro-batches on your
+                                  # data.
+STAGE3_EARLY_STOP_PATIENCE = 4   # Stop the run after this many consecutive
+                                  # held-out evals (every EVAL_EVERY=200 steps)
+                                  # with no new best checkpoint. Deliberately
+                                  # NOT implemented by shrinking STAGE3_STEPS —
+                                  # STAGE3_STEPS also sets the CosineAnnealingLR
+                                  # T_max, so cutting it reshapes/compresses the
+                                  # whole LR schedule rather than just cutting
+                                  # the unproductive tail. Patience-based
+                                  # stopping keeps the schedule exactly as
+                                  # tuned and just exits the loop once it's
+                                  # no longer paying off — set to None to
+                                  # disable and always run the full STEPS.
+
 RANDOM_SEED = 42

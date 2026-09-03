@@ -35,11 +35,17 @@ STAGES = [
     # ("build_input_json",  "data_prep/build_input_json.py", []),
     # ("stage1",            "training/stage1_gnn_train.py",  []),
     # ("stage2",            "training/stage2_sft_qwen.py",   []),
-    # ("stage3",             "training/stage3_grpo_rl.py",    []),
+    ("stage3",             "training/stage3_grpo_rl.py",    []),
     ("evaluate",           "eval/evaluate.py",              []),
     ("baseline_zeroshot", "eval/baseline_llm_eval.py",     ["--num_shots", "0"]),
     ("baseline_3shot",    "eval/baseline_llm_eval.py",     ["--num_shots", "3"]),
     ("baseline_5shot",    "eval/baseline_llm_eval.py",     ["--num_shots", "5"]),
+    # Reference "frozen GPT-2 + dual-head TextCNN" baseline from the
+    # Pen-Strategist paper / GitHub repo (train_step_CNN.py / test_step_CNN.py),
+    # trained on the same "New strategy\nStrategy explanation" input.
+    # Cached after first run — pass --force-retrain to eval/baseline_paper_cnn.py
+    # directly if you change the CNN baseline's hyperparameters.
+    ("baseline_paper_cnn", "eval/baseline_paper_cnn.py",   []),
     ("comparison",        "eval/comparison_report.py",     []),
 ]
 
