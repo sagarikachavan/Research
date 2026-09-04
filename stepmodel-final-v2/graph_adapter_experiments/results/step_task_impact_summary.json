@@ -1,0 +1,12 @@
+{
+  "stage2_qwen_lora": {
+    "step_accuracy": 0.7836,
+    "step_macro_f1": 0.6673,
+    "mcp_subset_accuracy": 0.5485
+  },
+  "graph_structure": {
+    "step_accuracy": 0.3582,
+    "step_macro_f1": 0.3049,
+    "mcp_subset_accuracy": 0.4067
+  }
+}

@@ -92,6 +92,7 @@ def main():
     ap.add_argument("--conditions", default=",".join(CONDITIONS))
     ap.add_argument("--max_items", type=int, default=150)
     ap.add_argument("--seed", type=int, default=RANDOM_SEED)
+    ap.add_argument("--output", help="Custom output filename (without .jsonl extension)")
     args = ap.parse_args()
 
     task_filter = set(args.tasks.split(","))
@@ -119,7 +120,8 @@ def main():
         all_keys = list(ex_index.keys())
         prototype = precompute_mean_prototype(model, ex_index, all_keys, seed=args.seed)
 
-    out_path = os.path.join(RESULTS_DIR, f"raw_results_{model.name}.jsonl")
+    output_name = args.output if args.output else model.name
+    out_path = os.path.join(RESULTS_DIR, f"raw_results_{output_name}.jsonl")
     n_written = 0
     with open(out_path, "w") as out_f:
         for i, item in enumerate(items):

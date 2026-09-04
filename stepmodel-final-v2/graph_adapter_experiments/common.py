@@ -64,7 +64,7 @@ from graph_encoder import Stage1Classifier
 EXPERIMENTS_DIR = _THIS_DIR
 RESULTS_DIR = os.path.join(EXPERIMENTS_DIR, "results")
 TASKS_DIR = os.path.join(EXPERIMENTS_DIR, "structure_tasks")
-CKPT_DIR = os.path.join(ROOT, "checkpoints")
+CKPT_DIR = os.environ.get("CKPT_DIR", os.path.join(ROOT, "checkpoints"))
 os.makedirs(RESULTS_DIR, exist_ok=True)
 os.makedirs(TASKS_DIR, exist_ok=True)
 

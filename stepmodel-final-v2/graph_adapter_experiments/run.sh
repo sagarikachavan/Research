@@ -19,8 +19,18 @@ echo -e "${BLUE}========================================${NC}"
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 cd "$SCRIPT_DIR/.."
 
+# Use local checkpoints directory for self-containment
+LOCAL_CHECKPOINTS="$SCRIPT_DIR/checkpoints"
+mkdir -p "$LOCAL_CHECKPOINTS"
+
+# Export environment variables to override config paths
+export CKPT_DIR="$LOCAL_CHECKPOINTS"
+export STAGE1_CKPT="$LOCAL_CHECKPOINTS/stage1_gnn_classifier.pt"
+export STAGE2_ADAPTER_DIR="$LOCAL_CHECKPOINTS/stage2_qwen_lora"
+export STAGE3_ADAPTER_DIR="$LOCAL_CHECKPOINTS/stage3_qwen_grpo"
+
 # Default parameters
-CHECKPOINT="${CHECKPOINT:-checkpoints/stage2_qwen_lora}"
+CHECKPOINT="${CHECKPOINT:-$LOCAL_CHECKPOINTS/stage2_qwen_lora}"
 MAX_ITEMS="${MAX_ITEMS:-150}"
 STEPS_STRUCTURE="${STEPS_STRUCTURE:-1500}"
 STEPS_MULTITASK="${STEPS_MULTITASK:-2000}"
@@ -37,7 +47,7 @@ fi
 
 # Step 0.5: Train Stage 1 GNN if checkpoint doesn't exist
 echo -e "${GREEN}[0.5/11] Checking Stage 1 checkpoint...${NC}"
-if [ ! -f "checkpoints/stage1_gnn_classifier.pt" ]; then
+if [ ! -f "$LOCAL_CHECKPOINTS/stage1_gnn_classifier.pt" ]; then
     echo -e "${YELLOW}Stage 1 checkpoint not found, training Stage 1 GNN...${NC}"
     python training/stage1_gnn_train.py
     echo -e "${GREEN}✓ Stage 1 training completed${NC}"
@@ -50,12 +60,23 @@ echo -e "${GREEN}[1/11] Building structure task datasets...${NC}"
 python graph_adapter_experiments/build_structure_tasks.py
 echo -e "${GREEN}✓ Structure tasks built${NC}"
 
+# Step 1.5: Train Stage 2 if checkpoint doesn't exist
+echo -e "${GREEN}[1.5/11] Checking Stage 2 checkpoint...${NC}"
+if [ ! -d "$LOCAL_CHECKPOINTS/stage2_qwen_lora" ] || [ ! -f "$LOCAL_CHECKPOINTS/stage2_qwen_lora/adapter_config.json" ]; then
+    echo -e "${YELLOW}Stage 2 checkpoint not found, training Stage 2...${NC}"
+    python training/stage2_sft_qwen.py
+    echo -e "${GREEN}✓ Stage 2 training completed${NC}"
+else
+    echo -e "${YELLOW}Stage 2 checkpoint exists, skipping training${NC}"
+fi
+
 # Step 2: Run reliability suite on existing Stage-2 checkpoint
 echo -e "${GREEN}[2/11] Running reliability suite on baseline checkpoint...${NC}"
 python graph_adapter_experiments/run_reliability_suite.py \
     --checkpoint "$CHECKPOINT" \
     --split held_out \
-    --max_items "$MAX_ITEMS"
+    --max_items "$MAX_ITEMS" \
+    --output stage2_qwen_lora
 echo -e "${GREEN}✓ Reliability suite completed${NC}"
 
 # Step 3: Analyze baseline results
@@ -68,22 +89,23 @@ echo -e "${GREEN}✓ Baseline analysis completed${NC}"
 echo -e "${GREEN}[4/11] Training structure-focused adapter...${NC}"
 python graph_adapter_experiments/train_structure_adapter.py \
     --init_from "$CHECKPOINT" \
-    --out_dir checkpoints/graph_structure \
+    --out_dir "$LOCAL_CHECKPOINTS/graph_structure" \
     --steps "$STEPS_STRUCTURE"
 echo -e "${GREEN}✓ Structure adapter training completed${NC}"
 
 # Step 5: Run reliability suite on structure adapter
 echo -e "${GREEN}[5/11] Running reliability suite on structure adapter...${NC}"
 python graph_adapter_experiments/run_reliability_suite.py \
-    --checkpoint checkpoints/graph_structure/best \
+    --checkpoint "$LOCAL_CHECKPOINTS/graph_structure/best" \
     --split held_out \
-    --max_items "$MAX_ITEMS"
+    --max_items "$MAX_ITEMS" \
+    --output graph_structure_best
 echo -e "${GREEN}✓ Reliability suite on structure adapter completed${NC}"
 
 # Step 6: Analyze structure adapter results (compare with baseline)
 echo -e "${GREEN}[6/11] Analyzing structure adapter results (comparison)...${NC}"
 python graph_adapter_experiments/analyze_results.py \
-    --results graph_adapter_experiments/results/raw_results_best.jsonl \
+    --results graph_adapter_experiments/results/raw_results_graph_structure_best.jsonl \
               graph_adapter_experiments/results/raw_results_stage2_qwen_lora.jsonl
 echo -e "${GREEN}✓ Comparative analysis completed${NC}"
 
@@ -96,7 +118,7 @@ echo -e "${GREEN}✓ Step task impact evaluation completed${NC}"
 echo -e "${GREEN}[8/11] Training multi-task adapter...${NC}"
 python graph_adapter_experiments/train_multitask_adapter.py \
     --init_from "$CHECKPOINT" \
-    --out_dir checkpoints/multitask \
+    --out_dir "$LOCAL_CHECKPOINTS/multitask" \
     --steps "$STEPS_MULTITASK" \
     --structure_frac "$STRUCTURE_FRAC"
 echo -e "${GREEN}✓ Multi-task adapter training completed${NC}"
@@ -104,9 +126,10 @@ echo -e "${GREEN}✓ Multi-task adapter training completed${NC}"
 # Step 9: Run reliability suite on multi-task adapter
 echo -e "${GREEN}[9/11] Running reliability suite on multi-task adapter...${NC}"
 python graph_adapter_experiments/run_reliability_suite.py \
-    --checkpoint checkpoints/multitask/best \
+    --checkpoint "$LOCAL_CHECKPOINTS/multitask/best" \
     --split held_out \
-    --max_items "$MAX_ITEMS"
+    --max_items "$MAX_ITEMS" \
+    --output multitask_best
 echo -e "${GREEN}✓ Reliability suite on multi-task adapter completed${NC}"
 
 # Step 10: Analyze multi-task results
