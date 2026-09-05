@@ -45,7 +45,7 @@ from sklearn.metrics import (
 
 from config import (
     INPUT_TEST_JSON, STAGE1_CKPT, STEP_LABELS, MCP_LABELS, MCP_DECISION_THRESHOLD,
-    QWEN_MODEL_NAME, ROOT,
+    QWEN_MODEL_NAME, ROOT, LLM_JUDGE_MODEL_NAME,
 )
 from data_utils import (
     load_from_input_json, CONTEXT_COLUMNS, _embed_texts,
@@ -183,8 +183,10 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
             batch_fe = torch.tensor(
                 np.stack(field_embs_list[i : i + bs]), dtype=torch.float32
             ).to(device)
+            edge_attr = getattr(batch_graphs, 'edge_attr', None)
             step_logits, mcp_logits, _ = model(
-                batch_graphs.x, batch_graphs.edge_index, batch_graphs.batch, batch_fe
+                batch_graphs.x, batch_graphs.edge_index, batch_graphs.batch, batch_fe,
+                edge_attr=edge_attr,
             )
             step_preds.append(step_logits.argmax(-1).cpu().numpy())
             probs = torch.sigmoid(mcp_logits).cpu().numpy()
@@ -253,7 +255,10 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
 def eval_llm(adapter_dir: str, threshold_override=None,
              max_new_tokens: int = 200,
              save_explanations: str | None = None,
-             auto_save_csv: bool = False) -> None:
+             auto_save_csv: bool = False,
+             llm_judge_model_name: str | None = None,
+             llm_judge_samples: int | None = None,
+             use_llm_judge: bool = True) -> None:
     try:
         from tqdm import tqdm
     except ImportError:
@@ -264,8 +269,15 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     from torch_geometric.data import Batch as PyGBatch
     from stage2_sft_qwen import (
         build_prompt, SYSTEM_PROMPT, GraphPrefixAdapter,
+        GRAPH_PREFIX_SRC_DIM, precompute_stage1_hints,
     )
     from graph_encoder import Stage1Classifier
+    from data_utils import _embed_texts, CONTEXT_COLUMNS
+    from llm_judge import set_llm_judge_model
+
+    # Resolve LLM judge model name
+    if llm_judge_model_name is None:
+        llm_judge_model_name = LLM_JUDGE_MODEL_NAME
 
     # MCP thresholds — not used for LLM (tools come from parsed JSON text),
     # but loaded for reporting consistency.
@@ -280,6 +292,29 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     device = "cuda" if torch.cuda.is_available() else "cpu"
     dtype  = torch.bfloat16
     print(f"[eval] Test input: {INPUT_TEST_JSON}")
+    print(f"[eval] Device    : {device}")
+
+    # ── ⚠ CRITICAL: Load SEPARATE LLM judge model BEFORE evaluation ────
+    # Must use a DIFFERENT model from training base (QWEN_MODEL_NAME)
+    # to prevent self-deception / reward hacking.
+    if use_llm_judge:
+        print(f"\n[eval] ⚠ Loading SEPARATE LLM judge: {llm_judge_model_name}")
+        print(f"[eval]   (training base = {QWEN_MODEL_NAME} — must be different)")
+        try:
+            j_tok = AutoTokenizer.from_pretrained(llm_judge_model_name)
+            if j_tok.pad_token is None:
+                j_tok.pad_token = j_tok.eos_token
+            j_model = AutoModelForCausalLM.from_pretrained(
+                llm_judge_model_name, torch_dtype=dtype, device_map=None
+            ).to(device)
+            j_model.eval()
+            for p in j_model.parameters():
+                p.requires_grad_(False)
+            set_llm_judge_model(j_model, j_tok, device)
+            print(f"[eval] ✓ Separate LLM judge loaded ({llm_judge_model_name})")
+        except Exception as e:
+            print(f"[eval] ⚠ Failed to load LLM judge model: {e}")
+            print("[eval]   Continuing without LLM judge — explanation quality will use heuristics.")
 
     tokenizer = AutoTokenizer.from_pretrained(adapter_dir)
     if tokenizer.pad_token is None:
@@ -297,13 +332,21 @@ def eval_llm(adapter_dir: str, threshold_override=None,
         stage1.load_state_dict(ckpt["model_state_dict"])
     else:
         stage1.load_state_dict(ckpt)
-    graph_encoder = stage1.graph_encoder.to(device).eval()
-    for p in graph_encoder.parameters():
+    # FIX: keep the whole frozen Stage-1 classifier (not just graph_encoder)
+    # so generation-time inference matches what Stage 2/3 training actually
+    # conditioned on -- see graph_encoder.Stage1Classifier.encode_and_predict.
+    # Previously this used graph_encoder ALONE (no context/strategy fusion
+    # at all), which was out-of-distribution relative to both Stage 2's
+    # training-time fusion and this fix's own training-time fusion, and is
+    # the most likely single cause of Stage 2/3's generation-time accuracy
+    # being far below their own training-time (teacher-forced) metrics.
+    stage1 = stage1.to(device).eval()
+    for p in stage1.parameters():
         p.requires_grad_(False)
 
-    from config import GNN_OUT_DIM, GRAPH_PREFIX_TOKENS
+    from config import GRAPH_PREFIX_TOKENS
     llm_hidden = llm_model.config.hidden_size
-    adapter = GraphPrefixAdapter(GNN_OUT_DIM, llm_hidden).to(device).to(dtype)
+    adapter = GraphPrefixAdapter(GRAPH_PREFIX_SRC_DIM, llm_hidden).to(device).to(dtype)
     adapter_ckpt = os.path.join(adapter_dir, "graph_adapter.pt")
     if os.path.exists(adapter_ckpt):
         adapter.load_state_dict(torch.load(adapter_ckpt, map_location=device))
@@ -316,6 +359,9 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     embed_layer = llm_model.get_input_embeddings()
 
     examples = load_from_input_json(INPUT_TEST_JSON, "test")
+    # REMOVED: precompute_stage1_hints to force model to decode graph prefix tokens
+    # instead of copying Stage 1 predictions. This is critical for Stage 2/3 to
+    # actually improve over Stage 1.
     normalizer = StepLabelNormalizer()
 
     step_preds, mcp_preds, step_gold, mcp_gold       = [], [], [], []
@@ -325,7 +371,7 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     csv_rows: list[dict]                               = []
 
     for ex in tqdm(examples, desc="Generating", unit="sample"):
-        prompt = build_prompt(ex)
+        prompt = build_prompt(ex, mask_hint=True)  # Force model to decode graph tokens
         full_prompt = (
             f"<|system|>\n{SYSTEM_PROMPT}\n"
             f"<|user|>\n{prompt}\n"
@@ -334,10 +380,15 @@ def eval_llm(adapter_dir: str, threshold_override=None,
 
         with torch.no_grad():
             pyg_batch = PyGBatch.from_data_list([ex["graph"]]).to(device)
-            graph_emb = graph_encoder(
-                pyg_batch.x, pyg_batch.edge_index, pyg_batch.batch
+            edge_attr = getattr(pyg_batch, 'edge_attr', None)
+            field_embs = torch.tensor(
+                _embed_texts([ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]),
+                dtype=torch.float32,
+            ).unsqueeze(0).to(device)
+            combined_emb, _, _ = stage1.encode_and_predict(
+                pyg_batch.x, pyg_batch.edge_index, pyg_batch.batch, field_embs, edge_attr=edge_attr
             )
-            prefix_embeds = adapter(graph_emb.to(dtype))
+            prefix_embeds = adapter(combined_emb.to(dtype))
             ids = tokenizer(
                 full_prompt,
                 return_tensors="pt",
@@ -525,20 +576,27 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     print("\n\n" + "=" * 60)
     print("STEP EXPLANATION QUALITY - LLM JUDGE")
     print("=" * 60)
-    print("Using LLM to evaluate explanation quality...")
-    
-    # Run LLM judge evaluation
-    llm_results = compute_explanation_metrics_with_llm_judge(
-        pred_explanations=pred_explanations,
-        gold_explanations=gold_explanations,
-        step_preds=step_preds_arr,
-        examples=examples,
-        model=getattr(args, 'llm_judge_model', 'gpt-4o'),
-        max_samples=getattr(args, 'llm_judge_samples', None),
-    )
-    
-    # Print LLM judge results
-    print_llm_judge_results(llm_results)
+    if use_llm_judge:
+        print("Using LLM to evaluate explanation quality...")
+        # Run LLM judge evaluation
+        llm_results = compute_explanation_metrics_with_llm_judge(
+            pred_explanations=pred_explanations,
+            gold_explanations=gold_explanations,
+            step_preds=step_preds_arr,
+            examples=examples,
+            model=llm_judge_model_name,
+            max_samples=llm_judge_samples,
+        )
+        # Print LLM judge results
+        print_llm_judge_results(llm_results)
+    else:
+        print("LLM judge evaluation disabled (--no-llm-judge).")
+        # Compute heuristic explanation quality as fallback
+        expl_lens = [len(p) for p in pred_explanations]
+        if expl_lens:
+            avg_len = float(np.mean(expl_lens))
+            print(f"  Avg prediction length: {avg_len:.0f} chars")
+            print("  (LLM judge disabled — use --use-llm-judge for semantic evaluation)")
 
     # ── Optional CSV dump ─────────────────────────────────────────────────
     if (save_explanations or auto_save_csv) and csv_rows:
@@ -595,18 +653,40 @@ def eval_llm(adapter_dir: str, threshold_override=None,
 # Reporting helpers
 # ---------------------------------------------------------------------------
 
+def _compute_jaccard(pred_set: set, gold_set: set) -> float:
+    if not pred_set and not gold_set:
+        return 1.0
+    union = pred_set | gold_set
+    return len(pred_set & gold_set) / len(union) if union else 0.0
+
+
 def report_classification(
     step_preds: np.ndarray,
     step_gold: np.ndarray,
     mcp_preds: np.ndarray,
     mcp_gold: np.ndarray,
 ) -> None:
+    # ── Jaccard metrics (consistent with Stage 2/3 evaluation) ──
+    step_jaccards = []
+    mcp_jaccards = []
+    for i in range(len(step_gold)):
+        step_j = 1.0 if step_preds[i] == step_gold[i] else 0.0
+        step_jaccards.append(step_j)
+        pred_mcp_set = set(MCP_LABELS[j] for j, v in enumerate(mcp_preds[i]) if v == 1)
+        gold_mcp_set = set(MCP_LABELS[j] for j, v in enumerate(mcp_gold[i]) if v == 1)
+        mcp_jaccards.append(_compute_jaccard(pred_mcp_set, gold_mcp_set))
+    mean_step_jac = float(np.mean(step_jaccards))
+    mean_mcp_jac = float(np.mean(mcp_jaccards))
+    mcp_jac_pass = sum(1 for j in mcp_jaccards if j >= 0.5)
+    combined_jac = (mean_step_jac + mean_mcp_jac) / 2.0
+
     print("\n" + "=" * 60)
     print("STEP CLASSIFICATION")
     print("=" * 60)
     print(f"  Accuracy      : {accuracy_score(step_gold, step_preds):.4f}")
     print(f"  Macro F1      : {f1_score(step_gold, step_preds, average='macro',    zero_division=0):.4f}")
     print(f"  Weighted F1   : {f1_score(step_gold, step_preds, average='weighted', zero_division=0):.4f}")
+    print(f"  [Jaccard] Step: {mean_step_jac:.4f}  (exact match ratio)")
 
     labels_present = sorted(
         set(step_gold.tolist()) | set(int(p) for p in step_preds if p >= 0)
@@ -634,6 +714,11 @@ def report_classification(
     print(f"  Micro F1                      : {f1_score(mcp_gold, mcp_preds, average='micro',   zero_division=0):.4f}")
     print(f"  Macro F1                      : {f1_score(mcp_gold, mcp_preds, average='macro',   zero_division=0):.4f}")
     print(f"  Samples F1                    : {f1_score(mcp_gold, mcp_preds, average='samples', zero_division=0):.4f}")
+    print(f"  [Jaccard] MCP mean: {mean_mcp_jac:.4f}  "
+          f"(≥0.5 pass: {mcp_jac_pass}/{len(mcp_jaccards)} = {mcp_jac_pass/len(mcp_jaccards)*100:.2f}%)")
+    print(f"\n  ═══════════════════════════════════════════════")
+    print(f"  [Jaccard Combined (Step+MCP)/2]: {combined_jac:.4f}")
+    print(f"  ═══════════════════════════════════════════════")
 
     prec, rec, f1, support = precision_recall_fscore_support(
         mcp_gold, mcp_preds, average=None, zero_division=0
@@ -716,8 +801,8 @@ if __name__ == "__main__":
         help="Disable automatic LLM judge evaluation for LLM models.",
     )
     parser.add_argument(
-        "--llm-judge-model", default="gpt-4o",
-        help="OpenAI model to use for LLM judge (default: gpt-4o).",
+        "--llm-judge-model", default=LLM_JUDGE_MODEL_NAME,
+        help=f"Model to use for LLM judge evaluation (default: {LLM_JUDGE_MODEL_NAME}). NOTE: Uses SEPARATE model from training base {QWEN_MODEL_NAME} to prevent self-deception reward hacking.",
     )
     parser.add_argument(
         "--llm-judge-samples", type=int, default=None,
@@ -757,6 +842,9 @@ if __name__ == "__main__":
                     max_new_tokens=args.max_new_tokens,
                     save_explanations=args.save_explanations,
                     auto_save_csv=args.auto_save_csv,
+                    llm_judge_model_name=args.llm_judge_model,
+                    llm_judge_samples=args.llm_judge_samples,
+                    use_llm_judge=args.use_llm_judge if args.use_llm_judge is not None else True,
                 )
 
     elif args.model == "gnn":
@@ -785,4 +873,7 @@ if __name__ == "__main__":
             max_new_tokens=args.max_new_tokens,
             save_explanations=args.save_explanations,
             auto_save_csv=args.auto_save_csv,
+            llm_judge_model_name=args.llm_judge_model,
+            llm_judge_samples=args.llm_judge_samples,
+            use_llm_judge=args.use_llm_judge if args.use_llm_judge is not None else True,
         )

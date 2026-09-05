@@ -1,0 +1,48 @@
+================================================================================
+COMPREHENSIVE MODEL COMPARISON REPORT
+================================================================================
+
+OVERALL PERFORMANCE METRICS
+--------------------------------------------------------------------------------
+             Model  mcp_hamming_loss  mcp_jaccard_mean  mcp_macro_f1  mcp_micro_f1  mcp_micro_precision  mcp_micro_recall  mcp_samples_f1  mcp_samples_precision  mcp_samples_recall  mcp_subset_accuracy  step_accuracy  step_macro_f1  step_weighted_f1
+ baseline_zeroshot          0.243216          0.392390      0.347294      0.404979             0.287736          0.683473        0.484224               0.437353            0.726368             0.186567       0.507463       0.347261          0.541075
+    baseline_3shot          0.190299          0.489920      0.384557      0.485793             0.361035          0.742297        0.578979               0.549870            0.785448             0.264925       0.563433       0.379231          0.553454
+    baseline_5shot          0.192334          0.530953      0.382775      0.505667             0.367089          0.812325        0.621785               0.574796            0.845149             0.294776       0.608209       0.404282          0.599610
+paper_stepcnn_gpt2          0.057494          0.614865      0.223379      0.360656             0.550000          0.268293        0.135135               0.139640            0.141441             0.578378       0.783784       0.404910          0.771840
+            stage1          0.060380          0.709577      0.672544      0.745714             0.760933          0.731092        0.765672               0.797264            0.783582             0.537313       0.802239       0.553472          0.813981
+            stage2          0.056649          0.723570      0.662981      0.735341             0.846715          0.649860        0.762189               0.833955            0.731343             0.611940       0.824627       0.603125          0.830672
+            stage3          0.054953          0.730410      0.654751      0.742857             0.857143          0.655462        0.766667               0.839552            0.733831             0.626866       0.820896       0.598369          0.823430
+
+KEY IMPROVEMENTS (Stage 2 vs Zero-shot Baseline)
+--------------------------------------------------------------------------------
+mcp_hamming_loss         : 0.0566 vs 0.2432 (-0.1866, -76.7%)
+mcp_jaccard_mean         : 0.7236 vs 0.3924 (+0.3312, +84.4%)
+mcp_macro_f1             : 0.6630 vs 0.3473 (+0.3157, +90.9%)
+mcp_micro_f1             : 0.7353 vs 0.4050 (+0.3304, +81.6%)
+mcp_micro_precision      : 0.8467 vs 0.2877 (+0.5590, +194.3%)
+mcp_micro_recall         : 0.6499 vs 0.6835 (-0.0336, -4.9%)
+mcp_samples_f1           : 0.7622 vs 0.4842 (+0.2780, +57.4%)
+mcp_samples_precision    : 0.8340 vs 0.4374 (+0.3966, +90.7%)
+mcp_samples_recall       : 0.7313 vs 0.7264 (+0.0050, +0.7%)
+mcp_subset_accuracy      : 0.6119 vs 0.1866 (+0.4254, +228.0%)
+step_accuracy            : 0.8246 vs 0.5075 (+0.3172, +62.5%)
+step_macro_f1            : 0.6031 vs 0.3473 (+0.2559, +73.7%)
+step_weighted_f1         : 0.8307 vs 0.5411 (+0.2896, +53.5%)
+
+BEST MODEL PER METRIC
+--------------------------------------------------------------------------------
+mcp_hamming_loss         : baseline_zeroshot (0.2432)
+mcp_jaccard_mean         : stage3 (0.7304)
+mcp_macro_f1             : stage1 (0.6725)
+mcp_micro_f1             : stage1 (0.7457)
+mcp_micro_precision      : stage3 (0.8571)
+mcp_micro_recall         : baseline_5shot (0.8123)
+mcp_samples_f1           : stage3 (0.7667)
+mcp_samples_precision    : stage3 (0.8396)
+mcp_samples_recall       : baseline_5shot (0.8451)
+mcp_subset_accuracy      : stage3 (0.6269)
+step_accuracy            : stage2 (0.8246)
+step_macro_f1            : stage2 (0.6031)
+step_weighted_f1         : stage2 (0.8307)
+
+================================================================================

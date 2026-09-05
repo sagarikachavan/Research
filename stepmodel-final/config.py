@@ -82,37 +82,59 @@ STAGE3_ADAPTER_DIR = os.environ.get(
 # ----------------------------------------------------------------------------
 # Model / training hyperparameters
 # ----------------------------------------------------------------------------
-TEXT_ENCODER_NAME = "BAAI/bge-small-en-v1.5"   # frozen sentence embedder for context text
-TEXT_EMB_DIM = 384
+TEXT_ENCODER_NAME = "BAAI/bge-base-en-v1.5"   # upgraded for better semantic understanding
+TEXT_EMB_DIM = 768
 
-GNN_HIDDEN = 256
-GNN_LAYERS = 3
-GNN_OUT_DIM = 256
-FUSION_HIDDEN = 512
+# Enhanced GNN architecture based on research from "Classic GNNs are Strong Baselines"
+# and "Non-convolutional Graph Neural Networks" for better graph understanding
+GNN_HIDDEN = 512                # Increased to match text encoder capacity
+GNN_LAYERS = 4                  # Increased for better structural understanding
+GNN_OUT_DIM = 512                # Match text encoder dimension for better fusion
+FUSION_HIDDEN = 1024             # Increased for better fusion capacity
+GNN_HEADS = 8                    # Increased for better attention
+GNN_DROPOUT = 0.15               # Balanced for regularization
 
-MCP_LOSS_WEIGHT = 1.0
-STEP_LOSS_WEIGHT = 1.0
+# 5-dim edge attr: one-hot over the 4 semantic PTT edge types
+# (StateTransition, SearchUpdate, TrackUpdate, Prediction) + a self-loop
+# indicator. Shared constant so data_utils.py (graph building) and
+# graph_encoder.py (GATv2Conv edge_dim) can never drift out of sync.
+EDGE_ATTR_DIM = 5
+
+MCP_LOSS_WEIGHT = 2.0           # Further increased for MCP performance target
+STEP_LOSS_WEIGHT = 2.0           # Further increased for step classification target
 MCP_DECISION_THRESHOLD = 0.5
+STEP_LABEL_SMOOTHING = 0.03       # Reduced for better discrimination
 
-STAGE1_LR = 2e-4
-STAGE1_EPOCHS = 30
+STAGE1_LR = 1.5e-4               # Slightly reduced for stability
+STAGE1_EPOCHS = 80               # Increased for better convergence
 STAGE1_BATCH_SIZE = 16
+STAGE1_WARMUP_EPOCHS = 8          # Increased warmup
+STAGE1_GRAD_CLIP = 1.0
+STAGE1_WEIGHT_DECAY = 1e-2
 
-QWEN_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct"
-GRAPH_PREFIX_TOKENS = 8          # number of soft-prompt tokens the graph embedding is expanded into
-LORA_R = 16
-LORA_ALPHA = 32
-LORA_DROPOUT = 0.05
-STAGE2_LR = 1e-4
-STAGE2_EPOCHS = 10               # increased from 3 → allows model to converge on JSON schema
-STAGE2_BATCH_SIZE = 2
-STAGE2_GRAD_ACCUM = 8
-STAGE2_VAL_SPLIT = 0.1           # 10% held-out for validation
-STAGE2_EARLY_STOP_PATIENCE = 3   # stop if val loss doesn't improve for 3 epochs
+QWEN_MODEL_NAME = "Qwen/Qwen3-14B"
+LLM_JUDGE_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct" # Separate model for LLM judge evaluation
+GRAPH_PREFIX_TOKENS = 8           # Further reduced to save memory
+LORA_R = 32                      # Reduced to save memory
+LORA_ALPHA = 64                  # Reduced proportionally
+LORA_DROPOUT = 0.12              # Slightly increased for regularization
+STAGE2_LR = 1e-5                # Reduced for FP16 stability
+STAGE2_EPOCHS = 20               # Increased for better convergence
+STAGE2_BATCH_SIZE = 1
+STAGE2_GRAD_ACCUM = 16
+STAGE2_VAL_SPLIT = 0.15          # 15% held-out for validation
+STAGE2_EARLY_STOP_PATIENCE = 8   # Increased patience for better training
+STAGE2_GRAD_CLIP = 1.0
+STAGE2_HINT_MASK_PROB = 0.5      # Probability of masking Stage 1 hint during training (forces learning from graph tokens)
+STAGE2_WARMUP_RATIO = 0.10       # Increased warmup
+STAGE2_WEIGHT_DECAY = 1e-4
 
-STAGE3_GROUP_SIZE = 16           # number of samples per prompt for GRPO (increased from 2 for better gradient estimation)
-STAGE3_LR = 1e-6                 # Increased from 5e-7 for more meaningful updates
-STAGE3_STEPS = 2000             # Increased from 1000 for better convergence
-STAGE3_KL_COEF = 0.01           # Further reduced from 0.02 for more exploration
+STAGE3_GROUP_SIZE = 20           # Increased for better gradient estimation
+STAGE3_LR = 2e-6                # Optimized for GRPO with enhanced reward
+STAGE3_STEPS = 3000              # Increased for better convergence
+STAGE3_KL_COEF = 0.02            # Increased for better stability
+STAGE3_PPO_CLIP = 0.2            # Standard PPO clipping
+STAGE3_GRAD_ACCUM = 4
+STAGE3_GRAD_CLIP = 1.0
 
 RANDOM_SEED = 42

@@ -75,6 +75,17 @@ CSV_TO_OUTPUT = {
     "MCP_tasks": "gold_mcp_tasks",
 }
 
+# INPUT CONTRACT: each record's model input is machine + graph +
+# new_strategy + strategy_explanation ONLY. No other fields are carried
+# into the model input. (A previous version of this file also carried
+# forward "previous_strategy"/"previous_step"/"previous_step_result" from
+# the same machine's prior row -- removed: it wasn't part of the requested
+# input schema, and "previous_step" duplicated the gold "New step" label
+# text of the prior row, letting the model partly solve step classification
+# by copying step-to-step transition frequency instead of reasoning over
+# the graph + strategy.)
+EXTRA_OUTPUT_KEYS = []
+
 
 def safe_str(value):
     if pd.isna(value):
@@ -119,33 +130,53 @@ def _collect_rows(csv_path: pathlib.Path, limit=None):
     return rows, skipped_rows
 
 
+def _items_from_ptt(ptt_text):
+    parsed = ptt_parser.parse_ptt(ptt_text)
+    return [{"number": it["number"], "title": it["title"],
+              "type": "State" if ptt_parser.classify(it) == "state" else "Action",
+              "status": it["status"], "payload": it["payload"]} for it in parsed]
+
+
 def _build_one_record_deterministic(entry):
+    from graph_builder import validate_row_graph
+
     graph = ptt_parser.build_row_graph(
         machine=entry["machine"],
         row_index=entry["row_index"],
         ptt_text=entry["ptt_text"],
         extra_meta={"csv_row_index": entry["csv_row_index"], "source": "deterministic"},
     )
+    problems = validate_row_graph(_items_from_ptt(entry["ptt_text"]), graph,
+                                   entry["machine"], entry["row_index"])
     record = {"machine": entry["machine"], "graph": graph}
     for out_key in CSV_TO_OUTPUT.values():
         record[out_key] = entry[out_key]
-    return record
+    for out_key in EXTRA_OUTPUT_KEYS:
+        record[out_key] = entry[out_key]
+    return record, problems
 
 
 def build_records_deterministic(csv_path: pathlib.Path, limit=None):
     rows, skipped_rows = _collect_rows(csv_path, limit=limit)
-    records = [_build_one_record_deterministic(entry) for entry in rows]
-    return records, skipped_rows
+    records, row_problems = [], []
+    for entry in rows:
+        record, problems = _build_one_record_deterministic(entry)
+        records.append(record)
+        if problems:
+            row_problems.append({"machine": entry["machine"], "row_index": entry["row_index"],
+                                  "problems": problems})
+    return records, skipped_rows, row_problems, []
 
 
 def build_records_llm(csv_path: pathlib.Path, client, model, workers, limit=None):
     from concurrent.futures import ThreadPoolExecutor, as_completed
     from llm_ptt_parser import parse_ptt_items
-    from graph_builder import build_graph_from_items
+    from graph_builder import build_graph_from_items, validate_row_graph
 
     rows, skipped_rows = _collect_rows(csv_path, limit=limit)
     records = [None] * len(rows)
     sources = {"llm": 0, "llm_cache": 0, "fallback_regex": 0}
+    row_problems = []
 
     def _build(entry):
         items, source = parse_ptt_items(entry["machine"], entry["ptt_text"], client, model=model)
@@ -153,40 +184,102 @@ def build_records_llm(csv_path: pathlib.Path, client, model, workers, limit=None
             entry["machine"], entry["row_index"], items,
             extra_meta={"csv_row_index": entry["csv_row_index"], "llm_source": source},
         )
+        problems = validate_row_graph(items, graph, entry["machine"], entry["row_index"])
         record = {"machine": entry["machine"], "graph": graph}
         for out_key in CSV_TO_OUTPUT.values():
             record[out_key] = entry[out_key]
-        return record, source
+        for out_key in EXTRA_OUTPUT_KEYS:
+            record[out_key] = entry[out_key]
+        return record, source, problems
 
     with ThreadPoolExecutor(max_workers=workers) as pool:
         futures = {pool.submit(_build, entry): i for i, entry in enumerate(rows)}
         done = 0
         for fut in as_completed(futures):
             i = futures[fut]
-            record, source = fut.result()
+            record, source, problems = fut.result()
             records[i] = record
             sources[source] = sources.get(source, 0) + 1
+            if problems:
+                row_problems.append({"machine": rows[i]["machine"], "row_index": rows[i]["row_index"],
+                                      "problems": problems})
             done += 1
             if done % 25 == 0 or done == len(rows):
                 print(f"  ... {done}/{len(rows)} rows processed", end="\r")
     print()
     print(f"  sources: {sources}")
-    return records, skipped_rows
+    return records, skipped_rows, row_problems, []
+
+
+def build_records_hybrid(csv_path: pathlib.Path, client, model, workers, limit=None):
+    from concurrent.futures import ThreadPoolExecutor, as_completed
+    from threading import Lock
+    from llm_ptt_parser import parse_ptt_items_hybrid
+    from graph_builder import build_graph_from_items, validate_row_graph
+
+    rows, skipped_rows = _collect_rows(csv_path, limit=limit)
+    records = [None] * len(rows)
+    sources = {"llm": 0, "llm_cache": 0, "fallback_regex": 0}
+    row_problems, all_disagreements = [], []
+    lock = Lock()
+
+    def _build(entry):
+        disagreement_log = []
+        items, source = parse_ptt_items_hybrid(
+            entry["machine"], entry["ptt_text"], client, model=model,
+            disagreement_log=disagreement_log,
+        )
+        graph = build_graph_from_items(
+            entry["machine"], entry["row_index"], items,
+            extra_meta={"csv_row_index": entry["csv_row_index"], "source": "hybrid", "llm_source": source},
+        )
+        problems = validate_row_graph(items, graph, entry["machine"], entry["row_index"])
+        record = {"machine": entry["machine"], "graph": graph}
+        for out_key in CSV_TO_OUTPUT.values():
+            record[out_key] = entry[out_key]
+        for out_key in EXTRA_OUTPUT_KEYS:
+            record[out_key] = entry[out_key]
+        return record, source, problems, disagreement_log
+
+    with ThreadPoolExecutor(max_workers=workers) as pool:
+        futures = {pool.submit(_build, entry): i for i, entry in enumerate(rows)}
+        done = 0
+        for fut in as_completed(futures):
+            i = futures[fut]
+            record, source, problems, disagreement_log = fut.result()
+            records[i] = record
+            with lock:
+                sources[source] = sources.get(source, 0) + 1
+                if problems:
+                    row_problems.append({"machine": rows[i]["machine"], "row_index": rows[i]["row_index"],
+                                          "problems": problems})
+                all_disagreements.extend(disagreement_log)
+            done += 1
+            if done % 25 == 0 or done == len(rows):
+                print(f"  ... {done}/{len(rows)} rows processed", end="\r")
+    print()
+    print(f"  sources: {sources}")
+    return records, skipped_rows, row_problems, all_disagreements
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--use-llm", action="store_true",
-                         help="parse each PTT cell with an LLM instead of the deterministic rule engine")
-    parser.add_argument("--model", default=None, help="OpenAI model for --use-llm (default: gpt-4o-mini)")
-    parser.add_argument("--workers", type=int, default=8, help="parallel API calls, --use-llm only")
+    parser.add_argument("--mode", choices=["rule", "llm", "hybrid"], default="rule",
+                         help="rule = deterministic only (default, no API key needed); "
+                              "llm = LLM parses structure + classification from scratch; "
+                              "hybrid = deterministic structure + LLM classifies only the "
+                              "ambiguous items (recommended -- best accuracy, fewest tokens)")
+    parser.add_argument("--use-llm", action="store_true", help="deprecated alias for --mode llm")
+    parser.add_argument("--model", default=None, help="OpenAI model for --mode llm/hybrid (default: gpt-4o-mini)")
+    parser.add_argument("--workers", type=int, default=8, help="parallel API calls, --mode llm/hybrid only")
     parser.add_argument("--limit", type=int, default=None,
                          help="only process the first N rows per CSV (for a quick check)")
     args = parser.parse_args()
+    mode = "llm" if args.use_llm else args.mode
 
     client = None
     model = None
-    if args.use_llm:
+    if mode in ("llm", "hybrid"):
         from llm_ptt_parser import get_openai_client, DEFAULT_MODEL
         client = get_openai_client()
         model = args.model or DEFAULT_MODEL
@@ -202,13 +295,20 @@ def main():
         csv_path = DATA_DIR / csv_name
         out_path = OUTPUT_DIR / out_name
 
-        mode = f"LLM (model={model}, workers={args.workers})" if args.use_llm else "deterministic rule engine"
-        print(f"Processing {csv_name} -> {out_path}  [{mode}] ...")
+        mode_desc = {"rule": "deterministic rule engine",
+                     "llm": f"LLM (model={model}, workers={args.workers})",
+                     "hybrid": f"hybrid: rule structure + LLM classify (model={model}, workers={args.workers})"}[mode]
+        print(f"Processing {csv_name} -> {out_path}  [{mode_desc}] ...")
 
-        if args.use_llm:
-            records, skipped_rows = build_records_llm(csv_path, client, model, args.workers, limit=args.limit)
+        if mode == "llm":
+            records, skipped_rows, row_problems, disagreements = build_records_llm(
+                csv_path, client, model, args.workers, limit=args.limit)
+        elif mode == "hybrid":
+            records, skipped_rows, row_problems, disagreements = build_records_hybrid(
+                csv_path, client, model, args.workers, limit=args.limit)
         else:
-            records, skipped_rows = build_records_deterministic(csv_path, limit=args.limit)
+            records, skipped_rows, row_problems, disagreements = build_records_deterministic(
+                csv_path, limit=args.limit)
 
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(records, f, indent=2, ensure_ascii=False)
@@ -220,6 +320,23 @@ def main():
                   f"(see {skip_path.name})")
             with open(skip_path, "w", encoding="utf-8") as f:
                 json.dump(skipped_rows, f, indent=2, ensure_ascii=False)
+
+        if row_problems:
+            report_path = OUTPUT_DIR / f"_validation_report_{out_name}"
+            with open(report_path, "w", encoding="utf-8") as f:
+                json.dump(row_problems, f, indent=2, ensure_ascii=False)
+            n_rows = len({(p["machine"], p["row_index"]) for p in row_problems})
+            print(f"  *** {len(row_problems)} validation problem(s) across {n_rows} row(s) -- "
+                  f"see {report_path.name} ***")
+        else:
+            print(f"  validation clean -- every row passed all structural + hard-rule checks")
+
+        if disagreements:
+            dis_path = OUTPUT_DIR / f"_llm_disagreements_{out_name}"
+            with open(dis_path, "w", encoding="utf-8") as f:
+                json.dump(disagreements, f, indent=2, ensure_ascii=False)
+            print(f"  LLM overrode the deterministic classification on {len(disagreements)} item(s) "
+                  f"-- see {dis_path.name} for the full audit trail")
 
     print("Done.")
 

@@ -59,9 +59,6 @@ def build_prompt(ex: dict) -> str:
     ctx = ex["context"]
     lines = [
         f"Machine: {ex['machine']}",
-        f"Previous strategy: {ctx['Previous strategy']}",
-        f"Previous step: {ctx['Previous step']}",
-        f"Previous step result: {ctx['Previous step result']}",
         f"New strategy: {ctx['New strategy']}",
         f"Strategy explanation: {ctx['Strategy explanation']}",
     ]

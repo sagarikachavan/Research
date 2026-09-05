@@ -1,0 +1,186 @@
+gold_new_step,predicted_new_step,gold_mcp_tasks,predicted_mcp_tasks
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Smb client,Smb client|Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.",Exploit the selected exploitations,Interactive CLI,Interactive CLI
+Do a google search for more information,Exploit the selected exploitations,Google search,Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,Metasploit|Interactive CLI
+Exploit the selected exploitations,"Explore the suspicious files, commands and create a summary of the findings.",Smb client,Interactive CLI
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Dirbuster|Web page interaction,Nmap|Dirbuster|Interactive CLI
+"Further Enumerate the website. - hidden directories, links and software","Explore the suspicious files, commands and create a summary of the findings.",Web page interaction,Interactive CLI|Web page interaction
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Google search|Interactive CLI,Interactive CLI|Web page interaction
+Do a google search for more information,Do a google search for more information,Google search,Google search
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,
+Exploit the selected exploitations,Exploit the selected exploitations,Interactive CLI,
+"Further Enumerate the website. - hidden directories, links and software","Explore the suspicious files, commands and create a summary of the findings.",Dirbuster|Web page interaction,
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit|Interactive CLI,
+"Explore the suspicious files, commands and create a summary of the findings.",Exploit the selected exploitations,SQLmap,Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit|hydra,
+"Explore the suspicious files, commands and create a summary of the findings.",Exploit the selected exploitations,Interactive CLI,Interactive CLI
+Do a google search for more information,Do a google search for more information,Google search,Google search
+Exploit the selected exploitations,Do a google search for more information,Metasploit,
+End task and ask permission to generate the report,End task and ask permission to generate the report,Nmap,Nmap
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Dirbuster|Web page interaction,
+Do a google search for more information,Do a google search for more information,Google search,
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,John-the-ripper,
+"Explore the suspicious files, commands and create a summary of the findings.",Exploit the selected exploitations,Interactive CLI|Web page interaction,
+Do a google search for more information,"Explore the suspicious files, commands and create a summary of the findings.",Google search,
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,
+End task and ask permission to generate the report,End task and ask permission to generate the report,Nmap,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Smb client,Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Smb client,
+Exploit the selected exploitations,"Explore the suspicious files, commands and create a summary of the findings.",Metasploit,Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,Smb client,Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Smb client,Interactive CLI
+Exploit the selected exploitations,"Explore the suspicious files, commands and create a summary of the findings.",John-the-ripper,Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.",Exploit the selected exploitations,Interactive CLI,Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,Smb client,Interactive CLI
+Enumerate the domain,"Explore the suspicious files, commands and create a summary of the findings.",Smb client,Interactive CLI
+Analyze the outcomes of the previous step and find an attack path,"Explore the suspicious files, commands and create a summary of the findings.",Interactive CLI,Google search|Interactive CLI
+Enumerate the domain,Exploit the selected exploitations,Smb client,
+Do a google search for more information,Exploit the selected exploitations,Google search,
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,Interactive CLI
+End task and ask permission to generate the report,End task and ask permission to generate the report,Nmap,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Dirbuster|Interactive CLI|Web page interaction,Google search
+"Enumerate further on the X service to find software versions, hidden directories and file.",Do a google search for more information,Dirbuster|Interactive CLI|Web page interaction,
+"Further Enumerate the website. - hidden directories, links and software","Enumerate further on the X service to find software versions, hidden directories and file.",Web page interaction,
+Exploit the selected exploitations,Exploit the selected exploitations,SQLmap,
+Exploit the selected exploitations,Exploit the selected exploitations,SQLmap,
+Exploit the selected exploitations,Exploit the selected exploitations,Netcat|SQLmap,
+"Explore the suspicious files, commands and create a summary of the findings.",Exploit the selected exploitations,Google search|Interactive CLI,
+"Explore the suspicious files, commands and create a summary of the findings.",Exploit the selected exploitations,Interactive CLI,
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit|Netcat,
+"Explore the suspicious files, commands and create a summary of the findings.",Exploit the selected exploitations,Google search|Interactive CLI,
+Do a google search for more information,Exploit the selected exploitations,Google search,
+Exploit the selected exploitations,Exploit the selected exploitations,Interactive CLI,Interactive CLI
+End task and ask permission to generate the report,End task and ask permission to generate the report,SQLmap,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Dirbuster|Interactive CLI|Web page interaction,
+"Further Enumerate the website. - hidden directories, links and software","Enumerate further on the X service to find software versions, hidden directories and file.",Web page interaction,
+"Further Enumerate the website. - hidden directories, links and software",Do a google search for more information,Web page interaction,
+Exploit the selected exploitations,Exploit the selected exploitations,SQLmap,
+Exploit the selected exploitations,Exploit the selected exploitations,SQLmap,
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Interactive CLI,Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Interactive CLI,Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,Interactive CLI,Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,Interactive CLI,Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Interactive CLI,Interactive CLI
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Dirbuster|Web page interaction,Nmap|Dirbuster|Web page interaction
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Interactive CLI|Web page interaction,Web page interaction
+Exploit the selected exploitations,Exploit the selected exploitations,John-the-ripper,
+"Explore the suspicious files, commands and create a summary of the findings.",Exploit the selected exploitations,Interactive CLI|Web page interaction,Interactive CLI
+Do a google search for more information,Do a google search for more information,Google search,Google search
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Google search|Interactive CLI,Google search|Interactive CLI
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Smb client,Nmap|Smb client|Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Smb client|Interactive CLI,Interactive CLI
+Do a google search for more information,Exploit the selected exploitations,Google search,Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,
+Exploit the selected exploitations,Exploit the selected exploitations,John-the-ripper,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Dirbuster|Interactive CLI|Web page interaction,Google search
+Do a google search for more information,Do a google search for more information,Google search,Google search
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,
+Exploit the selected exploitations,Exploit the selected exploitations,John-the-ripper,
+"Explore the suspicious files, commands and create a summary of the findings.",Exploit the selected exploitations,Google search|Interactive CLI,Interactive CLI
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Dirbuster|Interactive CLI|Web page interaction,Dirbuster|Interactive CLI
+Enumerate the domain,Do a google search for more information,Smb client,Smb client
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Smb client|Interactive CLI,Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Smb client|Interactive CLI,Google search
+Exploit the selected exploitations,Exploit the selected exploitations,John-the-ripper,
+Exploit the selected exploitations,Exploit the selected exploitations,Web page interaction,
+Exploit the selected exploitations,Exploit the selected exploitations,Netcat,
+Exploit the selected exploitations,Exploit the selected exploitations,Netcat,
+"Explore the suspicious files, commands and create a summary of the findings.",Enumerate the domain,Google search|Interactive CLI,
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,
+Enumerate the domain,Enumerate the domain,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+Analyze the outcomes of the previous step and find an attack path,End task and ask permission to generate the report,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+Do a google search for more information,Do a google search for more information,,
+Analyze the outcomes of the previous step and find an attack path,Exploit the selected exploitations,,Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+Do a google search for more information,Analyze the outcomes of the previous step and find an attack path,,
+Exploit the selected exploitations,Analyze the outcomes of the previous step and find an attack path,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Do a google search for more information,Analyze the outcomes of the previous step and find an attack path,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+Enumerate the domain,Enumerate the domain,,
+Do a google search for more information,Do a google search for more information,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Do a google search for more information,Analyze the outcomes of the previous step and find an attack path,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Do a google search for more information,Do a google search for more information,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+Enumerate the domain,Enumerate the domain,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Do a google search for more information,Do a google search for more information,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+Enumerate the domain,Analyze the outcomes of the previous step and find an attack path,,
+Do a google search for more information,Do a google search for more information,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Do a google search for more information,Do a google search for more information,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Analyze the outcomes of the previous step and find an attack path,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+Do a google search for more information,Do a google search for more information,,
+Exploit the selected exploitations,Do a google search for more information,,
+Do a google search for more information,Do a google search for more information,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+Do a google search for more information,Do a google search for more information,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
