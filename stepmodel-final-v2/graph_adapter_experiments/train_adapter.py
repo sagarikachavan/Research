@@ -120,6 +120,29 @@ def prepare_example(item, records_by_key, sig_by_key, keys, rng, real_frac: floa
     flipped["gold"] = False
     return decoy_rec["graph"], flipped, False
 
+def prepare_consistency_pair(item, records_by_key):
+    """Return the explicitly verified (right_graph, TRUE) and
+    (wrong_graph, FALSE) versions of the exact same claim.
+
+    Training both sides together is the key intervention: the model sees
+    identical question text with different graph-prefix tokens and must
+    produce different answers.
+    """
+    key = (item["machine"], item["row_id"])
+    own = records_by_key[key]["graph"]
+    decoy_obj = item.get("decoy_graph")
+    if not decoy_obj:
+        raise ValueError("graph_consistency item has no explicit decoy_graph")
+    decoy_key = (decoy_obj["machine"], decoy_obj["row_id"])
+    if decoy_key not in records_by_key:
+        raise KeyError(f"Explicit decoy not found: {decoy_key}")
+    right_item = dict(item)
+    right_item["gold"] = bool(item["gold"])
+    wrong_item = dict(item)
+    wrong_item["gold"] = bool(item.get("counterfactual_gold", False))
+    return own, right_item, records_by_key[decoy_key]["graph"], wrong_item
+
+
 def _load_graph_batch(graph_dict, device, dtype):
     """to_pyg_data() always returns float32 tensors (independent of whatever
     dtype the LLM/GNN happen to be running in). Cast x/edge_attr to the
@@ -227,8 +250,13 @@ def main():
                           "main pipeline's LoRA). Default: LLM fully frozen, so any "
                           "capability must come from the GNN + adapter alone.")
     ap.add_argument("--real_frac", type=float, default=0.5,
-                     help="Fraction of graph_consistency items trained on their own "
-                          "(real) graph; the rest get a decoy graph with gold=False.")
+                     help="Legacy option. Ignored when paired consistency training is enabled.")
+    ap.add_argument("--consistency_frac", type=float, default=0.5,
+                     help="Fraction of training steps devoted to explicit paired right/wrong "
+                          "graph consistency supervision. Each such step computes BOTH losses.")
+    ap.add_argument("--paired_consistency", action="store_true", default=True,
+                     help="Train graph_consistency as an explicit right(TRUE)+wrong(FALSE) pair. "
+                          "Enabled by default.")
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -268,10 +296,24 @@ def main():
     running_loss = 0.0
     optim.zero_grad()
 
+    consistency_items = [x for x in train_items if x["task"] == "graph_consistency"]
+    structural_items = [x for x in train_items if x["task"] != "graph_consistency"]
+    if not consistency_items:
+        raise SystemExit("No graph_consistency items found — rebuild tasks first.")
+
     for step in range(1, args.steps + 1):
-        item_src = rng.choice(train_items)
-        graph_dict, item, used_own = prepare_example(item_src, records, sig_by_key, keys, rng, args.real_frac)
-        loss = forward_loss(gnn, adapter, tok, llm, embed_layer, device, dtype, graph_dict, item)
+        use_pair = args.paired_consistency and rng.random() < args.consistency_frac
+        if use_pair:
+            item_src = rng.choice(consistency_items)
+            right_graph, right_item, wrong_graph, wrong_item = prepare_consistency_pair(item_src, records)
+            loss_right = forward_loss(gnn, adapter, tok, llm, embed_layer, device, dtype, right_graph, right_item)
+            loss_wrong = forward_loss(gnn, adapter, tok, llm, embed_layer, device, dtype, wrong_graph, wrong_item)
+            loss = 0.5 * (loss_right + loss_wrong)
+        else:
+            item_src = rng.choice(structural_items)
+            key = (item_src["machine"], item_src["row_id"])
+            loss = forward_loss(gnn, adapter, tok, llm, embed_layer, device, dtype, records[key]["graph"], item_src)
+
         (loss / args.grad_accum).backward()
         running_loss += loss.item()
 

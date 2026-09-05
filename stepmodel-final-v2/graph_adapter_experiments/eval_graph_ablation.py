@@ -156,8 +156,20 @@ def main():
     null_adapter = NullPrefixAdapter(adapter).to(device)
     null_adapter.eval()
 
-    items = load_jsonl(os.path.join(TASKS_DIR, f"{args.split}.jsonl"))
-    items = items[: args.max_items]
+    # Load the full split first. Keep structural QA and graph_consistency
+    # evaluation independent so --max_items does not accidentally truncate
+    # the counterfactual evaluation.
+    all_items = load_jsonl(os.path.join(TASKS_DIR, f"{args.split}.jsonl"))
+
+    structural_items = [
+        item for item in all_items
+        if item.get("task") != "graph_consistency"
+    ][: args.max_items]
+
+    consistency_items = [
+        item for item in all_items
+        if item.get("task") == "graph_consistency"
+    ][: args.max_consistency_pairs]
 
     records = index_records(
         load_records(INPUT_TRAIN_JSON)
@@ -168,13 +180,13 @@ def main():
     rng = random.Random(args.seed)
 
     print("\n=== GRAPH ADAPTER ABLATION ===")
-    print(f"split={args.split} items={len(items)}")
+    print(f"split={args.split} structural_items={len(structural_items)} consistency_pairs={len(consistency_items)}")
     print(f"checkpoint={args.checkpoint}")
 
     # ------------------------------------------------------------
     # 1) No-graph/null-prefix baseline vs correct graph
     # ------------------------------------------------------------
-    structural = [x for x in items if x["task"] != "graph_consistency"]
+    structural = structural_items
     if structural:
         null_scores = []
         graph_scores = []
@@ -217,8 +229,7 @@ def main():
     # ------------------------------------------------------------
     # 2) Correct vs cross-machine verified-wrong graph
     # ------------------------------------------------------------
-    consistency_items = [x for x in items if x["task"] == "graph_consistency"]
-    consistency_items = consistency_items[: args.max_consistency_pairs]
+    # consistency_items was selected independently above so --max_items does not truncate it.
     consistency_rows = []
     examples = []
 

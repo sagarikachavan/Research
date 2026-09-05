@@ -116,7 +116,8 @@ def main():
     ap.add_argument("--checkpoint", required=True)
     ap.add_argument("--model_name", default=None, help="override the LLM recorded in meta.json")
     ap.add_argument("--split", default="held_out", choices=["train", "held_out"])
-    ap.add_argument("--max_items", type=int, default=150)
+    ap.add_argument("--max_items", type=int, default=150, help="Maximum non-consistency items to evaluate; graph_consistency is controlled separately.")
+    ap.add_argument("--max_consistency_pairs", type=int, default=None, help="Maximum graph_consistency pairs to evaluate; default=None evaluates ALL available pairs.")
     ap.add_argument("--seed", type=int, default=RANDOM_SEED,
                     help="seed for deterministic decoy selection")
     args = ap.parse_args()
@@ -128,7 +129,15 @@ def main():
         args.checkpoint, device, dtype, args.model_name
     )
 
-    items = load_jsonl(os.path.join(TASKS_DIR, f"{args.split}.jsonl"))[: args.max_items]
+    all_items = load_jsonl(os.path.join(TASKS_DIR, f"{args.split}.jsonl"))
+    # IMPORTANT: do not let --max_items accidentally truncate the main
+    # counterfactual experiment.  Evaluate structural QA separately and then
+    # append graph_consistency pairs, optionally capped by their own argument.
+    structural_items = [x for x in all_items if x["task"] != "graph_consistency"][: args.max_items]
+    consistency_items = [x for x in all_items if x["task"] == "graph_consistency"]
+    if args.max_consistency_pairs is not None:
+        consistency_items = consistency_items[: args.max_consistency_pairs]
+    items = structural_items + consistency_items
     records = index_records(
         load_records(INPUT_TRAIN_JSON)
         + (load_records(INPUT_TEST_JSON) if os.path.exists(INPUT_TEST_JSON) else [])
@@ -154,9 +163,20 @@ def main():
         real_score = score(item, real_pred)
         per_task_real[item["task"]].append(real_score)
 
-        decoy_rec, same_size = sample_decoy_same_size(
-            rng, key, sig_by_key[key], real_graph, records, sig_by_key, keys
-        )
+        if item["task"] == "graph_consistency" and item.get("decoy_graph"):
+            # Use the exact decoy verified during task construction. This is
+            # essential: the evaluator may only call the swapped claim FALSE
+            # when that particular graph was checked to falsify the claim.
+            dk = item["decoy_graph"]
+            decoy_key = (dk["machine"], dk["row_id"])
+            if decoy_key not in records:
+                raise KeyError(f"Explicit decoy missing from records: {decoy_key}")
+            decoy_rec = records[decoy_key]
+            same_size = node_count(decoy_rec["graph"]) == node_count(real_graph)
+        else:
+            decoy_rec, same_size = sample_decoy_same_size(
+                rng, key, sig_by_key[key], real_graph, records, sig_by_key, keys
+            )
         same_size_decoys += int(same_size)
         fallback_decoys += int(not same_size)
 
@@ -187,7 +207,9 @@ def main():
                 0.0 if wrong_pred == real_pred else 1.0
             )
 
-    print(f"\n=== Reliability report ({args.split}, n={len(items)}) ===\n")
+    print(f"\n=== Reliability report ({args.split}) ===\n")
+    print(f"structural items evaluated={len(structural_items)}")
+    print(f"graph_consistency pairs evaluated={len(consistency_items)}")
     print("Structural QA accuracy on the REAL graph (higher = better structure reading):")
     for task, scores in per_task_real.items():
         if task == "graph_consistency":
