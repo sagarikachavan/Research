@@ -74,42 +74,71 @@ def build_llm(model_name: str, device: str, dtype, use_lora: bool):
     return tok, llm
 
 
+
 def sample_decoy(rng, own_key, own_sig, records_by_key, sig_by_key, keys):
-    """A structurally-different graph from the SAME split, never the item's
-    own (machine, row_id) — used as the wrong-graph condition."""
-    for _ in range(20):
-        k = rng.choice(keys)
-        if k != own_key and sig_by_key[k] != own_sig:
-            return records_by_key[k]
-    # Fallback: just avoid the identical key even if signature happened to match.
-    for k in keys:
-        if k != own_key:
-            return records_by_key[k]
-    return records_by_key[own_key]
+    """Legacy generic decoy sampler for non-paired uses."""
+    candidates = [
+        k for k in keys
+        if k != own_key and sig_by_key[k] != own_sig
+    ]
+    if candidates:
+        return records_by_key[rng.choice(candidates)]
+    candidates = [k for k in keys if k != own_key]
+    return records_by_key[rng.choice(candidates)] if candidates else records_by_key[own_key]
 
 
 def prepare_example(item, records_by_key, sig_by_key, keys, rng, real_frac: float):
-    """Returns (graph_dict, item_with_possibly_flipped_gold, used_own_graph: bool)."""
+    """
+    For graph_consistency, use the EXPLICIT counterfactual graph selected by
+    build_probe_tasks.py. This keeps training aligned with the actual
+    cross-machine evaluation:
+
+        anchor graph + same question -> TRUE
+        explicit decoy graph + same question -> FALSE
+
+    For non-consistency tasks, always use the item's own graph.
+    """
     key = (item["machine"], item["row_id"])
     own_rec = records_by_key[key]
 
     if item["task"] != "graph_consistency" or rng.random() < real_frac:
         return own_rec["graph"], item, True
 
+    decoy_key_obj = item.get("decoy_graph")
+    if decoy_key_obj:
+        decoy_key = (decoy_key_obj["machine"], decoy_key_obj["row_id"])
+        if decoy_key in records_by_key:
+            flipped = dict(item)
+            flipped["gold"] = bool(item.get("counterfactual_gold", False))
+            return records_by_key[decoy_key]["graph"], flipped, False
+
+    # This should never happen for newly built tasks. Keep a safe fallback
+    # for old task files rather than crashing.
     own_sig = sig_by_key[key]
     decoy_rec = sample_decoy(rng, key, own_sig, records_by_key, sig_by_key, keys)
     flipped = dict(item)
-    flipped["gold"] = False  # claim was anchored to the ORIGINAL graph; a different
-                              # graph's tokens make it false regardless of the
-                              # original label.
+    flipped["gold"] = False
     return decoy_rec["graph"], flipped, False
+
+def _load_graph_batch(graph_dict, device, dtype):
+    """to_pyg_data() always returns float32 tensors (independent of whatever
+    dtype the LLM/GNN happen to be running in). Cast x/edge_attr to the
+    model's dtype here so the GNN's Linear layers (which were moved to
+    `dtype` via `.to(dtype)` on the module) don't hit a float32-vs-bfloat16
+    mismatch. edge_index stays int64 — that's an index tensor, not a
+    floating-point one, and must NOT be cast."""
+    data = to_pyg_data(graph_dict)
+    n_nodes = data.x.shape[0]
+    batch = PyGBatch.from_data_list([data]).to(device)
+    batch.x = batch.x.to(dtype)
+    if getattr(batch, "edge_attr", None) is not None:
+        batch.edge_attr = batch.edge_attr.to(dtype)
+    return batch, n_nodes
 
 
 def forward_loss(gnn, adapter, tok, llm, embed_layer, device, dtype,
                   graph_dict, item, n_nodes_hint=None):
-    data = to_pyg_data(graph_dict)
-    n_nodes = data.x.shape[0]
-    batch = PyGBatch.from_data_list([data]).to(device)
+    batch, n_nodes = _load_graph_batch(graph_dict, device, dtype)
 
     graph_emb = gnn(batch.x, batch.edge_index, batch.batch, edge_attr=getattr(batch, "edge_attr", None))
     prefix_embeds = adapter(graph_emb).to(dtype)  # (1, K, H)
@@ -143,9 +172,7 @@ def forward_loss(gnn, adapter, tok, llm, embed_layer, device, dtype,
 
 @torch.no_grad()
 def generate_answer(gnn, adapter, tok, llm, embed_layer, device, dtype, graph_dict, item):
-    data = to_pyg_data(graph_dict)
-    n_nodes = data.x.shape[0]
-    batch = PyGBatch.from_data_list([data]).to(device)
+    batch, n_nodes = _load_graph_batch(graph_dict, device, dtype)
     graph_emb = gnn(batch.x, batch.edge_index, batch.batch, edge_attr=getattr(batch, "edge_attr", None))
     prefix_embeds = adapter(graph_emb).to(dtype)
 

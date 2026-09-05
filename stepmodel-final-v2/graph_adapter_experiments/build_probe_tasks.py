@@ -76,11 +76,85 @@ def _bucket(value, edges):
     return f"bucket_{len(edges)}"
 
 
-def build_items_for_record(rec: dict, rng: random.Random, all_ids: list):
-    """all_ids: list of (machine, row_id) for OTHER records, used to sample
-    a decoy anchor for graph_consistency negative-by-construction items."""
+
+def _directed_edge_type_pairs(parsed):
+    """Return direct edges as (src_idx, dst_idx, edge_type_idx)."""
+    return [
+        (s, t, et)
+        for (s, t), et in zip(parsed["edge_index"], parsed["edge_type"])
+        if s != t and et != -1
+    ]
+
+
+def _has_direct_connection(parsed, i, j):
+    """Structural QA uses undirected connectivity for adjacency/claims."""
+    return any(
+        (s == i and t == j) or (s == j and t == i)
+        for s, t in parsed["edge_index"]
+        if s != t
+    )
+
+
+def _find_cross_machine_decoy(
+    anchor_rec, anchor_i, anchor_j, records, parsed_by_key, rng,
+    require_same_node_count=True, max_tries=200
+):
+    """
+    Find a DIFFERENT MACHINE/record whose graph makes the SAME anonymized
+    question false.
+
+    The question uses the anchor graph's anonymized node ids (N0, N1, ...).
+    Therefore the decoy is required to have enough nodes for those ids and,
+    by default, the same node count. For a direct-connection claim, the
+    decoy must NOT contain that connection.
+
+    This is the crucial construction for the cross-machine test:
+        Graph A + Question(A) -> TRUE
+        Graph B + SAME Question(A) -> FALSE
+    """
+    anchor_key = (anchor_rec["machine"], anchor_rec["row_id"])
+    anchor_n = len(parsed_by_key[anchor_key]["node_ids"])
+
+    candidates = []
+    for rec in records:
+        key = (rec["machine"], rec["row_id"])
+        if key == anchor_key:
+            continue
+        p = parsed_by_key[key]
+        n = len(p["node_ids"])
+        if n <= max(anchor_i, anchor_j):
+            continue
+        if require_same_node_count and n != anchor_n:
+            continue
+        if not _has_direct_connection(p, anchor_i, anchor_j):
+            candidates.append(rec)
+
+    if not candidates and require_same_node_count:
+        return _find_cross_machine_decoy(
+            anchor_rec, anchor_i, anchor_j, records, parsed_by_key, rng,
+            require_same_node_count=False, max_tries=max_tries
+        )
+
+    if candidates:
+        return rng.choice(candidates)
+
+    # No valid cross-machine decoy exists. Return None so the caller can
+    # skip this pair rather than silently creating an invalid experiment.
+    return None
+
+
+def build_items_for_record(rec: dict, rng: random.Random, all_records: list, parsed_by_key: dict):
+    """
+    Build structural QA tasks plus an explicit cross-machine graph-grounding
+    pair.
+
+    For graph_consistency we ONLY create a TRUE anchor claim.  A decoy graph
+    is selected from a different machine and is verified to make the exact
+    same claim FALSE.  The task stores the decoy key explicitly so training
+    and evaluation use the same, verified counterfactual graph.
+    """
     graph = rec["graph"]
-    parsed = parse_graph_dict(graph)
+    parsed = parsed_by_key[(rec["machine"], rec["row_id"])]
     n = len(parsed["node_ids"])
     anon = _anon_ids(parsed)
     nbrs = _neighbors(parsed)
@@ -100,11 +174,11 @@ def build_items_for_record(rec: dict, rng: random.Random, all_ids: list):
                       "gold": NODE_TYPE_NAMES[parsed["node_type"][i]]})
 
     # -- edge_type --
-    if parsed["edge_index"] and parsed["edge_type"][0] != -1:
-        idxs = [j for j, et in enumerate(parsed["edge_type"]) if et != -1]
-        for j in rng.sample(idxs, k=min(2, len(idxs))):
+    valid_edge_idxs = [j for j, et in enumerate(parsed["edge_type"]) if et != -1]
+    if valid_edge_idxs:
+        from standalone_config import EDGE_TYPES
+        for j in rng.sample(valid_edge_idxs, k=min(2, len(valid_edge_idxs))):
             s, t = parsed["edge_index"][j]
-            from standalone_config import EDGE_TYPES
             items.append({**key, "task": "edge_type", "query_edge": [anon[s], anon[t]],
                           "gold": EDGE_TYPES[parsed["edge_type"][j]]})
 
@@ -113,7 +187,7 @@ def build_items_for_record(rec: dict, rng: random.Random, all_ids: list):
         items.append({**key, "task": "two_hop", "query_node": anon[i],
                       "gold": sorted(anon[j] for j in two_hop[i])})
 
-    # -- graph_aggregate (buckets filled in globally, see finalize_aggregate_buckets) --
+    # -- graph_aggregate --
     n_edges = sum(1 for et in parsed["edge_type"])
     density = (2 * n_edges) / (n * (n - 1)) if n > 1 else 0.0
     type_counts = [0, 0, 0, 0]
@@ -124,26 +198,38 @@ def build_items_for_record(rec: dict, rng: random.Random, all_ids: list):
                   "_raw_n_nodes": n, "_raw_n_edges": n_edges, "_raw_density": density,
                   "gold": {"dominant_node_type": dominant}})
 
-    # -- graph_consistency: 1 true claim + 1 false-by-construction claim,
-    # anchored to THIS graph (used as the "real"/"wrong_graph" pair by the
-    # training/eval scripts).
-    if n >= 2:
-        i = rng.randrange(n)
-        connected = list(nbrs[i])
-        if connected:
-            j = rng.choice(connected)
-            items.append({**key, "task": "graph_consistency",
-                          "claim": f"Node {anon[i]} is directly connected to node {anon[j]}.",
-                          "gold": True})
-        non_neighbors = [k for k in range(n) if k != i and k not in nbrs[i]]
-        if non_neighbors:
-            j = rng.choice(non_neighbors)
-            items.append({**key, "task": "graph_consistency",
-                          "claim": f"Node {anon[i]} is directly connected to node {anon[j]}.",
-                          "gold": False})
+    # -- graph_consistency: EXPLICIT cross-machine TRUE -> FALSE pair.
+    #
+    # Choose a true direct-connection claim in this anchor graph, then find
+    # another machine's graph where the same anonymized node pair is NOT
+    # directly connected. The question text is identical in both conditions.
+    valid_edges = [(i, j) for i, j in
+                   [(s, t) for s, t in parsed["edge_index"]]
+                   if i != j]
+    if valid_edges:
+        # Try several true edges until one has a valid cross-machine decoy.
+        edge_candidates = valid_edges[:]
+        rng.shuffle(edge_candidates)
+        for i, j in edge_candidates:
+            decoy = _find_cross_machine_decoy(
+                rec, i, j, all_records, parsed_by_key, rng
+            )
+            if decoy is None:
+                continue
+
+            decoy_key = {"machine": decoy["machine"], "row_id": decoy["row_id"]}
+            items.append({
+                **key,
+                "task": "graph_consistency",
+                "claim": f"Node {anon[i]} is directly connected to node {anon[j]}.",
+                "gold": True,
+                "anchor_graph": {"machine": rec["machine"], "row_id": rec["row_id"]},
+                "decoy_graph": decoy_key,
+                "counterfactual_gold": False,
+            })
+            break
 
     return items
-
 
 def finalize_aggregate_buckets(items: list):
     """graph_aggregate bucket edges are computed from the actual pooled
@@ -167,10 +253,13 @@ def finalize_aggregate_buckets(items: list):
 
 def build(split_name: str, records: list, seed: int):
     rng = random.Random(seed)
-    all_ids = [(r["machine"], r["row_id"]) for r in records]
+    parsed_by_key = {
+        (r["machine"], r["row_id"]): parse_graph_dict(r["graph"])
+        for r in records
+    }
     items = []
     for rec in records:
-        items.extend(build_items_for_record(rec, rng, all_ids))
+        items.extend(build_items_for_record(rec, rng, records, parsed_by_key))
     finalize_aggregate_buckets(items)
     rng.shuffle(items)
     return items
@@ -212,6 +301,8 @@ def main():
     manifest = {
         "n_train_machines": len(train_machines), "n_held_out_machines": len(held_machines),
         "n_train_items": len(train_items), "n_held_out_items": len(held_items),
+        "n_train_graph_consistency": sum(x["task"] == "graph_consistency" for x in train_items),
+        "n_held_out_graph_consistency": sum(x["task"] == "graph_consistency" for x in held_items),
         "train_machines": sorted(train_machines), "held_out_machines": sorted(held_machines),
     }
     with open(os.path.join(TASKS_DIR, "split_manifest.json"), "w") as f:
@@ -219,6 +310,8 @@ def main():
 
     print(f"train: {len(train_recs)} graphs / {len(train_machines)} machines / {len(train_items)} task items")
     print(f"held_out: {len(held_out_recs)} graphs / {len(held_machines)} machines / {len(held_items)} task items")
+    print(f"graph_consistency pairs: train={sum(x['task'] == 'graph_consistency' for x in train_items)}, "
+          f"held_out={sum(x['task'] == 'graph_consistency' for x in held_items)}")
     print("LEAKAGE check passed: no machine appears in both splits.")
 
 
