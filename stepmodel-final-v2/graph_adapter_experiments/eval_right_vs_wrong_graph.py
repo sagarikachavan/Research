@@ -37,7 +37,7 @@ from standalone_config import INPUT_TRAIN_JSON, INPUT_TEST_JSON, TASKS_DIR, GNN_
 from graph_json import load_records, index_records, graph_signature, parse_graph_dict
 from structure_gnn import StructureGNN
 from prefix_adapter import GraphPrefixAdapter
-from probe_prompts import score
+from probe_prompts import score, build_question
 from train_adapter import build_llm, generate_answer, load_jsonl, sample_decoy
 
 TRUE_STRINGS = {"true", "yes", "1"}
@@ -120,6 +120,8 @@ def main():
     ap.add_argument("--max_consistency_pairs", type=int, default=None, help="Maximum graph_consistency pairs to evaluate; default=None evaluates ALL available pairs.")
     ap.add_argument("--seed", type=int, default=RANDOM_SEED,
                     help="seed for deterministic decoy selection")
+    ap.add_argument("--verbose", action="store_true",
+                    help="Print individual question/prediction/gold examples")
     args = ap.parse_args()
 
     device = "cuda" if torch.cuda.is_available() else "cpu"
@@ -162,6 +164,20 @@ def main():
         )
         real_score = score(item, real_pred)
         per_task_real[item["task"]].append(real_score)
+        
+        # Verbose output for individual examples
+        if args.verbose:
+            parsed = parse_graph_dict(real_graph)
+            n_nodes = len(parsed["node_ids"])
+            question = build_question(item, n_nodes)
+            print(f"\n{'='*70}")
+            print(f"Task: {item['task']}")
+            print(f"Machine: {item['machine']}, Row: {item['row_id']}")
+            print(f"\nQuestion:\n{question}")
+            print(f"\nGold answer: {item['gold']}")
+            print(f"LLM prediction: {real_pred}")
+            print(f"Score: {real_score:.3f}")
+            print(f"{'='*70}")
 
         if item["task"] == "graph_consistency" and item.get("decoy_graph"):
             # Use the exact decoy verified during task construction. This is
