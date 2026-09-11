@@ -69,9 +69,8 @@ CKPT_DIR = os.environ.get(
 )
 os.makedirs(CKPT_DIR, exist_ok=True)
 
-STAGE1_CKPT = os.environ.get(
-    "STAGE1_CKPT", os.path.join(CKPT_DIR, "stage1_gnn_classifier.pt")
-)
+# Stage 1 GNN checkpoint paths
+STAGE1_CKPT = os.path.join(CKPT_DIR, "stage1_gnn_classifier.pt")
 STAGE2_ADAPTER_DIR = os.environ.get(
     "STAGE2_ADAPTER_DIR", os.path.join(CKPT_DIR, "stage2_qwen_lora")
 )
@@ -92,7 +91,7 @@ GNN_LAYERS = 4                  # Increased for better structural understanding
 GNN_OUT_DIM = 512                # Match text encoder dimension for better fusion
 FUSION_HIDDEN = 1024             # Increased for better fusion capacity
 GNN_HEADS = 8                    # Increased for better attention
-GNN_DROPOUT = 0.15               # Balanced for regularization
+GNN_DROPOUT = 0.15
 
 # 5-dim edge attr: one-hot over the 4 semantic PTT edge types
 # (StateTransition, SearchUpdate, TrackUpdate, Prediction) + a self-loop
@@ -100,13 +99,13 @@ GNN_DROPOUT = 0.15               # Balanced for regularization
 # graph_encoder.py (GATv2Conv edge_dim) can never drift out of sync.
 EDGE_ATTR_DIM = 5
 
-MCP_LOSS_WEIGHT = 2.0           # Further increased for MCP performance target
-STEP_LOSS_WEIGHT = 2.0           # Further increased for step classification target
+MCP_LOSS_WEIGHT = 1.0            # Keep MCP stable while the step task gets stronger rare-class weighting
+STEP_LOSS_WEIGHT = 5.0           # Slightly stronger step emphasis for the dominant confusion class without destabilizing MCP
 MCP_DECISION_THRESHOLD = 0.5
-STEP_LABEL_SMOOTHING = 0.03       # Reduced for better discrimination
+STEP_LABEL_SMOOTHING = 0.03
 
 STAGE1_LR = 1.5e-4               # Slightly reduced for stability
-STAGE1_EPOCHS = 80               # Increased for better convergence
+STAGE1_EPOCHS = 80               # Back to original duration
 STAGE1_BATCH_SIZE = 16
 STAGE1_WARMUP_EPOCHS = 8          # Increased warmup
 STAGE1_GRAD_CLIP = 1.0
@@ -115,6 +114,10 @@ STAGE1_WEIGHT_DECAY = 1e-2
 QWEN_MODEL_NAME = "Qwen/Qwen3-14B"
 LLM_JUDGE_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct" # Separate model for LLM judge evaluation
 GRAPH_PREFIX_TOKENS = 8           # Further reduced to save memory
+# Dimensionality of graph representation passed to LLM prefix adapter.
+# Now uses pure graph encoder output (GNN_OUT_DIM) instead of fused
+# classification representation for decoupled architecture.
+GRAPH_PREFIX_SRC_DIM = GNN_OUT_DIM
 LORA_R = 32                      # Reduced to save memory
 LORA_ALPHA = 64                  # Reduced proportionally
 LORA_DROPOUT = 0.12              # Slightly increased for regularization

@@ -97,6 +97,7 @@ from config import (
     STAGE3_GRAD_CLIP,
     STAGE3_DUAL_CLIP_COEF,
     STAGE3_KL_HARD_CAP,
+    GRAPH_PREFIX_SRC_DIM,
     STAGE3_EARLY_STOP_PATIENCE,
     RANDOM_SEED,
     STEP_LABELS,
@@ -528,15 +529,10 @@ def build_prefix_embeds(graph, field_embs, stage1, adapter, embed_layer, device,
     embeddings, produce the (1, n_tokens, H) soft-prompt prefix that gets
     prepended to every prompt/completion.
 
-    FIX: this previously ran graph_encoder ALONE (no context/strategy-text
-    fusion at all -- not even the crude blend Stage 2 used), so the
-    GraphPrefixAdapter loaded from the Stage-2 checkpoint (which WAS
-    trained on a graph+context representation) was fed an out-of-
-    distribution input throughout RL. Now calls
-    stage1.encode_and_predict(...) -- the same fused representation Stage
-    2 now trains against (see stage2_sft_qwen.py / graph_encoder.py) -- so
-    GRPO fine-tunes the adapter starting from the distribution it was
-    actually initialized on.
+    FIX: now uses pure graph encoder output (encode_graph_only) instead of
+    fused classification representation. This decouples graph structure
+    learning from task-specific classification, matching the updated
+    Stage 2 architecture.
 
     stage1 and adapter must already be on device.
     """
@@ -544,10 +540,10 @@ def build_prefix_embeds(graph, field_embs, stage1, adapter, embed_layer, device,
     field_embs = field_embs.to(device)
     with torch.no_grad():
         edge_attr = getattr(batch, 'edge_attr', None)
-        combined_emb, _, _ = stage1.encode_and_predict(
-            batch.x, batch.edge_index, batch.batch, field_embs, edge_attr=edge_attr
-        )  # (1, FUSION_HIDDEN // 2)
-    prefix = adapter(combined_emb.to(dtype))  # (1, n_tokens, H)
+        graph_emb = stage1.encode_graph_only(
+            batch.x, batch.edge_index, batch.batch, edge_attr=edge_attr
+        )  # (1, GNN_OUT_DIM)
+    prefix = adapter(graph_emb.to(dtype))  # (1, n_tokens, H)
     return prefix  # kept on device
 
 

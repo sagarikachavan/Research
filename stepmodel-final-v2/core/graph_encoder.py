@@ -94,9 +94,11 @@ class GraphEncoder(nn.Module):
         except ImportError:
             use_set2set = False
             self.set2set = None
-        
-        # Output projection with residual connections
-        pooling_dim = hidden * 4 + (hidden * 2 if use_set2set else 0)
+
+        # Output projection with residual connections.
+        # We concatenate mean/max/attention + layer-wise summaries, and optionally
+        # set2set outputs. Keep the projection dimension in sync with that readout.
+        pooling_dim = hidden * (4 + num_layers) + (hidden * 2 if use_set2set else 0)
         self.out_proj = nn.Sequential(
             nn.Linear(pooling_dim, hidden * 2),
             nn.LayerNorm(hidden * 2),
@@ -148,14 +150,18 @@ class GraphEncoder(nn.Module):
             layer_mean_accum = layer_mean_accum + global_mean_pool(lo, batch)
         layer_mean_pool = layer_mean_accum / max(1, len(layer_outputs))
         
-        # Combine pooling strategies
+        # Combine pooling strategies with a lightweight JK-style multi-layer summary.
+        # This preserves both shallow local structure and deeper contextual signals,
+        # which is especially useful for graph-level single-label and multi-label
+        # classification tasks with class imbalance.
         pooled_list = [mean_pool, max_pool, attn_pool, layer_mean_pool]
-        
+        pooled_list.extend(global_mean_pool(lo, batch) for lo in layer_outputs)
+
         # Add Set2Set if available
         if self.use_set2set and self.set2set is not None:
             set2set_pool = self.set2set(h, batch)
             pooled_list.append(set2set_pool)
-        
+
         pooled = torch.cat(pooled_list, dim=-1)
         return self.out_proj(pooled)  # (batch, GNN_OUT_DIM)
 
@@ -251,18 +257,24 @@ class Stage1Classifier(nn.Module):
             nn.Linear(FUSION_HIDDEN // 2, len(MCP_LABELS))
         )
 
+        self.step_head = nn.Linear(FUSION_HIDDEN // 2, len(STEP_LABELS))
+        self.mcp_head = nn.Linear(FUSION_HIDDEN // 2, len(MCP_LABELS))
+
     def forward(self, x, edge_index, batch, field_embs, edge_attr=None):
         h, step_logits, mcp_logits = self.encode_and_predict(
             x, edge_index, batch, field_embs, edge_attr=edge_attr
         )
-        # NOTE: 3rd return value changed from the raw pooled graph embedding
-        # `g` to the fused representation `h` (see encode_and_predict's
-        # docstring for why). Every existing call site (stage1_gnn_train.py,
-        # evaluate.py) unpacks this as `step_logits, mcp_logits, _` and
-        # discards it, so this is a safe change for Stage 1 training/eval --
-        # it only matters to code that starts consuming it, which should now
-        # get the better representation by default.
         return step_logits, mcp_logits, h
+
+    def encode_graph_only(self, x, edge_index, batch, edge_attr=None):
+        """
+        Pure graph encoder output without context fusion or classification heads.
+        This is the structural representation that should be passed to Stage 2/3.
+        
+        Returns:
+            graph_emb (B, GNN_OUT_DIM) -- pure graph structural representation
+        """
+        return self.graph_encoder(x, edge_index, batch, edge_attr=edge_attr)
 
     def encode_and_predict(self, x, edge_index, batch, field_embs, edge_attr=None):
         """
@@ -349,15 +361,3 @@ class Stage1Classifier(nn.Module):
                 mcp_loss = F.binary_cross_entropy_with_logits(mcp_logits, mcp_targets)
 
         return step_w * step_loss + mcp_w * mcp_loss, step_loss.detach(), mcp_loss.detach()
-
-    @staticmethod
-    def _label_smooth_ce(logits, labels, eps, class_weights=None):
-        n_classes = logits.size(-1)
-        one_hot = torch.zeros_like(logits).scatter_(1, labels.unsqueeze(1), 1.0)
-        smoothed = one_hot * (1 - eps) + eps / n_classes
-        log_probs = F.log_softmax(logits, dim=-1)
-        if class_weights is not None:
-            loss = -(smoothed * log_probs) * class_weights.unsqueeze(0)
-        else:
-            loss = -(smoothed * log_probs)
-        return loss.sum(dim=-1).mean()

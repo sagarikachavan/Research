@@ -594,6 +594,7 @@ def build_graph_from_ptt(ptt_text: str):
     if not edges:
         edges = [(0, 0)]
 
+    # ── Graph-level structural features (same as JSON loader) ──────────
     edge_index = np.array(edges, dtype=np.int64).T
 
     # Edge features, widened to EDGE_ATTR_DIM (5) to stay shape-compatible

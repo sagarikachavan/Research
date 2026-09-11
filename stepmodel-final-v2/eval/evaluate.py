@@ -80,7 +80,7 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
     Handles both checkpoint formats:
       - New (Improvement 2): dict with 'model_state_dict' + 'mcp_thresholds'
       - Legacy: plain state dict
-    Returns (model, mcp_thresholds).
+    Returns (model, mcp_thresholds, checkpoint_info).
     """
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
@@ -88,13 +88,18 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
         mcp_thresholds = ckpt.get(
             "mcp_thresholds", [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)
         )
+        checkpoint_info = {
+            "epoch": ckpt.get('best_epoch', '?'),
+            "score": ckpt.get('best_score', None),
+            "metric": ckpt.get('metric', 'unknown')
+        }
         print(
             f"[eval] Loaded checkpoint "
-            f"(epoch={ckpt.get('best_epoch','?')}, "
-            f"score={ckpt.get('best_score','?'):.4f})"
-            if isinstance(ckpt.get("best_score"), float)
-            else f"[eval] Loaded checkpoint (epoch={ckpt.get('best_epoch','?')})"
+            f"(epoch={checkpoint_info['epoch']}, "
+            f"metric={checkpoint_info['metric']}"
         )
+        if checkpoint_info['score'] is not None:
+            print(f"[eval] Score: {checkpoint_info['score']:.4f}")
         print(
             f"[eval] Per-class MCP thresholds: "
             f"{[round(t, 2) for t in mcp_thresholds]}"
@@ -102,12 +107,13 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
     else:
         state_dict = ckpt
         mcp_thresholds = [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)
+        checkpoint_info = {"epoch": "?", "score": None, "metric": "legacy"}
         print("[eval] Legacy checkpoint — using uniform threshold=0.5 for all MCP labels.")
 
     model = Stage1Classifier().to(device)
     model.load_state_dict(state_dict)
     model.eval()
-    return model, mcp_thresholds
+    return model, mcp_thresholds, checkpoint_info
 
 
 # ---------------------------------------------------------------------------
@@ -163,16 +169,20 @@ def compute_explanation_metrics_with_llm_judge(
 # GNN evaluation  (classification only — no text generation)
 # ---------------------------------------------------------------------------
 
-def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
+def eval_gnn(threshold_override=None, auto_save_csv=False, ckpt_path=None) -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"[eval] Test input: {INPUT_TEST_JSON}")
     examples = load_from_input_json(INPUT_TEST_JSON, "test")
 
-    if not os.path.exists(STAGE1_CKPT):
-        print(f"[eval] Checkpoint not found at {STAGE1_CKPT}. Run stage1_gnn_train.py first.")
+    # Determine checkpoint path
+    if ckpt_path is None:
+        ckpt_path = STAGE1_CKPT
+    
+    if not os.path.exists(ckpt_path):
+        print(f"[eval] Checkpoint not found at {ckpt_path}. Run stage1_gnn_train.py first.")
         return
 
-    model, ckpt_thresholds = load_stage1_checkpoint(STAGE1_CKPT, device)
+    model, ckpt_thresholds, ckpt_info = load_stage1_checkpoint(ckpt_path, device)
     use_thresholds = (
         [float(threshold_override)] * len(MCP_LABELS)
         if threshold_override is not None
@@ -300,7 +310,7 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     if threshold_override is not None:
         use_thresholds = [float(threshold_override)] * len(MCP_LABELS)
     elif os.path.exists(STAGE1_CKPT):
-        _, use_thresholds = load_stage1_checkpoint(STAGE1_CKPT, "cpu")
+        _, use_thresholds, _ = load_stage1_checkpoint(STAGE1_CKPT, "cpu")
         print("[eval] MCP thresholds loaded from Stage-1 checkpoint (for reference).")
     else:
         use_thresholds = [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)
@@ -854,9 +864,12 @@ def report_classification(
 
 def check_model_availability() -> list[tuple[str, str | None]]:
     available = []
+    
+    # Check for combined checkpoint
     if os.path.exists(STAGE1_CKPT):
         available.append(("gnn", None))
-    ckpt_dir = os.path.dirname(STAGE1_CKPT)
+    
+    # Check for LLM adapters
     for subdir, label in [
         ("stage2_qwen_lora", "Stage 2 SFT"),
         ("stage3_qwen_grpo", "Stage 3 GRPO"),
@@ -877,7 +890,9 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--model", choices=["gnn", "llm", "all"], default="all",
-        help="Which model(s) to evaluate (default: all available)",
+        help="Which model(s) to evaluate (default: all available). "
+             "gnn=Stage 1 GNN (combined checkpoint), "
+             "llm=LLM evaluation",
     )
     parser.add_argument(
         "--adapter-dir", default=None,
@@ -938,17 +953,20 @@ if __name__ == "__main__":
 
         print(f"[eval] Found {len(available)} model(s) to evaluate:")
         for mtype, adir in available:
-            label = "Stage 1 GNN" if mtype == "gnn" else adir
+            if mtype == "gnn":
+                label = "Stage 1 GNN"
+            else:
+                label = adir
             print(f"  • {label}")
         print()
 
         for mtype, adir in available:
-            header = "Stage 1 GNN" if mtype == "gnn" else adir
-            print(f"\n{'═' * 60}")
-            print(f"  MODEL: {header}")
-            print(f"{'═' * 60}")
             if mtype == "gnn":
-                eval_gnn(threshold_override=args.threshold, auto_save_csv=args.auto_save_csv)
+                header = "Stage 1 GNN"
+                print(f"\n{'═' * 60}")
+                print(f"  MODEL: {header}")
+                print(f"{'═' * 60}")
+                eval_gnn(threshold_override=args.threshold, auto_save_csv=args.auto_save_csv, ckpt_path=STAGE1_CKPT)
             else:
                 eval_llm(
                     adir,
@@ -968,7 +986,7 @@ if __name__ == "__main__":
         print(f"\n{'═' * 60}\n  MODEL: Stage 1 GNN\n{'═' * 60}")
         eval_gnn(threshold_override=args.threshold, auto_save_csv=args.auto_save_csv)
 
-    else:  # llm
+    elif args.model == "llm":
         adapter = args.adapter_dir
         if adapter is None:
             ckpt_dir = os.path.dirname(STAGE1_CKPT)

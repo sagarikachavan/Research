@@ -47,15 +47,8 @@ from config import (
     STAGE2_VAL_SPLIT, STAGE2_EARLY_STOP_PATIENCE, STAGE2_GRAD_CLIP, STAGE2_WARMUP_RATIO,
     STAGE1_CKPT, STAGE2_ADAPTER_DIR,
     RANDOM_SEED, STEP_LABELS, MCP_LABELS, IDX2STEP, IDX2MCP, ROOT,
+    GRAPH_PREFIX_SRC_DIM,
 )
-
-# Dimensionality of the representation handed to GraphPrefixAdapter.
-# Was GNN_OUT_DIM (raw pooled graph embedding); now the fused,
-# classification-calibrated representation from Stage1Classifier.encode_and_predict
-# (see graph_encoder.py). Kept as a module constant so stage3_grpo_rl.py and
-# evaluate.py can import it and stay dimensionally consistent with whatever
-# checkpoint this file produces.
-GRAPH_PREFIX_SRC_DIM = FUSION_HIDDEN // 2
 from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS, StepLabelNormalizer, extract_mcp_labels
 from graph_encoder import Stage1Classifier
 
@@ -72,24 +65,48 @@ if torch.cuda.is_available():
 
 SYSTEM_PROMPT = (
     "You are an autonomous penetration-testing planning assistant operating "
-    "strictly within an authorized lab environment. Given the current "
-    "reconnaissance graph state and the new strategy context, "
-    "choose exactly one next-step type from the fixed taxonomy, exactly one "
-    "or more tool(s) from the fixed MCP taxonomy, and explain your reasoning. "
-    "IMPORTANT: Your step explanation MUST explicitly mention the chosen step "
-    "type by name to justify why that specific step is appropriate."
+    "strictly within an authorized lab environment. Your task is to analyze "
+    "the current reconnaissance graph state and strategy context to determine "
+    "the most appropriate next step.\n\n"
+    "You MUST:\n"
+    "1. Choose EXACTLY ONE next-step type from the fixed STEP taxonomy\n"
+    "2. Choose ONE OR MORE tools from the fixed MCP tool taxonomy\n"
+    "3. Provide a clear, detailed explanation that:\n"
+    "   - Explicitly names the chosen step type\n"
+    "   - Justifies why this step is appropriate given the current state\n"
+    "   - Explains how the selected tools will accomplish the step\n"
+    "   - References specific findings from the graph when relevant\n\n"
+    "STEP TAXONOMY (choose exactly one):\n"
+    "- Do a google search for more information\n"
+    "- Enumerate further on the X service to find software versions, hidden directories and file\n"
+    "- Explore the suspicious files, commands and create a summary of the findings\n"
+    "- Further Enumerate the website - hidden directories, links and software\n"
+    "- Enumerate the domain\n"
+    "- Exploit the selected exploitations\n"
+    "- Analyze the outcomes of the previous step and find an attack path\n"
+    "- Ask for human assistant\n"
+    "- Explore the source code for vulnerabilities\n"
+    "- End task and ask permission to generate the report\n\n"
+    "MCP TOOL TAXONOMY (choose one or more):\n"
+    "- Nmap, Metasploit, Netcat, Dirbuster, SQLmap, Smb client, hydra, John-the-ripper, Google search, Interactive CLI, Web page interaction\n\n"
+    "OUTPUT FORMAT (JSON):\n"
+    "{\n"
+    '  "New step": "<exact step label from taxonomy>",\n'
+    '  "Step explanation": "<detailed reasoning with step type explicitly named>",\n'
+    '  "MCP_tasks": {\n'
+    '    "<tool name>": "Use <tool> as part of: <step>",\n'
+    '    ...\n'
+    '  }\n'
+    "}"
 )
 
 
 def build_prompt(ex: dict, mask_hint: bool = False) -> str:
     """
-    Enhanced prompt building based on research from GTA and ReFT papers.
-    Structured prompt with clear sections for better reasoning guidance.
-
-    Input contract: machine + graph (fed separately via the graph-prefix
-    # adapter) + new_strategy + strategy_explanation ONLY. No previous-step
-    # fields -- see CONTEXT_COLUMNS / EXTRA_OUTPUT_KEYS in data_utils.py and
-    # build_input_json.py for why they were removed.
+    Enhanced prompt building with structured sections for better reasoning guidance.
+    
+    Input contract: machine + graph (fed separately via graph-prefix adapter) 
+    + new_strategy + strategy_explanation ONLY.
 
     Args:
         ex: Example dictionary with context and optional stage1_hint
@@ -97,47 +114,52 @@ def build_prompt(ex: dict, mask_hint: bool = False) -> str:
     """
     ctx = ex["context"]
     lines = [
-        "# Context",
-        f"Machine: {ex['machine']}",
+        "# Current State",
+        f"Target Machine: {ex['machine']}",
         "",
-        "# Strategy",
-        f"New strategy: {ctx['New strategy']}",
-        f"Strategy explanation: {ctx['Strategy explanation']}",
+        "# Strategy Context",
+        f"New Strategy: {ctx['New strategy']}",
+        f"Strategy Explanation: {ctx['Strategy explanation']}",
         "",
-        "# Task",
-        "Based on the machine and strategy above, determine the next step, the tools needed, and explain your reasoning.",
+        "# Your Task",
+        "Analyze the reconnaissance graph (provided via graph tokens) and strategy context above.",
+        "Then determine:",
+        "1. The most appropriate next step from the STEP taxonomy",
+        "2. The specific MCP tools needed to execute this step",
+        "3. A detailed explanation justifying your choice",
+        "",
+        "Requirements for your explanation:",
+        "- MUST explicitly name the chosen step type",
+        "- MUST justify why this step is appropriate given current findings",
+        "- MUST explain how each selected tool contributes to the step",
+        "- Reference specific vulnerabilities, services, or findings when relevant",
+        "- Be specific and actionable - avoid generic statements",
     ]
+    
     # Stage-1 classifier hint (optional -- set by precompute_stage1_hints()).
-    # WHY: the graph-prefix soft tokens already encode Stage 1's fused
-    # representation, but a 7B model with LoRA has no guarantee of reliably
-    # DECODING a specific classification decision out of 16 continuous
-    # vectors purely from language-modeling loss on ~1.5k rows. Spelling
-    # the classifier's own (possibly wrong) top prediction out as TEXT gives
-    # the model a floor roughly equal to Stage 1's accuracy for free, and
-    # lets it spend its capacity on: (a) rendering the exact canonical
-    # label string correctly, (b) writing a good explanation, (c) refining
-    # MCP tool selection, and (d) OVERRIDING the hint on the examples where
-    # the fuller strategy text makes the graph-only classifier's guess
-    # wrong. It is explicitly labeled as fallible so the model isn't
-    # trained to treat it as ground truth.
-    #
-    # HINT MASKING: During training, we randomly mask the hint (mask_hint=True)
-    # to force the model to learn from the graph prefix tokens directly.
-    # This prevents the model from simply copying the hint and ignoring the
-    # graph conditioning.
+    # The hint provides a baseline suggestion but should be verified against
+    # the strategy and overridden if the fuller context suggests a better step.
     if not mask_hint and ex.get("stage1_hint"):
         lines.append("")
-        lines.append("# Suggested Step (verify against strategy above)")
+        lines.append("# Baseline Suggestion (verify and correct if needed)")
         lines.append(ex["stage1_hint"])
+        lines.append("")
+        lines.append("Note: The above is a graph-only classifier suggestion. ")
+        lines.append("Verify it against the strategy context and override if needed.")
+    
+    lines.append("")
+    lines.append("# Your Response (JSON format)")
     return "\n".join(lines)
 
 
 def format_stage1_hint(step_label: str, mcp_labels: list) -> str:
     tools = ", ".join(mcp_labels) if mcp_labels else "none confident"
     return (
-        f"Classifier signal (a graph-only model's best guess, may be wrong -- "
-        f"verify against the strategy above and correct it if needed): "
-        f"most likely next step = \"{step_label}\"; likely tool(s) = {tools}."
+        f"Graph-based classifier analysis suggests:\n"
+        f"- Recommended step: \"{step_label}\"\n"
+        f"- Suggested tools: {tools}\n\n"
+        f"This is based solely on graph structure analysis. "
+        f"Cross-reference with the strategy context above and adjust if needed."
     )
 
 
@@ -158,7 +180,8 @@ def precompute_stage1_hints(examples: list, stage1, device, dtype) -> None:
                 _embed_texts([ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]),
                 dtype=torch.float32,
             ).unsqueeze(0).to(device)
-            edge_attr = getattr(graph, "edge_attr", None)
+            edge_attr = getattr(graph, 'edge_attr', None)
+            # Use encode_and_predict for classification hints (still needs context fusion)
             _, step_logits, mcp_logits = stage1.encode_and_predict(
                 graph.x, graph.edge_index, graph.batch, field_embs, edge_attr=edge_attr
             )
@@ -477,14 +500,11 @@ def forward_batch(input_ids, attn, labels, graphs, field_embs,
     n_prefix relative to the un-prefixed input_ids/labels/step_spans this
     function was called with).
 
-    FIX: previously this recombined the frozen Stage-1 graph_encoder and
-    context_encoder outputs via `sigmoid((graph_emb*context_emb).sum(-1))`
-    -- a hand-written, PARAMETER-FREE heuristic (not even a learned gate)
-    that discarded Stage-1's actual trained graph_gate/context_gate/fusion
-    stack. Now calls stage1.encode_and_predict(...) directly, so the
-    GraphPrefixAdapter is conditioned on exactly the representation Stage
-    1's step_head/mcp_head were trained against (see graph_encoder.py's
-    encode_and_predict docstring for the full rationale).
+    FIX: now uses pure graph encoder output (encode_graph_only) instead of
+    fused classification representation. This decouples graph structure
+    learning from task-specific classification, allowing separate best
+    checkpoints for step and MCP tasks. The GraphPrefixAdapter is now
+    conditioned on pure structural representations.
     """
     input_ids = input_ids.to(device)
     attn      = attn.to(device)
@@ -494,11 +514,11 @@ def forward_batch(input_ids, attn, labels, graphs, field_embs,
 
     with torch.no_grad():
         edge_attr = getattr(graphs, 'edge_attr', None)
-        combined_emb, _, _ = stage1.encode_and_predict(
-            graphs.x, graphs.edge_index, graphs.batch, field_embs, edge_attr=edge_attr
-        )  # (B, FUSION_HIDDEN // 2)
+        graph_emb = stage1.encode_graph_only(
+            graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
+        )  # (B, GNN_OUT_DIM)
 
-    prefix_embeds = adapter(combined_emb.to(dtype))      # (B, n_tokens, H)
+    prefix_embeds = adapter(graph_emb.to(dtype))      # (B, n_tokens, H)
     token_embeds  = embed_layer(input_ids).to(dtype)     # (B, T, H)
     inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
 
@@ -925,18 +945,15 @@ def main():
             field_embs = field_embs.to(device)
 
             # Fused Stage-1 representation (matching training -- see
-            # forward_batch / encode_and_predict). Was an ad hoc
-            # parameter-free graph/context blend that did NOT match what
-            # forward_batch used during training; both now call the same
-            # stage1.encode_and_predict(...) so train and eval-time
-            # generation see the identical distribution.
+            # forward_batch / encode_graph_only). Now uses pure graph encoder
+            # output for decoupled architecture.
             edge_attr = getattr(graphs, 'edge_attr', None)
             with torch.no_grad():
-                combined_emb, _, _ = stage1.encode_and_predict(
-                    graphs.x, graphs.edge_index, graphs.batch, field_embs, edge_attr=edge_attr
+                graph_emb = stage1.encode_graph_only(
+                    graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
                 )
 
-            prefix_embeds = adapter(combined_emb.to(dtype))
+            prefix_embeds = adapter(graph_emb.to(dtype))
             token_embeds = embed_layer(input_ids).to(dtype)
             inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
             
