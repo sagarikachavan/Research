@@ -12,6 +12,7 @@ Run:
 import random
 import csv
 import os
+from datetime import datetime, timezone
 
 import numpy as np
 import torch
@@ -41,6 +42,14 @@ from mcp_threshold_search import search_per_class_thresholds
 random.seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
+torch.cuda.manual_seed_all(RANDOM_SEED)
+
+# Use seeded reproducibility instead of strict deterministic algorithms.
+# The latter triggers CuBLAS warnings on modern CUDA while providing little
+# practical benefit for this project when the data split and sampler are fixed.
+torch.backends.cudnn.deterministic = False
+torch.backends.cudnn.benchmark = True
+torch.use_deterministic_algorithms(False)
 
 
 class Stage1Dataset(Dataset):
@@ -75,6 +84,30 @@ def collate(batch):
     step_idx = torch.stack([b["step_idx"] for b in batch])
     mcp_vec = torch.stack([b["mcp_vec"] for b in batch])
     return graphs, field_embs, step_idx, mcp_vec
+
+
+def compute_count_based_class_weights(counts, beta=0.999, min_weight=0.2, max_weight=2.8):
+    """Deterministic class weights from the effective sample count.
+
+    This follows the class-imbalance correction used in effective number weighting:
+      w_c = (1 - beta) / (1 - beta**n_c)
+    where n_c is the count for class c. It is a direct function of the dataset
+    counts, not of random sampling or runtime state, so the assignment stays fixed
+    across runs for the same data.
+
+    We keep a moderate floor and cap so rare classes remain boosted without
+    making the step head systematically underfit the dominant step classes.
+    """
+    counts = np.asarray(counts, dtype=np.float64)
+    weights = np.full(counts.shape, min_weight, dtype=np.float64)
+    positive = counts > 0
+    if positive.any():
+        effective = (1.0 - np.power(beta, counts[positive])) / (1.0 - beta)
+        inverse_eff = 1.0 / effective
+        inverse_eff = inverse_eff / np.mean(inverse_eff)
+        weights[positive] = inverse_eff
+    weights = np.clip(weights, min_weight, max_weight)
+    return weights
 
 
 def adaptive_cost_sensitive_loss(step_logits, step_labels, base_weights, 
@@ -219,6 +252,40 @@ def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=
     return metrics
 
 
+def tune_mcp_thresholds(model, loader, device):
+    """Tune per-class MCP thresholds on validation data with support-gated search."""
+    model.eval()
+    all_probs, all_targets = [], []
+    with torch.no_grad():
+        for graphs, field_embs, step_idx, mcp_vec in loader:
+            graphs = graphs.to(device)
+            field_embs, step_idx, mcp_vec = (
+                field_embs.to(device), step_idx.to(device), mcp_vec.to(device)
+            )
+            edge_attr = getattr(graphs, 'edge_attr', None)
+            step_logits, mcp_logits, _ = model(
+                graphs.x, graphs.edge_index, graphs.batch, field_embs,
+                edge_attr=edge_attr,
+            )
+            all_probs.append(torch.sigmoid(mcp_logits).cpu().numpy())
+            all_targets.append(mcp_vec.cpu().numpy())
+
+    probs = np.concatenate(all_probs, axis=0)
+    targets = np.concatenate(all_targets, axis=0)
+    thresholds = search_per_class_thresholds(
+        probs,
+        targets,
+        min_val_positives=10,
+        candidate_floor=0.25,
+        candidate_ceil=0.75,
+        n_bootstrap=20,
+        bootstrap_seed=RANDOM_SEED,
+        auto_fallback=True,
+        verbose=True,
+    )
+    return thresholds
+
+
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"[Stage 1] Training input : {INPUT_TRAIN_JSON}")
@@ -270,25 +337,10 @@ def main():
     for idx in train_idx:
         mcp_counts += full_ds[idx]["mcp_vec"].numpy()
 
-    total_samples_mcp = mcp_counts.sum()
-    class_frequencies = mcp_counts / (total_samples_mcp + 1e-8)
-    # Step-focused but stable weighting: stronger than the earlier run, but not
-    # as explosive as raw inverse-frequency. This keeps MCP useful without letting
-    # the dominant class "Interactive CLI" swallow the objective.
-    # Keep the current best-performing, balanced MCP objective stable.
-    # This version specifically gives rare tools a meaningful boost while softly
-    # suppressing the dominant "Interactive CLI" class to avoid it swallowing the
-    # multi-label objective.
-    mcp_class_weights = 1.0 / np.sqrt(class_frequencies + 1e-6)
-    rare_class_indices = [i for i, count in enumerate(mcp_counts) if count < 50]
-    for idx in rare_class_indices:
-        mcp_class_weights[idx] *= 1.8
-    common_idx = [i for i, count in enumerate(mcp_counts) if count > 250]
-    for idx in common_idx:
-        mcp_class_weights[idx] *= 0.65
-    mcp_class_weights[9] *= 0.55  # Interactive CLI is the dominant class; keep it controlled.
-    mcp_class_weights = np.clip(mcp_class_weights, 0.35, 2.5)
-    mcp_class_weights = mcp_class_weights / (mcp_class_weights.mean() + 1e-8)
+    # Use the effective sample count formula, which depends only on the actual
+    # class counts for the fixed dataset. This removes random drift and keeps the
+    # balanced weighting behavior stable across runs.
+    mcp_class_weights = compute_count_based_class_weights(mcp_counts, beta=0.999, min_weight=0.2, max_weight=2.8)
     mcp_class_weights = torch.tensor(mcp_class_weights, dtype=torch.float32, device=device)
 
     print(f"[Stage 1] MCP class weights:")
@@ -300,26 +352,7 @@ def main():
     step_counts = np.zeros(len(STEP_LABELS))
     for idx in train_idx:
         step_counts[full_ds[idx]["step_idx"].item()] += 1
-    total_samples_step = step_counts.sum()
-    step_freq = step_counts / (total_samples_step + 1e-8)
-    # Keep the best-performing balanced Step objective stable.
-    # This version gives minority-step classes a meaningful lift, softens the dominant
-    # exploit class, and avoids zero-count classes in the objective.
-    step_class_weights = 1.0 / np.sqrt(step_freq + 1e-6)
-    rare_step_idx = [i for i, c in enumerate(step_counts) if c < 80]
-    for idx in rare_step_idx:
-        step_class_weights[idx] *= 1.8
-    common_step_idx = [i for i, c in enumerate(step_counts) if c > 200]
-    for idx in common_step_idx:
-        step_class_weights[idx] *= 0.65
-    step_class_weights[5] *= 0.75
-    zero_count_mask = step_counts == 0
-    step_class_weights[zero_count_mask] = 0.0
-    step_class_weights = np.clip(step_class_weights, 0.2, 2.5)
-    non_zero_mask = ~zero_count_mask
-    non_zero_mean = step_class_weights[non_zero_mask].mean()
-    if non_zero_mean > 0:
-        step_class_weights[non_zero_mask] = step_class_weights[non_zero_mask] / non_zero_mean
+    step_class_weights = compute_count_based_class_weights(step_counts, beta=0.999, min_weight=0.2, max_weight=2.8)
     step_class_weights = torch.tensor(step_class_weights, dtype=torch.float32, device=device)
 
     print(f"[Stage 1] STEP class weights:")
@@ -343,19 +376,22 @@ def main():
         w = float(step_w_np[step_i])
         active = mcp_vec_i > 0
         if active.any():
-            w = max(w, float(mcp_w_np[active].max()) * 0.80)
-        # Rare step classes are the main source of step-accuracy failures, so sample
-        # them more often while still keeping the majority class from dominating.
+            w = max(w, float(mcp_w_np[active].max()) * 0.70)
+        # Keep the sampler mild: the class-loss weights already provide class balancing,
+        # so aggressive oversampling on the step head suppresses the dominant classes and
+        # drives the model away from the target step accuracy.
         if step_counts[step_i] < 80:
-            w *= 1.8
+            w *= 1.0
         elif step_counts[step_i] > 250:
-            w *= 0.75
+            w *= 0.98
         sample_weights[pos] = w
 
+    sampler_generator = torch.Generator().manual_seed(RANDOM_SEED)
     train_sampler = torch.utils.data.WeightedRandomSampler(
         weights=torch.as_tensor(sample_weights, dtype=torch.double),
         num_samples=len(train_idx),
         replacement=True,
+        generator=sampler_generator,
     )
     train_loader = DataLoader(
         train_ds, batch_size=STAGE1_BATCH_SIZE, sampler=train_sampler,
@@ -388,14 +424,26 @@ def main():
     sched = torch.optim.lr_scheduler.LambdaLR(opt, lr_lambda)
 
     # Validation-driven checkpointing and early stopping for this small, noisy graph dataset.
+    # Best checkpointing should be driven by the actual validation objective (combined score),
+    # while the target thresholds are used as a secondary signal for whether the model is in the
+    # desired operating window. Requiring the target thresholds at every checkpoint candidate is
+    # too strict for early training and prevents any valid best checkpoint from ever being saved.
     early_stop_patience = 12
     tolerance = 1e-4
+    step_target = 0.80
+    mcp_target = 0.70
     patience_counter = 0
-    best_val_score = -1.0
+    best_val_score = -float("inf")
     best_epoch = -1
     best_state_dict = None
     train_losses, val_scores = [], []
-    best_checkpoint_path = STAGE1_CKPT.replace(".pt", "_best.pt")
+    run_tag = f"seed{RANDOM_SEED}_run{len(os.listdir(os.path.dirname(STAGE1_CKPT))) if os.path.exists(os.path.dirname(STAGE1_CKPT)) else 0}"
+    best_checkpoint_path = STAGE1_CKPT.replace(".pt", f"_{run_tag}_best.pt")
+    # Remove stale training artifacts from previous runs so evaluation always loads the
+    # current run's checkpoint instead of an older file with a matching name.
+    for stale_path in [STAGE1_CKPT, best_checkpoint_path]:
+        if os.path.exists(stale_path):
+            os.remove(stale_path)
     val_loader = DataLoader(val_ds, batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
 
     for epoch in range(STAGE1_EPOCHS):
@@ -422,13 +470,13 @@ def main():
             # This is more robust than plain CE on the small and imbalanced class set.
             step_l = F.cross_entropy(step_logits, step_idx, weight=step_class_weights, reduction='none')
             step_pt = torch.exp(-step_l)
-            step_focal = (1.0 - step_pt) ** 2.0
+            step_focal = (1.0 - step_pt) ** 1.0
             step_l = (step_focal * step_l).mean()
 
             if mcp_class_weights is not None:
                 mcp_l = F.binary_cross_entropy_with_logits(mcp_logits, mcp_vec, reduction='none')
                 mcp_pt = torch.exp(-mcp_l)
-                mcp_focal = (1.0 - mcp_pt) ** 2.0
+                mcp_focal = (1.0 - mcp_pt) ** 1.3
                 mcp_l = (mcp_focal * mcp_l * mcp_class_weights).mean()
             else:
                 mcp_l = F.binary_cross_entropy_with_logits(mcp_logits, mcp_vec)
@@ -452,6 +500,10 @@ def main():
         val_combined = 0.5 * val_metrics["step_accuracy"] + 0.5 * val_metrics["mcp_micro_f1"]
         val_scores.append(val_combined)
 
+        meets_target = (
+            val_metrics["step_accuracy"] >= step_target and
+            val_metrics["mcp_micro_f1"] >= mcp_target
+        )
         if val_combined > best_val_score + tolerance:
             best_val_score = val_combined
             best_epoch = epoch + 1
@@ -466,10 +518,17 @@ def main():
                 "val_scores": val_scores,
                 "best_val_epoch": best_epoch,
                 "best_val_score": best_val_score,
+                "random_seed": RANDOM_SEED,
+                "run_tag": run_tag,
+                "target_met": bool(meets_target),
+                "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
             }
             torch.save(checkpoint, STAGE1_CKPT)
             torch.save(checkpoint, best_checkpoint_path)
-            print(f"[Stage 1] Saved best checkpoint to {STAGE1_CKPT} and {best_checkpoint_path}")
+            if meets_target:
+                print(f"[Stage 1] Saved target checkpoint to {STAGE1_CKPT} and {best_checkpoint_path} (step={val_metrics['step_accuracy']:.4f}, mcp={val_metrics['mcp_micro_f1']:.4f})")
+            else:
+                print(f"[Stage 1] Saved best validation checkpoint to {STAGE1_CKPT} and {best_checkpoint_path} (val_combined={best_val_score:.4f}, step={val_metrics['step_accuracy']:.4f}, mcp={val_metrics['mcp_micro_f1']:.4f})")
         else:
             patience_counter += 1
 
@@ -492,6 +551,12 @@ def main():
     else:
         print("[Stage 1] No validation improvement detected; keeping final model state.")
 
+    # Tune per-class MCP thresholds on validation data and use them for test evaluation.
+    # This avoids the common failure mode where a uniform 0.5 threshold is too harsh on
+    # imbalanced multi-label heads, especially for sparse classes.
+    mcp_thresholds = tune_mcp_thresholds(model, val_loader, device)
+    print(f"[Stage 1] Tuned MCP thresholds: {mcp_thresholds}")
+
     # Save final best checkpoint metadata in the canonical checkpoint path.
     checkpoint = {
         "model_state_dict": model.state_dict(),
@@ -501,6 +566,9 @@ def main():
         "val_scores": val_scores,
         "best_val_epoch": best_epoch,
         "best_val_score": best_val_score,
+        "random_seed": RANDOM_SEED,
+        "run_tag": run_tag,
+        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
     }
     torch.save(checkpoint, STAGE1_CKPT)
     torch.save(checkpoint, best_checkpoint_path)
@@ -518,7 +586,7 @@ def main():
 
     test_metrics = evaluate(
         model, test_loader, device,
-        threshold=None,  # Use default 0.5 threshold
+        threshold=mcp_thresholds,
         save_csv=True,
         csv_path=csv_path,
         dataset=test_examples

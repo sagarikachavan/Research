@@ -99,8 +99,8 @@ GNN_DROPOUT = 0.15
 # graph_encoder.py (GATv2Conv edge_dim) can never drift out of sync.
 EDGE_ATTR_DIM = 5
 
-MCP_LOSS_WEIGHT = 1.0            # Keep MCP stable while the step task gets stronger rare-class weighting
-STEP_LOSS_WEIGHT = 5.0           # Slightly stronger step emphasis for the dominant confusion class without destabilizing MCP
+MCP_LOSS_WEIGHT = 0.7            # Keep MCP above the acceptable range while the step head is prioritized
+STEP_LOSS_WEIGHT = 10.0          # Push the model harder on the step objective, which is the current bottleneck
 MCP_DECISION_THRESHOLD = 0.5
 STEP_LABEL_SMOOTHING = 0.03
 
