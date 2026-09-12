@@ -424,10 +424,10 @@ def main():
     sched = torch.optim.lr_scheduler.LambdaLR(opt, lr_lambda)
 
     # Validation-driven checkpointing and early stopping for this small, noisy graph dataset.
-    # Best checkpointing should be driven by the actual validation objective (combined score),
-    # while the target thresholds are used as a secondary signal for whether the model is in the
-    # desired operating window. Requiring the target thresholds at every checkpoint candidate is
-    # too strict for early training and prevents any valid best checkpoint from ever being saved.
+    # The Stage 1 objective is dominated by the step prediction head, so the checkpoint score
+    # should bias toward step accuracy first and only then MCP performance. This is more aligned
+    # with the real task and prevents the validation split from rewarding a checkpoint that is
+    # strong on MCP but weak on the step decision the pipeline actually needs.
     early_stop_patience = 12
     tolerance = 1e-4
     step_target = 0.80
@@ -436,6 +436,7 @@ def main():
     best_val_score = -float("inf")
     best_epoch = -1
     best_state_dict = None
+    best_step_acc = -float("inf")
     train_losses, val_scores = [], []
     run_tag = f"seed{RANDOM_SEED}_run{len(os.listdir(os.path.dirname(STAGE1_CKPT))) if os.path.exists(os.path.dirname(STAGE1_CKPT)) else 0}"
     best_checkpoint_path = STAGE1_CKPT.replace(".pt", f"_{run_tag}_best.pt")
@@ -497,15 +498,19 @@ def main():
         train_losses.append(total_loss / n_batches)
 
         val_metrics = evaluate(model, val_loader, device, threshold=0.5)
-        val_combined = 0.5 * val_metrics["step_accuracy"] + 0.5 * val_metrics["mcp_micro_f1"]
-        val_scores.append(val_combined)
+        val_priority_score = 0.7 * val_metrics["step_accuracy"] + 0.3 * val_metrics["mcp_micro_f1"]
+        val_scores.append(val_priority_score)
 
         meets_target = (
             val_metrics["step_accuracy"] >= step_target and
             val_metrics["mcp_micro_f1"] >= mcp_target
         )
-        if val_combined > best_val_score + tolerance:
-            best_val_score = val_combined
+        if (
+            val_priority_score > best_val_score + tolerance or
+            (abs(val_priority_score - best_val_score) <= tolerance and val_metrics["step_accuracy"] > best_step_acc + tolerance)
+        ):
+            best_val_score = val_priority_score
+            best_step_acc = val_metrics["step_accuracy"]
             best_epoch = epoch + 1
             best_state_dict = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
             patience_counter = 0
@@ -528,7 +533,7 @@ def main():
             if meets_target:
                 print(f"[Stage 1] Saved target checkpoint to {STAGE1_CKPT} and {best_checkpoint_path} (step={val_metrics['step_accuracy']:.4f}, mcp={val_metrics['mcp_micro_f1']:.4f})")
             else:
-                print(f"[Stage 1] Saved best validation checkpoint to {STAGE1_CKPT} and {best_checkpoint_path} (val_combined={best_val_score:.4f}, step={val_metrics['step_accuracy']:.4f}, mcp={val_metrics['mcp_micro_f1']:.4f})")
+                print(f"[Stage 1] Saved best validation checkpoint to {STAGE1_CKPT} and {best_checkpoint_path} (priority={best_val_score:.4f}, step={val_metrics['step_accuracy']:.4f}, mcp={val_metrics['mcp_micro_f1']:.4f})")
         else:
             patience_counter += 1
 
@@ -537,7 +542,7 @@ def main():
             f"lr {current_lr:.2e} | "
             f"train_loss {total_loss/n_batches:.4f} "
             f"(step={step_losses/n_batches:.4f}, mcp={mcp_losses/n_batches:.4f}) | "
-            f"val_combined {val_combined:.4f}"
+            f"val_priority {val_priority_score:.4f}"
         )
 
         if patience_counter >= early_stop_patience:
@@ -547,7 +552,7 @@ def main():
     print(f"\n[Stage 1] Training complete. Trained for {epoch + 1} epochs.")
     if best_state_dict is not None:
         model.load_state_dict(best_state_dict)
-        print(f"[Stage 1] Restored best validation checkpoint from epoch {best_epoch} (val_combined={best_val_score:.4f})")
+        print(f"[Stage 1] Restored best validation checkpoint from epoch {best_epoch} (priority={best_val_score:.4f})")
     else:
         print("[Stage 1] No validation improvement detected; keeping final model state.")
 

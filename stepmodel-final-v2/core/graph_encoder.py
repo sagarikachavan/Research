@@ -167,30 +167,67 @@ class GraphEncoder(nn.Module):
 
 
 class ContextTextProjector(nn.Module):
-    """Projects concatenated frozen sentence-embeddings of the context
-    fields into the same space as the graph embedding."""
+    """Keep the strategy text as the primary decision signal.
+
+    We explicitly preserve the two most important semantic fields,
+    "New strategy" and "Strategy explanation", and use the rest of the
+    context as lighter support rather than flattening all fields equally.
+    """
 
     def __init__(self, n_fields=None, field_dim=TEXT_EMB_DIM, out_dim=GNN_OUT_DIM):
         if n_fields is None:
             n_fields = len(CONTEXT_COLUMNS)
         super().__init__()
-        self.proj = nn.Sequential(
-            nn.Linear(n_fields * field_dim, FUSION_HIDDEN),
+        self.n_fields = n_fields
+
+        # Explicitly weight the strategy and explanation embeddings.
+        self.strategy_proj = nn.Sequential(
+            nn.Linear(field_dim, FUSION_HIDDEN),
             nn.LayerNorm(FUSION_HIDDEN),
             nn.GELU(),
-            nn.Dropout(0.15),
-            nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN),
+            nn.Dropout(0.10),
+            nn.Linear(FUSION_HIDDEN, out_dim),
+            nn.LayerNorm(out_dim),
+        )
+        self.expl_proj = nn.Sequential(
+            nn.Linear(field_dim, FUSION_HIDDEN),
             nn.LayerNorm(FUSION_HIDDEN),
             nn.GELU(),
-            nn.Dropout(0.1),
+            nn.Dropout(0.10),
+            nn.Linear(FUSION_HIDDEN, out_dim),
+            nn.LayerNorm(out_dim),
+        )
+        self.support_proj = nn.Sequential(
+            nn.Linear(field_dim, FUSION_HIDDEN),
+            nn.LayerNorm(FUSION_HIDDEN),
+            nn.GELU(),
+            nn.Dropout(0.10),
             nn.Linear(FUSION_HIDDEN, out_dim),
             nn.LayerNorm(out_dim),
         )
 
     def forward(self, field_embs):  # (batch, n_fields, field_dim)
-        b = field_embs.shape[0]
-        flat = field_embs.reshape(b, -1)
-        return self.proj(flat)
+        if field_embs.dim() != 3:
+            b = field_embs.shape[0]
+            field_embs = field_embs.reshape(b, self.n_fields, -1)
+
+        strategy_idx = CONTEXT_COLUMNS.index("New strategy") if "New strategy" in CONTEXT_COLUMNS else 0
+        explanation_idx = CONTEXT_COLUMNS.index("Strategy explanation") if "Strategy explanation" in CONTEXT_COLUMNS else 1
+
+        strategy_emb = field_embs[:, strategy_idx]
+        explanation_emb = field_embs[:, explanation_idx]
+
+        # Keep the strategy narrative and the explanation as the dominant semantic signal.
+        main_text = 0.7 * self.strategy_proj(strategy_emb) + 0.3 * self.expl_proj(explanation_emb)
+
+        support_mask = [i for i in range(field_embs.shape[1]) if i not in (strategy_idx, explanation_idx)]
+        if support_mask:
+            support_emb = field_embs[:, support_mask].mean(dim=1)
+            support_text = self.support_proj(support_emb)
+        else:
+            support_text = torch.zeros_like(main_text)
+
+        return main_text + 0.25 * support_text
 
 
 class Stage1Classifier(nn.Module):
@@ -199,7 +236,8 @@ class Stage1Classifier(nn.Module):
         self.graph_encoder = GraphEncoder(edge_dim=edge_dim)
         self.context_encoder = ContextTextProjector()
         
-        # Enhanced gating mechanisms with residual connections
+        # Strong text-first gating: the context should dominate the final decision,
+        # while the graph remains a helpful support signal.
         self.graph_gate = nn.Sequential(
             nn.Linear(GNN_OUT_DIM, GNN_OUT_DIM),
             nn.LayerNorm(GNN_OUT_DIM),
@@ -310,17 +348,21 @@ class Stage1Classifier(nn.Module):
         c_attn = c_attn.squeeze(1)  # (B, GNN_OUT_DIM)
         c_attn = self.cross_attn_norm(c_attn + c)
         
-        # Enhanced gating with residual connections
+        # The graph remains useful, but the strategy text is the main semantic signal.
         g_gate = self.graph_gate(g_attn)
         c_gate = self.context_gate(c_attn)
-        
-        # Gated fusion with better information flow
+
         gated_g = g_attn * g_gate
         gated_c = c_attn * c_gate
-        
-        # Add residual connection from original features
-        h = self.fusion(torch.cat([gated_g + g * 0.1, gated_c + c * 0.1], dim=-1))  # (B, FUSION_HIDDEN//2)
-        
+
+        context_signal = (gated_c + c * 0.10) * 2.10
+        graph_signal = (gated_g + g * 0.05) * 0.12
+
+        h = self.fusion(torch.cat([
+            context_signal + graph_signal * 0.05,
+            context_signal * 0.90 + graph_signal * 0.03,
+        ], dim=-1))
+
         step_logits = self.step_head(h)
         mcp_logits = self.mcp_head(h)
         return h, step_logits, mcp_logits
