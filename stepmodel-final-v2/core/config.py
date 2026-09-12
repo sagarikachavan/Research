@@ -70,7 +70,24 @@ CKPT_DIR = os.environ.get(
 os.makedirs(CKPT_DIR, exist_ok=True)
 
 # Stage 1 GNN checkpoint paths
-STAGE1_CKPT = os.path.join(CKPT_DIR, "stage1_gnn_classifier.pt")
+# Prefer the validation-best checkpoint when it exists, but gracefully fall
+# back to the standard final checkpoint so the training pipeline does not
+# fail if a specific best-file name is absent in the current run.
+_default_stage1_candidates = [
+    os.path.join(CKPT_DIR, "stage1_gnn_classifier_seed42_run1_best.pt"),
+    os.path.join(CKPT_DIR, "stage1_gnn_classifier_seed42_run0_best.pt"),
+    os.path.join(CKPT_DIR, "stage1_gnn_classifier_best.pt"),
+    os.path.join(CKPT_DIR, "stage1_gnn_classifier.pt"),
+]
+STAGE1_CKPT = os.environ.get("STAGE1_CKPT")
+if STAGE1_CKPT is None:
+    for candidate in _default_stage1_candidates:
+        if os.path.exists(candidate):
+            STAGE1_CKPT = candidate
+            break
+    if STAGE1_CKPT is None:
+        STAGE1_CKPT = _default_stage1_candidates[-1]
+
 STAGE2_ADAPTER_DIR = os.environ.get(
     "STAGE2_ADAPTER_DIR", os.path.join(CKPT_DIR, "stage2_qwen_lora")
 )

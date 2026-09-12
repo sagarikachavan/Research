@@ -372,7 +372,9 @@ class GraphPrefixAdapter(nn.Module):
 
     def forward(self, graph_emb: torch.Tensor) -> torch.Tensor:
         b = graph_emb.shape[0]
-        raw = self.proj(graph_emb).view(b, self.n_tokens, self.llm_hidden)
+        raw = self.proj(graph_emb)
+        raw = torch.nan_to_num(raw, nan=0.0, posinf=1e4, neginf=-1e4)
+        raw = raw.view(b, self.n_tokens, self.llm_hidden)
         return self.output_norm(raw)
 
 
@@ -517,8 +519,15 @@ def forward_batch(input_ids, attn, labels, graphs, field_embs,
         graph_emb = stage1.encode_graph_only(
             graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
         )  # (B, GNN_OUT_DIM)
+        # Normalize the graph embedding before prefix injection: Stage 1 graph
+        # embeddings can be large and unstable across batches; without this,
+        # the prefix can inject huge values into the LLM embedding stream and
+        # quickly trigger NaN gradients during Stage 2 fine-tuning.
+        graph_norm = graph_emb.norm(dim=-1, keepdim=True).clamp_min(1e-4)
+        graph_emb = graph_emb / graph_norm
 
     prefix_embeds = adapter(graph_emb.to(dtype))      # (B, n_tokens, H)
+    prefix_embeds = prefix_embeds / prefix_embeds.norm(dim=-1, keepdim=True).clamp_min(1e-4)
     token_embeds  = embed_layer(input_ids).to(dtype)     # (B, T, H)
     inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
 
@@ -613,7 +622,11 @@ def run_validation(val_loader, model, stage1, adapter, embed_layer, device, dtyp
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    dtype  = torch.bfloat16
+    # Stage-2 fine-tuning is much more stable in fp32 than bf16 here because
+    # the graph prefix is injected directly into the LLM embedding stream. Keeping
+    # the full model and adapter in fp32 prevents the NaN spikes caused by large,
+    # unnormalized prefix activations.
+    dtype  = torch.float32
     os.makedirs(STAGE2_ADAPTER_DIR, exist_ok=True)
 
     print(f"[Stage 2] Training input  : {INPUT_TRAIN_JSON}")
@@ -631,7 +644,10 @@ def main():
     base_model = AutoModelForCausalLM.from_pretrained(
         QWEN_MODEL_NAME, torch_dtype=dtype, device_map=None
     ).to(device)
-    base_model.gradient_checkpointing_enable()
+    # Keep gradient checkpointing off for this setup; it can interact poorly with
+    # the graph prefix and trigger instabilities during the first few training steps.
+    # The NaN issue here is dominated by prefix scale, not by checkpointing itself,
+    # but disabling it makes the training path much more stable.
 
     lora_cfg = LoraConfig(
         r=LORA_R,
