@@ -159,6 +159,38 @@ def compute_explanation_metrics_with_llm_judge(
     return llm_results
 
 
+
+
+def compute_reference_explanation_metrics(pred_explanations, gold_explanations):
+    """Reference-based explanation metrics.
+
+    BERTScore and BLEURT are preferred automatic metrics for semantic
+    explanation similarity; both are optional dependencies so evaluation
+    remains runnable in minimal environments. Scores are reported separately
+    from the LLM judge because embedding metrics can reward lexical/semantic
+    similarity without proving factual correctness.
+    """
+    result = {"bertscore_f1": None, "bleurt": None}
+    try:
+        from bert_score import score as bert_score
+        P, R, F = bert_score(pred_explanations, gold_explanations,
+                              lang="en", rescale_with_baseline=True,
+                              verbose=False)
+        result["bertscore_f1"] = float(F.mean().item())
+    except Exception as e:
+        result["bertscore_error"] = str(e)
+    try:
+        from bleurt import score as bleurt_score
+        checkpoint = os.environ.get("BLEURT_CHECKPOINT", "BLEURT-20")
+        scorer = bleurt_score.BleurtScorer(checkpoint)
+        vals = scorer.score(references=gold_explanations,
+                            candidates=pred_explanations)
+        result["bleurt"] = float(np.mean(vals))
+    except Exception as e:
+        result["bleurt_error"] = str(e)
+    return result
+
+
 # ---------------------------------------------------------------------------
 # GNN evaluation  (classification only — no text generation)
 # ---------------------------------------------------------------------------
@@ -352,9 +384,8 @@ def eval_llm(adapter_dir: str, threshold_override=None,
         stage1.load_state_dict(ckpt["model_state_dict"])
     else:
         stage1.load_state_dict(ckpt)
-    # Stage 2/3 graph conditioning uses the same 384-d classification-calibrated
-    # fused representation produced by Stage1Classifier.encode_and_predict().
-    # This must match the representation used when GraphPrefixAdapter was trained.
+    # Stage 2/3 graph conditioning uses ONLY the raw 512-d GINE representation.
+    # Stage-1 fusion/classification outputs are not part of the LLM interface.
     stage1 = stage1.to(device).eval()
     for p in stage1.parameters():
         p.requires_grad_(False)
@@ -404,21 +435,18 @@ def eval_llm(adapter_dir: str, threshold_override=None,
                 ex["context"].get("New strategy", "") or "empty",
                 ex["context"].get("Strategy explanation", "") or "empty",
             ]
-            field_embs = torch.tensor(
-                _embed_texts(context_texts), dtype=torch.float32, device=device
-            ).unsqueeze(0)
             with torch.no_grad():
-                fused_h, _, _ = stage1.encode_and_predict(
+                graph_h = stage1.graph_encoder(
                     pyg_batch.x, pyg_batch.edge_index, pyg_batch.batch,
-                    field_embs, edge_attr=edge_attr
+                    edge_attr=edge_attr
                 )
             expected_dim = adapter.proj[0].in_features
-            if fused_h.shape[-1] != expected_dim:
+            if graph_h.shape[-1] != expected_dim:
                 raise RuntimeError(
-                    f"Evaluation graph-prefix dimension mismatch: Stage-1 produced {fused_h.shape[-1]} dims, "
+                    f"Evaluation graph-prefix dimension mismatch: Stage-1 GINE produced {graph_h.shape[-1]} dims, "
                     f"but the adapter expects {expected_dim}."
                 )
-            prefix_embeds = adapter(fused_h.to(dtype))
+            prefix_embeds = adapter(graph_h.to(dtype))
             ids = tokenizer(
                 full_prompt,
                 return_tensors="pt",
@@ -609,6 +637,10 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     print("STEP EXPLANATION QUALITY - LLM JUDGE")
     print("=" * 60)
     if use_llm_judge:
+        print("Computing reference-based explanation metrics (BERTScore/BLEURT when installed)...")
+        ref_metrics = compute_reference_explanation_metrics(pred_explanations, gold_explanations)
+        print(f"  BERTScore F1 : {ref_metrics.get('bertscore_f1')}")
+        print(f"  BLEURT       : {ref_metrics.get('bleurt')}")
         print("Using LLM to evaluate explanation quality...")
         # Run LLM judge evaluation
         llm_results = compute_explanation_metrics_with_llm_judge(
@@ -737,6 +769,27 @@ def report_classification(
     mcp_jac_pass = sum(1 for j in mcp_jaccards if j >= 0.5)
     combined_jac = (mean_step_jac + mean_mcp_jac) / 2.0
 
+    # Tool-set error analysis requested for the final evaluation: how many
+    # gold tools were omitted and how many non-gold tools were added.
+    missing_counts = []
+    extra_counts = []
+    missing_total = 0
+    extra_total = 0
+    exact_match_count = 0
+    for pred_row, gold_row in zip(mcp_preds, mcp_gold):
+        pred_set = {j for j, v in enumerate(pred_row) if v == 1}
+        gold_set = {j for j, v in enumerate(gold_row) if v == 1}
+        missing = gold_set - pred_set
+        extra = pred_set - gold_set
+        missing_counts.append(len(missing))
+        extra_counts.append(len(extra))
+        missing_total += len(missing)
+        extra_total += len(extra)
+        exact_match_count += int(pred_set == gold_set)
+    avg_missing_tools = float(np.mean(missing_counts)) if missing_counts else 0.0
+    avg_extra_tools = float(np.mean(extra_counts)) if extra_counts else 0.0
+    exact_match_rate = float(exact_match_count / len(mcp_preds)) if len(mcp_preds) else 0.0
+
     # ── STEP metrics ──
     step_acc = float(accuracy_score(step_gold, step_preds))
     step_macro_f1 = float(f1_score(step_gold, step_preds, average='macro', zero_division=0))
@@ -784,6 +837,9 @@ def report_classification(
     print("MCP TOOL CLASSIFICATION  (multi-label)")
     print("=" * 60)
     print(f"  Subset (exact-match) accuracy : {subset_acc:.4f}")
+    print(f"  Exact MCP set match rate      : {exact_match_rate:.4f}")
+    print(f"  Avg missing gold tools / row  : {avg_missing_tools:.3f}  (total={missing_total})")
+    print(f"  Avg extra predicted tools/row : {avg_extra_tools:.3f}  (total={extra_total})")
     print(f"  Micro F1  (pooled over matrix): {micro_f1:.4f}")
     print(f"  Macro F1  (per-label avg)     : {macro_f1:.4f}")
     print(f"  Samples F1 (per-row avg, ***paper-comparable Micro F1***): {samples_f1:.4f}")
@@ -833,6 +889,11 @@ def report_classification(
         },
         "mcp": {
             "subset_accuracy": subset_acc,
+            "exact_match_rate": exact_match_rate,
+            "avg_missing_tools": avg_missing_tools,
+            "avg_extra_tools": avg_extra_tools,
+            "total_missing_tools": int(missing_total),
+            "total_extra_tools": int(extra_total),
             "micro_f1": micro_f1,
             "macro_f1": macro_f1,
             "samples_f1": samples_f1,

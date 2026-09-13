@@ -49,13 +49,10 @@ from config import (
     RANDOM_SEED, STEP_LABELS, MCP_LABELS, IDX2STEP, IDX2MCP, ROOT,
 )
 
-# Dimensionality of the representation handed to GraphPrefixAdapter.
-# Was GNN_OUT_DIM (raw pooled graph embedding); now the fused,
-# classification-calibrated representation from Stage1Classifier.encode_and_predict
-# (see graph_encoder.py). Kept as a module constant so stage3_grpo_rl.py and
-# evaluate.py can import it and stay dimensionally consistent with whatever
-# checkpoint this file produces.
-GRAPH_PREFIX_SRC_DIM = FUSION_HIDDEN // 2
+# Stage-2 consumes ONLY the raw 512-d GINE graph representation from the
+# frozen Stage-1 checkpoint. The private Stage-1 fusion/classifier vector is
+# never used by the prefix adapter.
+GRAPH_PREFIX_SRC_DIM = GNN_OUT_DIM
 from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS, StepLabelNormalizer, extract_mcp_labels
 from graph_encoder import Stage1Classifier
 
@@ -125,10 +122,6 @@ def build_prompt(ex: dict, mask_hint: bool = False) -> str:
     # to force the model to learn from the graph prefix tokens directly.
     # This prevents the model from simply copying the hint and ignoring the
     # graph conditioning.
-    if not mask_hint and ex.get("stage1_hint"):
-        lines.append("")
-        lines.append("# Suggested Step (verify against strategy above)")
-        lines.append(ex["stage1_hint"])
     return "\n".join(lines)
 
 
@@ -496,14 +489,9 @@ def forward_batch(input_ids, attn, labels, graphs, field_embs,
     n_prefix relative to the un-prefixed input_ids/labels/step_spans this
     function was called with).
 
-    FIX: previously this recombined the frozen Stage-1 graph_encoder and
-    context_encoder outputs via `sigmoid((graph_emb*context_emb).sum(-1))`
-    -- a hand-written, PARAMETER-FREE heuristic (not even a learned gate)
-    that discarded Stage-1's actual trained graph_gate/context_gate/fusion
-    stack. Now calls stage1.encode_and_predict(...) directly, so the
-    GraphPrefixAdapter is conditioned on exactly the representation Stage
-    1's step_head/mcp_head were trained against (see graph_encoder.py's
-    encode_and_predict docstring for the full rationale).
+    Stage 1 is frozen. Only its raw GINE encoder output (512-d) is
+    consumed here; the private Stage-1 fusion and classifier heads are not
+    part of the Stage-2/3 graph-conditioning interface.
     """
     input_ids = input_ids.to(device)
     attn      = attn.to(device)
@@ -513,11 +501,15 @@ def forward_batch(input_ids, attn, labels, graphs, field_embs,
 
     with torch.no_grad():
         edge_attr = getattr(graphs, 'edge_attr', None)
-        combined_emb, _, _ = stage1.encode_and_predict(
-            graphs.x, graphs.edge_index, graphs.batch, field_embs, edge_attr=edge_attr
-        )  # (B, FUSION_HIDDEN // 2)
+        # Stage 2 graph-prefix contract: ONLY the frozen Stage-1 GINE
+        # representation enters the prefix adapter. The Stage-1 checkpoint is
+        # a set of weights, not an input tensor; classifier/fusion outputs are
+        # deliberately not exposed to Qwen.
+        graph_emb = stage1.graph_encoder(
+            graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
+        )  # (B, 512)
 
-    prefix_embeds = adapter(combined_emb.float()).to(dtype)  # (B, n_tokens, H)
+    prefix_embeds = adapter(graph_emb.float()).to(dtype)  # (B, n_tokens, H)
     token_embeds  = embed_layer(input_ids).to(dtype)          # (B, T, H)
     inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
 
@@ -629,10 +621,10 @@ def run_validation(val_loader, model, stage1, adapter, embed_layer, device, dtyp
                     prompt_ids[b, plen:] = tokenizer.pad_token_id
 
             edge_attr = getattr(graphs, 'edge_attr', None)
-            combined_emb, _, _ = stage1.encode_and_predict(
-                graphs.x, graphs.edge_index, graphs.batch, field_embs, edge_attr=edge_attr
+            graph_emb = stage1.graph_encoder(
+                graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
             )
-            prefix_embeds = adapter(combined_emb.float()).to(dtype)
+            prefix_embeds = adapter(graph_emb.float()).to(dtype)
             token_embeds = embed_layer(prompt_ids).to(dtype)
             inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
 
@@ -727,13 +719,10 @@ def main():
 
     model.print_trainable_parameters()
 
-    # ── Frozen Stage-1 classifier (whole model, not just the two encoders) ────
-    # FIX: previously only `stage1.graph_encoder` / `stage1.context_encoder`
-    # were kept, discarding stage1.graph_gate / context_gate / fusion --
-    # i.e. exactly the trained layers that turn those two encoder outputs
-    # into the representation step_head/mcp_head actually use. Keep the
-    # whole frozen model so forward_batch can call
-    # stage1.encode_and_predict(...) and reuse that trained fusion.
+    # ── Frozen Stage-1 checkpoint ─────────────────────────────────────────────
+    # The full checkpoint is loaded for a consistent artifact, but Stage 2
+    # intentionally calls only stage1.graph_encoder. The Stage-1 semantic CNN,
+    # fusion, and classifier heads remain private to Stage 1.
     stage1 = Stage1Classifier()
     ckpt = torch.load(STAGE1_CKPT, map_location=device, weights_only=False)
     if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
@@ -743,13 +732,12 @@ def main():
     stage1 = stage1.to(device).eval()
     for p in stage1.parameters():
         p.requires_grad_(False)
-    print("[Stage 2] ✓ Frozen Stage-1 classifier (encoders + gates + fusion) loaded")
+    print("[Stage 2] ✓ Frozen Stage-1 checkpoint loaded; raw GINE encoder is the graph-prefix source")
 
     # ── GraphPrefixAdapter (trainable) ────────────────────────────────────────
-    # Input dim changed from GNN_OUT_DIM (raw graph embedding) to
-    # GRAPH_PREFIX_SRC_DIM = FUSION_HIDDEN // 2 (the fused representation
-    # from stage1.encode_and_predict). Checkpoints trained before this fix
-    # are NOT compatible -- retrain Stage 2 from scratch after this change.
+    # Prefix input is the raw 512-d GINE graph representation. Stage-1
+    # checkpoints from the previous architecture are NOT compatible; retrain
+    # Stage 2 from scratch after the final Stage-1 change.
     llm_hidden = model.config.hidden_size
     # IMPORTANT: do not train this projection in bf16.  Its output is cast to
     # the Qwen dtype only immediately before concatenation with token embeds.
@@ -1105,11 +1093,11 @@ def main():
             # generation see the identical distribution.
             edge_attr = getattr(graphs, 'edge_attr', None)
             with torch.no_grad():
-                combined_emb, _, _ = stage1.encode_and_predict(
-                    graphs.x, graphs.edge_index, graphs.batch, field_embs, edge_attr=edge_attr
-                )
+                graph_emb = stage1.graph_encoder(
+                    graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
+                )  # (B, 512)
 
-            prefix_embeds = adapter(combined_emb.float()).to(dtype)
+            prefix_embeds = adapter(graph_emb.float()).to(dtype)
             token_embeds = embed_layer(input_ids).to(dtype)
             inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
             

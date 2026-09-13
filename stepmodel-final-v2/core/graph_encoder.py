@@ -2,9 +2,10 @@
 
 Design:
 - typed GINE graph encoder with GraphNorm and residual blocks;
-- paper-inspired frozen language-model token features consumed by two
-  independent multi-kernel CNN heads (Step/MCP);
-- graph-conditioned fusion keeps the 384-d representation expected by Stage 2/3;
+- paper-inspired frozen language-model token features consumed by one shared
+  multi-kernel CNN semantic encoder for New Strategy + Strategy Explanation;
+- semantic/graph fusion is private to Stage 1 and feeds independent Step/MCP heads;
+- the raw GINE graph representation is exactly 512-d and is the sole graph input to Stage 2/3;
 - Step gets a stronger private tower while MCP keeps an independent tower.
 """
 from __future__ import annotations
@@ -73,6 +74,7 @@ class GraphEncoder(nn.Module):
             GINEBlock(hidden, edge_dim, dropout) for _ in range(num_layers)
         ])
         self.node_norm = nn.LayerNorm(hidden)
+        self.attn_pool = nn.Linear(hidden, 1)
         self.out_proj = nn.Sequential(
             nn.Linear(hidden * 3, hidden * 2),
             nn.LayerNorm(hidden * 2),
@@ -95,9 +97,10 @@ class GraphEncoder(nn.Module):
         h = self.forward_nodes(x, edge_index, batch, edge_attr=edge_attr)
         mean_pool = global_mean_pool(h, batch)
         max_pool = global_max_pool(h, batch)
-        # Attention pooling is deliberately simple and context-independent;
-        # context conditioning is applied after node encoding.
-        scores = torch.zeros(h.size(0), device=h.device, dtype=h.dtype)
+        # Learned, context-independent structural attention pooling.  It keeps
+        # Stage 1 free of label-conditioned graph shortcuts while allowing the
+        # GINE encoder to emphasize structurally informative PTT nodes.
+        scores = self.attn_pool(h).squeeze(-1)
         attn = pyg_softmax(scores, batch)
         attn_pool = torch.zeros_like(mean_pool)
         attn_pool.index_add_(0, batch, attn.unsqueeze(-1) * h)
@@ -109,7 +112,7 @@ class SemanticCNNEncoder(nn.Module):
 
     The reference paper uses frozen GPT-2 token-level embeddings followed by
     multiple convolution kernels and global max pooling. We reproduce that
-    design while keeping separate Step and MCP encoders.
+    design with a single shared semantic encoder for the two supervised heads.
     """
 
     def __init__(self, input_dim: int, out_dim: int = SEMANTIC_CNN_DIM,
@@ -131,9 +134,20 @@ class SemanticCNNEncoder(nn.Module):
     def forward(self, token_embs: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
         # token_embs: (B,L,D), mask: (B,L)
         x = token_embs.transpose(1, 2)  # (B,D,L)
+        mask_f = mask.to(dtype=x.dtype).unsqueeze(1)
         pooled = []
         for conv in self.convs:
-            y = F.gelu(conv(x))
+            k = conv.kernel_size[0]
+            # Pad short sequences so every configured kernel is valid.
+            if x.shape[-1] < k:
+                x_conv = F.pad(x, (0, k - x.shape[-1]))
+                m_conv = F.pad(mask_f, (0, k - mask_f.shape[-1]))
+            else:
+                x_conv, m_conv = x, mask_f
+            y = F.gelu(conv(x_conv))
+            # A window is valid only when all of its source tokens are real.
+            valid = F.conv1d(m_conv, x.new_ones(1, 1, k), stride=1).squeeze(1) >= float(k) - 1e-6
+            y = y.masked_fill(~valid.unsqueeze(1), torch.finfo(y.dtype).min)
             pooled.append(y.max(dim=-1).values)
         z = torch.cat(pooled, dim=-1)
         z = self.norm(z)
@@ -157,161 +171,86 @@ class ContextTextProjector(nn.Module):
 
 
 class Stage1Classifier(nn.Module):
-    """Joint semantic + typed-graph Step/MCP classifier.
+    """Stage-1 semantic-CNN + GINE fusion classifier.
 
-    Outputs a 384-d task-conditioned representation for Stage 2/3.
-    Semantic prototypes are fixed-size buffers derived from canonical labels.
+    Contract:
+      New strategy + strategy explanation -> frozen GPT-2 token embeddings
+      -> shared multi-kernel semantic CNN -> semantic representation.
+
+      PTT graph -> typed GINE -> raw 512-d graph representation.
+
+      The semantic and graph representations are fused only inside Stage 1
+      and feed independent Step and MCP supervised heads.  The fused vector
+      is private to Stage 1: Stage 2/3 receive *only* the raw 512-d GINE
+      representation through GraphPrefixAdapter.
     """
 
     def __init__(self, edge_dim: int = EDGE_ATTR_DIM, semantic_input_dim: int = 768):
         super().__init__()
         self.graph_encoder = GraphEncoder(edge_dim=edge_dim)
-        self.context_encoder = ContextTextProjector()
+        self.semantic_cnn = SemanticCNNEncoder(semantic_input_dim)
 
-        self.step_text_cnn = SemanticCNNEncoder(semantic_input_dim)
-        self.mcp_text_cnn = SemanticCNNEncoder(semantic_input_dim)
-
-        self.node_key = nn.Linear(GNN_HIDDEN, GNN_HIDDEN)
-        self.node_value = nn.Linear(GNN_HIDDEN, GNN_HIDDEN)
-        self.ctx_query = nn.Linear(GNN_OUT_DIM, GNN_HIDDEN)
-        self.ctx_gate = nn.Sequential(
-            nn.Linear(GNN_HIDDEN * 2, GNN_HIDDEN),
+        # One shared semantic representation is deliberately used for both
+        # prediction heads.  This matches the intended paper-inspired flow:
+        # strategy + explanation are understood once, then fused with graph.
+        self.semantic_dim = SEMANTIC_CNN_DIM
+        self.graph_dim = GNN_OUT_DIM
+        self.fused_dim = FUSION_HIDDEN
+        self.fusion = nn.Sequential(
+            nn.Linear(self.semantic_dim + self.graph_dim, FUSION_HIDDEN),
+            nn.LayerNorm(FUSION_HIDDEN),
             nn.GELU(),
-            nn.Linear(GNN_HIDDEN, 1),
+            nn.Dropout(0.10),
+            nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN),
+            nn.LayerNorm(FUSION_HIDDEN),
+            nn.GELU(),
+            nn.Dropout(0.06),
         )
-        self.node_attn_norm = nn.LayerNorm(GNN_HIDDEN)
 
-        # Per-task fusion. Step receives semantic tokens + conditioned graph +
-        # global graph; MCP receives its own semantic branch + same conditioned
-        # graph + context projection.
-        step_in = SEMANTIC_CNN_DIM + GNN_HIDDEN + GNN_OUT_DIM
-        mcp_in = SEMANTIC_CNN_DIM + GNN_HIDDEN + GNN_OUT_DIM
-        self.step_fusion = nn.Sequential(
-            nn.Linear(step_in, FUSION_HIDDEN),
-            nn.LayerNorm(FUSION_HIDDEN), nn.GELU(), nn.Dropout(0.10),
+        self.step_head = nn.Sequential(
+            nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN),
+            nn.LayerNorm(FUSION_HIDDEN),
+            nn.GELU(),
+            nn.Dropout(0.08),
+            nn.Linear(FUSION_HIDDEN, len(STEP_LABELS)),
+        )
+        self.mcp_head = nn.Sequential(
             nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN // 2),
-            nn.LayerNorm(FUSION_HIDDEN // 2), nn.GELU(), nn.Dropout(0.06),
+            nn.LayerNorm(FUSION_HIDDEN // 2),
+            nn.GELU(),
+            nn.Dropout(0.06),
+            nn.Linear(FUSION_HIDDEN // 2, len(MCP_LABELS)),
         )
-        self.mcp_fusion = nn.Sequential(
-            nn.Linear(mcp_in, FUSION_HIDDEN),
-            nn.LayerNorm(FUSION_HIDDEN), nn.GELU(), nn.Dropout(0.10),
-            nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN // 2),
-            nn.LayerNorm(FUSION_HIDDEN // 2), nn.GELU(), nn.Dropout(0.06),
-        )
-        fused_dim = FUSION_HIDDEN // 2
-        self.step_tower = nn.Sequential(
-            nn.Linear(fused_dim, fused_dim * 2),
-            nn.LayerNorm(fused_dim * 2), nn.GELU(), nn.Dropout(0.08),
-            nn.Linear(fused_dim * 2, fused_dim),
-            nn.LayerNorm(fused_dim), nn.GELU(), nn.Dropout(0.05),
-            nn.Linear(fused_dim, len(STEP_LABELS)),
-        )
-        self.mcp_tower = nn.Sequential(
-            nn.Linear(fused_dim, fused_dim),
-            nn.LayerNorm(fused_dim), nn.GELU(), nn.Dropout(0.06),
-            nn.Linear(fused_dim, len(MCP_LABELS)),
-        )
-        self.fused_dim = fused_dim
 
-        # Fixed-shape semantic prototype buffers. These are set after loading
-        # canonical Step/MCP label token sequences in stage1_gnn_train.py.
-        proto_tokens = 64
-        proto_dim = semantic_input_dim
-        self.register_buffer("step_proto_tokens", torch.zeros(len(STEP_LABELS), proto_tokens, proto_dim), persistent=True)
-        self.register_buffer("step_proto_mask", torch.zeros(len(STEP_LABELS), proto_tokens, dtype=torch.bool), persistent=True)
-        self.register_buffer("mcp_proto_tokens", torch.zeros(len(MCP_LABELS), proto_tokens, proto_dim), persistent=True)
-        self.register_buffer("mcp_proto_mask", torch.zeros(len(MCP_LABELS), proto_tokens, dtype=torch.bool), persistent=True)
-        self.prototype_scale_step = nn.Parameter(torch.tensor(2.0))
-        self.prototype_scale_mcp = nn.Parameter(torch.tensor(1.0))
-
-    @torch.no_grad()
-    def set_semantic_prototypes(self, step_tokens, step_mask, mcp_tokens, mcp_mask):
-        """Copy fixed-size prototype token tensors into checkpoint buffers."""
-        def _fit(src, rows, cols, dtype):
-            out = torch.zeros(rows, cols, src.shape[-1], dtype=dtype, device=self.step_proto_tokens.device)
-            mask = torch.zeros(rows, cols, dtype=torch.bool, device=self.step_proto_tokens.device)
-            for i in range(min(rows, src.shape[0])):
-                L = min(cols, src.shape[1])
-                out[i, :L] = src[i, :L].to(out.dtype)
-                mask[i, :L] = True
-            return out, mask
-        s, sm = _fit(step_tokens, len(STEP_LABELS), self.step_proto_tokens.shape[1], self.step_proto_tokens.dtype)
-        m, mm = _fit(mcp_tokens, len(MCP_LABELS), self.mcp_proto_tokens.shape[1], self.mcp_proto_tokens.dtype)
-        self.step_proto_tokens.copy_(s)
-        self.step_proto_mask.copy_(sm)
-        self.mcp_proto_tokens.copy_(m)
-        self.mcp_proto_mask.copy_(mm)
-
-    def _condition_graph_on_context(self, node_h, batch, context):
-        q = self.ctx_query(context)
-        k = self.node_key(node_h)
-        v = self.node_value(node_h)
-        qn = q[batch]
-        scores = (k * qn).sum(dim=-1) / (k.shape[-1] ** 0.5)
-        scores = scores + self.ctx_gate(torch.cat([k, qn], dim=-1)).squeeze(-1)
-        weights = pyg_softmax(scores, batch)
-        pooled = torch.zeros(q.shape[0], v.shape[-1], device=v.device, dtype=v.dtype)
-        pooled.index_add_(0, batch, weights.unsqueeze(-1) * v)
-        return self.node_attn_norm(pooled + q)
-
-    def _prototype_logits(self, query, cnn, proto_tokens, proto_mask, scale):
-        if proto_tokens.numel() == 0:
-            return query.new_zeros((query.shape[0], 0))
-        n = proto_tokens.shape[0]
-        expanded = proto_tokens.to(query.device)
-        pm = proto_mask.to(query.device)
-        proto_repr = cnn(expanded, pm)
-        qn = F.normalize(query, dim=-1)
-        pn = F.normalize(proto_repr, dim=-1)
-        return torch.clamp(scale, min=0.05, max=10.0) * (qn @ pn.transpose(0, 1))
-
-    def encode_and_predict(self, x, edge_index, batch, field_embs,
+    def encode_and_predict(self, x, edge_index, batch, field_embs=None,
                            semantic_tokens=None, semantic_mask=None, edge_attr=None):
         if semantic_tokens is None or semantic_mask is None:
-            # Stage 2/3 compatibility fallback: construct a short semantic
-            # sequence from the two BGE field embeddings.
-            semantic_tokens = field_embs.new_zeros((field_embs.shape[0], 5, field_embs.shape[-1]))
-            semantic_tokens[:, 0:2, :] = field_embs
-            semantic_tokens[:, 2:, :] = field_embs[:, 1:2, :].expand(-1, 3, -1)
-            semantic_mask = torch.ones(field_embs.shape[0], 5, dtype=torch.bool, device=field_embs.device)
+            raise ValueError(
+                "Stage 1 requires semantic_tokens and semantic_mask built from "
+                "New strategy + Strategy explanation."
+            )
 
-        node_h = self.graph_encoder.forward_nodes(x, edge_index, batch, edge_attr=edge_attr)
-        g = self.graph_encoder(x, edge_index, batch, edge_attr=edge_attr)
-        c = self.context_encoder(field_embs)
-        graph_ctx = self._condition_graph_on_context(node_h, batch, c)
-        step_text = self.step_text_cnn(semantic_tokens, semantic_mask)
-        mcp_text = self.mcp_text_cnn(semantic_tokens, semantic_mask)
+        # Semantic path: strategy + explanation -> frozen GPT-2 features -> CNN.
+        semantic_h = self.semantic_cnn(semantic_tokens, semantic_mask)
 
-        step_h = self.step_fusion(torch.cat([step_text, graph_ctx, g], dim=-1))
-        mcp_h = self.mcp_fusion(torch.cat([mcp_text, graph_ctx, c], dim=-1))
-        step_logits = self.step_tower(step_h)
-        mcp_logits = self.mcp_tower(mcp_h)
-
-        # Semantic prototype scores provide an explicit label-semantic signal.
-        # They are added as a residual logit term rather than replacing the
-        # supervised classifier, keeping the system robust to label wording.
-        proto_step = self._prototype_logits(
-            step_text, self.step_text_cnn, self.step_proto_tokens,
-            self.step_proto_mask, self.prototype_scale_step,
+        # Graph path: PTT -> typed GINE -> exactly 512-d.  This raw graph
+        # embedding is the only graph representation exposed downstream.
+        graph_h = self.graph_encoder(
+            x, edge_index, batch, edge_attr=edge_attr
         )
-        proto_mcp = self._prototype_logits(
-            mcp_text, self.mcp_text_cnn, self.mcp_proto_tokens,
-            self.mcp_proto_mask, self.prototype_scale_mcp,
-        )
-        if proto_step.shape[-1] == step_logits.shape[-1]:
-            step_logits = step_logits + proto_step
-        if proto_mcp.shape[-1] == mcp_logits.shape[-1]:
-            mcp_logits = mcp_logits + proto_mcp
+        if graph_h.shape[-1] != GNN_OUT_DIM:
+            raise RuntimeError(
+                f"Stage-1 GINE must produce {GNN_OUT_DIM} dims, got {graph_h.shape[-1]}"
+            )
 
-        # Exactly 384 dims when FUSION_HIDDEN=768, preserving the Stage-2/3
-        # graph-prefix interface.
-        h = torch.cat([
-            step_h[:, :self.fused_dim // 2],
-            mcp_h[:, :self.fused_dim // 2],
-        ], dim=-1)
-        return h, step_logits, mcp_logits
+        # Private Stage-1 fusion. Never pass this fused representation to the
+        # Stage-2/3 prefix adapter.
+        fused_h = self.fusion(torch.cat([semantic_h, graph_h], dim=-1))
+        step_logits = self.step_head(fused_h)
+        mcp_logits = self.mcp_head(fused_h)
+        return fused_h, step_logits, mcp_logits
 
-    def forward(self, x, edge_index, batch, field_embs,
+    def forward(self, x, edge_index, batch, field_embs=None,
                 semantic_tokens=None, semantic_mask=None, edge_attr=None):
         h, step_logits, mcp_logits = self.encode_and_predict(
             x, edge_index, batch, field_embs,
@@ -352,3 +291,4 @@ class Stage1Classifier(nn.Module):
         mcp_loss = bce.mean()
         total = step_w * step_loss + mcp_w * mcp_loss
         return total, step_loss.detach(), mcp_loss.detach()
+

@@ -3,10 +3,11 @@
 Input:  machine graph + New strategy + Strategy explanation
 Outputs: next Step (single label) + MCP tools (multi-label).
 
-This revision keeps the same data split and downstream checkpoint interface,
-but upgrades the representation learner to a data-efficient typed GINE encoder
-with GraphNorm, shallow global attention, structural features, and
-context-conditioned node pooling.
+Final Stage-1 contract: New strategy + strategy explanation are encoded by a
+frozen GPT-2 semantic CNN; the PTT graph is encoded by typed GINE to a raw
+512-d graph representation; the two representations are fused privately for
+independent Step and MCP supervised heads. The raw 512-d GINE vector is the
+only graph representation exposed to Stage 2/3.
 """
 from __future__ import annotations
 
@@ -36,7 +37,7 @@ from config import (
     STAGE1_SUPCON_WEIGHT, STAGE1_HARD_NEGATIVE_MARGIN, STAGE1_USE_STEP_CLASS_WEIGHTS, STAGE2_VAL_SPLIT,
     SEMANTIC_LM_NAME, SEMANTIC_MAX_TOKENS, SEMANTIC_LM_DIM, SEMANTIC_PROTOTYPE_TOKENS,
 )
-from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS, precompute_semantic_tokens
+from data_utils import load_from_input_json, precompute_semantic_tokens
 from graph_encoder import Stage1Classifier
 from mcp_threshold_search import search_per_class_thresholds
 
@@ -51,8 +52,9 @@ class Stage1Dataset(Dataset):
     def __init__(self, json_path, split="train"):
         self.examples = load_from_input_json(json_path, split)
         for ex in self.examples:
-            texts = [ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]
-            ex["field_embs"] = _embed_texts(texts)
+            # Stage 1 semantic input is exactly the two allowed context fields.
+            texts = [ex["context"].get("New strategy", "") or "empty",
+                     ex["context"].get("Strategy explanation", "") or "empty"]
             ex["semantic_text"] = f"{texts[0]} {texts[1]}"
         precompute_semantic_tokens(self.examples, model_name=SEMANTIC_LM_NAME, max_tokens=SEMANTIC_MAX_TOKENS, device="cuda" if torch.cuda.is_available() else "cpu")
 
@@ -63,7 +65,6 @@ class Stage1Dataset(Dataset):
         ex = self.examples[idx]
         return {
             "graph": ex["graph"],
-            "field_embs": torch.tensor(ex["field_embs"], dtype=torch.float32),
             "step_idx": torch.tensor(ex["step_idx"], dtype=torch.long),
             "mcp_vec": torch.tensor(ex["mcp_vec"], dtype=torch.float32),
             "semantic_tokens": ex["semantic_tokens"],
@@ -82,7 +83,6 @@ def collate(items):
         sem[i, :L] = t
         mask[i, :L] = True
     return (graphs,
-            torch.stack([b["field_embs"] for b in items]),
             torch.stack([b["step_idx"] for b in items]),
             torch.stack([b["mcp_vec"] for b in items]),
             sem, mask)
@@ -95,16 +95,15 @@ def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=
     csv_rows = []
     global_idx = 0
     with torch.no_grad():
-        for graphs, field_embs, step_idx, mcp_vec, sem_tokens, sem_mask in loader:
+        for graphs, step_idx, mcp_vec, sem_tokens, sem_mask in loader:
             graphs = graphs.to(device)
-            field_embs = field_embs.to(device)
             step_idx = step_idx.to(device)
             mcp_vec = mcp_vec.to(device)
             sem_tokens = sem_tokens.to(device)
             sem_mask = sem_mask.to(device)
             edge_attr = getattr(graphs, "edge_attr", None)
             step_logits, mcp_logits, _ = model(
-                graphs.x, graphs.edge_index, graphs.batch, field_embs,
+                graphs.x, graphs.edge_index, graphs.batch,
                 semantic_tokens=sem_tokens, semantic_mask=sem_mask, edge_attr=edge_attr
             )
             sp = step_logits.argmax(-1).cpu().numpy()
@@ -290,16 +289,15 @@ def main():
         model.train()
         total_loss = step_run = mcp_run = con_run = hn_run = 0.0
         n_batches = 0
-        for graphs, field_embs, step_idx, mcp_vec, sem_tokens, sem_mask in train_loader:
+        for graphs, step_idx, mcp_vec, sem_tokens, sem_mask in train_loader:
             graphs = graphs.to(device)
-            field_embs = field_embs.to(device)
             step_idx = step_idx.to(device)
             mcp_vec = mcp_vec.to(device)
             sem_tokens = sem_tokens.to(device)
             sem_mask = sem_mask.to(device)
             edge_attr = getattr(graphs, "edge_attr", None)
             step_logits, mcp_logits, fused_h = model(
-                graphs.x, graphs.edge_index, graphs.batch, field_embs,
+                graphs.x, graphs.edge_index, graphs.batch,
                 semantic_tokens=sem_tokens, semantic_mask=sem_mask, edge_attr=edge_attr
             )
             base, step_l, mcp_l = model.loss(
@@ -320,9 +318,10 @@ def main():
             hn_run += float(hn.item()); con_run += float(con.item()); n_batches += 1
 
         val_metrics = evaluate(model, val_loader, device)
-        score = (0.60 * val_metrics["step_accuracy"]
-                 + 0.30 * val_metrics["mcp_micro_f1"]
-                 + 0.10 * val_metrics["step_macro_f1"])
+        # Stage-1 checkpoint selection gives equal priority to the two actual
+        # supervised objectives: Step and MCP. Macro-F1 remains diagnostic.
+        score = (0.50 * val_metrics["step_accuracy"]
+                 + 0.50 * val_metrics["mcp_micro_f1"])
         train_losses.append(total_loss / max(1, n_batches)); val_scores.append(score)
         lr = sched.get_last_lr()[0]
         print(
@@ -339,7 +338,7 @@ def main():
             torch.save({
                 "model_state_dict": model.state_dict(), "best_epoch": best_epoch,
                 "best_score": best_score, "train_losses": train_losses, "val_scores": val_scores,
-                "architecture": "paper_semantic_cnn_plus_typed_gine_v1",
+                "architecture": "paper_semantic_cnn_plus_typed_gine_fusion_v2",
             }, STAGE1_CKPT)
             print(f"  -> saved best checkpoint to {STAGE1_CKPT}")
         else:

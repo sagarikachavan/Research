@@ -168,9 +168,9 @@ STAGE2_WARMUP_RATIO = 0.05       # Short warmup for the compact bridge stage
 STAGE2_WEIGHT_DECAY = 1e-4
 
 STAGE3_GROUP_SIZE = 8            # Reduced to avoid CUDA OOM
-STAGE3_LR = 8e-7                # Optimized for GRPO with enhanced reward
-STAGE3_STEPS = 1600              # Increased for better convergence
-STAGE3_KL_COEF = 0.02            # Increased for better stability
+STAGE3_LR = 1e-7                # Optimized for GRPO with enhanced reward
+STAGE3_STEPS = 600              # Increased for better convergence
+STAGE3_KL_COEF = 0.08            # Increased for better stability
 STAGE3_PPO_CLIP = 0.2            # Standard PPO clipping
 STAGE3_GRAD_ACCUM = 4
 STAGE3_GRAD_CLIP = 1.0
@@ -213,7 +213,7 @@ STAGE3_KL_HARD_CAP = 4.0         # Per-MICRO-BATCH mean-KL cap (not per-window
                                   # very large value) if it's still discarding a
                                   # meaningful fraction of micro-batches on your
                                   # data.
-STAGE3_EARLY_STOP_PATIENCE = 3   # Stop the run after this many consecutive
+STAGE3_EARLY_STOP_PATIENCE = 2   # Stop the run after this many consecutive
                                   # held-out evals (every EVAL_EVERY=200 steps)
                                   # with no new best checkpoint. Deliberately
                                   # NOT implemented by shrinking STAGE3_STEPS —

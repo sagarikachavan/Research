@@ -107,7 +107,7 @@ from config import (
 )
 from data_utils import load_from_input_json, _embed_texts, StepLabelNormalizer, extract_mcp_labels
 from graph_encoder import Stage1Classifier
-from stage2_sft_qwen import GraphPrefixAdapter, build_prompt, SYSTEM_PROMPT, build_obj_parser
+from stage2_sft_qwen import GraphPrefixAdapter, build_prompt, SYSTEM_PROMPT, build_obj_parser, GRAPH_PREFIX_SRC_DIM
 
 random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
@@ -334,107 +334,80 @@ def _mcp_label_weights() -> dict:
     return _MCP_WEIGHT_CACHE
 
 
-def compute_reward_curriculum(completion: str, gold: dict, step_num: int,
-                              total_steps: int = 2000) -> float:
+def _deterministic_explanation_score(pred_expl: str, gold_expl: str,
+                                      pred_step: str = "", gold_step: str = "",
+                                      pred_mcp: set[str] | None = None,
+                                      gold_mcp: set[str] | None = None) -> float:
+    """Cheap, reference-aware explanation reward for RL.
+
+    Uses semantic sentence embeddings when available plus bounded technical
+    consistency checks. It is deliberately not the LLM judge used at test
+    time, preventing a noisy evaluator from becoming the optimization target.
     """
-    Enhanced curriculum learning reward function based on research from
-    "Curriculum Reinforcement Learning for Complex Reward Functions" and
-    "Decoupling Task and Behavior: A Two-Stage Reward Curriculum".
-
-    Three-stage curriculum with smooth transitions:
-    1. Foundation (0-25%): Format + basic step classification
-    2. Integration (25-50%): Add MCP tools with increasing complexity
-    3. Refinement (50-100%): Full reward with explanation quality emphasis
-
-    Args:
-        completion: Generated completion text
-        gold: Gold standard dict with step_label, mcp_labels, gold_step_explanation
-        step_num: Current training step number
-        total_steps: Total training steps (default 2000)
-    """
-    # Enhanced curriculum with smooth transitions
-    progress = step_num / max(1, total_steps)
-    
-    if progress < 0.25:
-        # Foundation stage: master format and step classification
-        w_fmt, w_step, w_mcp, w_exp = 0.25, 0.55, 0.15, 0.05
-    elif progress < 0.50:
-        # Integration stage: gradually introduce MCP tools
-        # Linear interpolation between foundation and integration weights
-        t = (progress - 0.25) / 0.25  # 0 to 1
-        w_fmt = 0.25 * (1 - t) + 0.15 * t
-        w_step = 0.55 * (1 - t) + 0.35 * t
-        w_mcp = 0.15 * (1 - t) + 0.30 * t
-        w_exp = 0.05 * (1 - t) + 0.20 * t
-    else:
-        # Refinement stage: full reward with explanation emphasis
-        # Continue gradual shift toward explanation quality
-        t = min(1.0, (progress - 0.50) / 0.50)  # 0 to 1
-        w_fmt = 0.15 * (1 - t) + 0.10 * t
-        w_step = 0.35 * (1 - t) + 0.25 * t
-        w_mcp = 0.30 * (1 - t) + 0.25 * t
-        w_exp = 0.20 * (1 - t) + 0.40 * t
-
-    return compute_reward(completion, gold, w_fmt=w_fmt, w_step=w_step, w_mcp=w_mcp, w_exp=w_exp)
-
-
-def _deterministic_explanation_score(pred_expl: str, pred_step: str, pred_mcp: set[str]) -> float:
-    """Low-noise explanation reward used during RL; LLM judge is eval-only."""
-    text = str(pred_expl or "").strip().lower()
-    if not text:
+    from difflib import SequenceMatcher
+    pred = str(pred_expl or "").strip()
+    gold = str(gold_expl or "").strip()
+    if not pred or not gold:
         return 0.0
-    score = 0.35
-    n = len(text)
-    if 40 <= n <= 350:
-        score += 0.20
-    elif n >= 20:
-        score += 0.10
-    if pred_step and pred_step.lower() in text:
-        score += 0.20
-    evidence_terms = ("port", "service", "version", "directory", "file", "vulnerability",
-                      "credential", "authentication", "shell", "exploit", "enumerat", "scan")
-    hits = sum(1 for t in evidence_terms if t in text)
-    score += min(0.15, 0.03 * hits)
-    if pred_mcp and any(tool.lower() in text for tool in pred_mcp):
-        score += 0.10
-    return float(max(0.0, min(1.0, score)))
+    # lexical fallback is always available
+    lexical = SequenceMatcher(None, pred.lower(), gold.lower()).ratio()
+    # Reuse the project's BGE encoder if available; this is frozen and cheap
+    # relative to Qwen.
+    semantic = lexical
+    try:
+        emb = _embed_texts([pred, gold])
+        a, b = emb[0], emb[1]
+        denom = (np.linalg.norm(a) * np.linalg.norm(b))
+        if denom > 0:
+            semantic = float(np.dot(a, b) / denom)
+            semantic = max(0.0, min(1.0, (semantic + 1.0) / 2.0))
+    except Exception:
+        pass
+    # Technical consistency gates: the explanation should support the
+    # selected step/tools rather than merely resemble the reference.
+    text = pred.lower()
+    step_support = 1.0 if pred_step and any(tok in text for tok in pred_step.lower().split()[:4]) else 0.5
+    pred_mcp = pred_mcp or set()
+    gold_mcp = gold_mcp or set()
+    tool_support = (len(pred_mcp & gold_mcp) / len(gold_mcp)) if gold_mcp else (1.0 if not pred_mcp else 0.5)
+    # Semantic similarity is primary; technical support is a bounded modifier.
+    return float(max(0.0, min(1.0, 0.60 * semantic + 0.20 * lexical + 0.10 * step_support + 0.10 * tool_support)))
 
 
 def compute_reward(completion: str, gold: dict,
-                   w_fmt: float = 0.05,
-                   w_step: float = 0.65,
-                   w_mcp: float = 0.30,
-                   w_exp: float = 0.0,
+                   w_fmt: float = 0.01,
+                   w_step: float = 0.33,
+                   w_mcp: float = 0.33,
+                   w_exp: float = 0.33,
                    return_components: bool = False):
-    """Task-aligned dense reward for GRPO.
+    """Equal-objective reward: Step, MCP, and explanation dominate.
 
-    Primary signals intentionally match the final research metrics:
-      - exact canonical Step match
-      - unweighted MCP set Jaccard
-      - lightweight explanation quality
-    The LLM judge is reserved for evaluation/model reporting, not the RL
-    objective, so the policy is not incentivized to optimize a noisy judge.
+    Raw component scales are intentionally kept in [0,1]. Stage-3 group
+    advantages are normalized per objective (GDPO-style decoupled
+    normalization) before the policy update, so a numerically noisy objective
+    cannot dominate the other two.
     """
     obj = _parse_completion(completion)
     if obj is None or not all(k in obj for k in ("New step", "Step explanation", "MCP_tasks")):
-        partial = 0.0
-        if obj is not None:
-            partial = sum(1 for k in ("New step", "Step explanation", "MCP_tasks") if k in obj) / 3.0
-        total = w_fmt * partial
-        out = {"total": total, "fmt": partial, "step": 0.0, "mcp": 0.0, "exp": 0.0}
-        return out if return_components else total
+        partial = 0.0 if obj is None else sum(k in obj for k in ("New step","Step explanation","MCP_tasks")) / 3.0
+        out = {"total": w_fmt * partial, "fmt": partial, "step": 0.0, "mcp": 0.0, "exp": 0.0}
+        return out if return_components else out["total"]
 
     pred_step = str(obj.get("New step", "")).strip()
     gold_step = str(gold["step_label"]).strip()
     step_r = 1.0 if _step_normalizer.normalize(pred_step) == gold_step else 0.0
 
     mcp_val = obj.get("MCP_tasks", {})
-    pred_mcp = set(extract_mcp_labels(str(mcp_val))) if isinstance(mcp_val, dict) and mcp_val else set()
+    pred_mcp = set(extract_mcp_labels(str(mcp_val))) if isinstance(mcp_val, dict) else set()
     gold_mcp = set(gold["mcp_labels"])
     union = pred_mcp | gold_mcp
-    mcp_r = (len(pred_mcp & gold_mcp) / len(union)) if union else 1.0
+    inter = pred_mcp & gold_mcp
+    mcp_r = (len(inter) / len(union)) if union else 1.0
 
-    exp_r = _deterministic_explanation_score(str(obj.get("Step explanation", "")), pred_step, pred_mcp)
+    exp_r = _deterministic_explanation_score(
+        str(obj.get("Step explanation", "")), gold.get("gold_step_explanation", ""),
+        pred_step, gold_step, pred_mcp, gold_mcp
+    )
     fmt_r = 1.0
     total = w_fmt * fmt_r + w_step * step_r + w_mcp * mcp_r + w_exp * exp_r
     out = {"total": total, "fmt": fmt_r, "step": step_r, "mcp": mcp_r, "exp": exp_r}
@@ -443,7 +416,7 @@ def compute_reward(completion: str, gold: dict,
 
 def compute_reward_curriculum(completion: str, gold: dict, step_num: int,
                               total_steps: int = 2000, return_components: bool = False):
-    """Stable task-aligned reward; no changing weights during RL."""
+    # No curriculum weighting: all three research objectives remain equally important.
     return compute_reward(completion, gold, return_components=return_components)
 
 
@@ -452,49 +425,32 @@ def compute_reward_curriculum(completion: str, gold: dict, step_num: int,
 # ---------------------------------------------------------------------------
 
 def build_prefix_embeds(ex, stage1, adapter, device, dtype):
+    """Build exactly the Stage-2 graph-prefix input from the frozen GINE.
+
+    Contract:
+      PTT graph -> frozen Stage-1 GINE -> 512-d graph embedding
+      -> frozen Stage-2 GraphPrefixAdapter -> 8 Qwen soft tokens.
+
+    The Stage-1 checkpoint itself is never passed to the adapter, and no
+    Stage-1 classifier/fusion logits are used as a shortcut.
     """
-    Build the exact fused Stage-1 representation used to train the Stage-2
-    GraphPrefixAdapter, then project it into graph-prefix soft tokens.
-
-    Stage 2 was trained with GRAPH_PREFIX_SRC_DIM = FUSION_HIDDEN // 2
-    (384-dim for the current model). The old Stage-3 implementation incorrectly
-    fed the raw 512-dim graph embedding into that adapter.
-
-    The current Stage-1 classifier's encode_and_predict() is intentionally used
-    here so Stage 3 sees the same graph + strategy-conditioned representation
-    that Stage 2 saw. When semantic token tensors are unavailable, Stage-1's
-    built-in compatibility fallback derives a short semantic sequence from the
-    two BGE field embeddings.
-    """
-    graph = ex["graph"]
-    batch = PyGBatch.from_data_list([graph]).to(device)
-
-    texts = [ex["context"].get(c, "") or "empty" for c in ("New strategy", "Strategy explanation")]
-    field_embs = torch.tensor(_embed_texts(texts), dtype=torch.float32, device=device).unsqueeze(0)
-
+    from torch_geometric.data import Batch as PyGBatch
+    graph = PyGBatch.from_data_list([ex["graph"]]).to(device)
     with torch.no_grad():
-        edge_attr = getattr(batch, 'edge_attr', None)
-        fused_h, _, _ = stage1.encode_and_predict(
-            batch.x, batch.edge_index, batch.batch, field_embs, edge_attr=edge_attr
-        )  # (1, 384) with current FUSION_HIDDEN=768
-
-    src_dim = fused_h.shape[-1]
-    expected_dim = adapter.proj[0].in_features
-    if src_dim != expected_dim:
-        raise RuntimeError(
-            f"Stage-3 graph-prefix dimension mismatch: Stage-1 produced {src_dim} dims, "
-            f"but the Stage-2 GraphPrefixAdapter expects {expected_dim}. "
-            f"The Stage-1 checkpoint, Stage-2 adapter, and Stage-3 code must come from the same interface version."
+        edge_attr = getattr(graph, "edge_attr", None)
+        graph_emb = stage1.graph_encoder(
+            graph.x, graph.edge_index, graph.batch, edge_attr=edge_attr
         )
-
-    # Stage-2 GraphPrefixAdapter is stored/trained in FP32, while the Qwen
-    # policy and Stage-1 checkpoint may run in BF16.  Feed the adapter FP32
-    # input, then cast its soft-prefix output back to the policy dtype.
-    # This avoids mat1/mat2 dtype mismatches without changing the learned
-    # Stage-2 adapter weights.
-    prefix = adapter(fused_h.float())  # (1, n_tokens, H), adapter runs in FP32
-    prefix = prefix.to(dtype=dtype)     # Qwen consumes BF16/FP16 embeddings
-    return prefix  # kept on device
+    if graph_emb.shape[-1] != GNN_OUT_DIM:
+        raise RuntimeError(
+            f"Stage-1 GINE must produce {GNN_OUT_DIM} dims, got {graph_emb.shape[-1]}"
+        )
+    expected_dim = adapter.proj[0].in_features
+    if expected_dim != GNN_OUT_DIM:
+        raise RuntimeError(
+            f"GraphPrefixAdapter expects {expected_dim} dims; expected raw GINE {GNN_OUT_DIM}."
+        )
+    return adapter(graph_emb.float()).to(dtype)
 
 
 def build_prompt_embeds(prompt_text: str, tokenizer, embed_layer, prefix_embeds, device, dtype):
@@ -737,12 +693,14 @@ def main():
 
     This version therefore:
       * starts exactly from Stage 2;
-      * keeps the Stage-1 fused-384 -> prefix interface unchanged;
+      * consumes the Stage-1 raw 512-d GINE representation through the frozen
+        graph-prefix adapter; the private Stage-1 fusion/classifiers never enter RL;
       * freezes the graph-prefix adapter by default;
       * uses the actual GRPO group-relative advantage;
       * uses rollout-policy log-probabilities for the PPO ratio;
-      * uses a task-aligned reward: 75% exact Step + 20% MCP Jaccard + 5%
-        format, with NO LLM-judge/explanation reward during RL;
+      * uses an equal-objective reward: 33% Step + 33% MCP Jaccard + 33%
+        explanation + 1% format; the optimization-time explanation reward is
+        deterministic/reference-aware rather than the test-time LLM judge;
       * adds a small supervised Stage-2 target anchor to prevent reward drift;
       * rejects near-zero-variance groups instead of learning from noise;
       * evaluates the FULL 239-example machine-held-out validation set;
@@ -765,7 +723,7 @@ def main():
     EVAL_EVERY = int(os.environ.get("STAGE3_SAFE_EVAL_EVERY", "200"))
     VAL_MAX = int(os.environ.get("STAGE3_SAFE_VAL_MAX", "239"))
     MAX_NEW_TOKENS = int(os.environ.get("STAGE3_SAFE_MAX_NEW_TOKENS", "260"))
-    TRAIN_ADAPTER = os.environ.get("STAGE3_TRAIN_ADAPTER", "0") == "1"
+    TRAIN_ADAPTER = False  # Research contract: Stage-2 GraphPrefixAdapter is frozen throughout Stage 3.
     SFT_ANCHOR = float(os.environ.get("STAGE3_SFT_ANCHOR", "0.20"))
 
     print(f"[Stage 3] Training input : {INPUT_TRAIN_JSON}")
@@ -821,17 +779,15 @@ def main():
         p.requires_grad_(False)
 
     # ------------------------- Prefix adapter ---------------------------
-    from stage2_sft_qwen import GRAPH_PREFIX_SRC_DIM
     llm_hidden = policy.config.hidden_size
     adapter = GraphPrefixAdapter(GRAPH_PREFIX_SRC_DIM, llm_hidden).to(device).float()
     adapter_ckpt = os.path.join(STAGE2_ADAPTER_DIR, "graph_adapter.pt")
     if not os.path.isfile(adapter_ckpt):
         raise FileNotFoundError(f"Stage-2 graph adapter not found: {adapter_ckpt}")
     adapter.load_state_dict(torch.load(adapter_ckpt, map_location=device, weights_only=False))
-    adapter.eval() if not TRAIN_ADAPTER else adapter.train()
-    if not TRAIN_ADAPTER:
-        for p in adapter.parameters():
-            p.requires_grad_(False)
+    adapter.eval()
+    for p in adapter.parameters():
+        p.requires_grad_(False)
     print(f"[Stage 3] GraphPrefixAdapter source dim: {GRAPH_PREFIX_SRC_DIM}")
     print("[Stage 3] ✓ Loaded Stage-2 GraphPrefixAdapter")
 
@@ -887,12 +843,15 @@ def main():
     )
     baseline_step = float(baseline["step_exact"])
     baseline_mcp = float(baseline["mcp_jaccard"])
-    baseline_score = 0.65 * baseline_step + 0.35 * baseline_mcp
-    print(f"[Stage 3] Stage-2 baseline: task={baseline_score:.4f} | step={baseline_step:.4f} | mcpJ={baseline_mcp:.4f}")
+    baseline_exp = float(baseline["exp"])
+    baseline_score = (baseline_step + baseline_mcp + baseline_exp) / 3.0
+    print(f"[Stage 3] Stage-2 baseline: task={baseline_score:.4f} | "
+          f"step={baseline_step:.4f} | mcpJ={baseline_mcp:.4f} | exp={baseline_exp:.4f}")
 
     best_score = baseline_score
     best_step_metric = baseline_step
     best_mcp_metric = baseline_mcp
+    best_exp_metric = baseline_exp
     best_step = 0
     no_improve = 0
 
@@ -964,7 +923,7 @@ def main():
                    for i in range(gen_out.shape[0])]
             texts = [tokenizer.decode(x, skip_special_tokens=True).strip() for x in ids]
             rs = np.asarray([
-                float(compute_reward(t, gold, w_fmt=0.05, w_step=0.75, w_mcp=0.20, w_exp=0.0))
+                float(compute_reward(t, gold))
                 for t in texts
             ], dtype=np.float32)
             chosen_ids, chosen_text, rewards_np = ids, texts, rs
@@ -981,11 +940,22 @@ def main():
             continue
         consecutive_zero_var = 0
 
-        rewards = torch.tensor(rewards_np, dtype=torch.float32, device=device)
-        mean_r = rewards.mean()
-        std_r = rewards.std(unbiased=False)
-        advantages = (rewards - mean_r) / std_r.clamp_min(1e-6)
+        # GDPO-style decoupled normalization: normalize Step, MCP and
+        # explanation rewards independently inside each rollout group, then
+        # average their standardized advantages with equal importance.
+        component_rows = [compute_reward(t, gold, return_components=True) for t in chosen_text]
+        comp_adv = []
+        for key in ("step", "mcp", "exp"):
+            vals = torch.tensor([float(r[key]) for r in component_rows],
+                                dtype=torch.float32, device=device)
+            mu = vals.mean()
+            sd = vals.std(unbiased=False)
+            z = torch.zeros_like(vals) if float(sd) < 1e-6 else (vals - mu) / (sd + 1e-8)
+            comp_adv.append(z)
+        advantages = (comp_adv[0] + comp_adv[1] + comp_adv[2]) / 3.0
         advantages = advantages.clamp(-3.0, 3.0)
+        rewards = torch.tensor([float(r["total"]) for r in component_rows],
+                               dtype=torch.float32, device=device)
 
         # Rollout-policy log-probability is the PPO/GRPO denominator.  This is
         # computed BEFORE the backward pass and detached from the graph.
@@ -1002,8 +972,6 @@ def main():
                 old_lps.append(lp / max(1, int(ids.numel())))
 
         policy.train()
-        if TRAIN_ADAPTER:
-            adapter.train()
 
         loss_sum = torch.zeros((), device=device)
         kl_sum = 0.0
@@ -1098,19 +1066,22 @@ def main():
             )
             val_step = float(val["step_exact"])
             val_mcp = float(val["mcp_jaccard"])
-            val_score = 0.65 * val_step + 0.35 * val_mcp
+            val_exp = float(val["exp"])
+            val_score = (val_step + val_mcp + val_exp) / 3.0
 
-            # Promotion is deliberately strict.  Stage 3 is not allowed to
-            # trade away MCP for Step or vice versa.  Require a real margin,
-            # not a one-example/noise improvement.
-            step_ok = val_step >= baseline_step + 0.002
-            mcp_ok = val_mcp >= baseline_mcp - 0.002
+            # Equal-objective promotion: explanation, Step and MCP all matter.
+            # RL may only replace Stage 2 when the aggregate improves and no
+            # objective suffers a material regression versus the Stage-2 anchor.
+            step_ok = val_step >= baseline_step - 0.01
+            mcp_ok = val_mcp >= baseline_mcp - 0.01
+            exp_ok = val_exp >= baseline_exp - 0.01
             better = val_score >= best_score + 0.002
             flag = ""
-            if step_ok and mcp_ok and better:
+            if step_ok and mcp_ok and exp_ok and better:
                 best_score = val_score
                 best_step_metric = val_step
                 best_mcp_metric = val_mcp
+                best_exp_metric = val_exp
                 best_step = step
                 _save_policy_snapshot(policy, adapter, nn.Identity(), tokenizer, BEST_DIR)
                 no_improve = 0
@@ -1120,8 +1091,8 @@ def main():
 
             print(
                 f"[Stage 3] step {step:4d} | val task={val_score:.4f} "
-                f"(step={val_step:.4f}, mcpJ={val_mcp:.4f}) | "
-                f"baseline={baseline_score:.4f} (step={baseline_step:.4f}, mcpJ={baseline_mcp:.4f}) | "
+                f"(step={val_step:.4f}, mcpJ={val_mcp:.4f}, exp={val_exp:.4f}) | "
+                f"baseline={baseline_score:.4f} (step={baseline_step:.4f}, mcpJ={baseline_mcp:.4f}, exp={baseline_exp:.4f}) | "
                 f"best={best_score:.4f} @ {best_step}{flag}"
             )
 
@@ -1136,7 +1107,7 @@ def main():
 
     print("\n" + "=" * 72)
     print("[Stage 3] FINAL MODEL SELECTION")
-    print(f"  Stage-2 full-val task : {baseline_score:.4f} (step={baseline_step:.4f}, mcpJ={baseline_mcp:.4f})")
+    print(f"  Stage-2 full-val task : {baseline_score:.4f} (step={baseline_step:.4f}, mcpJ={baseline_mcp:.4f}, exp={baseline_exp:.4f})")
     print(f"  Best RL full-val task : {best_score:.4f} (step={best_step_metric:.4f}, mcpJ={best_mcp_metric:.4f}, step={best_step})")
     print(f"  RL optimizer updates  : {applied}")
     print(f"  KL-skipped updates    : {kl_skipped}")
