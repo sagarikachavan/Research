@@ -47,8 +47,15 @@ from config import (
     STAGE2_VAL_SPLIT, STAGE2_EARLY_STOP_PATIENCE, STAGE2_GRAD_CLIP, STAGE2_WARMUP_RATIO,
     STAGE1_CKPT, STAGE2_ADAPTER_DIR,
     RANDOM_SEED, STEP_LABELS, MCP_LABELS, IDX2STEP, IDX2MCP, ROOT,
-    GRAPH_PREFIX_SRC_DIM,
 )
+
+# Dimensionality of the representation handed to GraphPrefixAdapter.
+# Was GNN_OUT_DIM (raw pooled graph embedding); now the fused,
+# classification-calibrated representation from Stage1Classifier.encode_and_predict
+# (see graph_encoder.py). Kept as a module constant so stage3_grpo_rl.py and
+# evaluate.py can import it and stay dimensionally consistent with whatever
+# checkpoint this file produces.
+GRAPH_PREFIX_SRC_DIM = FUSION_HIDDEN // 2
 from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS, StepLabelNormalizer, extract_mcp_labels
 from graph_encoder import Stage1Classifier
 
@@ -65,48 +72,24 @@ if torch.cuda.is_available():
 
 SYSTEM_PROMPT = (
     "You are an autonomous penetration-testing planning assistant operating "
-    "strictly within an authorized lab environment. Your task is to analyze "
-    "the current reconnaissance graph state and strategy context to determine "
-    "the most appropriate next step.\n\n"
-    "You MUST:\n"
-    "1. Choose EXACTLY ONE next-step type from the fixed STEP taxonomy\n"
-    "2. Choose ONE OR MORE tools from the fixed MCP tool taxonomy\n"
-    "3. Provide a clear, detailed explanation that:\n"
-    "   - Explicitly names the chosen step type\n"
-    "   - Justifies why this step is appropriate given the current state\n"
-    "   - Explains how the selected tools will accomplish the step\n"
-    "   - References specific findings from the graph when relevant\n\n"
-    "STEP TAXONOMY (choose exactly one):\n"
-    "- Do a google search for more information\n"
-    "- Enumerate further on the X service to find software versions, hidden directories and file\n"
-    "- Explore the suspicious files, commands and create a summary of the findings\n"
-    "- Further Enumerate the website - hidden directories, links and software\n"
-    "- Enumerate the domain\n"
-    "- Exploit the selected exploitations\n"
-    "- Analyze the outcomes of the previous step and find an attack path\n"
-    "- Ask for human assistant\n"
-    "- Explore the source code for vulnerabilities\n"
-    "- End task and ask permission to generate the report\n\n"
-    "MCP TOOL TAXONOMY (choose one or more):\n"
-    "- Nmap, Metasploit, Netcat, Dirbuster, SQLmap, Smb client, hydra, John-the-ripper, Google search, Interactive CLI, Web page interaction\n\n"
-    "OUTPUT FORMAT (JSON):\n"
-    "{\n"
-    '  "New step": "<exact step label from taxonomy>",\n'
-    '  "Step explanation": "<detailed reasoning with step type explicitly named>",\n'
-    '  "MCP_tasks": {\n'
-    '    "<tool name>": "Use <tool> as part of: <step>",\n'
-    '    ...\n'
-    '  }\n'
-    "}"
+    "strictly within an authorized lab environment. Given the current "
+    "reconnaissance graph state and the new strategy context, "
+    "choose exactly one next-step type from the fixed taxonomy, exactly one "
+    "or more tool(s) from the fixed MCP taxonomy, and explain your reasoning. "
+    "IMPORTANT: Your step explanation MUST explicitly mention the chosen step "
+    "type by name to justify why that specific step is appropriate."
 )
 
 
 def build_prompt(ex: dict, mask_hint: bool = False) -> str:
     """
-    Enhanced prompt building with structured sections for better reasoning guidance.
-    
-    Input contract: machine + graph (fed separately via graph-prefix adapter) 
-    + new_strategy + strategy_explanation ONLY.
+    Enhanced prompt building based on research from GTA and ReFT papers.
+    Structured prompt with clear sections for better reasoning guidance.
+
+    Input contract: machine + graph (fed separately via the graph-prefix
+    # adapter) + new_strategy + strategy_explanation ONLY. No previous-step
+    # fields -- see CONTEXT_COLUMNS / EXTRA_OUTPUT_KEYS in data_utils.py and
+    # build_input_json.py for why they were removed.
 
     Args:
         ex: Example dictionary with context and optional stage1_hint
@@ -114,52 +97,47 @@ def build_prompt(ex: dict, mask_hint: bool = False) -> str:
     """
     ctx = ex["context"]
     lines = [
-        "# Current State",
-        f"Target Machine: {ex['machine']}",
+        "# Context",
+        f"Machine: {ex['machine']}",
         "",
-        "# Strategy Context",
-        f"New Strategy: {ctx['New strategy']}",
-        f"Strategy Explanation: {ctx['Strategy explanation']}",
+        "# Strategy",
+        f"New strategy: {ctx['New strategy']}",
+        f"Strategy explanation: {ctx['Strategy explanation']}",
         "",
-        "# Your Task",
-        "Analyze the reconnaissance graph (provided via graph tokens) and strategy context above.",
-        "Then determine:",
-        "1. The most appropriate next step from the STEP taxonomy",
-        "2. The specific MCP tools needed to execute this step",
-        "3. A detailed explanation justifying your choice",
-        "",
-        "Requirements for your explanation:",
-        "- MUST explicitly name the chosen step type",
-        "- MUST justify why this step is appropriate given current findings",
-        "- MUST explain how each selected tool contributes to the step",
-        "- Reference specific vulnerabilities, services, or findings when relevant",
-        "- Be specific and actionable - avoid generic statements",
+        "# Task",
+        "Based on the machine and strategy above, determine the next step, the tools needed, and explain your reasoning.",
     ]
-    
     # Stage-1 classifier hint (optional -- set by precompute_stage1_hints()).
-    # The hint provides a baseline suggestion but should be verified against
-    # the strategy and overridden if the fuller context suggests a better step.
+    # WHY: the graph-prefix soft tokens already encode Stage 1's fused
+    # representation, but a 7B model with LoRA has no guarantee of reliably
+    # DECODING a specific classification decision out of 16 continuous
+    # vectors purely from language-modeling loss on ~1.5k rows. Spelling
+    # the classifier's own (possibly wrong) top prediction out as TEXT gives
+    # the model a floor roughly equal to Stage 1's accuracy for free, and
+    # lets it spend its capacity on: (a) rendering the exact canonical
+    # label string correctly, (b) writing a good explanation, (c) refining
+    # MCP tool selection, and (d) OVERRIDING the hint on the examples where
+    # the fuller strategy text makes the graph-only classifier's guess
+    # wrong. It is explicitly labeled as fallible so the model isn't
+    # trained to treat it as ground truth.
+    #
+    # HINT MASKING: During training, we randomly mask the hint (mask_hint=True)
+    # to force the model to learn from the graph prefix tokens directly.
+    # This prevents the model from simply copying the hint and ignoring the
+    # graph conditioning.
     if not mask_hint and ex.get("stage1_hint"):
         lines.append("")
-        lines.append("# Baseline Suggestion (verify and correct if needed)")
+        lines.append("# Suggested Step (verify against strategy above)")
         lines.append(ex["stage1_hint"])
-        lines.append("")
-        lines.append("Note: The above is a graph-only classifier suggestion. ")
-        lines.append("Verify it against the strategy context and override if needed.")
-    
-    lines.append("")
-    lines.append("# Your Response (JSON format)")
     return "\n".join(lines)
 
 
 def format_stage1_hint(step_label: str, mcp_labels: list) -> str:
     tools = ", ".join(mcp_labels) if mcp_labels else "none confident"
     return (
-        f"Graph-based classifier analysis suggests:\n"
-        f"- Recommended step: \"{step_label}\"\n"
-        f"- Suggested tools: {tools}\n\n"
-        f"This is based solely on graph structure analysis. "
-        f"Cross-reference with the strategy context above and adjust if needed."
+        f"Classifier signal (a graph-only model's best guess, may be wrong -- "
+        f"verify against the strategy above and correct it if needed): "
+        f"most likely next step = \"{step_label}\"; likely tool(s) = {tools}."
     )
 
 
@@ -180,8 +158,7 @@ def precompute_stage1_hints(examples: list, stage1, device, dtype) -> None:
                 _embed_texts([ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]),
                 dtype=torch.float32,
             ).unsqueeze(0).to(device)
-            edge_attr = getattr(graph, 'edge_attr', None)
-            # Use encode_and_predict for classification hints (still needs context fusion)
+            edge_attr = getattr(graph, "edge_attr", None)
             _, step_logits, mcp_logits = stage1.encode_and_predict(
                 graph.x, graph.edge_index, graph.batch, field_embs, edge_attr=edge_attr
             )
@@ -372,9 +349,7 @@ class GraphPrefixAdapter(nn.Module):
 
     def forward(self, graph_emb: torch.Tensor) -> torch.Tensor:
         b = graph_emb.shape[0]
-        raw = self.proj(graph_emb)
-        raw = torch.nan_to_num(raw, nan=0.0, posinf=1e4, neginf=-1e4)
-        raw = raw.view(b, self.n_tokens, self.llm_hidden)
+        raw = self.proj(graph_emb).view(b, self.n_tokens, self.llm_hidden)
         return self.output_norm(raw)
 
 
@@ -415,9 +390,28 @@ class SFTDataset(Dataset):
                           "offset_mapping": []}
         target_ids = target_enc["input_ids"] + [self.tok.eos_token_id]
 
-        input_ids = (prompt_ids + target_ids)[: self.max_len]
-        # Only target tokens contribute to loss
-        labels = ([-100] * len(prompt_ids) + target_ids)[: self.max_len]
+        # IMPORTANT NUMERICAL FIX: if the prompt itself is >= max_len, the
+        # old code truncated away the entire target, leaving labels == -100
+        # for every position. Hugging Face causal-LM loss then has no valid
+        # targets and returns NaN. This was the direct cause of intermittent
+        # `train_loss nan` on long strategy/explanation rows.
+        # Always reserve room for at least a meaningful target prefix and EOS.
+        # Keep the END of the prompt (strategy/task instructions) rather than
+        # the beginning if truncation is necessary.
+        min_target_tokens = min(len(target_ids), max(32, min(256, len(target_ids))))
+        max_prompt_len = max(1, self.max_len - min_target_tokens)
+        if len(prompt_ids) > max_prompt_len:
+            prompt_ids = prompt_ids[-max_prompt_len:]
+
+        available_target = max(1, self.max_len - len(prompt_ids))
+        target_ids = target_ids[:available_target]
+        if not target_ids:
+            raise RuntimeError("Stage 2 example has no target tokens after truncation")
+
+        input_ids = prompt_ids + target_ids
+        # Only target tokens contribute to loss. This construction guarantees
+        # at least one non-masked target token for every example.
+        labels = ([-100] * len(prompt_ids)) + target_ids
 
         # ── Step-value token span (for checkpoint-selection metric) ────────
         # Locate the "New step" value's character range inside target_text
@@ -502,11 +496,14 @@ def forward_batch(input_ids, attn, labels, graphs, field_embs,
     n_prefix relative to the un-prefixed input_ids/labels/step_spans this
     function was called with).
 
-    FIX: now uses pure graph encoder output (encode_graph_only) instead of
-    fused classification representation. This decouples graph structure
-    learning from task-specific classification, allowing separate best
-    checkpoints for step and MCP tasks. The GraphPrefixAdapter is now
-    conditioned on pure structural representations.
+    FIX: previously this recombined the frozen Stage-1 graph_encoder and
+    context_encoder outputs via `sigmoid((graph_emb*context_emb).sum(-1))`
+    -- a hand-written, PARAMETER-FREE heuristic (not even a learned gate)
+    that discarded Stage-1's actual trained graph_gate/context_gate/fusion
+    stack. Now calls stage1.encode_and_predict(...) directly, so the
+    GraphPrefixAdapter is conditioned on exactly the representation Stage
+    1's step_head/mcp_head were trained against (see graph_encoder.py's
+    encode_and_predict docstring for the full rationale).
     """
     input_ids = input_ids.to(device)
     attn      = attn.to(device)
@@ -516,19 +513,12 @@ def forward_batch(input_ids, attn, labels, graphs, field_embs,
 
     with torch.no_grad():
         edge_attr = getattr(graphs, 'edge_attr', None)
-        graph_emb = stage1.encode_graph_only(
-            graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
-        )  # (B, GNN_OUT_DIM)
-        # Normalize the graph embedding before prefix injection: Stage 1 graph
-        # embeddings can be large and unstable across batches; without this,
-        # the prefix can inject huge values into the LLM embedding stream and
-        # quickly trigger NaN gradients during Stage 2 fine-tuning.
-        graph_norm = graph_emb.norm(dim=-1, keepdim=True).clamp_min(1e-4)
-        graph_emb = graph_emb / graph_norm
+        combined_emb, _, _ = stage1.encode_and_predict(
+            graphs.x, graphs.edge_index, graphs.batch, field_embs, edge_attr=edge_attr
+        )  # (B, FUSION_HIDDEN // 2)
 
-    prefix_embeds = adapter(graph_emb.to(dtype))      # (B, n_tokens, H)
-    prefix_embeds = prefix_embeds / prefix_embeds.norm(dim=-1, keepdim=True).clamp_min(1e-4)
-    token_embeds  = embed_layer(input_ids).to(dtype)     # (B, T, H)
+    prefix_embeds = adapter(combined_emb.float()).to(dtype)  # (B, n_tokens, H)
+    token_embeds  = embed_layer(input_ids).to(dtype)          # (B, T, H)
     inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
 
     n_prefix     = prefix_embeds.shape[1]
@@ -537,14 +527,27 @@ def forward_batch(input_ids, attn, labels, graphs, field_embs,
     prefix_lbls  = torch.full((labels.shape[0], n_prefix), -100, device=device, dtype=labels.dtype)
     labels_full  = torch.cat([prefix_lbls, labels], dim=1)
 
-    out = model(
-        inputs_embeds=inputs_embeds,
-        attention_mask=attn_full,
-        labels=labels_full,
-    )
+    # Qwen forward in bf16 autocast.  The adapter itself is fp32; only its
+    # final prefix representation is cast to the model input dtype.
+    if device == "cuda":
+        with torch.autocast(device_type="cuda", dtype=torch.bfloat16):
+            out = model(
+                inputs_embeds=inputs_embeds,
+                attention_mask=attn_full,
+                labels=labels_full,
+            )
+    else:
+        out = model(
+            inputs_embeds=inputs_embeds,
+            attention_mask=attn_full,
+            labels=labels_full,
+        )
+    loss = out.loss.float()
+    if not torch.isfinite(loss):
+        raise FloatingPointError("Stage 2 produced a non-finite loss")
     if return_logits:
-        return out.loss, out.logits, n_prefix
-    return out.loss
+        return loss, out.logits, n_prefix
+    return loss
 
 
 # ---------------------------------------------------------------------------
@@ -571,49 +574,104 @@ def forward_batch(input_ids, attn, labels, graphs, field_embs,
 # the post-training test-set loop below), but it isolates the signal that
 # actually matters for checkpoint selection instead of drowning it in
 # explanation-text loss.
-def run_validation(val_loader, model, stage1, adapter, embed_layer, device, dtype):
+def run_validation(val_loader, model, stage1, adapter, embed_layer, device, dtype,
+                   tokenizer=None, val_examples=None, max_new_tokens=48):
+    """Validate Stage 2 using leakage-free greedy generation.
+
+    The primary checkpoint metric is exact accuracy of the generated ``New step``
+    after normalization to the fixed 10-class taxonomy.  This replaces the old
+    teacher-forced token-span exact match, where one wrong token made the whole
+    field incorrect.
+
+    IMPORTANT: validation generation uses ONLY the prompt tokens.  The SFT batch
+    also contains the gold target because those tokens are needed for LM loss;
+    feeding them into ``generate`` would leak the answer and invalidate the metric.
+    """
     model.eval()
     adapter.eval()
     total_loss = 0.0
-    n_batches  = 0
+    n_batches = 0
     step_correct = 0
-    step_total   = 0
+    step_total = 0
+
+    normalizer = StepLabelNormalizer()
+    obj_parser = build_obj_parser()
+
     with torch.no_grad():
-        for input_ids, attn, labels, graphs, field_embs, step_spans in val_loader:
-            loss, logits, n_prefix = forward_batch(
+        for batch_idx, (input_ids, attn, labels, graphs, field_embs, _step_spans) in enumerate(val_loader):
+            # 1) Normal validation loss on the complete prompt+target sequence.
+            loss = forward_batch(
                 input_ids, attn, labels, graphs, field_embs,
-                model, stage1, adapter, embed_layer, device, dtype, return_logits=True,
+                model, stage1, adapter, embed_layer, device, dtype, return_logits=False,
             )
             total_loss += loss.item()
-            n_batches  += 1
+            n_batches += 1
 
-            # logits[b, t] predicts the token at position t+1 of the
-            # PREFIXED sequence; step_spans are defined relative to the
-            # un-prefixed input_ids, so shift by n_prefix, and by -1 to
-            # align a prediction position with the label it's predicting.
-            preds = logits.argmax(-1)  # (B, n_prefix + T)
+            # 2) Build prompt-only sequences for generation.  The first non--100
+            # label marks the beginning of the gold target.
+            input_ids = input_ids.to(device)
+            labels = labels.to(device)
+            graphs = graphs.to(device)
+            field_embs = field_embs.to(device)
+
             B = input_ids.shape[0]
+            prompt_lens = []
             for b in range(B):
-                s, e = step_spans[b, 0].item(), step_spans[b, 1].item()
-                if e <= s:
-                    continue  # span not found for this row (see SFTDataset) -- skip
-                lo = n_prefix + s - 1
-                hi = n_prefix + e - 1
-                lo = max(lo, 0)
-                if hi <= lo:
+                valid = torch.nonzero(labels[b] != -100, as_tuple=False)
+                prompt_lens.append(int(valid[0].item()) if valid.numel() else int(attn[b].sum().item()))
+            max_prompt_len = max(prompt_lens)
+
+            prompt_ids = input_ids[:, :max_prompt_len].clone()
+            prompt_attn = torch.zeros((B, max_prompt_len), device=device, dtype=attn.dtype)
+            for b, plen in enumerate(prompt_lens):
+                prompt_attn[b, :plen] = 1
+                if plen < max_prompt_len:
+                    prompt_ids[b, plen:] = tokenizer.pad_token_id
+
+            edge_attr = getattr(graphs, 'edge_attr', None)
+            combined_emb, _, _ = stage1.encode_and_predict(
+                graphs.x, graphs.edge_index, graphs.batch, field_embs, edge_attr=edge_attr
+            )
+            prefix_embeds = adapter(combined_emb.float()).to(dtype)
+            token_embeds = embed_layer(prompt_ids).to(dtype)
+            inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
+
+            n_prefix = prefix_embeds.shape[1]
+            prefix_attn = torch.ones((B, n_prefix), device=device, dtype=prompt_attn.dtype)
+            attn_full = torch.cat([prefix_attn, prompt_attn], dim=1)
+
+            outputs = model.generate(
+                inputs_embeds=inputs_embeds,
+                attention_mask=attn_full,
+                max_new_tokens=max_new_tokens,
+                do_sample=False,
+                pad_token_id=tokenizer.pad_token_id,
+                eos_token_id=tokenizer.eos_token_id,
+            )
+            generated_texts = tokenizer.batch_decode(outputs, skip_special_tokens=True)
+
+            batch_start = batch_idx * val_loader.batch_size
+            for i, gen_text in enumerate(generated_texts):
+                if val_examples is None:
                     continue
-                gold_tok = input_ids[b, s:e].to(device)
-                pred_tok = preds[b, lo:hi]
-                if pred_tok.shape[0] != gold_tok.shape[0]:
-                    continue  # truncated by max_len -- skip rather than misalign
-                step_correct += (pred_tok == gold_tok).all().item()  # whole-span exact match
-                step_total   += 1
+                ex_idx = batch_start + i
+                if ex_idx >= len(val_examples):
+                    continue
+
+                gold_step = normalizer.normalize(val_examples[ex_idx].get("step_label", ""))
+                obj = obj_parser(gen_text, normalizer)
+                pred_step = normalizer.normalize(obj.get("New step", ""))
+
+                # Count every validation example.  Unparseable/missing steps are
+                # genuine generation failures and therefore count as incorrect.
+                step_total += 1
+                step_correct += int(pred_step is not None and pred_step == gold_step)
 
     model.train()
     adapter.train()
     avg_loss = total_loss / max(n_batches, 1)
-    step_field_acc = step_correct / max(step_total, 1)
-    return avg_loss, step_field_acc
+    step_acc = step_correct / max(step_total, 1)
+    return avg_loss, step_acc
 
 
 # ---------------------------------------------------------------------------
@@ -622,11 +680,7 @@ def run_validation(val_loader, model, stage1, adapter, embed_layer, device, dtyp
 
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    # Stage-2 fine-tuning is much more stable in fp32 than bf16 here because
-    # the graph prefix is injected directly into the LLM embedding stream. Keeping
-    # the full model and adapter in fp32 prevents the NaN spikes caused by large,
-    # unnormalized prefix activations.
-    dtype  = torch.float32
+    dtype  = torch.bfloat16
     os.makedirs(STAGE2_ADAPTER_DIR, exist_ok=True)
 
     print(f"[Stage 2] Training input  : {INPUT_TRAIN_JSON}")
@@ -641,13 +695,15 @@ def main():
         tokenizer.pad_token = tokenizer.eos_token
 
     # ── Base model + LoRA ─────────────────────────────────────────────────────
+    # Qwen is kept in bf16 for memory efficiency, but all trainable LoRA and
+    # graph-adapter parameters are kept in fp32.  The previous implementation
+    # let the graph adapter participate in bf16 optimisation directly; on the
+    # DGX run this produced intermittent NaNs after a few optimizer steps.
     base_model = AutoModelForCausalLM.from_pretrained(
         QWEN_MODEL_NAME, torch_dtype=dtype, device_map=None
     ).to(device)
-    # Keep gradient checkpointing off for this setup; it can interact poorly with
-    # the graph prefix and trigger instabilities during the first few training steps.
-    # The NaN issue here is dominated by prefix scale, not by checkpointing itself,
-    # but disabling it makes the training path much more stable.
+    base_model.config.use_cache = False
+    base_model.gradient_checkpointing_enable()
 
     lora_cfg = LoraConfig(
         r=LORA_R,
@@ -660,6 +716,15 @@ def main():
         task_type="CAUSAL_LM",
     )
     model = get_peft_model(base_model, lora_cfg)
+
+    # Keep LoRA parameters in fp32.  Qwen itself remains bf16.  The forward
+    # pass below uses CUDA bf16 autocast, so this is compatible with the bf16
+    # base model while giving AdamW fp32 optimizer states for the trainable
+    # parameters.
+    for p in model.parameters():
+        if p.requires_grad:
+            p.data = p.data.float()
+
     model.print_trainable_parameters()
 
     # ── Frozen Stage-1 classifier (whole model, not just the two encoders) ────
@@ -686,7 +751,9 @@ def main():
     # from stage1.encode_and_predict). Checkpoints trained before this fix
     # are NOT compatible -- retrain Stage 2 from scratch after this change.
     llm_hidden = model.config.hidden_size
-    adapter = GraphPrefixAdapter(GRAPH_PREFIX_SRC_DIM, llm_hidden).to(device).to(dtype)
+    # IMPORTANT: do not train this projection in bf16.  Its output is cast to
+    # the Qwen dtype only immediately before concatenation with token embeds.
+    adapter = GraphPrefixAdapter(GRAPH_PREFIX_SRC_DIM, llm_hidden).to(device).float()
 
     embed_layer = model.get_input_embeddings()
 
@@ -737,7 +804,7 @@ def main():
     # copying Stage 1 predictions. This is essential for Stage 2 to actually
     # improve over Stage 1 performance.
 
-    train_ds = SFTDataset(train_examples, tokenizer, mask_hint_prob=0.5, is_training=True)
+    train_ds = SFTDataset(train_examples, tokenizer, mask_hint_prob=float(os.environ.get("STAGE2_HINT_MASK_PROB", "0.5")), is_training=True)
     val_ds   = SFTDataset(val_examples,   tokenizer, mask_hint_prob=1.0, is_training=False)
 
     # ── Class-balanced sampling for training ──────────────────────────────
@@ -792,23 +859,32 @@ def main():
         [p for p in model.parameters() if p.requires_grad]
         + list(adapter.parameters())
     )
+    # A conservative LR is intentional: Stage 2 only trains LoRA + the
+    # graph-to-prefix projector while the 14B base is frozen.  The previous
+    # 1e-5 setting was capable of producing a non-finite update in this
+    # manual bf16 training loop.
+    stage2_lr = float(os.environ.get("STAGE2_SAFE_LR", "2e-6"))
+    stage2_wd = float(os.environ.get("STAGE2_WEIGHT_DECAY", "1e-4"))
     opt = torch.optim.AdamW(
         trainable_params,
-        lr=STAGE2_LR,
-        weight_decay=0.01,
+        lr=stage2_lr,
+        weight_decay=stage2_wd,
         betas=(0.9, 0.95),
         eps=1e-8,
+        foreach=False,
     )
 
-    steps_per_epoch  = max(1, len(train_loader) // STAGE2_GRAD_ACCUM)
+    # Use ceil because the final partial accumulation window is also flushed.
+    steps_per_epoch  = max(1, (len(train_loader) + STAGE2_GRAD_ACCUM - 1) // STAGE2_GRAD_ACCUM)
     total_steps      = steps_per_epoch * STAGE2_EPOCHS
-    warmup_steps     = max(10, int(total_steps * STAGE2_WARMUP_RATIO))
+    warmup_steps     = max(20, int(total_steps * STAGE2_WARMUP_RATIO))
     sched = get_cosine_schedule_with_warmup(
         opt, num_warmup_steps=warmup_steps, num_training_steps=total_steps
     )
 
     print(f"[Stage 2] Steps/epoch     : {steps_per_epoch}")
-    print(f"[Stage 2] Total steps     : {total_steps}  (warmup {warmup_steps}, ratio={STAGE2_WARMUP_RATIO:.0%})")
+    print(f"[Stage 2] Total steps     : {total_steps}  (warmup {warmup_steps})")
+    print(f"[Stage 2] Safe LR          : {stage2_lr:.2e} | weight_decay={stage2_wd:.1e} | fp32 trainables + bf16 Qwen")
 
     # ── Training loop with val + early stopping ────────────────────────────────
     # FIX: selection metric changed from raw val_loss to step_field_acc (see
@@ -831,35 +907,95 @@ def main():
         model.train()
         adapter.train()
         epoch_loss = 0.0
-        opt.zero_grad()
+        finite_batches = 0
+        skipped_batches = 0
+        accum_count = 0
+        opt.zero_grad(set_to_none=True)
 
         for i, (input_ids, attn, labels, graphs, field_embs, _step_spans) in enumerate(train_loader):
-            loss = forward_batch(
-                input_ids, attn, labels, graphs, field_embs,
-                model, stage1, adapter, embed_layer,
-                device, dtype,
-            )
+            try:
+                loss = forward_batch(
+                    input_ids, attn, labels, graphs, field_embs,
+                    model, stage1, adapter, embed_layer,
+                    device, dtype,
+                )
+            except FloatingPointError:
+                skipped_batches += 1
+                opt.zero_grad(set_to_none=True)
+                accum_count = 0
+                continue
 
-            # Scale loss for gradient accumulation
+            if not torch.isfinite(loss):
+                skipped_batches += 1
+                opt.zero_grad(set_to_none=True)
+                accum_count = 0
+                continue
+
             (loss / STAGE2_GRAD_ACCUM).backward()
-            epoch_loss += loss.item()
+            accum_count += 1
+            epoch_loss += float(loss.detach().cpu())
+            finite_batches += 1
 
-            if (i + 1) % STAGE2_GRAD_ACCUM == 0:
-                torch.nn.utils.clip_grad_norm_(trainable_params, STAGE2_GRAD_CLIP)
+            should_step = (accum_count >= STAGE2_GRAD_ACCUM) or (i == len(train_loader) - 1)
+            if should_step:
+                # Check gradients BEFORE clipping.  Clipping a NaN/Inf gradient
+                # does not repair it and would otherwise poison the optimizer.
+                grads_finite = True
+                for p in trainable_params:
+                    if p.grad is not None and not torch.isfinite(p.grad).all():
+                        grads_finite = False
+                        break
+
+                if not grads_finite:
+                    skipped_batches += accum_count
+                    opt.zero_grad(set_to_none=True)
+                    accum_count = 0
+                    continue
+
+                grad_norm = torch.nn.utils.clip_grad_norm_(
+                    trainable_params, STAGE2_GRAD_CLIP, error_if_nonfinite=True
+                )
+                if not torch.isfinite(grad_norm):
+                    skipped_batches += accum_count
+                    opt.zero_grad(set_to_none=True)
+                    accum_count = 0
+                    continue
+
                 opt.step()
                 sched.step()
-                opt.zero_grad()
+                opt.zero_grad(set_to_none=True)
                 global_step += 1
+                accum_count = 0
+
+                # Verify that the optimizer did not create non-finite trainable
+                # parameters. If it did, restore the just-skipped update by
+                # stopping rather than continuing with a corrupted policy.
+                params_finite = all(
+                    torch.isfinite(p).all().item()
+                    for p in trainable_params
+                )
+                if not params_finite:
+                    raise RuntimeError(
+                        "Stage 2 optimizer produced non-finite trainable parameters. "
+                        "Lower STAGE2_SAFE_LR (currently %.2e)." % stage2_lr
+                    )
 
                 if global_step % 20 == 0:
-                    avg = epoch_loss / (i + 1)
+                    avg = epoch_loss / max(finite_batches, 1)
                     print(f"  epoch {epoch+1:02d} | step {global_step:4d} | "
-                          f"train_loss {avg:.4f}")
+                          f"train_loss {avg:.4f} | skipped {skipped_batches}")
+
+        if finite_batches == 0:
+            raise RuntimeError(
+                "Stage 2 encountered no finite training batches. "
+                "Check the Qwen/bf16 environment and graph checkpoint."
+            )
 
         # ── Validation at end of each epoch ───────────────────────────────────
-        avg_train_loss = epoch_loss / max(len(train_loader), 1)
+        avg_train_loss = epoch_loss / max(finite_batches, 1)
         val_loss, step_field_acc = run_validation(
-            val_loader, model, stage1, adapter, embed_layer, device, dtype
+            val_loader, model, stage1, adapter, embed_layer, device, dtype,
+            tokenizer=tokenizer, val_examples=val_examples, max_new_tokens=32
         )
 
         # Primary: step_field_acc (higher is better). Tiebreak: lower val_loss.
@@ -870,7 +1006,7 @@ def main():
         print(f"epoch {epoch+1:02d}/{STAGE2_EPOCHS} | "
               f"train_loss {avg_train_loss:.4f} | "
               f"val_loss {val_loss:.4f} | "
-              f"val_step_field_acc {step_field_acc:.4f}{marker}")
+              f"val_generated_step_acc {step_field_acc:.4f}{marker}")
 
         if improved:
             best_val_loss     = val_loss
@@ -916,7 +1052,6 @@ def main():
     # ── Evaluate on test set and save CSV ─────────────────────────────────────
     print("\n[Stage 2] Evaluating on test set...")
     test_examples = load_from_input_json(INPUT_TEST_JSON, "test")
-    precompute_stage1_hints(test_examples, stage1, device, dtype)
     test_ds = SFTDataset(test_examples, tokenizer)
     test_loader = DataLoader(
         test_ds,
@@ -946,7 +1081,9 @@ def main():
         QWEN_MODEL_NAME, torch_dtype=dtype, device_map=None
     ).to(device)
     model = PeftModel.from_pretrained(eval_base_model, STAGE2_ADAPTER_DIR)
+    embed_layer = model.get_input_embeddings()  # must belong to the fresh eval model
     adapter.load_state_dict(torch.load(os.path.join(STAGE2_ADAPTER_DIR, "graph_adapter.pt"), map_location=device))
+    adapter = adapter.float()
     model.eval()
     adapter.eval()
     
@@ -961,15 +1098,18 @@ def main():
             field_embs = field_embs.to(device)
 
             # Fused Stage-1 representation (matching training -- see
-            # forward_batch / encode_graph_only). Now uses pure graph encoder
-            # output for decoupled architecture.
+            # forward_batch / encode_and_predict). Was an ad hoc
+            # parameter-free graph/context blend that did NOT match what
+            # forward_batch used during training; both now call the same
+            # stage1.encode_and_predict(...) so train and eval-time
+            # generation see the identical distribution.
             edge_attr = getattr(graphs, 'edge_attr', None)
             with torch.no_grad():
-                graph_emb = stage1.encode_graph_only(
-                    graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
+                combined_emb, _, _ = stage1.encode_and_predict(
+                    graphs.x, graphs.edge_index, graphs.batch, field_embs, edge_attr=edge_attr
                 )
 
-            prefix_embeds = adapter(graph_emb.to(dtype))
+            prefix_embeds = adapter(combined_emb.float()).to(dtype)
             token_embeds = embed_layer(input_ids).to(dtype)
             inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
             

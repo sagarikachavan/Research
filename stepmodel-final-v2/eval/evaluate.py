@@ -80,7 +80,7 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
     Handles both checkpoint formats:
       - New (Improvement 2): dict with 'model_state_dict' + 'mcp_thresholds'
       - Legacy: plain state dict
-    Returns (model, mcp_thresholds, checkpoint_info).
+    Returns (model, mcp_thresholds).
     """
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
@@ -88,18 +88,13 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
         mcp_thresholds = ckpt.get(
             "mcp_thresholds", [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)
         )
-        checkpoint_info = {
-            "epoch": ckpt.get('best_epoch', '?'),
-            "score": ckpt.get('best_score', None),
-            "metric": ckpt.get('metric', 'unknown')
-        }
         print(
             f"[eval] Loaded checkpoint "
-            f"(epoch={checkpoint_info['epoch']}, "
-            f"metric={checkpoint_info['metric']}"
+            f"(epoch={ckpt.get('best_epoch','?')}, "
+            f"score={ckpt.get('best_score','?'):.4f})"
+            if isinstance(ckpt.get("best_score"), float)
+            else f"[eval] Loaded checkpoint (epoch={ckpt.get('best_epoch','?')})"
         )
-        if checkpoint_info['score'] is not None:
-            print(f"[eval] Score: {checkpoint_info['score']:.4f}")
         print(
             f"[eval] Per-class MCP thresholds: "
             f"{[round(t, 2) for t in mcp_thresholds]}"
@@ -107,13 +102,12 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
     else:
         state_dict = ckpt
         mcp_thresholds = [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)
-        checkpoint_info = {"epoch": "?", "score": None, "metric": "legacy"}
         print("[eval] Legacy checkpoint — using uniform threshold=0.5 for all MCP labels.")
 
     model = Stage1Classifier().to(device)
     model.load_state_dict(state_dict)
     model.eval()
-    return model, mcp_thresholds, checkpoint_info
+    return model, mcp_thresholds
 
 
 # ---------------------------------------------------------------------------
@@ -169,20 +163,16 @@ def compute_explanation_metrics_with_llm_judge(
 # GNN evaluation  (classification only — no text generation)
 # ---------------------------------------------------------------------------
 
-def eval_gnn(threshold_override=None, auto_save_csv=False, ckpt_path=None) -> None:
+def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"[eval] Test input: {INPUT_TEST_JSON}")
     examples = load_from_input_json(INPUT_TEST_JSON, "test")
 
-    # Determine checkpoint path
-    if ckpt_path is None:
-        ckpt_path = STAGE1_CKPT
-    
-    if not os.path.exists(ckpt_path):
-        print(f"[eval] Checkpoint not found at {ckpt_path}. Run stage1_gnn_train.py first.")
+    if not os.path.exists(STAGE1_CKPT):
+        print(f"[eval] Checkpoint not found at {STAGE1_CKPT}. Run stage1_gnn_train.py first.")
         return
 
-    model, ckpt_thresholds, ckpt_info = load_stage1_checkpoint(ckpt_path, device)
+    model, ckpt_thresholds = load_stage1_checkpoint(STAGE1_CKPT, device)
     use_thresholds = (
         [float(threshold_override)] * len(MCP_LABELS)
         if threshold_override is not None
@@ -295,10 +285,9 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     from torch_geometric.data import Batch as PyGBatch
     from stage2_sft_qwen import (
         build_prompt, SYSTEM_PROMPT, GraphPrefixAdapter,
-        GRAPH_PREFIX_SRC_DIM, precompute_stage1_hints,
+        GRAPH_PREFIX_SRC_DIM,
     )
     from graph_encoder import Stage1Classifier
-    from data_utils import _embed_texts, CONTEXT_COLUMNS
     from llm_judge import set_llm_judge_model
 
     # Resolve LLM judge model name
@@ -310,7 +299,7 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     if threshold_override is not None:
         use_thresholds = [float(threshold_override)] * len(MCP_LABELS)
     elif os.path.exists(STAGE1_CKPT):
-        _, use_thresholds, _ = load_stage1_checkpoint(STAGE1_CKPT, "cpu")
+        _, use_thresholds = load_stage1_checkpoint(STAGE1_CKPT, "cpu")
         print("[eval] MCP thresholds loaded from Stage-1 checkpoint (for reference).")
     else:
         use_thresholds = [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)
@@ -363,14 +352,9 @@ def eval_llm(adapter_dir: str, threshold_override=None,
         stage1.load_state_dict(ckpt["model_state_dict"])
     else:
         stage1.load_state_dict(ckpt)
-    # FIX: keep the whole frozen Stage-1 classifier (not just graph_encoder)
-    # so generation-time inference matches what Stage 2/3 training actually
-    # conditioned on -- see graph_encoder.Stage1Classifier.encode_and_predict.
-    # Previously this used graph_encoder ALONE (no context/strategy fusion
-    # at all), which was out-of-distribution relative to both Stage 2's
-    # training-time fusion and this fix's own training-time fusion, and is
-    # the most likely single cause of Stage 2/3's generation-time accuracy
-    # being far below their own training-time (teacher-forced) metrics.
+    # Stage 2/3 graph conditioning uses the same 384-d classification-calibrated
+    # fused representation produced by Stage1Classifier.encode_and_predict().
+    # This must match the representation used when GraphPrefixAdapter was trained.
     stage1 = stage1.to(device).eval()
     for p in stage1.parameters():
         p.requires_grad_(False)
@@ -390,19 +374,20 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     embed_layer = llm_model.get_input_embeddings()
 
     examples = load_from_input_json(INPUT_TEST_JSON, "test")
-    # REMOVED: precompute_stage1_hints to force model to decode graph prefix tokens
-    # instead of copying Stage 1 predictions. This is critical for Stage 2/3 to
-    # actually improve over Stage 1.
+    # NOTE: precompute_stage1_hints has been removed. Per the architecture
+    # contract, the graph prefix tokens are the ONLY graph-derived signal;
+    # no classifier predictions are leaked as text into the prompt. The LLM
+    # must decode graph structure from the soft-prompt tokens and combine it
+    # with the strategy text itself, rather than copying a provided hint.
     normalizer = StepLabelNormalizer()
 
     step_preds, mcp_preds, step_gold, mcp_gold       = [], [], [], []
     pred_explanations, gold_explanations               = [], []
     parse_failures                                     = 0
-    # rows saved to CSV if --save-explanations is set
     csv_rows: list[dict]                               = []
 
     for ex in tqdm(examples, desc="Generating", unit="sample"):
-        prompt = build_prompt(ex, mask_hint=True)  # Force model to decode graph tokens
+        prompt = build_prompt(ex)
         full_prompt = (
             f"<|system|>\n{SYSTEM_PROMPT}\n"
             f"<|user|>\n{prompt}\n"
@@ -412,14 +397,28 @@ def eval_llm(adapter_dir: str, threshold_override=None,
         with torch.no_grad():
             pyg_batch = PyGBatch.from_data_list([ex["graph"]]).to(device)
             edge_attr = getattr(pyg_batch, 'edge_attr', None)
+            # Stage 2/3 were trained from the classification-calibrated fused
+            # Stage-1 representation, not the raw 512-d graph encoder output.
+            # Reproduce that exact interface at evaluation time.
+            context_texts = [
+                ex["context"].get("New strategy", "") or "empty",
+                ex["context"].get("Strategy explanation", "") or "empty",
+            ]
             field_embs = torch.tensor(
-                _embed_texts([ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]),
-                dtype=torch.float32,
-            ).unsqueeze(0).to(device)
-            combined_emb, _, _ = stage1.encode_and_predict(
-                pyg_batch.x, pyg_batch.edge_index, pyg_batch.batch, field_embs, edge_attr=edge_attr
-            )
-            prefix_embeds = adapter(combined_emb.to(dtype))
+                _embed_texts(context_texts), dtype=torch.float32, device=device
+            ).unsqueeze(0)
+            with torch.no_grad():
+                fused_h, _, _ = stage1.encode_and_predict(
+                    pyg_batch.x, pyg_batch.edge_index, pyg_batch.batch,
+                    field_embs, edge_attr=edge_attr
+                )
+            expected_dim = adapter.proj[0].in_features
+            if fused_h.shape[-1] != expected_dim:
+                raise RuntimeError(
+                    f"Evaluation graph-prefix dimension mismatch: Stage-1 produced {fused_h.shape[-1]} dims, "
+                    f"but the adapter expects {expected_dim}."
+                )
+            prefix_embeds = adapter(fused_h.to(dtype))
             ids = tokenizer(
                 full_prompt,
                 return_tensors="pt",
@@ -864,12 +863,9 @@ def report_classification(
 
 def check_model_availability() -> list[tuple[str, str | None]]:
     available = []
-    
-    # Check for combined checkpoint
     if os.path.exists(STAGE1_CKPT):
         available.append(("gnn", None))
-    
-    # Check for LLM adapters
+    ckpt_dir = os.path.dirname(STAGE1_CKPT)
     for subdir, label in [
         ("stage2_qwen_lora", "Stage 2 SFT"),
         ("stage3_qwen_grpo", "Stage 3 GRPO"),
@@ -890,9 +886,7 @@ if __name__ == "__main__":
     )
     parser.add_argument(
         "--model", choices=["gnn", "llm", "all"], default="all",
-        help="Which model(s) to evaluate (default: all available). "
-             "gnn=Stage 1 GNN (combined checkpoint), "
-             "llm=LLM evaluation",
+        help="Which model(s) to evaluate (default: all available)",
     )
     parser.add_argument(
         "--adapter-dir", default=None,
@@ -953,20 +947,17 @@ if __name__ == "__main__":
 
         print(f"[eval] Found {len(available)} model(s) to evaluate:")
         for mtype, adir in available:
-            if mtype == "gnn":
-                label = "Stage 1 GNN"
-            else:
-                label = adir
+            label = "Stage 1 GNN" if mtype == "gnn" else adir
             print(f"  • {label}")
         print()
 
         for mtype, adir in available:
+            header = "Stage 1 GNN" if mtype == "gnn" else adir
+            print(f"\n{'═' * 60}")
+            print(f"  MODEL: {header}")
+            print(f"{'═' * 60}")
             if mtype == "gnn":
-                header = "Stage 1 GNN"
-                print(f"\n{'═' * 60}")
-                print(f"  MODEL: {header}")
-                print(f"{'═' * 60}")
-                eval_gnn(threshold_override=args.threshold, auto_save_csv=args.auto_save_csv, ckpt_path=STAGE1_CKPT)
+                eval_gnn(threshold_override=args.threshold, auto_save_csv=args.auto_save_csv)
             else:
                 eval_llm(
                     adir,
@@ -986,7 +977,7 @@ if __name__ == "__main__":
         print(f"\n{'═' * 60}\n  MODEL: Stage 1 GNN\n{'═' * 60}")
         eval_gnn(threshold_override=args.threshold, auto_save_csv=args.auto_save_csv)
 
-    elif args.model == "llm":
+    else:  # llm
         adapter = args.adapter_dir
         if adapter is None:
             ckpt_dir = os.path.dirname(STAGE1_CKPT)

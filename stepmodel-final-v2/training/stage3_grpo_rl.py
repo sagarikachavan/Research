@@ -72,7 +72,6 @@ from torch.optim.lr_scheduler import CosineAnnealingLR
 from torch_geometric.data import Batch as PyGBatch
 from transformers import AutoTokenizer, AutoModelForCausalLM
 from peft import PeftModel
-import openai
 
 # ── Path bootstrap (folder was restructured into core/ data_prep/ training/ eval/) ──
 import os as _os, sys as _sys
@@ -97,7 +96,6 @@ from config import (
     STAGE3_GRAD_CLIP,
     STAGE3_DUAL_CLIP_COEF,
     STAGE3_KL_HARD_CAP,
-    GRAPH_PREFIX_SRC_DIM,
     STAGE3_EARLY_STOP_PATIENCE,
     RANDOM_SEED,
     STEP_LABELS,
@@ -107,9 +105,9 @@ from config import (
     GNN_OUT_DIM,
     STAGE2_VAL_SPLIT,
 )
-from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS, StepLabelNormalizer, extract_mcp_labels
+from data_utils import load_from_input_json, _embed_texts, StepLabelNormalizer, extract_mcp_labels
 from graph_encoder import Stage1Classifier
-from stage2_sft_qwen import GraphPrefixAdapter, build_prompt, SYSTEM_PROMPT, build_obj_parser, precompute_stage1_hints
+from stage2_sft_qwen import GraphPrefixAdapter, build_prompt, SYSTEM_PROMPT, build_obj_parser
 
 random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
@@ -380,170 +378,122 @@ def compute_reward_curriculum(completion: str, gold: dict, step_num: int,
     return compute_reward(completion, gold, w_fmt=w_fmt, w_step=w_step, w_mcp=w_mcp, w_exp=w_exp)
 
 
-def compute_reward(completion: str, gold: dict,
-                   w_fmt:  float = 0.10,  # Format weight
-                   w_step: float = 0.35,  # Step similarity weight (was 0.25 --
-                                           # raised because step_accuracy was
-                                           # tying/regressing vs Stage 2; the
-                                           # explanation/judge term was
-                                           # dominating the blended reward, so
-                                           # RL had little pressure to actually
-                                           # nail the step label. See
-                                           # DOCUMENTATION.md 'Stage 3'.)
-                   w_mcp:  float = 0.20,  # MCP F1 weight
-                   w_exp:  float = 0.35,  # LLM judge weight (was 0.45)
-                   return_components: bool = False):
-    """
-    Enhanced composite reward function based on research from:
-    - "Dense Reward for Free in RLHF" - reward shaping
-    - "ClaHF" - preference-based classification rewards
-    - "TOLE" - token-level reward considerations
+def _deterministic_explanation_score(pred_expl: str, pred_step: str, pred_mcp: set[str]) -> float:
+    """Low-noise explanation reward used during RL; LLM judge is eval-only."""
+    text = str(pred_expl or "").strip().lower()
+    if not text:
+        return 0.0
+    score = 0.35
+    n = len(text)
+    if 40 <= n <= 350:
+        score += 0.20
+    elif n >= 20:
+        score += 0.10
+    if pred_step and pred_step.lower() in text:
+        score += 0.20
+    evidence_terms = ("port", "service", "version", "directory", "file", "vulnerability",
+                      "credential", "authentication", "shell", "exploit", "enumerat", "scan")
+    hits = sum(1 for t in evidence_terms if t in text)
+    score += min(0.15, 0.03 * hits)
+    if pred_mcp and any(tool.lower() in text for tool in pred_mcp):
+        score += 0.10
+    return float(max(0.0, min(1.0, score)))
 
-    Components:
-      fmt_r   — 1.0 if output is valid JSON with all 3 required keys
-      step_r  — exact match + embedding similarity for step classification
-      mcp_r   — rarity-weighted F1 for MCP tool prediction
-      exp_r   — LLM judge correctness + semantic bonuses for explanation
+
+def compute_reward(completion: str, gold: dict,
+                   w_fmt: float = 0.05,
+                   w_step: float = 0.65,
+                   w_mcp: float = 0.30,
+                   w_exp: float = 0.0,
+                   return_components: bool = False):
+    """Task-aligned dense reward for GRPO.
+
+    Primary signals intentionally match the final research metrics:
+      - exact canonical Step match
+      - unweighted MCP set Jaccard
+      - lightweight explanation quality
+    The LLM judge is reserved for evaluation/model reporting, not the RL
+    objective, so the policy is not incentivized to optimize a noisy judge.
     """
     obj = _parse_completion(completion)
     if obj is None or not all(k in obj for k in ("New step", "Step explanation", "MCP_tasks")):
-        # Enhanced partial credit for progressive learning
-        partial_fmt_score = 0.0
+        partial = 0.0
         if obj is not None:
-            required_keys = ["New step", "Step explanation", "MCP_tasks"]
-            present_keys = sum(1 for k in required_keys if k in obj)
-            partial_fmt_score = present_keys / len(required_keys) * 0.5
-        total = w_fmt * partial_fmt_score
-        if return_components:
-            return {"total": total, "fmt": partial_fmt_score, "step": 0.0, "mcp": 0.0, "exp": 0.0}
-        return total
+            partial = sum(1 for k in ("New step", "Step explanation", "MCP_tasks") if k in obj) / 3.0
+        total = w_fmt * partial
+        out = {"total": total, "fmt": partial, "step": 0.0, "mcp": 0.0, "exp": 0.0}
+        return out if return_components else total
 
-    # ── Format ────────────────────────────────────────────────────────────────
-    fmt_r = 1.0
+    pred_step = str(obj.get("New step", "")).strip()
+    gold_step = str(gold["step_label"]).strip()
+    step_r = 1.0 if _step_normalizer.normalize(pred_step) == gold_step else 0.0
 
-    # ── Enhanced Step correctness ───────────────────────────────────────────────
-    pred_step = obj["New step"].strip()
-    gold_step = gold["step_label"]
-    pred_step_norm = _step_normalizer.normalize(pred_step)
-    
-    if pred_step_norm == gold_step:
-        step_r = 1.0
-    else:
-        # Enhanced partial credit with semantic similarity
-        step_embs = _embed_texts([pred_step, gold_step])
-        step_sim = max(0.0, float(np.dot(step_embs[0], step_embs[1])))
-        
-        # Additional bonus for partial semantic match
-        step_r = 0.2 * step_sim
-        
-        # Bonus for correct step category (e.g., both enumeration steps)
-        if any(kw in pred_step.lower() and kw in gold_step.lower() 
-               for kw in ["enumerate", "exploit", "explore", "search", "analyze"]):
-            step_r += 0.1
-
-    # ── Enhanced MCP set F1 with macro-F1 optimization ─────────────────────────
     mcp_val = obj.get("MCP_tasks", {})
-    if isinstance(mcp_val, dict) and mcp_val:
-        pred_mcp = set(extract_mcp_labels(str(mcp_val)))
-    else:
-        pred_mcp = set()
+    pred_mcp = set(extract_mcp_labels(str(mcp_val))) if isinstance(mcp_val, dict) and mcp_val else set()
     gold_mcp = set(gold["mcp_labels"])
-    w = _mcp_label_weights()
-    
-    if not pred_mcp and not gold_mcp:
-        mcp_r = 1.0
-    else:
-        tp = pred_mcp & gold_mcp
-        fp = pred_mcp - gold_mcp
-        fn = gold_mcp - pred_mcp
-        w_tp = sum(w[l] for l in tp)
-        w_fp = sum(w[l] for l in fp)
-        w_fn = sum(w[l] for l in fn)
-        
-        prec = w_tp / (w_tp + w_fp) if (w_tp + w_fp) > 0 else 0.0
-        rec  = w_tp / (w_tp + w_fn) if (w_tp + w_fn) > 0 else 0.0
-        mcp_r = 2 * prec * rec / (prec + rec) if (prec + rec) > 0 else 0.0
-        
-        # Bonus for correct tool category (e.g., network tools)
-        network_tools = {"Nmap", "Netcat", "Smb client"}
-        if (pred_mcp & network_tools) and (gold_mcp & network_tools):
-            mcp_r += 0.05
+    union = pred_mcp | gold_mcp
+    mcp_r = (len(pred_mcp & gold_mcp) / len(union)) if union else 1.0
 
-    # ── Enhanced Explanation with multi-dimensional evaluation ─────────────────
-    pred_expl = str(obj.get("Step explanation", "")).strip()
-    gold_expl = gold.get("gold_step_explanation", "")
-    exp_r = _explanation_llm_judge_cached(pred_expl, gold_expl)
-    
-    # Multi-dimensional explanation bonuses
-    exp_bonus = 0.0
-    
-    # Length and structure
-    expl_len = len(pred_expl)
-    if expl_len < 20:
-        exp_bonus -= 0.15  # Stronger penalty for too short
-    elif 40 <= expl_len <= 250:
-        exp_bonus += 0.08  # Optimal length range
-    
-    # Step consistency
-    if pred_step.lower() in pred_expl.lower():
-        exp_bonus += 0.05
-    
-    # Technical depth
-    tech_terms = ["vulnerability", "exploit", "enumerate", "scan", "privilege", "escalation",
-                  "credential", "authentication", "service", "port", "attack", "defense",
-                  "payload", "shell", "reverse", "bind", "lateral", "movement"]
-    term_count = sum(1 for term in tech_terms if term.lower() in pred_expl.lower())
-    if term_count >= 3:
-        exp_bonus += 0.05
-    elif term_count >= 1:
-        exp_bonus += 0.02
-    
-    # Logical structure (has reasoning indicators)
-    reasoning_indicators = ["because", "since", "due to", "therefore", "thus", "as", "to"]
-    if any(ind in pred_expl.lower() for ind in reasoning_indicators):
-        exp_bonus += 0.03
-    
-    # MCP consistency
-    if pred_mcp:
-        mcp_mentioned = any(tool.lower() in pred_expl.lower() for tool in pred_mcp)
-        if mcp_mentioned:
-            exp_bonus += 0.03
-    
-    # Clamp bonus
-    exp_bonus = max(-0.15, min(0.15, exp_bonus))
+    exp_r = _deterministic_explanation_score(str(obj.get("Step explanation", "")), pred_step, pred_mcp)
+    fmt_r = 1.0
+    total = w_fmt * fmt_r + w_step * step_r + w_mcp * mcp_r + w_exp * exp_r
+    out = {"total": total, "fmt": fmt_r, "step": step_r, "mcp": mcp_r, "exp": exp_r}
+    return out if return_components else total
 
-    exp_component = exp_r + exp_bonus
-    total = w_fmt * fmt_r + w_step * step_r + w_mcp * mcp_r + w_exp * exp_component
-    if return_components:
-        return {"total": total, "fmt": fmt_r, "step": step_r, "mcp": mcp_r, "exp": exp_component}
-    return total
+
+def compute_reward_curriculum(completion: str, gold: dict, step_num: int,
+                              total_steps: int = 2000, return_components: bool = False):
+    """Stable task-aligned reward; no changing weights during RL."""
+    return compute_reward(completion, gold, return_components=return_components)
 
 
 # ---------------------------------------------------------------------------
 # Embedding helpers
 # ---------------------------------------------------------------------------
 
-def build_prefix_embeds(graph, field_embs, stage1, adapter, embed_layer, device, dtype):
+def build_prefix_embeds(ex, stage1, adapter, device, dtype):
     """
-    Given a single torch_geometric Data object + its context field
-    embeddings, produce the (1, n_tokens, H) soft-prompt prefix that gets
-    prepended to every prompt/completion.
+    Build the exact fused Stage-1 representation used to train the Stage-2
+    GraphPrefixAdapter, then project it into graph-prefix soft tokens.
 
-    FIX: now uses pure graph encoder output (encode_graph_only) instead of
-    fused classification representation. This decouples graph structure
-    learning from task-specific classification, matching the updated
-    Stage 2 architecture.
+    Stage 2 was trained with GRAPH_PREFIX_SRC_DIM = FUSION_HIDDEN // 2
+    (384-dim for the current model). The old Stage-3 implementation incorrectly
+    fed the raw 512-dim graph embedding into that adapter.
 
-    stage1 and adapter must already be on device.
+    The current Stage-1 classifier's encode_and_predict() is intentionally used
+    here so Stage 3 sees the same graph + strategy-conditioned representation
+    that Stage 2 saw. When semantic token tensors are unavailable, Stage-1's
+    built-in compatibility fallback derives a short semantic sequence from the
+    two BGE field embeddings.
     """
+    graph = ex["graph"]
     batch = PyGBatch.from_data_list([graph]).to(device)
-    field_embs = field_embs.to(device)
+
+    texts = [ex["context"].get(c, "") or "empty" for c in ("New strategy", "Strategy explanation")]
+    field_embs = torch.tensor(_embed_texts(texts), dtype=torch.float32, device=device).unsqueeze(0)
+
     with torch.no_grad():
         edge_attr = getattr(batch, 'edge_attr', None)
-        graph_emb = stage1.encode_graph_only(
-            batch.x, batch.edge_index, batch.batch, edge_attr=edge_attr
-        )  # (1, GNN_OUT_DIM)
-    prefix = adapter(graph_emb.to(dtype))  # (1, n_tokens, H)
+        fused_h, _, _ = stage1.encode_and_predict(
+            batch.x, batch.edge_index, batch.batch, field_embs, edge_attr=edge_attr
+        )  # (1, 384) with current FUSION_HIDDEN=768
+
+    src_dim = fused_h.shape[-1]
+    expected_dim = adapter.proj[0].in_features
+    if src_dim != expected_dim:
+        raise RuntimeError(
+            f"Stage-3 graph-prefix dimension mismatch: Stage-1 produced {src_dim} dims, "
+            f"but the Stage-2 GraphPrefixAdapter expects {expected_dim}. "
+            f"The Stage-1 checkpoint, Stage-2 adapter, and Stage-3 code must come from the same interface version."
+        )
+
+    # Stage-2 GraphPrefixAdapter is stored/trained in FP32, while the Qwen
+    # policy and Stage-1 checkpoint may run in BF16.  Feed the adapter FP32
+    # input, then cast its soft-prefix output back to the policy dtype.
+    # This avoids mat1/mat2 dtype mismatches without changing the learned
+    # Stage-2 adapter weights.
+    prefix = adapter(fused_h.float())  # (1, n_tokens, H), adapter runs in FP32
+    prefix = prefix.to(dtype=dtype)     # Qwen consumes BF16/FP16 embeddings
     return prefix  # kept on device
 
 
@@ -640,12 +590,47 @@ def completion_logprobs(
     return token_lp.sum()  # scalar
 
 
+
+# ---------------------------------------------------------------------------
+# Gold-target SFT anchor
+# ---------------------------------------------------------------------------
+
+def completion_nll(model, prompt_embeds: torch.Tensor, target_ids: torch.Tensor,
+                    embed_layer, dtype, device) -> torch.Tensor:
+    """Mean teacher-forced NLL on the gold target only.
+
+    This is a small Stage-2 anchor used alongside GRPO.  It prevents sparse
+    group-relative rewards from pushing a strong SFT policy away from the
+    learned answer distribution.  Prompt tokens are never included in the
+    loss; only gold completion tokens contribute.
+    """
+    if target_ids.numel() == 0:
+        return torch.zeros((), device=device)
+    target_ids = target_ids.view(1, -1).to(device)
+    target_embeds = embed_layer(target_ids).to(dtype)
+    full_embeds = torch.cat([prompt_embeds, target_embeds], dim=1)
+    Lp = prompt_embeds.shape[1]
+    Lt = target_ids.shape[1]
+    attn = torch.ones(full_embeds.shape[:2], dtype=torch.long, device=device)
+    out = model(inputs_embeds=full_embeds, attention_mask=attn)
+    logits = out.logits[:, Lp - 1:Lp + Lt - 1, :]
+    return F.cross_entropy(logits.reshape(-1, logits.shape[-1]), target_ids.reshape(-1))
+
+
+def gold_target_text(ex: dict) -> str:
+    """Canonical gold JSON target matching Stage-2's output contract."""
+    return json.dumps({
+        "New step": ex["step_label"],
+        "Step explanation": ex.get("gold_step_explanation", ""),
+        "MCP_tasks": {k: True for k in ex.get("mcp_labels", [])},
+    }, ensure_ascii=False)
+
 # ---------------------------------------------------------------------------
 # Main training loop
 # ---------------------------------------------------------------------------
 
 def evaluate_policy_on_val(policy, adapter, stage1, embed_layer, tokenizer,
-                            val_examples, device, dtype, max_examples: int = 32) -> dict:
+                            val_examples, device, dtype, max_examples: int = 96) -> dict:
     """
     Greedy-decode the current policy on a capped sample of the held-out
     (machine-level) validation set and score it with the *fixed* (non-curriculum)
@@ -676,6 +661,9 @@ def evaluate_policy_on_val(policy, adapter, stage1, embed_layer, tokenizer,
     sample = val_examples if len(val_examples) <= max_examples else rng.sample(val_examples, max_examples)
 
     components = {"total": [], "fmt": [], "step": [], "mcp": [], "exp": []}
+    step_exact = []
+    mcp_jaccard = []
+    mcp_pass = []
     with torch.no_grad():
         for ex in sample:
             gold = {
@@ -684,11 +672,11 @@ def evaluate_policy_on_val(policy, adapter, stage1, embed_layer, tokenizer,
                 "gold_step_explanation": ex["gold_step_explanation"],
             }
             prefix_embeds = build_prefix_embeds(
-                ex["graph"], ex["_field_embs"], stage1, adapter, embed_layer, device, dtype
+                ex, stage1, adapter, device, dtype
             )
             prompt_text = (
                 f"<|system|>\n{SYSTEM_PROMPT}\n"
-                f"<|user|>\n{build_prompt(ex, mask_hint=True)}\n"
+                f"<|user|>\n{build_prompt(ex)}\n"
                 f"<|assistant|>\n"
             )
             prompt_embeds, L_prefix_plus_prompt = build_prompt_embeds(
@@ -712,10 +700,16 @@ def evaluate_policy_on_val(policy, adapter, stage1, embed_layer, tokenizer,
             comp = compute_reward(completion_text, gold, return_components=True)
             for k in components:
                 components[k].append(comp[k])
+            step_exact.append(comp["step"])
+            mcp_jaccard.append(comp["mcp"])
+            mcp_pass.append(1.0 if comp["mcp"] >= 0.5 else 0.0)
 
     if was_training:
         policy.train()
-    return {k: (float(np.mean(v)) if v else 0.0) for k, v in components.items()}
+    return {**{k: (float(np.mean(v)) if v else 0.0) for k, v in components.items()},
+            "step_exact": float(np.mean(step_exact)) if step_exact else 0.0,
+            "mcp_jaccard": float(np.mean(mcp_jaccard)) if mcp_jaccard else 0.0,
+            "mcp_pass": float(np.mean(mcp_pass)) if mcp_pass else 0.0}
 
 
 def _save_policy_snapshot(policy, adapter, value_head, tokenizer, out_dir):
@@ -727,784 +721,548 @@ def _save_policy_snapshot(policy, adapter, value_head, tokenizer, out_dir):
 
 
 def main():
+    """Conservative GRPO fine-tuning anchored to the Stage-2 policy.
+
+    The previous implementation had three important problems:
+      1. PPO ratios were computed against the frozen reference model rather
+         than the rollout (old) policy.  That is not the GRPO/PPO objective.
+      2. The RL reward could be dominated by explanation heuristics and the
+         validation score was measured on only 96 examples, so a noisy subset
+         could promote a checkpoint that later lost badly on the 268-example
+         test set.
+      3. Stage-3 was allowed to modify the very large graph-prefix adapter.
+         Stage 2 already learned this mapping; changing it during RL makes it
+         easy to destroy graph conditioning while the language model reward
+         still looks good.
+
+    This version therefore:
+      * starts exactly from Stage 2;
+      * keeps the Stage-1 fused-384 -> prefix interface unchanged;
+      * freezes the graph-prefix adapter by default;
+      * uses the actual GRPO group-relative advantage;
+      * uses rollout-policy log-probabilities for the PPO ratio;
+      * uses a task-aligned reward: 75% exact Step + 20% MCP Jaccard + 5%
+        format, with NO LLM-judge/explanation reward during RL;
+      * adds a small supervised Stage-2 target anchor to prevent reward drift;
+      * rejects near-zero-variance groups instead of learning from noise;
+      * evaluates the FULL 239-example machine-held-out validation set;
+      * only promotes a checkpoint if both Step and MCP improve over Stage 2;
+      * otherwise copies Stage 2 forward unchanged.
+    """
     device = "cuda" if torch.cuda.is_available() else "cpu"
-    dtype = torch.bfloat16
+    dtype = torch.bfloat16 if device == "cuda" else torch.float32
+
+    # These are deliberately conservative and can be overridden without
+    # editing config.py.  They are safer for the already-strong Stage-2 model
+    # than the previous 8e-7 / 1600-step configuration.
+    G = int(os.environ.get("STAGE3_SAFE_GROUP_SIZE", "8"))
+    SAFE_LR = float(os.environ.get("STAGE3_SAFE_LR", "1.0e-7"))
+    SAFE_STEPS = int(os.environ.get("STAGE3_SAFE_STEPS", "600"))
+    SAFE_KL = float(os.environ.get("STAGE3_SAFE_KL", "0.08"))
+    SAFE_CLIP = float(os.environ.get("STAGE3_SAFE_CLIP", "0.20"))
+    SAFE_ACCUM = int(os.environ.get("STAGE3_SAFE_GRAD_ACCUM", "4"))
+    SAFE_PATIENCE = int(os.environ.get("STAGE3_SAFE_PATIENCE", "2"))
+    EVAL_EVERY = int(os.environ.get("STAGE3_SAFE_EVAL_EVERY", "200"))
+    VAL_MAX = int(os.environ.get("STAGE3_SAFE_VAL_MAX", "239"))
+    MAX_NEW_TOKENS = int(os.environ.get("STAGE3_SAFE_MAX_NEW_TOKENS", "260"))
+    TRAIN_ADAPTER = os.environ.get("STAGE3_TRAIN_ADAPTER", "0") == "1"
+    SFT_ANCHOR = float(os.environ.get("STAGE3_SFT_ANCHOR", "0.20"))
+
     print(f"[Stage 3] Training input : {INPUT_TRAIN_JSON}")
     print(f"[Stage 3] Device         : {device}")
-    print(f"[Stage 3] Total steps    : {STAGE3_STEPS}")
-    print(f"[Stage 3] Group size (G) : {STAGE3_GROUP_SIZE}")
-    print(f"[Stage 3] KL coef        : {STAGE3_KL_COEF}")
-    print(f"[Stage 3] PPO clip eps   : {STAGE3_PPO_CLIP}")
-    print(f"[Stage 3] Dual-clip coef : {STAGE3_DUAL_CLIP_COEF}  (loss ceiling for adv<0 samples)")
-    print(f"[Stage 3] KL hard cap    : {STAGE3_KL_HARD_CAP}  (per micro-batch; that micro-batch's gradient is discarded above this, other micro-batches in the same window are unaffected)")
-    print(f"[Stage 3] LR             : {STAGE3_LR}")
-    print(f"[Stage 3] Grad accum     : {STAGE3_GRAD_ACCUM}")
+    print(f"[Stage 3] Total steps    : {SAFE_STEPS}")
+    print(f"[Stage 3] Group size (G) : {G}")
+    print(f"[Stage 3] KL coef        : {SAFE_KL}")
+    print(f"[Stage 3] PPO clip eps   : {SAFE_CLIP}")
+    print(f"[Stage 3] LR             : {SAFE_LR:.2e}")
+    print(f"[Stage 3] Grad accum     : {SAFE_ACCUM}")
+    print(f"[Stage 3] Train graph adapter during RL: {TRAIN_ADAPTER}")
+    print(f"[Stage 3] Stage-2 supervised anchor weight: {SFT_ANCHOR:.2f}")
 
-    # ── Tokenizer ────────────────────────────────────────────────────────────
     tokenizer = AutoTokenizer.from_pretrained(STAGE2_ADAPTER_DIR)
     if tokenizer.pad_token is None:
         tokenizer.pad_token = tokenizer.eos_token
 
-    # ── Policy model (Stage-2 LoRA, trainable) ───────────────────────────────
+    # -------------------------- Stage-2 policy --------------------------
     print(f"\n[Stage 3] Loading policy base model: {QWEN_MODEL_NAME}")
     base = AutoModelForCausalLM.from_pretrained(
         QWEN_MODEL_NAME, torch_dtype=dtype, device_map=None
     ).to(device)
+    base.config.use_cache = False
     base.gradient_checkpointing_enable()
     policy = PeftModel.from_pretrained(base, STAGE2_ADAPTER_DIR, is_trainable=True)
     policy.train()
 
-    # ── Reference model (Stage-2 LoRA, frozen) ───────────────────────────────
-    print(f"[Stage 3] Loading reference model (frozen copy)")
+    # ---------------------- Frozen Stage-2 reference --------------------
+    print("[Stage 3] Loading frozen Stage-2 reference model")
     ref_base = AutoModelForCausalLM.from_pretrained(
         QWEN_MODEL_NAME, torch_dtype=dtype, device_map=None
     ).to(device)
-    ref_base.gradient_checkpointing_enable()
+    ref_base.config.use_cache = False
     ref_model = PeftModel.from_pretrained(ref_base, STAGE2_ADAPTER_DIR, is_trainable=False)
     ref_model.eval()
     for p in ref_model.parameters():
         p.requires_grad_(False)
 
-    # ── Frozen Stage-1 graph encoder ─────────────────────────────────────────
+    # ------------------------- Frozen Stage-1 ----------------------------
     print(f"[Stage 3] Loading Stage-1 GNN checkpoint: {STAGE1_CKPT}")
     stage1 = Stage1Classifier()
     ckpt = torch.load(STAGE1_CKPT, map_location=device, weights_only=False)
     if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
         stage1.load_state_dict(ckpt["model_state_dict"])
-        print(f"[Stage 3]   loaded (epoch={ckpt.get('best_epoch','?')}, "
-              f"score={ckpt.get('best_score','?'):.4f})")
+        be = ckpt.get("best_epoch", "?")
+        bs = ckpt.get("best_score", "?")
+        print(f"[Stage 3]   loaded (epoch={be}, score={bs:.4f})" if isinstance(bs, (float, int)) else
+              f"[Stage 3]   loaded (epoch={be}, score={bs})")
     else:
         stage1.load_state_dict(ckpt)
-    # FIX: keep the whole frozen Stage-1 classifier (encoders + gates +
-    # fusion), not just graph_encoder -- see build_prefix_embeds and
-    # graph_encoder.Stage1Classifier.encode_and_predict for why.
     stage1 = stage1.to(device).eval()
     for p in stage1.parameters():
         p.requires_grad_(False)
 
-    # ── GraphPrefixAdapter (trainable — loaded from Stage-2 checkpoint) ──────
-    # Dim must match GRAPH_PREFIX_SRC_DIM = FUSION_HIDDEN // 2 used by
-    # stage2_sft_qwen.py, since we're loading ITS checkpoint here.
+    # ------------------------- Prefix adapter ---------------------------
     from stage2_sft_qwen import GRAPH_PREFIX_SRC_DIM
     llm_hidden = policy.config.hidden_size
-    adapter = GraphPrefixAdapter(GRAPH_PREFIX_SRC_DIM, llm_hidden).to(device).to(dtype)
+    adapter = GraphPrefixAdapter(GRAPH_PREFIX_SRC_DIM, llm_hidden).to(device).float()
     adapter_ckpt = os.path.join(STAGE2_ADAPTER_DIR, "graph_adapter.pt")
+    if not os.path.isfile(adapter_ckpt):
+        raise FileNotFoundError(f"Stage-2 graph adapter not found: {adapter_ckpt}")
     adapter.load_state_dict(torch.load(adapter_ckpt, map_location=device, weights_only=False))
-    adapter.train()
-    print(f"[Stage 3] Loaded GraphPrefixAdapter from Stage-2")
+    adapter.eval() if not TRAIN_ADAPTER else adapter.train()
+    if not TRAIN_ADAPTER:
+        for p in adapter.parameters():
+            p.requires_grad_(False)
+    print(f"[Stage 3] GraphPrefixAdapter source dim: {GRAPH_PREFIX_SRC_DIM}")
+    print("[Stage 3] ✓ Loaded Stage-2 GraphPrefixAdapter")
 
-    # ── Embedding layers (shared, read-only during generation) ────────────────
     embed_layer = policy.get_input_embeddings()
     ref_embed_layer = ref_model.get_input_embeddings()
 
-    # ── Load SEPARATE LLM judge model (CRITICAL: different from training model) ───
-    from config import LLM_JUDGE_MODEL_NAME
-    print(f"\n[Stage 3] Loading SEPARATE LLM judge model: {LLM_JUDGE_MODEL_NAME}")
-    print(f"[Stage 3] ⚠  This is DIFFERENT from training model ({QWEN_MODEL_NAME})")
-    judge_tokenizer = AutoTokenizer.from_pretrained(LLM_JUDGE_MODEL_NAME)
-    if judge_tokenizer.pad_token is None:
-        judge_tokenizer.pad_token = judge_tokenizer.eos_token
-    judge_model = AutoModelForCausalLM.from_pretrained(
-        LLM_JUDGE_MODEL_NAME,
-        torch_dtype=dtype,
-        device_map=None
-    ).to(device)
-    judge_model.eval()
-    for p in judge_model.parameters():
-        p.requires_grad_(False)
-    set_llm_judge_model(judge_model, judge_tokenizer, device)
-    print(f"[Stage 3] ✓ Separate LLM judge model loaded ({LLM_JUDGE_MODEL_NAME} != {QWEN_MODEL_NAME})")
-
-    # ── Value function for baseline reduction ────────────────────────────────
-    value_head = ValueHead(llm_hidden).to(device).to(dtype)
-    value_optimizer = AdamW(value_head.parameters(), lr=STAGE3_LR * 2, weight_decay=0.01)
-
-    # ── Optimizer — LoRA params + adapter, NOT base weights ──────────────────
-    trainable = [p for p in policy.parameters() if p.requires_grad] + \
-                list(adapter.parameters())
-    n_trainable = sum(p.numel() for p in trainable)
-    print(f"\n[Stage 3] Trainable params: ~{n_trainable/1e6:.1f}M")
-
-    optimizer = AdamW(trainable, lr=STAGE3_LR, weight_decay=0.01, betas=(0.9, 0.95), eps=1e-8)
-    total_updates = STAGE3_STEPS // STAGE3_GRAD_ACCUM
-    scheduler = CosineAnnealingLR(optimizer, T_max=max(1, total_updates))
-
-    # ── Dataset — load training data, machine-based split for no leakage ─────
-    all_train_examples = load_from_input_json(INPUT_TRAIN_JSON, "train")
-    print(f"\n[Stage 3] Total labeled examples loaded: {len(all_train_examples)}")
-
-    # DATA LEAKAGE PREVENTION: apply same machine-based split as Stage 2
-    # (so RL doesn't see Stage 2 validation examples either)
-    machine_order = sorted(set(e["machine"] for e in all_train_examples))
+    # ---------------------------- Data split ----------------------------
+    all_examples = load_from_input_json(INPUT_TRAIN_JSON, "train")
+    print(f"[Stage 3] Total labeled examples loaded: {len(all_examples)}")
+    machine_order = sorted(set(e["machine"] for e in all_examples))
     rng_split = np.random.default_rng(RANDOM_SEED + 1)
-    perm_machines = rng_split.permutation(len(machine_order))
+    perm = rng_split.permutation(len(machine_order))
     n_val_machines = max(1, int(len(machine_order) * STAGE2_VAL_SPLIT))
-    val_machine_set = set(machine_order[i] for i in perm_machines[:n_val_machines])
-    examples = [e for e in all_train_examples if e["machine"] not in val_machine_set]
-    val_examples = [e for e in all_train_examples if e["machine"] in val_machine_set]
+    val_machines = {machine_order[i] for i in perm[:n_val_machines]}
+    train_machines = set(machine_order) - val_machines
+    train_examples = [e for e in all_examples if e["machine"] in train_machines]
+    val_examples = [e for e in all_examples if e["machine"] in val_machines]
+    print(f"[Stage 3] RL training on {len(train_examples)} examples, {len(train_machines)} machines")
+    print(f"[Stage 3] Held-out val set: {len(val_examples)} examples, {len(val_machines)} machines")
 
-    train_machines = set(e["machine"] for e in examples)
-    print(f"[Stage 3] RL training on {len(examples)} examples, "
-          f"{len(train_machines)} machines (excluded {len(val_machine_set)} val machines)")
-    print(f"[Stage 3] Held-out val set for checkpoint selection: {len(val_examples)} examples "
-          f"from {len(val_machine_set)} machines")
+    test_pre = load_from_input_json(INPUT_TEST_JSON, "test")
+    test_machines = {e["machine"] for e in test_pre}
+    if train_machines & test_machines or val_machines & test_machines:
+        raise RuntimeError("Stage 3 machine split overlaps the test set; refusing to train/evaluate.")
+    print("[Stage 3] ✓ No machine overlap between train/val and test")
+    del test_pre
 
-    # ── REMOVED: Stage-1 classifier hints ─────────────────────────────────────
-    # Critical fix: Force Stage 3 RL to learn from graph prefix tokens instead of
-    # copying Stage 1 predictions. This is essential for Stage 3 to actually
-    # improve over Stage 1 performance.
-    # Precompute field embeddings for efficiency
-    for ex in examples:
-        ex["_field_embs"] = torch.tensor(
-            _embed_texts([ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]),
-            dtype=torch.float32,
-        ).unsqueeze(0)
+    # Gentle inverse-sqrt class balancing.  Do not let rare classes dominate.
+    step_counts = np.bincount([e["step_idx"] for e in train_examples], minlength=len(STEP_LABELS)).astype(float)
+    safe_counts = np.maximum(step_counts, 1.0)
+    class_w = 1.0 / np.sqrt(safe_counts)
+    class_w = np.clip(class_w, class_w.max() / 4.0, class_w.max())
+    sample_weights = np.asarray([class_w[e["step_idx"]] for e in train_examples], dtype=np.float64)
 
-    # Class-balanced example sampling — same rationale as Stage 2's
-    # WeightedRandomSampler (see stage2_sft_qwen.py): step_label support is
-    # heavily skewed, and uniform random.choice() over `examples` means the
-    # policy sees the majority class ("Exploit the selected exploitations")
-    # far more often than rare ones, which biases what GRPO has gradient
-    # signal to improve. Precompute inverse-frequency sampling weights once.
-    # Same gentler sqrt + capped-ratio reweighting as Stage 2 (see
-    # stage2_sft_qwen.py) -- raw 1/count overshot and flipped the imbalance
-    # rather than correcting it.
-    example_step_idxs = [e["step_idx"] for e in examples]
-    example_step_counts = np.bincount(example_step_idxs, minlength=len(STEP_LABELS)).astype(np.float64)
-    example_step_counts[example_step_counts == 0] = 1.0
-    example_inv_freq = 1.0 / np.sqrt(example_step_counts)
-    example_inv_freq = np.clip(example_inv_freq, example_inv_freq.max() / 4.0, example_inv_freq.max())
-    example_sample_weights = [example_inv_freq[i] for i in example_step_idxs]
-
-    # Precompute field embeddings for the held-out val set too (cheap, done once).
-    for ex in val_examples:
-        ex["_field_embs"] = torch.tensor(
-            _embed_texts([ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]),
-            dtype=torch.float32,
-        ).unsqueeze(0)
-
-    # ── Load test data just for data leakage pre-check ──────────────────────
-    test_examples_precheck = load_from_input_json(INPUT_TEST_JSON, "test")
-    test_machines = set(e["machine"] for e in test_examples_precheck)
-    train_test_overlap = train_machines & test_machines
-    if train_test_overlap:
-        print(f"[Stage 3] ⚠  WARNING: train/test machine overlap: {sorted(train_test_overlap)}")
-    else:
-        print(f"[Stage 3] ✓ No machine overlap between RL train and test sets")
-    del test_examples_precheck  # free memory
-
-    # ── Output dir ────────────────────────────────────────────────────────────
+    # ------------------------- Output management ------------------------
     os.makedirs(STAGE3_ADAPTER_DIR, exist_ok=True)
     BEST_DIR = os.path.join(STAGE3_ADAPTER_DIR, "best")
+    if os.path.isdir(BEST_DIR):
+        shutil.rmtree(BEST_DIR)
+    for name in os.listdir(STAGE3_ADAPTER_DIR):
+        if name.startswith("step_"):
+            path = os.path.join(STAGE3_ADAPTER_DIR, name)
+            if os.path.isdir(path):
+                shutil.rmtree(path)
+            else:
+                os.remove(path)
 
-    # ── Baseline: score the Stage-2 checkpoint (RL's own starting point) on
-    # the held-out val set BEFORE any RL updates happen. This is the number
-    # Stage 3 has to beat; if it never does, we fall back to Stage 2 instead
-    # of shipping a regression (see the end of the loop below). ──────────────
-    print("\n[Stage 3] Scoring Stage-2 starting checkpoint on held-out val set "
-          f"({min(len(val_examples), 32)} examples) — this is the bar Stage 3 must clear...")
-    baseline_val = evaluate_policy_on_val(
-        policy, adapter, stage1, embed_layer, tokenizer, val_examples, device, dtype
+    # ------------------------ Validation baseline ----------------------
+    print(f"\n[Stage 3] Scoring Stage-2 starting checkpoint on FULL held-out val set ({min(VAL_MAX, len(val_examples))} examples)")
+    baseline = evaluate_policy_on_val(
+        policy, adapter, stage1, embed_layer, tokenizer,
+        val_examples, device, dtype, max_examples=VAL_MAX
     )
-    baseline_val_score = baseline_val["total"]
-    baseline_step_component = baseline_val["step"]
-    print(f"[Stage 3] Baseline (Stage 2) val reward: {baseline_val_score:.4f} "
-          f"(step component: {baseline_step_component:.4f})")
-    best_val_score = baseline_val_score
+    baseline_step = float(baseline["step_exact"])
+    baseline_mcp = float(baseline["mcp_jaccard"])
+    baseline_score = 0.65 * baseline_step + 0.35 * baseline_mcp
+    print(f"[Stage 3] Stage-2 baseline: task={baseline_score:.4f} | step={baseline_step:.4f} | mcpJ={baseline_mcp:.4f}")
+
+    best_score = baseline_score
+    best_step_metric = baseline_step
+    best_mcp_metric = baseline_mcp
     best_step = 0
-    best_step_component = baseline_step_component
-    # A promoted checkpoint must not let the step component drop by more than
-    # this much relative to the Stage-2 baseline, even if the blended reward
-    # improves overall (e.g. via a big MCP/explanation gain). This is what
-    # stops Stage 3 from "improving" on paper while tying or losing ground on
-    # step accuracy specifically, which was the behavior you were seeing.
-    STEP_REGRESSION_TOLERANCE = 0.01
-    EVAL_EVERY = 200  # aligned with existing checkpoint cadence
+    no_improve = 0
 
-    # ── Training loop ─────────────────────────────────────────────────────────
-    G          = STAGE3_GROUP_SIZE
-    beta       = STAGE3_KL_COEF
-    grad_accum = STAGE3_GRAD_ACCUM
-    clip_eps   = STAGE3_PPO_CLIP
+    # ----------------------------- Optimizer ----------------------------
+    trainable = [p for p in policy.parameters() if p.requires_grad]
+    if TRAIN_ADAPTER:
+        trainable += [p for p in adapter.parameters() if p.requires_grad]
+    if not trainable:
+        raise RuntimeError("No Stage-3 trainable parameters found.")
+    print(f"[Stage 3] Trainable params: {sum(p.numel() for p in trainable)/1e6:.1f}M")
 
-    optimizer.zero_grad()
-    value_optimizer.zero_grad()
-    global_step = 0
+    optimizer = AdamW(
+        trainable, lr=SAFE_LR, weight_decay=0.01,
+        betas=(0.9, 0.95), eps=1e-8, foreach=False
+    )
+    total_updates = max(1, SAFE_STEPS // SAFE_ACCUM)
+    scheduler = CosineAnnealingLR(optimizer, T_max=total_updates)
+    optimizer.zero_grad(set_to_none=True)
 
-    # Running reward stats for adaptive advantage normalization
-    reward_running_mean = 0.0
-    reward_running_std = 1.0
-    ema_alpha = 0.95
+    # ---------------------------- GRPO loop -----------------------------
+    kl_skipped = 0
+    applied = 0
+    consecutive_zero_var = 0
 
-    # Rolling KL values across the current grad-accumulation window, used by
-    # the KL circuit breaker below to veto an optimizer step outright if the
-    # policy has drifted too far within this window (belt-and-braces on top
-    # of the dual-clip fix — dual-clip bounds any single sample's gradient
-    # contribution, this catches the case where several samples in the same
-    # window each drifted moderately and together still add up to a large,
-    # policy-damaging step).
-    window_kl_values: list = []
-    window_microbatches_applied = 0
-    kl_skipped_steps = 0
-    evals_without_improvement = 0
-
-    for step in range(1, STAGE3_STEPS + 1):
-
-        # ── 1. Sample one training example (class-balanced) ───────────────────
-        ex = random.choices(examples, weights=example_sample_weights, k=1)[0]
+    for step in range(1, SAFE_STEPS + 1):
+        ex = random.choices(train_examples, weights=sample_weights.tolist(), k=1)[0]
         gold = {
-            "step_label":             ex["step_label"],
-            "mcp_labels":             ex["mcp_labels"],
-            "gold_step_explanation":  ex["gold_step_explanation"],
+            "step_label": ex["step_label"],
+            "mcp_labels": ex["mcp_labels"],
+            "gold_step_explanation": ex.get("gold_step_explanation", ""),
         }
 
-        # ── 2. Build graph prefix + prompt embeddings ─────────────────────────
-        prefix_embeds = build_prefix_embeds(
-            ex["graph"], ex["_field_embs"], stage1, adapter, embed_layer, device, dtype
-        )  # (1, n_tokens, H)
-
+        prefix_embeds = build_prefix_embeds(ex, stage1, adapter, device, dtype)
         prompt_text = (
             f"<|system|>\n{SYSTEM_PROMPT}\n"
-            f"<|user|>\n{build_prompt(ex, mask_hint=True)}\n"
+            f"<|user|>\n{build_prompt(ex)}\n"
             f"<|assistant|>\n"
         )
-        prompt_embeds, L_prefix_plus_prompt = build_prompt_embeds(
+        prompt_embeds, prompt_len = build_prompt_embeds(
             prompt_text, tokenizer, embed_layer, prefix_embeds, device, dtype
         )
-        attn_prompt = torch.ones(
-            1, L_prefix_plus_prompt, dtype=torch.long, device=device
-        )
+        target_ids = tokenizer(
+            gold_target_text(ex), return_tensors="pt", add_special_tokens=False,
+            truncation=True, max_length=MAX_NEW_TOKENS
+        ).input_ids.to(device)
+        attn_prompt = torch.ones(1, prompt_len, dtype=torch.long, device=device)
 
-        # ── 3. Generate G completions ─────────────────────────────────────────
-        policy.eval()   # disable dropout during generation
-
-        with torch.no_grad():
-            gen_out = policy.generate(
-                inputs_embeds=prompt_embeds,
-                attention_mask=attn_prompt,
-                max_new_tokens=2000,
-                do_sample=True,
-                temperature=0.7,
-                top_p=0.9,
-                num_return_sequences=G,
-                pad_token_id=tokenizer.pad_token_id,
-                eos_token_id=tokenizer.eos_token_id,
-            )
-
-        # ── FIX: gen_out already contains ONLY the newly generated tokens ─────
-        # (generate() cannot prepend the prompt when called with inputs_embeds
-        # only, since the prompt has no token-id representation). We just trim
-        # per-row trailing pad tokens; no slicing by L_prefix_plus_prompt.
-        completion_ids_list = [
-            trim_generated_row(gen_out[i], tokenizer.eos_token_id, tokenizer.pad_token_id)
-            for i in range(gen_out.shape[0])
-        ]
-
-        if step <= 3:
-            lens = [t.shape[0] for t in completion_ids_list]
-            print(f"[Stage 3] Debug step {step}: gen_out shape = {gen_out.shape}, "
-                  f"trimmed completion lengths = {lens}")
-
-        # ── 4. Decode and score completions ───────────────────────────────────
-        completions = [
-            tokenizer.decode(ids, skip_special_tokens=True)
-            for ids in completion_ids_list
-        ]
-
-        if step <= 3:
-            print(f"[Stage 3] Debug step {step}: First 2 completions:")
-            for i, comp in enumerate(completions[:2]):
-                print(f"  Completion {i}: {comp[:200]}...")
-
-        rewards_np = np.array([
-            compute_reward_curriculum(c, gold, step, total_steps=STAGE3_STEPS)
-            for c in completions
-        ], dtype=np.float32)
-
-        # Update EMA reward stats for adaptive normalization
-        batch_mean = rewards_np.mean()
-        batch_std = rewards_np.std() + 1e-8
-        reward_running_mean = ema_alpha * reward_running_mean + (1 - ema_alpha) * batch_mean
-        reward_running_std = ema_alpha * reward_running_std + (1 - ema_alpha) * batch_std
-
-        rewards = torch.tensor(rewards_np, dtype=torch.float32, device=device)
-
-        # ── 5. Compute advantages (group-relative, GRPO-style) ────────────────
-        # BUG FIX: this used to compute the standard GRPO group-relative
-        # advantage (rewards - mean) / std -- which is *already* a properly
-        # normalized, roughly unit-variance quantity by construction (that's
-        # the whole point of GRPO: the group itself is the baseline, no
-        # critic needed) -- and then subtract a SECOND baseline term
-        # ((value_head output) - mean) / std on top of it. Stacking two
-        # baselines like that double-counts the normalization and routinely
-        # pushed `advantages` several std devs past the +-4.0 clamp, which
-        # is visible directly in the training log: pg_loss lands on almost
-        # exactly the same value (-4.719 = -4.0 * (1+clip_eps)) at steps 50,
-        # 200, 600, 800, 1650, 1900, 2000, 2200... regardless of how avg_r or
-        # kl vary at those steps. That constant value is what
-        # `-adv_clamped * clamped_ratio` evaluates to once `adv` is pinned at
-        # the clamp boundary -- i.e. most updates were being driven by the
-        # clamp constant, not by the actual per-sample reward signal, which
-        # is consistent with Stage 3 ending up statistically indistinguishable
-        # from (or slightly worse than) the Stage 2 SFT checkpoint it started
-        # from. Fix: use the plain GRPO group-relative advantage; the value
-        # head is still trained below (as a monitoring/critic signal you can
-        # inspect) but no longer feeds into the policy advantage.
-        mean_r = rewards.mean()
-        std_r = rewards.std()
-        if std_r < 1e-6:
-            advantages = torch.zeros_like(rewards)
-        else:
-            advantages = (rewards - mean_r) / std_r
-        advantages = torch.clamp(advantages, -4.0, 4.0)
-
-        with torch.no_grad():
-            v_in = {"inputs_embeds": prompt_embeds.detach(),
-                    "attention_mask": attn_prompt.detach(),
-                    "output_hidden_states": True}
-            v_out = policy(**v_in)
-            baseline_v = value_head(v_out.hidden_states[-1]).squeeze().detach()
-
-        # ── 6. PPO-clipped GRPO policy loss + KL penalty ─────────────────────
-        policy.train()
-        value_head.train()
-
-        loss_accum = torch.zeros(1, device=device, requires_grad=True)
-        value_loss_accum = torch.zeros(1, device=device, requires_grad=True)
-        total_kl_accum = 0.0
-
-        valid_completions = 0
-        for g_idx in range(G):
-            comp_ids = completion_ids_list[g_idx].unsqueeze(0).to(device)
-            if comp_ids.shape[1] == 0:
-                continue  # skip genuinely empty completions
-            valid_completions += 1
-            adv = advantages[g_idx]
-            reward = rewards[g_idx].item()
-
-            # Policy log-prob (grad-enabled)
-            lp_policy = completion_logprobs(
-                policy, prompt_embeds, comp_ids, embed_layer, dtype, device
-            )
-
-            # Reference log-prob (frozen, no grad)
+        # Dynamic sampling: if all candidates have effectively identical task
+        # reward, retry at a slightly higher temperature.  If diversity is
+        # still absent, skip the update rather than injecting a fake gradient.
+        chosen_ids = None
+        chosen_text = None
+        rewards_np = None
+        for attempt, temp in enumerate((0.70, 0.82, 0.95)):
+            policy.eval()
             with torch.no_grad():
-                lp_ref = completion_logprobs(
-                    ref_model, prompt_embeds.detach(), comp_ids,
-                    ref_embed_layer, dtype, device
+                gen_out = policy.generate(
+                    inputs_embeds=prompt_embeds,
+                    attention_mask=attn_prompt,
+                    max_new_tokens=MAX_NEW_TOKENS,
+                    do_sample=True,
+                    temperature=temp,
+                    top_p=0.95,
+                    num_return_sequences=G,
+                    pad_token_id=tokenizer.pad_token_id,
+                    eos_token_id=tokenizer.eos_token_id,
                 )
-
-            # ── Standard PPO clipped importance-ratio loss ────────────────────
-            # ratio = π_θ(a|s) / π_ref(a|s) = exp(lp_policy - lp_ref)
-            # Clipping keeps ratio in [1-ε, 1+ε] for pessimistic bound.
-            log_ratio = lp_policy - lp_ref.detach()
-            # Clip log_ratio before exp to prevent ratio explosion
-            log_ratio = torch.clamp(log_ratio, min=-10.0, max=10.0)
-            ratio = torch.exp(log_ratio)
-            clamped_ratio = torch.clamp(ratio, 1.0 - clip_eps, 1.0 + clip_eps)
-
-            # Standard PPO surrogate: pessimistic bound (minimum for positive adv, maximum for negative)
-            # Since we MINIMIZE loss = -objective:
-            #   loss_unclipped = -adv * ratio
-            #   loss_clipped   = -adv * clamp(ratio, 1-ε, 1+ε)
-            #   pg_loss = max(loss_unclipped, loss_clipped)   [pessimistic]
-            pg_unclipped = -adv * ratio
-            pg_clipped   = -adv * clamped_ratio
-            pg_loss = torch.max(pg_unclipped, pg_clipped)
-
-            # ── DUAL-CLIP PPO (fixes the pg_loss/kl explosion) ────────────────
-            # Standard PPO-clip above only bounds the loss for adv >= 0. For
-            # adv < 0, pg_unclipped = -adv*ratio grows WITHOUT BOUND as ratio
-            # grows (adv negative, ratio positive and potentially huge -> very
-            # large positive loss), and max(unclipped, clipped) always keeps
-            # the larger of the two, so the explosion passes straight through.
-            # With log_ratio clamped only at +-10 (ratio up to e^10 ~ 22000)
-            # and advantage clamped to +-4.0, a single diverged sample among
-            # only G=4 completions can swing pg_loss into the thousands —
-            # exactly what's in the log (127 / 2897 / 8255 / 8175 at steps
-            # 350/800/850/1000), each followed by held-out val reward
-            # dropping further. Dual-clip (Ye et al. 2020, standard in DAPO /
-            # verl / TRL's GRPO trainers) adds a second, unconditional floor
-            # for the adv < 0 case: the loss can never exceed
-            # DUAL_CLIP_COEF * |adv| (a large-but-finite number), so one
-            # diverged sample can still push the policy back down hard, but
-            # can no longer single-handedly blow up the batch gradient.
-            if STAGE3_DUAL_CLIP_COEF is not None and STAGE3_DUAL_CLIP_COEF > 1.0:
-                dual_clip_loss = -STAGE3_DUAL_CLIP_COEF * adv  # positive & finite since adv<0 in this branch
-                pg_loss = torch.where(adv < 0, torch.min(pg_loss, dual_clip_loss), pg_loss)
-
-            # Clip-fraction monitoring: % of ratios that were clipped
-            clip_frac = float(((ratio < (1.0 - clip_eps)) | (ratio > (1.0 + clip_eps))).float().mean().item())
-
-            # KL penalty: keep policy close to Stage 2 SFT init (reversed KL, policy vs ref)
-            L = max(1.0, float(comp_ids.shape[1]))
-            # Clip log_ratio to prevent KL explosion
-            log_ratio_clipped = torch.clamp(log_ratio, min=-10.0, max=10.0)
-            kl = (torch.exp(log_ratio_clipped) - log_ratio_clipped - 1.0) / L  # non-negative KL-like term
-            # Clip KL term to prevent explosion
-            kl = torch.clamp(kl, max=10.0)
-            total_kl_accum += kl.item()
-
-            loss_accum = loss_accum + (pg_loss + beta * kl) / G
-
-            # Value loss: learn baseline
-            value_loss = 0.5 * ((baseline_v - reward) ** 2)
-            value_loss_accum = value_loss_accum + value_loss / G
-
-        # Scale by gradient accumulation
-        if valid_completions > 0:
-            microbatch_mean_kl = total_kl_accum / valid_completions
-
-            # ── KL circuit breaker (now per-microbatch, not per-window) ────────
-            # Originally this rejected the WHOLE grad-accum window (all
-            # STAGE3_GRAD_ACCUM=4 micro-batches) whenever their AVERAGE kl
-            # exceeded the cap. In practice a single noisy micro-batch (kl
-            # 2-5, occurring every ~10-20 steps) was enough to drag the
-            # 4-batch mean over a cap of 1.0 and discard 3 otherwise-fine
-            # micro-batches' gradients along with it — 90 of ~325 windows
-            # (~28%) were being thrown away by step 1300, most of that for
-            # nothing: dual-clip PPO already keeps pg_loss bounded even when
-            # an individual micro-batch's kl spikes (e.g. kl=5.636 ->
-            # pg_loss only 0.787, kl=5.031 -> pg_loss only 0.732 in the last
-            # run — proof dual-clip is doing its job). So the breaker's
-            # original purpose (stop a runaway pg_loss) is already covered;
-            # what's left is now a much rarer, genuinely-extreme-only
-            # safety net, applied to just the offending micro-batch instead
-            # of punishing its whole window:
-            if microbatch_mean_kl > STAGE3_KL_HARD_CAP:
-                kl_skipped_steps += 1
-                print(f"[Stage 3] step {step:4d}: micro-batch mean KL {microbatch_mean_kl:.3f} > "
-                      f"hard cap {STAGE3_KL_HARD_CAP} — discarding THIS micro-batch's gradient only "
-                      f"(total discarded so far: {kl_skipped_steps}/{step})")
-            else:
-                loss_for_backward = loss_accum / grad_accum
-                value_loss_for_backward = value_loss_accum / grad_accum
-                total_loss = loss_for_backward + 0.5 * value_loss_for_backward
-                total_loss.backward()
-                window_kl_values.append(microbatch_mean_kl)
-                window_microbatches_applied += 1
-        else:
-            print(f"[Stage 3] Warning: No valid completions in step {step}, skipping backward pass")
-
-        # ── 7. Optimizer step every grad_accum steps ──────────────────────────
-        if step % grad_accum == 0:
-            if window_microbatches_applied > 0:
-                # Note: still divides effective LR by the full grad_accum
-                # count above even when fewer than grad_accum micro-batches
-                # contributed (some were discarded) — that's a deliberately
-                # conservative under-weighting of this window rather than an
-                # error; it errs toward smaller steps, never larger ones.
-                torch.nn.utils.clip_grad_norm_(trainable, STAGE3_GRAD_CLIP)
-                torch.nn.utils.clip_grad_norm_(value_head.parameters(), STAGE3_GRAD_CLIP)
-                optimizer.step()
-                value_optimizer.step()
-                scheduler.step()
-                optimizer.zero_grad()
-                value_optimizer.zero_grad()
-                global_step += 1
-            else:
-                # every micro-batch in this window was rejected (rare) or
-                # none had valid completions
-                optimizer.zero_grad()
-                value_optimizer.zero_grad()
-                print(f"[Stage 3] step {step:4d}: all micro-batches in this window were rejected "
-                      f"or invalid — skipping optimizer step entirely")
-
-            window_kl_values = []
-            window_microbatches_applied = 0
-
-        # ── 8. Logging ────────────────────────────────────────────────────────
-        if step % 50 == 0:
-            avg_reward = rewards.mean().item()
-            fmt_ok = sum(1 for c in completions if _parse_completion(c) is not None)
-
-            comp_scores = {"step": [], "mcp": [], "exp": []}
-            for c in completions:
-                obj = _parse_completion(c)
-                if obj is None:
-                    continue
-                pred_step_dbg = obj.get("New step", "").strip()
-                comp_scores["step"].append(
-                    1.0 if _step_normalizer.normalize(pred_step_dbg) == gold["step_label"] else 0.0
-                )
-                mcp_val = obj.get("MCP_tasks", {})
-                if isinstance(mcp_val, dict) and mcp_val:
-                    pred_mcp = set(extract_mcp_labels(str(mcp_val)))
-                else:
-                    pred_mcp = set()
-                gold_mcp = set(gold["mcp_labels"])
-                if not pred_mcp and not gold_mcp:
-                    comp_scores["mcp"].append(1.0)
-                else:
-                    inter = len(pred_mcp & gold_mcp)
-                    prec  = inter / len(pred_mcp) if pred_mcp else 0.0
-                    rec   = inter / len(gold_mcp) if gold_mcp else 0.0
-                    comp_scores["mcp"].append(2*prec*rec/(prec+rec) if (prec+rec) > 0 else 0.0)
-                pred_expl = str(obj.get("Step explanation","")).strip()
-                comp_scores["exp"].append(
-                    _explanation_llm_judge_cached(pred_expl, gold["gold_step_explanation"])
-                )
-
-            avg_step = float(np.mean(comp_scores["step"])) if comp_scores["step"] else 0.0
-            avg_mcp  = float(np.mean(comp_scores["mcp"]))  if comp_scores["mcp"]  else 0.0
-            avg_exp  = float(np.mean(comp_scores["exp"]))  if comp_scores["exp"]  else 0.0
-            current_lr = scheduler.get_last_lr()[0]
-
-            print(
-                f"step {step:4d}/{STAGE3_STEPS} | "
-                f"lr {current_lr:.2e} | "
-                f"avg_r {avg_reward:.3f} | "
-                f"step {avg_step:.2f} mcp {avg_mcp:.2f} exp {avg_exp:.2f} | "
-                f"fmt {fmt_ok}/{G} | "
-                f"kl {total_kl_accum/G:.3f} | "
-                f"pg_loss {loss_accum.item():.3f} vloss {value_loss_accum.item():.3f}"
-            )
-
-        # ── 9. Periodic checkpoint + VALIDATION-BASED MODEL SELECTION ──────────
-        # This replaces the old behaviour of blindly saving whatever the last
-        # step produced. Every EVAL_EVERY steps we greedy-decode on the held-out
-        # val machines and only promote this snapshot to `best/` if it actually
-        # beats the best score seen so far (which starts at the Stage-2
-        # baseline). That's what stops Stage 3 from finishing worse than the
-        # SFT checkpoint it started from.
-        if step % 200 == 0:
-            ckpt_path = os.path.join(STAGE3_ADAPTER_DIR, f"step_{step}")
-            _save_policy_snapshot(policy, adapter, value_head, tokenizer, ckpt_path)
-            print(f"  -> checkpoint saved to {ckpt_path}")
-
-        if step % EVAL_EVERY == 0 or step == STAGE3_STEPS:
-            val = evaluate_policy_on_val(
-                policy, adapter, stage1, embed_layer, tokenizer, val_examples, device, dtype
-            )
-            val_score = val["total"]
-            step_ok = val["step"] >= baseline_step_component - STEP_REGRESSION_TOLERANCE
-            flag = ""
-            if val_score > best_val_score and step_ok:
-                best_val_score = val_score
-                best_step_component = val["step"]
-                best_step = step
-                _save_policy_snapshot(policy, adapter, value_head, tokenizer, BEST_DIR)
-                flag = "  <-- new best, saved to best/"
-                evals_without_improvement = 0
-            else:
-                evals_without_improvement += 1
-                if val_score > best_val_score and not step_ok:
-                    flag = (f"  <-- higher blended reward but step component "
-                            f"{val['step']:.4f} < baseline {baseline_step_component:.4f} "
-                            f"- epsilon; NOT promoted")
-            print(f"[Stage 3] step {step:4d} | held-out val reward: {val_score:.4f} "
-                  f"(step {val['step']:.4f}, mcp {val['mcp']:.4f}) | "
-                  f"baseline {baseline_val_score:.4f} (step {baseline_step_component:.4f}) | "
-                  f"best {best_val_score:.4f} @ step {best_step}{flag}")
-
-            if (STAGE3_EARLY_STOP_PATIENCE is not None
-                    and evals_without_improvement >= STAGE3_EARLY_STOP_PATIENCE):
-                print(f"[Stage 3] No new best in {evals_without_improvement} consecutive "
-                      f"evals (every {EVAL_EVERY} steps) — early-stopping at step {step}/{STAGE3_STEPS}. "
-                      f"Best remains step {best_step} (val reward {best_val_score:.4f}).")
+            ids = [trim_generated_row(gen_out[i], tokenizer.eos_token_id, tokenizer.pad_token_id)
+                   for i in range(gen_out.shape[0])]
+            texts = [tokenizer.decode(x, skip_special_tokens=True).strip() for x in ids]
+            rs = np.asarray([
+                float(compute_reward(t, gold, w_fmt=0.05, w_step=0.75, w_mcp=0.20, w_exp=0.0))
+                for t in texts
+            ], dtype=np.float32)
+            chosen_ids, chosen_text, rewards_np = ids, texts, rs
+            if float(rs.std()) >= 0.03:
                 break
 
+        if rewards_np is None or float(rewards_np.std()) < 0.03:
+            consecutive_zero_var += 1
+            if step % 50 == 0:
+                print(f"[Stage 3] step {step:4d}: reward std={0.0 if rewards_np is None else rewards_np.std():.4f}; skipping low-information group")
+            if consecutive_zero_var >= 100:
+                print("[Stage 3] Too many consecutive zero-variance groups; stopping safely.")
+                break
+            continue
+        consecutive_zero_var = 0
 
-    # ── Final save: PROMOTE THE BEST CHECKPOINT, NOT THE LAST STEP ─────────────
-    # This is the actual fix for Stage 3 finishing worse than Stage 2: the last
-    # RL step is not reliably the best one (noisy reward, no baseline before
-    # this fix), so we pick between three outcomes explicitly and log which
-    # one happened rather than silently shipping whatever came out last:
-    print("\n" + "=" * 70)
-    print("[Stage 3] Model selection")
-    print(f"  Stage-2 baseline val reward : {baseline_val_score:.4f}  (step component {baseline_step_component:.4f})")
-    print(f"  Best RL val reward          : {best_val_score:.4f}  (step component {best_step_component:.4f}, step {best_step})")
-    print(f"  A checkpoint only counts as 'best' if it beat the baseline reward "
-          f"AND its step component stayed within {STEP_REGRESSION_TOLERANCE} of the baseline.")
-    print(f"  Micro-batches discarded by KL circuit breaker: {kl_skipped_steps}/{STAGE3_STEPS} "
-          f"(micro-batch mean KL > {STAGE3_KL_HARD_CAP}; other micro-batches in the same "
-          f"window still contributed normally)")
-    print("=" * 70)
+        rewards = torch.tensor(rewards_np, dtype=torch.float32, device=device)
+        mean_r = rewards.mean()
+        std_r = rewards.std(unbiased=False)
+        advantages = (rewards - mean_r) / std_r.clamp_min(1e-6)
+        advantages = advantages.clamp(-3.0, 3.0)
 
-    if best_step > 0 and best_val_score > baseline_val_score:
-        # RL genuinely improved on Stage 2 at some point during training —
-        # ship that checkpoint, not the final step.
-        for f in os.listdir(STAGE3_ADAPTER_DIR):
-            src = os.path.join(STAGE3_ADAPTER_DIR, f)
-            if f in ("best",) or f.startswith("step_"):
+        # Rollout-policy log-probability is the PPO/GRPO denominator.  This is
+        # computed BEFORE the backward pass and detached from the graph.
+        old_lps = []
+        with torch.no_grad():
+            for ids in chosen_ids:
+                if ids.numel() == 0:
+                    old_lps.append(torch.tensor(0.0, device=device))
+                    continue
+                lp = completion_logprobs(
+                    policy, prompt_embeds.detach(), ids.unsqueeze(0).to(device),
+                    embed_layer, dtype, device
+                )
+                old_lps.append(lp / max(1, int(ids.numel())))
+
+        policy.train()
+        if TRAIN_ADAPTER:
+            adapter.train()
+
+        loss_sum = torch.zeros((), device=device)
+        kl_sum = 0.0
+        valid = 0
+
+        for i, ids in enumerate(chosen_ids):
+            if ids.numel() == 0:
                 continue
+            ids = ids.unsqueeze(0).to(device)
+            valid += 1
+            adv = advantages[i]
+
+            new_lp = completion_logprobs(
+                policy, prompt_embeds, ids, embed_layer, dtype, device
+            ) / max(1, int(ids.shape[1]))
+            old_lp = old_lps[i]
+
+            # Correct PPO ratio: current policy / rollout (old) policy.
+            log_ratio = torch.clamp(new_lp - old_lp, -4.0, 4.0)
+            ratio = torch.exp(log_ratio)
+            clipped_ratio = torch.clamp(ratio, 1.0 - SAFE_CLIP, 1.0 + SAFE_CLIP)
+            surr1 = ratio * adv
+            surr2 = clipped_ratio * adv
+            pg = -torch.minimum(surr1, surr2)
+
+            # KL anchor to the actual Stage-2 policy.  This is separate from
+            # the PPO denominator; conflating the two was a major bug before.
+            with torch.no_grad():
+                ref_lp = completion_logprobs(
+                    ref_model, prompt_embeds.detach(), ids,
+                    ref_embed_layer, dtype, device
+                ) / max(1, int(ids.shape[1]))
+            delta_ref = torch.clamp(new_lp - ref_lp, -4.0, 4.0)
+            # Non-negative sampled KL approximation: exp(delta)-delta-1.
+            kl = torch.clamp(torch.exp(delta_ref) - delta_ref - 1.0, min=0.0, max=4.0)
+            kl_sum += float(kl.detach().item())
+
+            loss_sum = loss_sum + (pg + SAFE_KL * kl) / max(1, G)
+
+        if valid == 0:
+            continue
+
+        mean_kl = kl_sum / valid
+        if mean_kl > 1.0:
+            # Safety rail is intentionally much tighter than the old cap of 4.
+            kl_skipped += 1
+            optimizer.zero_grad(set_to_none=True)
+            if step % 50 == 0:
+                print(f"[Stage 3] step {step:4d}: KL {mean_kl:.3f} > 1.0; skipping update")
+            continue
+
+        # Keep a small supervised anchor to the exact Stage-2 target contract.
+        # This is deliberately applied only after a useful GRPO group exists.
+        if SFT_ANCHOR > 0.0:
+            anchor_nll = completion_nll(policy, prompt_embeds, target_ids, embed_layer, dtype, device)
+            loss_sum = loss_sum + SFT_ANCHOR * anchor_nll
+        else:
+            anchor_nll = torch.zeros((), device=device)
+
+        (loss_sum / SAFE_ACCUM).backward()
+        applied += 1
+
+        if step % SAFE_ACCUM == 0:
+            torch.nn.utils.clip_grad_norm_(trainable, 0.5)
+            optimizer.step()
+            optimizer.zero_grad(set_to_none=True)
+            scheduler.step()
+
+        if step <= 3 or step % 50 == 0:
+            fmt = sum(_parse_completion(t) is not None for t in chosen_text)
+            step_hit = np.mean([
+                1.0 if compute_reward(t, gold, w_fmt=0.0, w_step=1.0, w_mcp=0.0, w_exp=0.0) else 0.0
+                for t in chosen_text
+            ])
+            mcp_vals = []
+            for t in chosen_text:
+                c = compute_reward(t, gold, w_fmt=0.0, w_step=0.0, w_mcp=1.0, w_exp=0.0, return_components=True)
+                mcp_vals.append(c["mcp"])
+            print(
+                f"step {step:4d}/{SAFE_STEPS} | lr {scheduler.get_last_lr()[0]:.2e} | "
+                f"avg_r {rewards.mean().item():.3f} | step {step_hit:.2f} mcp {np.mean(mcp_vals):.2f} | "
+                f"fmt {fmt}/{G} | reward_std {rewards.std(unbiased=False).item():.3f} | kl {mean_kl:.4f} | anchor {anchor_nll.item():.3f}"
+            )
+
+        # ---------------- checkpoint + full validation ----------------
+        if step % EVAL_EVERY == 0:
+            ckpt_path = os.path.join(STAGE3_ADAPTER_DIR, f"step_{step}")
+            _save_policy_snapshot(policy, adapter, nn.Identity(), tokenizer, ckpt_path)
+            val = evaluate_policy_on_val(
+                policy, adapter, stage1, embed_layer, tokenizer,
+                val_examples, device, dtype, max_examples=VAL_MAX
+            )
+            val_step = float(val["step_exact"])
+            val_mcp = float(val["mcp_jaccard"])
+            val_score = 0.65 * val_step + 0.35 * val_mcp
+
+            # Promotion is deliberately strict.  Stage 3 is not allowed to
+            # trade away MCP for Step or vice versa.  Require a real margin,
+            # not a one-example/noise improvement.
+            step_ok = val_step >= baseline_step + 0.002
+            mcp_ok = val_mcp >= baseline_mcp - 0.002
+            better = val_score >= best_score + 0.002
+            flag = ""
+            if step_ok and mcp_ok and better:
+                best_score = val_score
+                best_step_metric = val_step
+                best_mcp_metric = val_mcp
+                best_step = step
+                _save_policy_snapshot(policy, adapter, nn.Identity(), tokenizer, BEST_DIR)
+                no_improve = 0
+                flag = " <-- NEW BEST"
+            else:
+                no_improve += 1
+
+            print(
+                f"[Stage 3] step {step:4d} | val task={val_score:.4f} "
+                f"(step={val_step:.4f}, mcpJ={val_mcp:.4f}) | "
+                f"baseline={baseline_score:.4f} (step={baseline_step:.4f}, mcpJ={baseline_mcp:.4f}) | "
+                f"best={best_score:.4f} @ {best_step}{flag}"
+            )
+
+            if no_improve >= SAFE_PATIENCE:
+                print(f"[Stage 3] Early stop: {no_improve} consecutive validation checks without a strict improvement.")
+                break
+
+    # Flush any partial accumulation only if useful gradients are present.
+    # We intentionally do not force an extra optimizer step after an early stop
+    # because it has not been validated.
+    optimizer.zero_grad(set_to_none=True)
+
+    print("\n" + "=" * 72)
+    print("[Stage 3] FINAL MODEL SELECTION")
+    print(f"  Stage-2 full-val task : {baseline_score:.4f} (step={baseline_step:.4f}, mcpJ={baseline_mcp:.4f})")
+    print(f"  Best RL full-val task : {best_score:.4f} (step={best_step_metric:.4f}, mcpJ={best_mcp_metric:.4f}, step={best_step})")
+    print(f"  RL optimizer updates  : {applied}")
+    print(f"  KL-skipped updates    : {kl_skipped}")
+    print("=" * 72)
+
+    # Always produce a canonical Stage-3 directory.  If RL did not beat the
+    # complete Stage-2 validation baseline on BOTH objectives, Stage 3 is a
+    # no-op by design and Stage 2 is copied forward.
+    canonical_is_stage2 = False
+    if best_step > 0 and best_score > baseline_score and best_step_metric >= baseline_step + 0.002 and best_mcp_metric >= baseline_mcp - 0.002:
+        for name in os.listdir(STAGE3_ADAPTER_DIR):
+            if name == "best" or name.startswith("step_") or name == "last_step_raw":
+                continue
+            path = os.path.join(STAGE3_ADAPTER_DIR, name)
+            if os.path.isfile(path):
+                os.remove(path)
+        for name in os.listdir(BEST_DIR):
+            src = os.path.join(BEST_DIR, name)
+            dst = os.path.join(STAGE3_ADAPTER_DIR, name)
             if os.path.isfile(src):
-                os.remove(src)
-        for f in os.listdir(BEST_DIR):
-            shutil.copy2(os.path.join(BEST_DIR, f), os.path.join(STAGE3_ADAPTER_DIR, f))
-        print(f"[Stage 3] ✓ RL improved over Stage 2 (+{best_val_score - baseline_val_score:.4f}). "
-              f"Promoted step {best_step} checkpoint to {STAGE3_ADAPTER_DIR}")
+                shutil.copy2(src, dst)
+        print(f"[Stage 3] ✓ Promoted RL checkpoint step {best_step}.")
     else:
-        # RL never beat its own starting point on held-out data. Ship Stage 2
-        # itself as the "Stage 3" output instead of a regression, and say so
-        # loudly -- silently saving the last step here is exactly what caused
-        # the original problem.
-        print("[Stage 3] ⚠ RL never beat the Stage-2 baseline on the held-out val set.")
-        print("[Stage 3] ⚠ Falling back: copying the Stage-2 adapter into "
-              f"{STAGE3_ADAPTER_DIR} instead of shipping a regression.")
-        print("[Stage 3] ⚠ This means the reward/curriculum/KL settings need tuning -- "
-              "see DOCUMENTATION.md 'Stage 3' section for what to try next.")
-        for f in os.listdir(STAGE2_ADAPTER_DIR):
-            src = os.path.join(STAGE2_ADAPTER_DIR, f)
+        canonical_is_stage2 = True
+        print("[Stage 3] ⚠ RL did not clear the full Stage-2 validation baseline on both objectives.")
+        print("[Stage 3] ✓ Falling back to Stage 2; no regression will be shipped.")
+        for name in os.listdir(STAGE2_ADAPTER_DIR):
+            src = os.path.join(STAGE2_ADAPTER_DIR, name)
+            dst = os.path.join(STAGE3_ADAPTER_DIR, name)
             if os.path.isfile(src):
-                shutil.copy2(src, os.path.join(STAGE3_ADAPTER_DIR, f))
+                shutil.copy2(src, dst)
 
-    # Always keep the raw last-step weights too, clearly labeled, for debugging.
+    # Keep the final raw RL state only when it differs from the canonical copy.
     last_dir = os.path.join(STAGE3_ADAPTER_DIR, "last_step_raw")
-    _save_policy_snapshot(policy, adapter, value_head, tokenizer, last_dir)
-    print(f"[Stage 3] GRPO complete. Canonical policy at {STAGE3_ADAPTER_DIR} "
-          f"(raw last-step weights also kept at {last_dir} for comparison).")
+    if os.path.isdir(last_dir):
+        shutil.rmtree(last_dir)
+    _save_policy_snapshot(policy, adapter, nn.Identity(), tokenizer, last_dir)
+    print(f"[Stage 3] Canonical policy: {STAGE3_ADAPTER_DIR}")
+    print(f"[Stage 3] Raw final RL state: {last_dir}")
 
-    # ── Reload the CANONICAL checkpoint into memory before the test-set eval
-    # below, so explanations_stage3.csv reflects whatever was actually saved
-    # to STAGE3_ADAPTER_DIR (best RL checkpoint or the Stage-2 fallback) —
-    # not just whatever the last training step happened to leave in memory.
-    if best_step > 0 and best_val_score > baseline_val_score and best_step != step:
-        print(f"[Stage 3] Reloading promoted checkpoint (step {best_step}) into memory "
-              "for the test-set evaluation below...")
-        policy.load_adapter(STAGE3_ADAPTER_DIR, adapter_name="default", is_trainable=False)
-        policy.set_adapter("default")
-        adapter.load_state_dict(torch.load(os.path.join(STAGE3_ADAPTER_DIR, "graph_adapter.pt"),
-                                            map_location=device))
-    elif not (best_step > 0 and best_val_score > baseline_val_score):
-        print("[Stage 3] Reloading Stage-2 fallback into memory for the test-set evaluation below...")
-        policy.load_adapter(STAGE3_ADAPTER_DIR, adapter_name="default", is_trainable=False)
-        policy.set_adapter("default")
-        adapter.load_state_dict(torch.load(os.path.join(STAGE2_ADAPTER_DIR, "graph_adapter.pt"),
-                                            map_location=device))
+    # If Stage 2 won model selection, evaluate the actual canonical Stage-2
+    # policy rather than the rejected last RL state.  This prevents a misleading
+    # Stage-3 test score after a safe fallback.
+    if canonical_is_stage2:
+        print("[Stage 3] Reloading Stage-2 canonical policy for final test evaluation")
+        del policy
+        torch.cuda.empty_cache() if device == "cuda" else None
+        base_eval = AutoModelForCausalLM.from_pretrained(
+            QWEN_MODEL_NAME, torch_dtype=dtype, device_map=None
+        ).to(device)
+        base_eval.config.use_cache = False
+        policy = PeftModel.from_pretrained(base_eval, STAGE2_ADAPTER_DIR, is_trainable=False)
+        policy.eval()
+        embed_layer = policy.get_input_embeddings()
 
-    # ── Evaluate on test set and save CSV ─────────────────────────────────────
-    print("\n[Stage 3] Evaluating on test set...")
+    # -------------------------- Final test eval --------------------------
+    # This uses the same deterministic parser/metrics as the project and is
+    # kept here so `run.py` can report Stage-3 results immediately.
     test_examples = load_from_input_json(INPUT_TEST_JSON, "test")
-    precompute_stage1_hints(test_examples, stage1, device, dtype)
-    for ex in test_examples:
-        ex["_field_embs"] = torch.tensor(
-            _embed_texts([ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]),
-            dtype=torch.float32,
-        ).unsqueeze(0)
-
-    # Final data leakage check
-    test_machines_final = set(e["machine"] for e in test_examples)
-    overlap = train_machines & test_machines_final
-    if not overlap:
-        print("[Stage 3] ✓ Confirmed: NO machine overlap between train & test")
-
-    normalizer = StepLabelNormalizer()
-    csv_rows = []
-    _obj_parser = build_obj_parser()
-
     policy.eval()
     adapter.eval()
+    normalizer = StepLabelNormalizer()
+    parser = build_obj_parser()
+    rows = []
 
     with torch.no_grad():
         for ex in test_examples:
-            prefix_embeds = build_prefix_embeds(
-                ex["graph"], ex["_field_embs"], stage1, adapter, embed_layer, device, dtype
-            )
-            user_prompt = build_prompt(ex, mask_hint=True)
-            full_prompt = (
-                f"<|system|>\n{SYSTEM_PROMPT}\n"
-                f"<|user|>\n{user_prompt}\n"
-                f"<|assistant|>\n"
-            )
-            prompt_embeds, L_prefix_plus_prompt = build_prompt_embeds(
-                full_prompt, tokenizer, embed_layer, prefix_embeds, device, dtype
-            )
-            attn_prompt = torch.ones(1, L_prefix_plus_prompt, dtype=torch.long, device=device)
-
-            gen_out = policy.generate(
-                inputs_embeds=prompt_embeds,
-                attention_mask=attn_prompt,
-                max_new_tokens=2000,  # Increased to match training generation
-                do_sample=False,
-                pad_token_id=tokenizer.pad_token_id,
+            prefix = build_prefix_embeds(ex, stage1, adapter, device, dtype)
+            user_prompt = build_prompt(ex)
+            full_prompt = f"<|system|>\n{SYSTEM_PROMPT}\n<|user|>\n{user_prompt}\n<|assistant|>\n"
+            p_emb, p_len = build_prompt_embeds(full_prompt, tokenizer, embed_layer, prefix, device, dtype)
+            attn = torch.ones(1, p_len, dtype=torch.long, device=device)
+            out = policy.generate(
+                inputs_embeds=p_emb, attention_mask=attn,
+                max_new_tokens=MAX_NEW_TOKENS, do_sample=False,
+                num_return_sequences=1, pad_token_id=tokenizer.pad_token_id,
                 eos_token_id=tokenizer.eos_token_id,
             )
+            ids = trim_generated_row(out[0], tokenizer.eos_token_id, tokenizer.pad_token_id)
+            text = tokenizer.decode(ids, skip_special_tokens=True).strip()
+            obj = parser(text, normalizer)
 
-            # FIX: gen_out already contains only the newly generated tokens —
-            # do NOT slice by L_prefix_plus_prompt (see note above main()).
-            completion_ids = trim_generated_row(
-                gen_out[0], tokenizer.eos_token_id, tokenizer.pad_token_id
-            )
-            completion_text = tokenizer.decode(completion_ids, skip_special_tokens=True).strip()
+            raw_step = str(obj.get("New step", "")).strip()
+            pred_step = normalizer.normalize(raw_step) if raw_step else ""
+            if pred_step not in STEP_LABELS and raw_step in STEP_LABELS:
+                pred_step = raw_step
+            gold_step = STEP_LABELS[ex["step_idx"]]
 
-            obj = _obj_parser(completion_text, normalizer)
+            mcp_obj = obj.get("MCP_tasks", {})
+            pred_mcp = extract_mcp_labels(str(list(mcp_obj.keys()))) if isinstance(mcp_obj, dict) else []
+            ps, gs = set(pred_mcp), set(ex["mcp_labels"])
+            union = ps | gs
+            mcp_j = 1.0 if not union else len(ps & gs) / len(union)
 
-            pred_step_raw = obj.get("New step", "")
-            pred_step_norm = normalizer.normalize(pred_step_raw) if pred_step_raw else None
-            pred_step_label = "UNPARSEABLE"
-            if pred_step_norm and pred_step_norm in STEP_LABELS:
-                pred_step_label = pred_step_norm
-            elif pred_step_raw:
-                if pred_step_raw in STEP_LABELS:
-                    pred_step_label = pred_step_raw
-                else:
-                    import difflib
-                    closest = difflib.get_close_matches(pred_step_raw, STEP_LABELS, n=1, cutoff=0.6)
-                    if closest:
-                        pred_step_label = closest[0]
-
-            gold_step_label = STEP_LABELS[ex["step_idx"]]
-
-            pred_mcp_keys = list(obj.get("MCP_tasks", {}).keys()) if isinstance(obj.get("MCP_tasks"), dict) else []
-            pred_mcp_labels = extract_mcp_labels(str(pred_mcp_keys))
-            pred_mcp_tools = "|".join(pred_mcp_labels)
-            gold_mcp_tools = "|".join(ex["mcp_labels"])
-
-            pred_expl = str(obj.get("Step explanation", "")).strip()
-            gold_expl = ex.get("gold_step_explanation", "")
-
-            # Jaccard for consistency with project metrics
-            step_jaccard = 1.0 if pred_step_label == gold_step_label else 0.0
-            pred_set, gold_set = set(pred_mcp_labels), set(ex["mcp_labels"])
-            if not pred_set and not gold_set:
-                mcp_jaccard = 1.0
-            else:
-                union = pred_set | gold_set
-                mcp_jaccard = len(pred_set & gold_set) / len(union) if union else 0.0
-
-            csv_rows.append({
+            rows.append({
                 "machine": ex.get("machine", ""),
                 "new_strategy": ex["context"].get("New strategy", ""),
                 "strategy_explanation": ex["context"].get("Strategy explanation", ""),
-                "step_prediction": pred_step_label,
-                "gold_new_step": gold_step_label,
-                "mcp_tool_prediction": pred_mcp_tools,
-                "mcp_tool_gold": gold_mcp_tools,
-                "step_explanation_predicted": pred_expl,
-                "step_explanation_gold": gold_expl,
-                "step_jaccard": step_jaccard,
-                "mcp_jaccard": mcp_jaccard,
+                "step_prediction": pred_step,
+                "gold_new_step": gold_step,
+                "mcp_tool_prediction": "|".join(pred_mcp),
+                "mcp_tool_gold": "|".join(ex["mcp_labels"]),
+                "step_explanation_predicted": str(obj.get("Step explanation", "")),
+                "step_explanation_gold": ex.get("gold_step_explanation", ""),
+                "step_jaccard": 1.0 if pred_step == gold_step else 0.0,
+                "mcp_jaccard": mcp_j,
             })
 
     output_dir = os.path.join(ROOT, "output")
     os.makedirs(output_dir, exist_ok=True)
     csv_path = os.path.join(output_dir, "stage3.csv")
-
-    if csv_rows:
-        fieldnames = list(csv_rows[0].keys())
+    if rows:
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
+            writer = csv.DictWriter(f, fieldnames=list(rows[0].keys()))
             writer.writeheader()
-            writer.writerows(csv_rows)
+            writer.writerows(rows)
+        step_acc = float(np.mean([r["step_jaccard"] for r in rows]))
+        mcp_j = float(np.mean([r["mcp_jaccard"] for r in rows]))
+        mcp_pass = float(np.mean([r["mcp_jaccard"] >= 0.5 for r in rows]))
+        print("\n[Stage 3] ═══════════ TEST SET RESULTS ═══════════")
+        print(f"  Step Exact Match      : {int(step_acc*len(rows))}/{len(rows)} ({step_acc*100:.2f}%)")
+        print(f"  MCP Jaccard ≥0.5      : {int(mcp_pass*len(rows))}/{len(rows)} ({mcp_pass*100:.2f}%)")
+        print(f"  Mean Step Jaccard     : {step_acc:.4f}")
+        print(f"  Mean MCP Jaccard      : {mcp_j:.4f}")
+        print(f"  Combined (Step+MCP)/2 : {(step_acc+mcp_j)/2:.4f}")
         print(f"[Stage 3] Evaluation CSV saved to: {csv_path}")
-        print(f"[Stage 3] Total test samples evaluated: {len(csv_rows)}")
-
-        step_acc = np.mean([r["step_jaccard"] for r in csv_rows])
-        mcp_jac = np.mean([r["mcp_jaccard"] for r in csv_rows])
-        combined = (step_acc + mcp_jac) / 2.0
-        step_pass = sum(1 for r in csv_rows if r["step_jaccard"] == 1.0)
-        mcp_pass = sum(1 for r in csv_rows if r["mcp_jaccard"] >= 0.5)
-
-        print(f"\n[Stage 3] ═══════════ TEST SET RESULTS ═══════════")
-        print(f"  Step Exact Match     : {step_pass}/{len(csv_rows)}  ({step_acc*100:.2f}%)")
-        print(f"  MCP Jaccard ≥0.5      : {mcp_pass}/{len(csv_rows)}  ({mcp_pass/len(csv_rows)*100:.2f}%)")
-        print(f"  Mean Step Jaccard    : {step_acc:.4f}")
-        print(f"  Mean MCP Jaccard     : {mcp_jac:.4f}")
-        print(f"  Combined (Step+MCP)/2 : {combined:.4f}")
-        print(f"[Stage 3] ═══════════════════════════════════════")
-    else:
-        print("[Stage 3] Warning: No CSV rows generated")
 
 
 if __name__ == "__main__":

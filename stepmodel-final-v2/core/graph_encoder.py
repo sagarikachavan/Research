@@ -1,405 +1,354 @@
-"""
-Stage-1 model: GraphEncoder (GNN over the PTT/recon-state graph) fused with
-a frozen text encoder over the context fields, feeding two heads:
-  - step_head:  single-label softmax over STEP_LABELS
-  - mcp_head:   multi-label sigmoid over MCP_LABELS
+"""Stage-1 hybrid graph + semantic CNN classifier.
 
-This is the module that later hands its pooled graph embedding to the LLM
-stage (as a short sequence of soft-prompt tokens), the same way the paper's
-one-shot LLM framework hands the model structured context to reason over —
-except here the "in-context example" is replaced by a learned graph vector.
+Design:
+- typed GINE graph encoder with GraphNorm and residual blocks;
+- paper-inspired frozen language-model token features consumed by two
+  independent multi-kernel CNN heads (Step/MCP);
+- graph-conditioned fusion keeps the 384-d representation expected by Stage 2/3;
+- Step gets a stronger private tower while MCP keeps an independent tower.
 """
+from __future__ import annotations
+
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-
-try:
-    from torch_geometric.nn import GATv2Conv, global_mean_pool, global_max_pool, global_add_pool
-    from torch_geometric.nn.aggr import AttentionalAggregation
-except ImportError:  # keep module importable for label-normalization-only usage
-    GATv2Conv = None
+from torch_geometric.nn import GINEConv, GraphNorm, global_mean_pool, global_max_pool
+from torch_geometric.utils import softmax as pyg_softmax
 
 from config import (
     GNN_HIDDEN, GNN_LAYERS, GNN_OUT_DIM, FUSION_HIDDEN,
-    TEXT_EMB_DIM, STEP_LABELS, MCP_LABELS, GNN_HEADS, GNN_DROPOUT,
-    EDGE_ATTR_DIM,
+    TEXT_EMB_DIM, STEP_LABELS, MCP_LABELS, GNN_DROPOUT,
+    EDGE_ATTR_DIM, NODE_AUX_DIM, SEMANTIC_CNN_DIM, SEMANTIC_CNN_KERNELS,
+    SEMANTIC_CNN_DROPOUT,
 )
 from data_utils import CONTEXT_COLUMNS
 
-NODE_FEAT_DIM = TEXT_EMB_DIM + 4  # sentence-embedding + one-hot node type (Agent/Search/Track) + degree
+NODE_FEAT_DIM = TEXT_EMB_DIM + NODE_AUX_DIM
+
+
+class GINEBlock(nn.Module):
+    def __init__(self, hidden: int, edge_dim: int, dropout: float):
+        super().__init__()
+        self.edge_encoder = nn.Sequential(
+            nn.Linear(edge_dim, hidden),
+            nn.GELU(),
+            nn.Linear(hidden, hidden),
+        )
+        self.conv = GINEConv(
+            nn=nn.Sequential(
+                nn.Linear(hidden, hidden * 2),
+                nn.GELU(),
+                nn.Dropout(dropout),
+                nn.Linear(hidden * 2, hidden),
+            ),
+            edge_dim=hidden,
+            train_eps=True,
+        )
+        self.norm = GraphNorm(hidden)
+        self.dropout = nn.Dropout(dropout)
+
+    def forward(self, h, edge_index, batch, edge_attr):
+        e = self.edge_encoder(edge_attr)
+        y = self.conv(h, edge_index, e)
+        y = self.norm(y, batch)
+        y = F.gelu(y)
+        y = self.dropout(y)
+        return h + y
 
 
 class GraphEncoder(nn.Module):
+    """Encode a PTT graph to a 512-d representation."""
+
     def __init__(self, in_dim=NODE_FEAT_DIM, hidden=GNN_HIDDEN,
-                 out_dim=GNN_OUT_DIM, num_layers=GNN_LAYERS, heads=GNN_HEADS, dropout=GNN_DROPOUT,
-                 edge_dim=None):
+                 out_dim=GNN_OUT_DIM, num_layers=GNN_LAYERS,
+                 dropout=GNN_DROPOUT, edge_dim=EDGE_ATTR_DIM):
         super().__init__()
-        assert GATv2Conv is not None, "torch_geometric is required for GraphEncoder"
-        
-        # Enhanced input projection without residual connection to avoid dimension mismatch
         self.input_proj = nn.Sequential(
             nn.Linear(in_dim, hidden),
             nn.LayerNorm(hidden),
             nn.GELU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden, hidden),
-            nn.LayerNorm(hidden),
-            nn.GELU(),
-            nn.Dropout(dropout * 0.5),
         )
-        
-        # Multi-scale GATv2 layers with edge awareness
-        self.convs = nn.ModuleList()
-        self.norms = nn.ModuleList()
-        self.edge_projs = nn.ModuleList()
-        
-        for i in range(num_layers):
-            self.convs.append(
-                GATv2Conv(hidden, hidden // heads, heads=heads, dropout=dropout,
-                          edge_dim=edge_dim, add_self_loops=True)
-            )
-            self.norms.append(nn.LayerNorm(hidden))
-            # Edge feature projection for better structural understanding
-            if edge_dim is not None:
-                self.edge_projs.append(
-                    nn.Sequential(
-                        nn.Linear(edge_dim, hidden // 4),
-                        nn.GELU(),
-                        nn.Linear(hidden // 4, edge_dim)
-                    )
-                )
-            else:
-                self.edge_projs.append(None)
-        
-        self.dropout = nn.Dropout(dropout)
-        
-        # Enhanced pooling strategies based on research
-        # 1. Attentional pooling (learned node importance)
-        self.attn_pool = AttentionalAggregation(
-            gate_nn=nn.Sequential(
-                nn.Linear(hidden, hidden),
-                nn.LayerNorm(hidden),
-                nn.GELU(),
-                nn.Linear(hidden, hidden // 2),
-                nn.GELU(),
-                nn.Linear(hidden // 2, 1)
-            )
-        )
-        
-        # 2. Set2Set pooling for better graph-level representation
-        try:
-            from torch_geometric.nn import Set2Set
-            self.set2set = Set2Set(hidden, processing_steps=3)
-            use_set2set = True
-        except ImportError:
-            use_set2set = False
-            self.set2set = None
-
-        # Output projection with residual connections.
-        # We concatenate mean/max/attention + layer-wise summaries, and optionally
-        # set2set outputs. Keep the projection dimension in sync with that readout.
-        pooling_dim = hidden * (4 + num_layers) + (hidden * 2 if use_set2set else 0)
+        self.blocks = nn.ModuleList([
+            GINEBlock(hidden, edge_dim, dropout) for _ in range(num_layers)
+        ])
+        self.node_norm = nn.LayerNorm(hidden)
         self.out_proj = nn.Sequential(
-            nn.Linear(pooling_dim, hidden * 2),
+            nn.Linear(hidden * 3, hidden * 2),
             nn.LayerNorm(hidden * 2),
             nn.GELU(),
             nn.Dropout(dropout),
-            nn.Linear(hidden * 2, hidden),
-            nn.LayerNorm(hidden),
-            nn.GELU(),
-            nn.Dropout(dropout * 0.5),
-            nn.Linear(hidden, out_dim),
+            nn.Linear(hidden * 2, out_dim),
             nn.LayerNorm(out_dim),
         )
         self.out_dim = out_dim
-        self.use_set2set = use_set2set
+
+    def forward_nodes(self, x, edge_index, batch, edge_attr=None):
+        if edge_attr is None:
+            edge_attr = x.new_zeros((edge_index.shape[1], EDGE_ATTR_DIM))
+        h = self.input_proj(x)
+        for block in self.blocks:
+            h = block(h, edge_index, batch, edge_attr)
+        return self.node_norm(h)
 
     def forward(self, x, edge_index, batch, edge_attr=None):
-        h = self.input_proj(x)
-        layer_outputs = []
-        
-        for i, (conv, norm, edge_proj) in enumerate(zip(self.convs, self.norms, self.edge_projs)):
-            residual = h
-            
-            # Enhance edge features if available
-            if edge_attr is not None and edge_proj is not None:
-                edge_attr_enhanced = edge_proj(edge_attr)
-            else:
-                edge_attr_enhanced = edge_attr
-            
-            if edge_attr_enhanced is not None:
-                h = conv(h, edge_index, edge_attr=edge_attr_enhanced)
-            else:
-                h = conv(h, edge_index)
-            
-            h = norm(h + residual)
-            h = self.dropout(F.gelu(h))
-            layer_outputs.append(h)
-        
-        # Multi-scale pooling strategies
+        h = self.forward_nodes(x, edge_index, batch, edge_attr=edge_attr)
         mean_pool = global_mean_pool(h, batch)
         max_pool = global_max_pool(h, batch)
-        attn_pool = self.attn_pool(h, batch)
-        
-        # Per-layer mean aggregation for multi-scale representation
-        device = h.device
-        dtype = h.dtype
-        B = int(batch.max().item()) + 1 if batch.numel() > 0 else 1
-        layer_mean_accum = torch.zeros(B, h.shape[-1], device=device, dtype=dtype)
-        for lo in layer_outputs:
-            layer_mean_accum = layer_mean_accum + global_mean_pool(lo, batch)
-        layer_mean_pool = layer_mean_accum / max(1, len(layer_outputs))
-        
-        # Combine pooling strategies with a lightweight JK-style multi-layer summary.
-        # This preserves both shallow local structure and deeper contextual signals,
-        # which is especially useful for graph-level single-label and multi-label
-        # classification tasks with class imbalance.
-        pooled_list = [mean_pool, max_pool, attn_pool, layer_mean_pool]
-        pooled_list.extend(global_mean_pool(lo, batch) for lo in layer_outputs)
+        # Attention pooling is deliberately simple and context-independent;
+        # context conditioning is applied after node encoding.
+        scores = torch.zeros(h.size(0), device=h.device, dtype=h.dtype)
+        attn = pyg_softmax(scores, batch)
+        attn_pool = torch.zeros_like(mean_pool)
+        attn_pool.index_add_(0, batch, attn.unsqueeze(-1) * h)
+        return self.out_proj(torch.cat([mean_pool, max_pool, attn_pool], dim=-1))
 
-        # Add Set2Set if available
-        if self.use_set2set and self.set2set is not None:
-            set2set_pool = self.set2set(h, batch)
-            pooled_list.append(set2set_pool)
 
-        pooled = torch.cat(pooled_list, dim=-1)
-        return self.out_proj(pooled)  # (batch, GNN_OUT_DIM)
+class SemanticCNNEncoder(nn.Module):
+    """Paper-inspired temporal CNN over frozen LM token embeddings.
+
+    The reference paper uses frozen GPT-2 token-level embeddings followed by
+    multiple convolution kernels and global max pooling. We reproduce that
+    design while keeping separate Step and MCP encoders.
+    """
+
+    def __init__(self, input_dim: int, out_dim: int = SEMANTIC_CNN_DIM,
+                 kernels=SEMANTIC_CNN_KERNELS, dropout=SEMANTIC_CNN_DROPOUT):
+        super().__init__()
+        self.convs = nn.ModuleList([
+            nn.Conv1d(input_dim, out_dim, kernel_size=k, padding=0)
+            for k in kernels
+        ])
+        self.norm = nn.LayerNorm(out_dim * len(kernels))
+        self.proj = nn.Sequential(
+            nn.Linear(out_dim * len(kernels), out_dim * 2),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(out_dim * 2, out_dim),
+            nn.LayerNorm(out_dim),
+        )
+
+    def forward(self, token_embs: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
+        # token_embs: (B,L,D), mask: (B,L)
+        x = token_embs.transpose(1, 2)  # (B,D,L)
+        pooled = []
+        for conv in self.convs:
+            y = F.gelu(conv(x))
+            pooled.append(y.max(dim=-1).values)
+        z = torch.cat(pooled, dim=-1)
+        z = self.norm(z)
+        return self.proj(z)
 
 
 class ContextTextProjector(nn.Module):
-    """Keep the strategy text as the primary decision signal.
-
-    We explicitly preserve the two most important semantic fields,
-    "New strategy" and "Strategy explanation", and use the rest of the
-    context as lighter support rather than flattening all fields equally.
-    """
+    """Project the two BGE field embeddings into the graph fusion space."""
 
     def __init__(self, n_fields=None, field_dim=TEXT_EMB_DIM, out_dim=GNN_OUT_DIM):
-        if n_fields is None:
-            n_fields = len(CONTEXT_COLUMNS)
         super().__init__()
-        self.n_fields = n_fields
-
-        # Explicitly weight the strategy and explanation embeddings.
-        self.strategy_proj = nn.Sequential(
-            nn.Linear(field_dim, FUSION_HIDDEN),
-            nn.LayerNorm(FUSION_HIDDEN),
-            nn.GELU(),
-            nn.Dropout(0.10),
-            nn.Linear(FUSION_HIDDEN, out_dim),
+        self.proj = nn.Sequential(
+            nn.Linear((len(CONTEXT_COLUMNS) if n_fields is None else n_fields) * field_dim, out_dim),
             nn.LayerNorm(out_dim),
-        )
-        self.expl_proj = nn.Sequential(
-            nn.Linear(field_dim, FUSION_HIDDEN),
-            nn.LayerNorm(FUSION_HIDDEN),
             nn.GELU(),
-            nn.Dropout(0.10),
-            nn.Linear(FUSION_HIDDEN, out_dim),
-            nn.LayerNorm(out_dim),
-        )
-        self.support_proj = nn.Sequential(
-            nn.Linear(field_dim, FUSION_HIDDEN),
-            nn.LayerNorm(FUSION_HIDDEN),
-            nn.GELU(),
-            nn.Dropout(0.10),
-            nn.Linear(FUSION_HIDDEN, out_dim),
-            nn.LayerNorm(out_dim),
+            nn.Dropout(0.08),
         )
 
-    def forward(self, field_embs):  # (batch, n_fields, field_dim)
-        if field_embs.dim() != 3:
-            b = field_embs.shape[0]
-            field_embs = field_embs.reshape(b, self.n_fields, -1)
-
-        strategy_idx = CONTEXT_COLUMNS.index("New strategy") if "New strategy" in CONTEXT_COLUMNS else 0
-        explanation_idx = CONTEXT_COLUMNS.index("Strategy explanation") if "Strategy explanation" in CONTEXT_COLUMNS else 1
-
-        strategy_emb = field_embs[:, strategy_idx]
-        explanation_emb = field_embs[:, explanation_idx]
-
-        # Keep the strategy narrative and the explanation as the dominant semantic signal.
-        main_text = 0.7 * self.strategy_proj(strategy_emb) + 0.3 * self.expl_proj(explanation_emb)
-
-        support_mask = [i for i in range(field_embs.shape[1]) if i not in (strategy_idx, explanation_idx)]
-        if support_mask:
-            support_emb = field_embs[:, support_mask].mean(dim=1)
-            support_text = self.support_proj(support_emb)
-        else:
-            support_text = torch.zeros_like(main_text)
-
-        return main_text + 0.25 * support_text
+    def forward(self, field_embs):
+        return self.proj(field_embs.reshape(field_embs.shape[0], -1))
 
 
 class Stage1Classifier(nn.Module):
-    def __init__(self, edge_dim: int = EDGE_ATTR_DIM):
+    """Joint semantic + typed-graph Step/MCP classifier.
+
+    Outputs a 384-d task-conditioned representation for Stage 2/3.
+    Semantic prototypes are fixed-size buffers derived from canonical labels.
+    """
+
+    def __init__(self, edge_dim: int = EDGE_ATTR_DIM, semantic_input_dim: int = 768):
         super().__init__()
         self.graph_encoder = GraphEncoder(edge_dim=edge_dim)
         self.context_encoder = ContextTextProjector()
-        
-        # Strong text-first gating: the context should dominate the final decision,
-        # while the graph remains a helpful support signal.
-        self.graph_gate = nn.Sequential(
-            nn.Linear(GNN_OUT_DIM, GNN_OUT_DIM),
-            nn.LayerNorm(GNN_OUT_DIM),
+
+        self.step_text_cnn = SemanticCNNEncoder(semantic_input_dim)
+        self.mcp_text_cnn = SemanticCNNEncoder(semantic_input_dim)
+
+        self.node_key = nn.Linear(GNN_HIDDEN, GNN_HIDDEN)
+        self.node_value = nn.Linear(GNN_HIDDEN, GNN_HIDDEN)
+        self.ctx_query = nn.Linear(GNN_OUT_DIM, GNN_HIDDEN)
+        self.ctx_gate = nn.Sequential(
+            nn.Linear(GNN_HIDDEN * 2, GNN_HIDDEN),
             nn.GELU(),
-            nn.Linear(GNN_OUT_DIM, GNN_OUT_DIM),
-            nn.Sigmoid(),
+            nn.Linear(GNN_HIDDEN, 1),
         )
-        self.context_gate = nn.Sequential(
-            nn.Linear(GNN_OUT_DIM, GNN_OUT_DIM),
-            nn.LayerNorm(GNN_OUT_DIM),
-            nn.GELU(),
-            nn.Linear(GNN_OUT_DIM, GNN_OUT_DIM),
-            nn.Sigmoid(),
-        )
-        
-        # Cross-attention fusion for better graph-text semantic interaction
-        self.cross_attn = nn.MultiheadAttention(
-            embed_dim=GNN_OUT_DIM,
-            num_heads=8,
-            dropout=0.1,
-            batch_first=True
-        )
-        self.cross_attn_norm = nn.LayerNorm(GNN_OUT_DIM)
-        
-        # Enhanced fusion with multi-head attention
-        self.fusion = nn.Sequential(
-            nn.Linear(GNN_OUT_DIM * 2, FUSION_HIDDEN),
-            nn.LayerNorm(FUSION_HIDDEN),
-            nn.GELU(),
-            nn.Dropout(0.15),
-            nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN),
-            nn.LayerNorm(FUSION_HIDDEN),
-            nn.GELU(),
-            nn.Dropout(0.1),
+        self.node_attn_norm = nn.LayerNorm(GNN_HIDDEN)
+
+        # Per-task fusion. Step receives semantic tokens + conditioned graph +
+        # global graph; MCP receives its own semantic branch + same conditioned
+        # graph + context projection.
+        step_in = SEMANTIC_CNN_DIM + GNN_HIDDEN + GNN_OUT_DIM
+        mcp_in = SEMANTIC_CNN_DIM + GNN_HIDDEN + GNN_OUT_DIM
+        self.step_fusion = nn.Sequential(
+            nn.Linear(step_in, FUSION_HIDDEN),
+            nn.LayerNorm(FUSION_HIDDEN), nn.GELU(), nn.Dropout(0.10),
             nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN // 2),
-            nn.LayerNorm(FUSION_HIDDEN // 2),
-            nn.GELU(),
-            nn.Dropout(0.05),
+            nn.LayerNorm(FUSION_HIDDEN // 2), nn.GELU(), nn.Dropout(0.06),
         )
-        
-        # Enhanced classification heads with label-aware attention
-        self.step_head = nn.Sequential(
-            nn.Linear(FUSION_HIDDEN // 2, FUSION_HIDDEN // 2),
-            nn.LayerNorm(FUSION_HIDDEN // 2),
-            nn.GELU(),
-            nn.Dropout(0.1),
-            nn.Linear(FUSION_HIDDEN // 2, len(STEP_LABELS))
+        self.mcp_fusion = nn.Sequential(
+            nn.Linear(mcp_in, FUSION_HIDDEN),
+            nn.LayerNorm(FUSION_HIDDEN), nn.GELU(), nn.Dropout(0.10),
+            nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN // 2),
+            nn.LayerNorm(FUSION_HIDDEN // 2), nn.GELU(), nn.Dropout(0.06),
         )
-        
-        self.mcp_head = nn.Sequential(
-            nn.Linear(FUSION_HIDDEN // 2, FUSION_HIDDEN // 2),
-            nn.LayerNorm(FUSION_HIDDEN // 2),
-            nn.GELU(),
-            nn.Dropout(0.1),
-            nn.Linear(FUSION_HIDDEN // 2, len(MCP_LABELS))
+        fused_dim = FUSION_HIDDEN // 2
+        self.step_tower = nn.Sequential(
+            nn.Linear(fused_dim, fused_dim * 2),
+            nn.LayerNorm(fused_dim * 2), nn.GELU(), nn.Dropout(0.08),
+            nn.Linear(fused_dim * 2, fused_dim),
+            nn.LayerNorm(fused_dim), nn.GELU(), nn.Dropout(0.05),
+            nn.Linear(fused_dim, len(STEP_LABELS)),
         )
+        self.mcp_tower = nn.Sequential(
+            nn.Linear(fused_dim, fused_dim),
+            nn.LayerNorm(fused_dim), nn.GELU(), nn.Dropout(0.06),
+            nn.Linear(fused_dim, len(MCP_LABELS)),
+        )
+        self.fused_dim = fused_dim
 
-        self.step_head = nn.Linear(FUSION_HIDDEN // 2, len(STEP_LABELS))
-        self.mcp_head = nn.Linear(FUSION_HIDDEN // 2, len(MCP_LABELS))
+        # Fixed-shape semantic prototype buffers. These are set after loading
+        # canonical Step/MCP label token sequences in stage1_gnn_train.py.
+        proto_tokens = 64
+        proto_dim = semantic_input_dim
+        self.register_buffer("step_proto_tokens", torch.zeros(len(STEP_LABELS), proto_tokens, proto_dim), persistent=True)
+        self.register_buffer("step_proto_mask", torch.zeros(len(STEP_LABELS), proto_tokens, dtype=torch.bool), persistent=True)
+        self.register_buffer("mcp_proto_tokens", torch.zeros(len(MCP_LABELS), proto_tokens, proto_dim), persistent=True)
+        self.register_buffer("mcp_proto_mask", torch.zeros(len(MCP_LABELS), proto_tokens, dtype=torch.bool), persistent=True)
+        self.prototype_scale_step = nn.Parameter(torch.tensor(2.0))
+        self.prototype_scale_mcp = nn.Parameter(torch.tensor(1.0))
 
-    def forward(self, x, edge_index, batch, field_embs, edge_attr=None):
+    @torch.no_grad()
+    def set_semantic_prototypes(self, step_tokens, step_mask, mcp_tokens, mcp_mask):
+        """Copy fixed-size prototype token tensors into checkpoint buffers."""
+        def _fit(src, rows, cols, dtype):
+            out = torch.zeros(rows, cols, src.shape[-1], dtype=dtype, device=self.step_proto_tokens.device)
+            mask = torch.zeros(rows, cols, dtype=torch.bool, device=self.step_proto_tokens.device)
+            for i in range(min(rows, src.shape[0])):
+                L = min(cols, src.shape[1])
+                out[i, :L] = src[i, :L].to(out.dtype)
+                mask[i, :L] = True
+            return out, mask
+        s, sm = _fit(step_tokens, len(STEP_LABELS), self.step_proto_tokens.shape[1], self.step_proto_tokens.dtype)
+        m, mm = _fit(mcp_tokens, len(MCP_LABELS), self.mcp_proto_tokens.shape[1], self.mcp_proto_tokens.dtype)
+        self.step_proto_tokens.copy_(s)
+        self.step_proto_mask.copy_(sm)
+        self.mcp_proto_tokens.copy_(m)
+        self.mcp_proto_mask.copy_(mm)
+
+    def _condition_graph_on_context(self, node_h, batch, context):
+        q = self.ctx_query(context)
+        k = self.node_key(node_h)
+        v = self.node_value(node_h)
+        qn = q[batch]
+        scores = (k * qn).sum(dim=-1) / (k.shape[-1] ** 0.5)
+        scores = scores + self.ctx_gate(torch.cat([k, qn], dim=-1)).squeeze(-1)
+        weights = pyg_softmax(scores, batch)
+        pooled = torch.zeros(q.shape[0], v.shape[-1], device=v.device, dtype=v.dtype)
+        pooled.index_add_(0, batch, weights.unsqueeze(-1) * v)
+        return self.node_attn_norm(pooled + q)
+
+    def _prototype_logits(self, query, cnn, proto_tokens, proto_mask, scale):
+        if proto_tokens.numel() == 0:
+            return query.new_zeros((query.shape[0], 0))
+        n = proto_tokens.shape[0]
+        expanded = proto_tokens.to(query.device)
+        pm = proto_mask.to(query.device)
+        proto_repr = cnn(expanded, pm)
+        qn = F.normalize(query, dim=-1)
+        pn = F.normalize(proto_repr, dim=-1)
+        return torch.clamp(scale, min=0.05, max=10.0) * (qn @ pn.transpose(0, 1))
+
+    def encode_and_predict(self, x, edge_index, batch, field_embs,
+                           semantic_tokens=None, semantic_mask=None, edge_attr=None):
+        if semantic_tokens is None or semantic_mask is None:
+            # Stage 2/3 compatibility fallback: construct a short semantic
+            # sequence from the two BGE field embeddings.
+            semantic_tokens = field_embs.new_zeros((field_embs.shape[0], 5, field_embs.shape[-1]))
+            semantic_tokens[:, 0:2, :] = field_embs
+            semantic_tokens[:, 2:, :] = field_embs[:, 1:2, :].expand(-1, 3, -1)
+            semantic_mask = torch.ones(field_embs.shape[0], 5, dtype=torch.bool, device=field_embs.device)
+
+        node_h = self.graph_encoder.forward_nodes(x, edge_index, batch, edge_attr=edge_attr)
+        g = self.graph_encoder(x, edge_index, batch, edge_attr=edge_attr)
+        c = self.context_encoder(field_embs)
+        graph_ctx = self._condition_graph_on_context(node_h, batch, c)
+        step_text = self.step_text_cnn(semantic_tokens, semantic_mask)
+        mcp_text = self.mcp_text_cnn(semantic_tokens, semantic_mask)
+
+        step_h = self.step_fusion(torch.cat([step_text, graph_ctx, g], dim=-1))
+        mcp_h = self.mcp_fusion(torch.cat([mcp_text, graph_ctx, c], dim=-1))
+        step_logits = self.step_tower(step_h)
+        mcp_logits = self.mcp_tower(mcp_h)
+
+        # Semantic prototype scores provide an explicit label-semantic signal.
+        # They are added as a residual logit term rather than replacing the
+        # supervised classifier, keeping the system robust to label wording.
+        proto_step = self._prototype_logits(
+            step_text, self.step_text_cnn, self.step_proto_tokens,
+            self.step_proto_mask, self.prototype_scale_step,
+        )
+        proto_mcp = self._prototype_logits(
+            mcp_text, self.mcp_text_cnn, self.mcp_proto_tokens,
+            self.mcp_proto_mask, self.prototype_scale_mcp,
+        )
+        if proto_step.shape[-1] == step_logits.shape[-1]:
+            step_logits = step_logits + proto_step
+        if proto_mcp.shape[-1] == mcp_logits.shape[-1]:
+            mcp_logits = mcp_logits + proto_mcp
+
+        # Exactly 384 dims when FUSION_HIDDEN=768, preserving the Stage-2/3
+        # graph-prefix interface.
+        h = torch.cat([
+            step_h[:, :self.fused_dim // 2],
+            mcp_h[:, :self.fused_dim // 2],
+        ], dim=-1)
+        return h, step_logits, mcp_logits
+
+    def forward(self, x, edge_index, batch, field_embs,
+                semantic_tokens=None, semantic_mask=None, edge_attr=None):
         h, step_logits, mcp_logits = self.encode_and_predict(
-            x, edge_index, batch, field_embs, edge_attr=edge_attr
+            x, edge_index, batch, field_embs,
+            semantic_tokens=semantic_tokens,
+            semantic_mask=semantic_mask,
+            edge_attr=edge_attr,
         )
         return step_logits, mcp_logits, h
 
-    def encode_graph_only(self, x, edge_index, batch, edge_attr=None):
-        """
-        Pure graph encoder output without context fusion or classification heads.
-        This is the structural representation that should be passed to Stage 2/3.
-        
-        Returns:
-            graph_emb (B, GNN_OUT_DIM) -- pure graph structural representation
-        """
-        return self.graph_encoder(x, edge_index, batch, edge_attr=edge_attr)
-
-    def encode_and_predict(self, x, edge_index, batch, field_embs, edge_attr=None):
-        """
-        Enhanced frozen-inference path with improved fusion strategy.
-        
-        Based on research from "Classic GNNs are Strong Baselines" and hybrid
-        approaches, this now uses a more sophisticated fusion mechanism that
-        better preserves the graph-structure information while effectively
-        integrating context.
-
-        Returns:
-            h            (B, FUSION_HIDDEN//2)  -- the fused, decision-ready
-                          representation. Feed THIS into GraphPrefixAdapter,
-                          not the raw graph embedding.
-            step_logits  (B, len(STEP_LABELS))
-            mcp_logits   (B, len(MCP_LABELS))
-        """
-        g = self.graph_encoder(x, edge_index, batch, edge_attr=edge_attr)   # (B, GNN_OUT_DIM)
-        c = self.context_encoder(field_embs)                                # (B, GNN_OUT_DIM)
-        
-        # Cross-attention fusion for better semantic interaction
-        # Graph attends to context and vice versa
-        g_expanded = g.unsqueeze(1)  # (B, 1, GNN_OUT_DIM)
-        c_expanded = c.unsqueeze(1)  # (B, 1, GNN_OUT_DIM)
-        
-        # Graph attends to context
-        g_attn, _ = self.cross_attn(g_expanded, c_expanded, c_expanded)
-        g_attn = g_attn.squeeze(1)  # (B, GNN_OUT_DIM)
-        g_attn = self.cross_attn_norm(g_attn + g)
-        
-        # Context attends to graph
-        c_attn, _ = self.cross_attn(c_expanded, g_expanded, g_expanded)
-        c_attn = c_attn.squeeze(1)  # (B, GNN_OUT_DIM)
-        c_attn = self.cross_attn_norm(c_attn + c)
-        
-        # The graph remains useful, but the strategy text is the main semantic signal.
-        g_gate = self.graph_gate(g_attn)
-        c_gate = self.context_gate(c_attn)
-
-        gated_g = g_attn * g_gate
-        gated_c = c_attn * c_gate
-
-        context_signal = (gated_c + c * 0.10) * 2.10
-        graph_signal = (gated_g + g * 0.05) * 0.12
-
-        h = self.fusion(torch.cat([
-            context_signal + graph_signal * 0.05,
-            context_signal * 0.90 + graph_signal * 0.03,
-        ], dim=-1))
-
-        step_logits = self.step_head(h)
-        mcp_logits = self.mcp_head(h)
-        return h, step_logits, mcp_logits
-
     def loss(self, step_logits, mcp_logits, step_labels, mcp_targets,
-              step_w=1.0, mcp_w=1.0, mcp_class_weights=None, use_focal=True, focal_gamma=2.0,
-              label_smoothing=0.0, step_class_weights=None, use_step_focal=True, step_focal_gamma=2.0):
-        # Enhanced step loss with focal loss for rare class handling
-        if use_step_focal and label_smoothing == 0:
-            # Focal loss for step classification
-            ce_loss = F.cross_entropy(step_logits, step_labels, reduction='none')
-            pt = torch.exp(-ce_loss)
-            focal_weight = (1 - pt) ** step_focal_gamma
-            if step_class_weights is not None:
-                focal_weight = focal_weight * step_class_weights[step_labels]
-            step_loss = (focal_weight * ce_loss).mean()
-        elif label_smoothing > 0:
-            step_loss = self._label_smooth_ce(step_logits, step_labels, label_smoothing, step_class_weights)
-        else:
-            if step_class_weights is not None:
-                step_loss = F.cross_entropy(step_logits, step_labels, weight=step_class_weights)
-            else:
-                step_loss = F.cross_entropy(step_logits, step_labels)
+             step_w=1.0, mcp_w=1.0, mcp_class_weights=None,
+             use_focal=True, focal_gamma=2.0, label_smoothing=0.0,
+             step_class_weights=None, use_step_focal=False,
+             step_focal_gamma=2.0):
+        step_loss = F.cross_entropy(
+            step_logits, step_labels,
+            weight=step_class_weights,
+            label_smoothing=label_smoothing,
+        )
+        if use_step_focal:
+            p = torch.softmax(step_logits, dim=-1)
+            pt = p.gather(1, step_labels.view(-1, 1)).squeeze(1).clamp_min(1e-7)
+            ce = F.cross_entropy(
+                step_logits, step_labels,
+                weight=step_class_weights,
+                reduction="none",
+                label_smoothing=label_smoothing,
+            )
+            step_loss = ((1.0 - pt).pow(step_focal_gamma) * ce).mean()
 
+        bce = F.binary_cross_entropy_with_logits(mcp_logits, mcp_targets, reduction="none")
         if use_focal:
-            bce_loss = F.binary_cross_entropy_with_logits(mcp_logits, mcp_targets, reduction='none')
-            pt = torch.exp(-bce_loss)
-            focal_weight = (1 - pt) ** focal_gamma
-            if mcp_class_weights is not None:
-                focal_weight = focal_weight * mcp_class_weights
-            mcp_loss = (focal_weight * bce_loss).mean()
-        else:
-            if mcp_class_weights is not None:
-                mcp_loss = F.binary_cross_entropy_with_logits(
-                    mcp_logits, mcp_targets, weight=mcp_class_weights
-                )
-            else:
-                mcp_loss = F.binary_cross_entropy_with_logits(mcp_logits, mcp_targets)
-
-        return step_w * step_loss + mcp_w * mcp_loss, step_loss.detach(), mcp_loss.detach()
+            p = torch.sigmoid(mcp_logits)
+            pt = torch.where(mcp_targets > 0.5, p, 1.0 - p)
+            bce = bce * (1.0 - pt).pow(focal_gamma)
+        if mcp_class_weights is not None:
+            bce = bce * mcp_class_weights.view(1, -1)
+        mcp_loss = bce.mean()
+        total = step_w * step_loss + mcp_w * mcp_loss
+        return total, step_loss.detach(), mcp_loss.detach()

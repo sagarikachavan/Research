@@ -1,289 +1,196 @@
-"""
-Stage 1: Supervised training of the GNN + context-fusion classifier for
-  - Next Step Type (single-label, 10-way)   -> Accuracy / Macro-F1
-  - MCP tool type   (multi-label, 11-way)   -> subset accuracy, micro/macro-F1
+"""Stage 1: supervised edge-aware graph + strategy classifier.
 
-Training input: stepmodelv2/input/train.json
-Evaluation input: stepmodelv2/input/test.json
+Input:  machine graph + New strategy + Strategy explanation
+Outputs: next Step (single label) + MCP tools (multi-label).
 
-Run:
-    python stage1_gnn_train.py
+This revision keeps the same data split and downstream checkpoint interface,
+but upgrades the representation learner to a data-efficient typed GINE encoder
+with GraphNorm, shallow global attention, structural features, and
+context-conditioned node pooling.
 """
-import random
+from __future__ import annotations
+
 import csv
 import os
-from datetime import datetime, timezone
+import sys
+import random
 
 import numpy as np
 import torch
 import torch.nn.functional as F
-from torch.utils.data import Dataset, DataLoader
+from torch.utils.data import Dataset, DataLoader, WeightedRandomSampler
 from torch_geometric.data import Batch
-from sklearn.metrics import (
-    accuracy_score, f1_score,
-)
+from sklearn.metrics import accuracy_score, f1_score
 
-# ── Path bootstrap (folder was restructured into core/ data_prep/ training/ eval/) ──
-import os as _os, sys as _sys
-_ROOT = _os.path.dirname(_os.path.dirname(_os.path.abspath(__file__)))
-for _p in (_ROOT, _os.path.join(_ROOT, "core"), _os.path.join(_ROOT, "data_prep"), _os.path.join(_ROOT, "training")):
-    if _p not in _sys.path:
-        _sys.path.insert(0, _p)
+_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+for _p in (_ROOT, os.path.join(_ROOT, "core"), os.path.join(_ROOT, "data_prep"), os.path.join(_ROOT, "training")):
+    if _p not in sys.path:
+        sys.path.insert(0, _p)
 
 from config import (
     INPUT_TRAIN_JSON, INPUT_TEST_JSON, STAGE1_CKPT, STAGE1_LR, STAGE1_EPOCHS,
-    STAGE1_BATCH_SIZE, STEP_LOSS_WEIGHT, MCP_LOSS_WEIGHT, RANDOM_SEED, MCP_LABELS,
-    STEP_LABELS, ROOT, STEP_LABEL_SMOOTHING, STAGE1_WARMUP_EPOCHS, STAGE1_GRAD_CLIP,
+    STAGE1_BATCH_SIZE, STEP_LOSS_WEIGHT, MCP_LOSS_WEIGHT, RANDOM_SEED,
+    MCP_LABELS, STEP_LABELS, ROOT, STEP_LABEL_SMOOTHING, STAGE1_WARMUP_EPOCHS,
+    STAGE1_GRAD_CLIP, STAGE1_WEIGHT_DECAY, STAGE1_MAX_CLASS_WEIGHT,
+    STAGE1_MAX_MCP_WEIGHT, STAGE1_HARD_NEGATIVE_WEIGHT,
+    STAGE1_SUPCON_WEIGHT, STAGE1_HARD_NEGATIVE_MARGIN, STAGE1_USE_STEP_CLASS_WEIGHTS, STAGE2_VAL_SPLIT,
+    SEMANTIC_LM_NAME, SEMANTIC_MAX_TOKENS, SEMANTIC_LM_DIM, SEMANTIC_PROTOTYPE_TOKENS,
 )
-from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS
+from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS, precompute_semantic_tokens
 from graph_encoder import Stage1Classifier
 from mcp_threshold_search import search_per_class_thresholds
 
 random.seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
 torch.manual_seed(RANDOM_SEED)
-torch.cuda.manual_seed_all(RANDOM_SEED)
-
-# Use seeded reproducibility instead of strict deterministic algorithms.
-# The latter triggers CuBLAS warnings on modern CUDA while providing little
-# practical benefit for this project when the data split and sampler are fixed.
-torch.backends.cudnn.deterministic = False
-torch.backends.cudnn.benchmark = True
-torch.use_deterministic_algorithms(False)
+if torch.cuda.is_available():
+    torch.cuda.manual_seed_all(RANDOM_SEED)
 
 
 class Stage1Dataset(Dataset):
     def __init__(self, json_path, split="train"):
         self.examples = load_from_input_json(json_path, split)
-        self.split = split
-        # pre-embed all context text once (frozen encoder, no grad needed)
-        self._embed_cache()
-
-    def _embed_cache(self):
         for ex in self.examples:
             texts = [ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]
-            ex["field_embs"] = _embed_texts(texts)  # (5, TEXT_EMB_DIM)
+            ex["field_embs"] = _embed_texts(texts)
+            ex["semantic_text"] = f"{texts[0]} {texts[1]}"
+        precompute_semantic_tokens(self.examples, model_name=SEMANTIC_LM_NAME, max_tokens=SEMANTIC_MAX_TOKENS, device="cuda" if torch.cuda.is_available() else "cpu")
 
     def __len__(self):
         return len(self.examples)
 
     def __getitem__(self, idx):
         ex = self.examples[idx]
-        # Graph is already a torch_geometric Data object built at load time
         return {
             "graph": ex["graph"],
             "field_embs": torch.tensor(ex["field_embs"], dtype=torch.float32),
             "step_idx": torch.tensor(ex["step_idx"], dtype=torch.long),
             "mcp_vec": torch.tensor(ex["mcp_vec"], dtype=torch.float32),
+            "semantic_tokens": ex["semantic_tokens"],
         }
 
 
-def collate(batch):
-    graphs = Batch.from_data_list([b["graph"] for b in batch])
-    field_embs = torch.stack([b["field_embs"] for b in batch])
-    step_idx = torch.stack([b["step_idx"] for b in batch])
-    mcp_vec = torch.stack([b["mcp_vec"] for b in batch])
-    return graphs, field_embs, step_idx, mcp_vec
-
-
-def compute_count_based_class_weights(counts, beta=0.999, min_weight=0.2, max_weight=2.8):
-    """Deterministic class weights from the effective sample count.
-
-    This follows the class-imbalance correction used in effective number weighting:
-      w_c = (1 - beta) / (1 - beta**n_c)
-    where n_c is the count for class c. It is a direct function of the dataset
-    counts, not of random sampling or runtime state, so the assignment stays fixed
-    across runs for the same data.
-
-    We keep a moderate floor and cap so rare classes remain boosted without
-    making the step head systematically underfit the dominant step classes.
-    """
-    counts = np.asarray(counts, dtype=np.float64)
-    weights = np.full(counts.shape, min_weight, dtype=np.float64)
-    positive = counts > 0
-    if positive.any():
-        effective = (1.0 - np.power(beta, counts[positive])) / (1.0 - beta)
-        inverse_eff = 1.0 / effective
-        inverse_eff = inverse_eff / np.mean(inverse_eff)
-        weights[positive] = inverse_eff
-    weights = np.clip(weights, min_weight, max_weight)
-    return weights
-
-
-def adaptive_cost_sensitive_loss(step_logits, step_labels, base_weights, 
-                                  class_counts, alpha=0.1, beta=0.5):
-    """
-    Adaptive cost-sensitive loss that adjusts class weights based on performance.
-    
-    Args:
-        step_logits: Model predictions (B, num_classes)
-        step_labels: Ground truth labels (B,)
-        base_weights: Base class weights from frequency
-        class_counts: Number of samples per class
-        alpha: Learning rate for weight adaptation
-        beta: Balance between frequency-based and performance-based weights
-    
-    Returns:
-        loss: Computed loss
-        updated_weights: Updated class weights
-    """
-    # Compute per-class accuracy
-    with torch.no_grad():
-        preds = step_logits.argmax(dim=-1)
-        class_correct = torch.zeros(len(base_weights), device=step_logits.device)
-        class_total = torch.zeros(len(base_weights), device=step_logits.device)
-        
-        for c in range(len(base_weights)):
-            mask = (step_labels == c)
-            if mask.sum() > 0:
-                class_correct[c] = (preds[mask] == c).float().sum()
-                class_total[c] = mask.sum()
-        
-        # Compute per-class accuracy
-        class_acc = class_correct / (class_total + 1e-8)
-        
-        # Performance-based weights: lower accuracy = higher weight
-        perf_weights = 1.0 / (class_acc + 1e-8)
-        perf_weights = perf_weights / perf_weights.mean()
-        
-        # Combine frequency-based and performance-based weights
-        adaptive_weights = beta * base_weights + (1 - beta) * perf_weights
-        
-        # Smooth update from base weights to adaptive weights
-        updated_weights = (1 - alpha) * base_weights + alpha * adaptive_weights
-    
-    # Compute weighted cross-entropy loss
-    loss = F.cross_entropy(step_logits, step_labels, weight=updated_weights)
-    
-    return loss, updated_weights
+def collate(items):
+    graphs = Batch.from_data_list([b["graph"] for b in items])
+    tokens = [b["semantic_tokens"] for b in items]
+    max_len = max(t.shape[0] for t in tokens)
+    d = tokens[0].shape[1]
+    sem = torch.zeros(len(tokens), max_len, d, dtype=torch.float32)
+    mask = torch.zeros(len(tokens), max_len, dtype=torch.bool)
+    for i, t in enumerate(tokens):
+        L = t.shape[0]
+        sem[i, :L] = t
+        mask[i, :L] = True
+    return (graphs,
+            torch.stack([b["field_embs"] for b in items]),
+            torch.stack([b["step_idx"] for b in items]),
+            torch.stack([b["mcp_vec"] for b in items]),
+            sem, mask)
 
 
 def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=False, csv_path=None, dataset=None):
     model.eval()
     step_preds, step_gold = [], []
-    mcp_preds, mcp_gold = [], []
-    mcp_probs = []  # Store raw probabilities for threshold optimization
-    csv_rows = []  # Store rows for CSV output
-    global_idx = 0  # Track global index for matching with dataset
-    if threshold is None:
-        threshold = 0.5
-    
+    mcp_preds, mcp_gold, mcp_probs = [], [], []
+    csv_rows = []
+    global_idx = 0
     with torch.no_grad():
-        for graphs, field_embs, step_idx, mcp_vec in loader:
+        for graphs, field_embs, step_idx, mcp_vec, sem_tokens, sem_mask in loader:
             graphs = graphs.to(device)
-            field_embs, step_idx, mcp_vec = (
-                field_embs.to(device), step_idx.to(device), mcp_vec.to(device)
-            )
-            edge_attr = getattr(graphs, 'edge_attr', None)
+            field_embs = field_embs.to(device)
+            step_idx = step_idx.to(device)
+            mcp_vec = mcp_vec.to(device)
+            sem_tokens = sem_tokens.to(device)
+            sem_mask = sem_mask.to(device)
+            edge_attr = getattr(graphs, "edge_attr", None)
             step_logits, mcp_logits, _ = model(
                 graphs.x, graphs.edge_index, graphs.batch, field_embs,
-                edge_attr=edge_attr,
+                semantic_tokens=sem_tokens, semantic_mask=sem_mask, edge_attr=edge_attr
             )
-            step_preds.append(step_logits.argmax(-1).cpu().numpy())
-            step_gold.append(step_idx.cpu().numpy())
-            mcp_probs.append(torch.sigmoid(mcp_logits).cpu().numpy())
-            # Handle threshold as list for per-class thresholds
-            if isinstance(threshold, (list, tuple, np.ndarray)):
-                threshold_tensor = torch.as_tensor(threshold, dtype=mcp_logits.dtype, device=mcp_logits.device)
-                mcp_preds.append((torch.sigmoid(mcp_logits) >= threshold_tensor).float().cpu().numpy())
+            sp = step_logits.argmax(-1).cpu().numpy()
+            sg = step_idx.cpu().numpy()
+            probs = torch.sigmoid(mcp_logits).cpu().numpy()
+            if isinstance(threshold, (list, np.ndarray)):
+                thr = torch.tensor(threshold, dtype=torch.float32, device=device)
+                mp = (torch.sigmoid(mcp_logits) >= thr).float().cpu().numpy()
             else:
-                threshold_value = 0.5 if threshold is None else float(threshold)
-                mcp_preds.append((torch.sigmoid(mcp_logits) >= threshold_value).float().cpu().numpy())
-            mcp_gold.append(mcp_vec.cpu().numpy())
-            
-            # Collect data for CSV output
+                mp = (torch.sigmoid(mcp_logits) >= threshold).float().cpu().numpy()
+            mg = mcp_vec.cpu().numpy()
+            step_preds.append(sp); step_gold.append(sg)
+            mcp_preds.append(mp); mcp_gold.append(mg); mcp_probs.append(probs)
             if save_csv and dataset is not None:
-                batch_size = step_idx.shape[0]
-                for i in range(batch_size):
-                    if global_idx < len(dataset):
-                        ex = dataset[global_idx]
-                        pred_step_idx = step_preds[-1][i]
-                        gold_step_idx = step_gold[-1][i]
-                        pred_mcp = mcp_preds[-1][i]
-                        gold_mcp = mcp_gold[-1][i]
-                        
-                        # Convert indices to labels
-                        pred_step_label = STEP_LABELS[pred_step_idx] if 0 <= pred_step_idx < len(STEP_LABELS) else "UNPARSEABLE"
-                        gold_step_label = STEP_LABELS[gold_step_idx] if 0 <= gold_step_idx < len(STEP_LABELS) else "UNPARSEABLE"
-                        
-                        # Convert MCP vectors to tool names
-                        pred_mcp_tools = [MCP_LABELS[j] for j in range(len(MCP_LABELS)) if pred_mcp[j] == 1]
-                        gold_mcp_tools = [MCP_LABELS[j] for j in range(len(MCP_LABELS)) if gold_mcp[j] == 1]
-                        
-                        csv_rows.append({
-                            "machine": ex.get("machine", ""),
-                            "new_strategy": ex["context"].get("New strategy", ""),
-                            "strategy_explanation": ex["context"].get("Strategy explanation", ""),
-                            "step_prediction": pred_step_label,
-                            "gold_new_step": gold_step_label,
-                            "mcp_tool_prediction": "|".join(pred_mcp_tools),
-                            "mcp_tool_gold": "|".join(gold_mcp_tools),
-                        })
+                for i in range(len(sp)):
+                    ex = dataset[global_idx]
+                    csv_rows.append({
+                        "machine": ex.get("machine", ""),
+                        "new_strategy": ex["context"].get("New strategy", ""),
+                        "strategy_explanation": ex["context"].get("Strategy explanation", ""),
+                        "step_prediction": STEP_LABELS[int(sp[i])],
+                        "gold_new_step": STEP_LABELS[int(sg[i])],
+                        "mcp_tool_prediction": "|".join(MCP_LABELS[j] for j in range(len(MCP_LABELS)) if mp[i, j] == 1),
+                        "mcp_tool_gold": "|".join(MCP_LABELS[j] for j in range(len(MCP_LABELS)) if mg[i, j] == 1),
+                    })
                     global_idx += 1
-
-    step_preds = np.concatenate(step_preds)
-    step_gold = np.concatenate(step_gold)
-    mcp_preds = np.concatenate(mcp_preds)
-    mcp_gold = np.concatenate(mcp_gold)
-    mcp_probs = np.concatenate(mcp_probs) if return_probs else None
-
+    step_preds = np.concatenate(step_preds); step_gold = np.concatenate(step_gold)
+    mcp_preds = np.concatenate(mcp_preds); mcp_gold = np.concatenate(mcp_gold)
+    probs_out = np.concatenate(mcp_probs) if return_probs else None
     metrics = {
         "step_accuracy": accuracy_score(step_gold, step_preds),
+        "step_micro_f1": f1_score(step_gold, step_preds, average="micro", zero_division=0),
         "step_macro_f1": f1_score(step_gold, step_preds, average="macro", zero_division=0),
         "step_weighted_f1": f1_score(step_gold, step_preds, average="weighted", zero_division=0),
-        "mcp_subset_accuracy": accuracy_score(mcp_gold, mcp_preds),  # exact set match
+        "mcp_subset_accuracy": accuracy_score(mcp_gold, mcp_preds),
         "mcp_micro_f1": f1_score(mcp_gold, mcp_preds, average="micro", zero_division=0),
         "mcp_macro_f1": f1_score(mcp_gold, mcp_preds, average="macro", zero_division=0),
         "mcp_samples_f1": f1_score(mcp_gold, mcp_preds, average="samples", zero_division=0),
     }
-    
-    # Save CSV if requested
     if save_csv and csv_path and csv_rows:
         os.makedirs(os.path.dirname(csv_path), exist_ok=True)
-        fieldnames = list(csv_rows[0].keys())
         with open(csv_path, "w", newline="", encoding="utf-8") as f:
-            writer = csv.DictWriter(f, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(csv_rows)
+            writer = csv.DictWriter(f, fieldnames=list(csv_rows[0].keys()))
+            writer.writeheader(); writer.writerows(csv_rows)
         print(f"[Stage 1] Evaluation CSV saved to: {csv_path}")
-    
     if return_probs:
-        return metrics, mcp_probs, mcp_gold
+        return metrics, probs_out, mcp_gold
     return metrics
 
 
-def tune_mcp_thresholds(model, loader, device):
-    """Tune per-class MCP thresholds on validation data with support-gated search."""
-    model.eval()
-    all_probs, all_targets = [], []
-    with torch.no_grad():
-        for graphs, field_embs, step_idx, mcp_vec in loader:
-            graphs = graphs.to(device)
-            field_embs, step_idx, mcp_vec = (
-                field_embs.to(device), step_idx.to(device), mcp_vec.to(device)
-            )
-            edge_attr = getattr(graphs, 'edge_attr', None)
-            step_logits, mcp_logits, _ = model(
-                graphs.x, graphs.edge_index, graphs.batch, field_embs,
-                edge_attr=edge_attr,
-            )
-            all_probs.append(torch.sigmoid(mcp_logits).cpu().numpy())
-            all_targets.append(mcp_vec.cpu().numpy())
+def _soft_class_weights(counts, cap, rare_boost=1.0):
+    counts = np.asarray(counts, dtype=np.float64)
+    positive = counts > 0
+    weights = np.ones_like(counts)
+    if positive.any():
+        inv = 1.0 / np.sqrt(np.maximum(counts[positive], 1.0))
+        inv = inv / max(inv.mean(), 1e-12)
+        weights[positive] = np.clip(inv, 1.0 / cap, cap)
+    if rare_boost > 1.0:
+        rare = (counts > 0) & (counts < 10)
+        weights[rare] = np.minimum(weights[rare] * rare_boost, cap)
+    weights[~positive] = 0.0
+    nz = weights > 0
+    if nz.any():
+        weights[nz] /= max(weights[nz].mean(), 1e-12)
+    return weights
 
-    probs = np.concatenate(all_probs, axis=0)
-    targets = np.concatenate(all_targets, axis=0)
-    thresholds = search_per_class_thresholds(
-        probs,
-        targets,
-        min_val_positives=10,
-        candidate_floor=0.25,
-        candidate_ceil=0.75,
-        n_bootstrap=20,
-        bootstrap_seed=RANDOM_SEED,
-        auto_fallback=True,
-        verbose=True,
-    )
-    return thresholds
+
+def hard_negative_margin(logits, labels, groups, margin=0.20):
+    """Penalize the known confusing Step alternatives."""
+    losses = []
+    for group in groups:
+        group = list(group)
+        mask = torch.zeros_like(labels, dtype=torch.bool)
+        for c in group:
+            mask |= labels == c
+        if not bool(mask.any()):
+            continue
+        idx = torch.tensor(group, device=logits.device, dtype=torch.long)
+        group_logits = logits[mask][:, idx]
+        local_labels = labels[mask]
+        pos_col = torch.tensor([group.index(int(y)) for y in local_labels.tolist()], device=logits.device, dtype=torch.long)
+        pos = group_logits.gather(1, pos_col.unsqueeze(1)).squeeze(1)
+        neg = group_logits.masked_fill(F.one_hot(pos_col, len(group)).bool(), -1e9).max(dim=1).values
+        losses.append(F.relu(margin - pos + neg).mean())
+    return torch.stack(losses).mean() if losses else logits.new_zeros(())
 
 
 def main():
@@ -291,323 +198,186 @@ def main():
     print(f"[Stage 1] Training input : {INPUT_TRAIN_JSON}")
     print(f"[Stage 1] Test input     : {INPUT_TEST_JSON}")
     print(f"[Stage 1] Device         : {device}")
+    print(f"[Stage 1] Architecture   : paper-inspired semantic CNN + typed GINE graph fusion")
     print(f"[Stage 1] Epochs         : {STAGE1_EPOCHS} (warmup {STAGE1_WARMUP_EPOCHS})")
-    print(f"[Stage 1] Label smoothing: {STEP_LABEL_SMOOTHING}")
-    print(f"[Stage 1] Grad clip      : {STAGE1_GRAD_CLIP}")
 
     full_ds = Stage1Dataset(INPUT_TRAIN_JSON, split="train")
-    n = len(full_ds)
+    examples = full_ds.examples
+    all_machines = sorted(set(e["machine"] for e in examples))
+    rng = np.random.default_rng(RANDOM_SEED + 1)
+    perm = rng.permutation(len(all_machines))
+    n_val = max(1, int(len(all_machines) * (STAGE2_VAL_SPLIT if STAGE2_VAL_SPLIT else 0.15)))
+    val_machines = set(all_machines[i] for i in perm[:n_val])
+    train_machines = set(all_machines) - val_machines
+    train_idx = [i for i, e in enumerate(examples) if e["machine"] in train_machines]
+    val_idx = [i for i, e in enumerate(examples) if e["machine"] in val_machines]
 
-    # Keep a small machine-level validation split. This reduces training size a bit,
-    # but gives a much more reliable checkpoint-selection signal for this small,
-    # imbalanced dataset.
-    machine_to_idx = {}
-    for idx, ex in enumerate(full_ds.examples):
-        machine_to_idx.setdefault(ex["machine"], []).append(idx)
-    all_machines = sorted(machine_to_idx)
-    val_machine_count = min(max(2, len(all_machines) // 10), max(2, len(all_machines) - 1))
-    rng = random.Random(RANDOM_SEED)
-    val_machines = set(rng.sample(all_machines, k=val_machine_count))
-    val_idx = sorted(i for m in val_machines for i in machine_to_idx[m])
-    train_idx = [i for i in range(n) if i not in set(val_idx)]
-
-    # ── Data leakage pre-check: train machines vs TEST machines ──
-    test_examples_precheck = load_from_input_json(INPUT_TEST_JSON, "test")
-    test_machines = set(e["machine"] for e in test_examples_precheck)
-    train_machine_set = set(e["machine"] for e in full_ds.examples)
-    train_test_overlap = train_machine_set & test_machines
-    if train_test_overlap:
-        print(f"[Stage 1] ⚠  WARNING: TRAIN/TEST machine overlap: {sorted(train_test_overlap)}")
-    else:
-        print(f"[Stage 1] ✓ No machine overlap between train and test sets")
-    del test_examples_precheck
-
-    print(f"[Stage 1] Train machines  : {len(set(e['machine'] for e in [full_ds.examples[i] for i in train_idx]))}")
+    test_pre = load_from_input_json(INPUT_TEST_JSON, "test")
+    test_machines = set(e["machine"] for e in test_pre)
+    assert not (train_machines & test_machines), "TRAIN/TEST machine overlap detected"
+    assert not (val_machines & test_machines), "VAL/TEST machine overlap detected"
+    print("[Stage 1] ✓ No machine overlap between (train ∪ val) and test sets")
+    print(f"[Stage 1] Train machines  : {len(train_machines)}")
     print(f"[Stage 1] Val machines    : {len(val_machines)}")
     print(f"[Stage 1] Train examples  : {len(train_idx)}")
     print(f"[Stage 1] Val examples    : {len(val_idx)}")
-    print(f"[Stage 1] Using machine-based validation split")
 
     train_ds = torch.utils.data.Subset(full_ds, train_idx)
     val_ds = torch.utils.data.Subset(full_ds, val_idx)
+    val_loader = DataLoader(val_ds, batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
 
-    # ── Calculate MCP class weights for imbalanced data ─────────────────
-    print("[Stage 1] Calculating MCP class weights for imbalanced data...")
-    mcp_counts = np.zeros(len(MCP_LABELS))
+    step_counts = np.bincount([full_ds[i]["step_idx"].item() for i in train_idx], minlength=len(STEP_LABELS)).astype(np.float64)
+    mcp_counts = np.zeros(len(MCP_LABELS), dtype=np.float64)
+    for i in train_idx:
+        mcp_counts += full_ds[i]["mcp_vec"].numpy()
+    step_w_np = _soft_class_weights(step_counts, STAGE1_MAX_CLASS_WEIGHT, rare_boost=1.20)
+    mcp_w_np = _soft_class_weights(mcp_counts, STAGE1_MAX_MCP_WEIGHT, rare_boost=1.15)
+    step_weights = torch.tensor(step_w_np, dtype=torch.float32, device=device)
+    mcp_weights = torch.tensor(mcp_w_np, dtype=torch.float32, device=device)
+
+    print("[Stage 1] STEP weights:")
+    for i, lab in enumerate(STEP_LABELS):
+        print(f"  [{i}] {lab[:54]:<54}: w={step_w_np[i]:.3f} count={int(step_counts[i])}")
+    print("[Stage 1] MCP weights:")
+    for i, lab in enumerate(MCP_LABELS):
+        print(f"  {lab:<22}: w={mcp_w_np[i]:.3f} count={int(mcp_counts[i])}")
+
+    # Gentle class-aware sampling: square-root inverse frequency, clipped.
+    sample_weights = []
     for idx in train_idx:
-        mcp_counts += full_ds[idx]["mcp_vec"].numpy()
-
-    # Use the effective sample count formula, which depends only on the actual
-    # class counts for the fixed dataset. This removes random drift and keeps the
-    # balanced weighting behavior stable across runs.
-    mcp_class_weights = compute_count_based_class_weights(mcp_counts, beta=0.999, min_weight=0.2, max_weight=2.8)
-    mcp_class_weights = torch.tensor(mcp_class_weights, dtype=torch.float32, device=device)
-
-    print(f"[Stage 1] MCP class weights:")
-    for i, label in enumerate(MCP_LABELS):
-        print(f"  {label:<22}: w={mcp_class_weights[i].item():.3f}  count={int(mcp_counts[i])}")
-
-    # ── Calculate STEP class weights for imbalanced data ─────────────────
-    print("\n[Stage 1] Calculating STEP class weights for imbalanced data...")
-    step_counts = np.zeros(len(STEP_LABELS))
-    for idx in train_idx:
-        step_counts[full_ds[idx]["step_idx"].item()] += 1
-    step_class_weights = compute_count_based_class_weights(step_counts, beta=0.999, min_weight=0.2, max_weight=2.8)
-    step_class_weights = torch.tensor(step_class_weights, dtype=torch.float32, device=device)
-
-    print(f"[Stage 1] STEP class weights:")
-    for i, label in enumerate(STEP_LABELS):
-        print(f"  [{i}] {label[:50]:<50}: w={step_class_weights[i].item():.3f}  count={int(step_counts[i])}")
-
-    # ── Rare-class oversampling ──────────────────────────────────────────
-    # Loss reweighting (above) changes how much a rare-class example counts
-    # toward the gradient, but every example still appears exactly once per
-    # epoch regardless of shuffle=True. For very thin classes (e.g. SQLmap
-    # ~24 rows, hydra ~23 rows) that's not enough signal per epoch. Build a
-    # WeightedRandomSampler so rare-class rows are actually drawn more often.
-    print("\n[Stage 1] Building rare-class-aware sampler for training...")
-    mcp_w_np = mcp_class_weights.detach().cpu().numpy()
-    step_w_np = step_class_weights.detach().cpu().numpy()
-    sample_weights = np.ones(len(train_idx), dtype=np.float64)
-    for pos, idx in enumerate(train_idx):
-        ex = full_ds[idx]
-        step_i = ex["step_idx"].item()
-        mcp_vec_i = ex["mcp_vec"].numpy()
-        w = float(step_w_np[step_i])
-        active = mcp_vec_i > 0
+        step_i = full_ds[idx]["step_idx"].item()
+        w = max(float(step_w_np[step_i]), 1e-6)
+        active = full_ds[idx]["mcp_vec"].numpy() > 0
         if active.any():
-            w = max(w, float(mcp_w_np[active].max()) * 0.70)
-        # Keep the sampler mild: the class-loss weights already provide class balancing,
-        # so aggressive oversampling on the step head suppresses the dominant classes and
-        # drives the model away from the target step accuracy.
-        if step_counts[step_i] < 80:
-            w *= 1.0
-        elif step_counts[step_i] > 250:
-            w *= 0.98
-        sample_weights[pos] = w
-
-    sampler_generator = torch.Generator().manual_seed(RANDOM_SEED)
-    train_sampler = torch.utils.data.WeightedRandomSampler(
-        weights=torch.as_tensor(sample_weights, dtype=torch.double),
-        num_samples=len(train_idx),
-        replacement=True,
-        generator=sampler_generator,
-    )
-    train_loader = DataLoader(
-        train_ds, batch_size=STAGE1_BATCH_SIZE, sampler=train_sampler,
-        collate_fn=collate, drop_last=False,
-    )
+            w = max(w, float(np.sqrt(np.max(mcp_w_np[active]))))
+        sample_weights.append(np.sqrt(w))
+    sample_weights = np.asarray(sample_weights, dtype=np.float64)
+    sample_weights /= max(np.median(sample_weights), 1e-8)
+    sample_weights = np.clip(sample_weights, 0.70, 2.0)
+    sampler = WeightedRandomSampler(torch.as_tensor(sample_weights, dtype=torch.double), num_samples=len(train_idx), replacement=True)
+    train_loader = DataLoader(train_ds, batch_size=STAGE1_BATCH_SIZE, sampler=sampler, collate_fn=collate, drop_last=False)
 
     model = Stage1Classifier().to(device)
+    print(f"[Stage 1] Trainable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
 
-    n_params = sum(p.numel() for p in model.parameters() if p.requires_grad)
-    print(f"\n[Stage 1] Trainable parameters: {n_params:,}")
-
-    from config import STAGE1_WEIGHT_DECAY
-    opt = torch.optim.AdamW(
-        model.parameters(), lr=STAGE1_LR, weight_decay=STAGE1_WEIGHT_DECAY,
-        betas=(0.9, 0.999), eps=1e-8,
-    )
-
-    # Cosine annealing with warmup
-    steps_per_epoch = len(train_loader)
+    opt = torch.optim.AdamW(model.parameters(), lr=STAGE1_LR, weight_decay=STAGE1_WEIGHT_DECAY, betas=(0.9, 0.999), eps=1e-8)
+    steps_per_epoch = max(1, len(train_loader))
     total_steps = steps_per_epoch * STAGE1_EPOCHS
     warmup_steps = steps_per_epoch * STAGE1_WARMUP_EPOCHS
 
     def lr_lambda(step):
         if step < warmup_steps:
-            return float(step) / float(max(1, warmup_steps))
-        # Cosine decay
-        progress = float(step - warmup_steps) / float(max(1, total_steps - warmup_steps))
-        return max(0.1, 0.5 * (1.0 + np.cos(np.pi * progress)))
+            return float(step + 1) / float(max(1, warmup_steps))
+        progress = (step - warmup_steps) / float(max(1, total_steps - warmup_steps))
+        return max(0.10, 0.5 * (1.0 + np.cos(np.pi * progress)))
 
     sched = torch.optim.lr_scheduler.LambdaLR(opt, lr_lambda)
 
-    # Validation-driven checkpointing and early stopping for this small, noisy graph dataset.
-    # The Stage 1 objective is dominated by the step prediction head, so the checkpoint score
-    # should bias toward step accuracy first and only then MCP performance. This is more aligned
-    # with the real task and prevents the validation split from rewarding a checkpoint that is
-    # strong on MCP but weak on the step decision the pipeline actually needs.
-    early_stop_patience = 12
-    tolerance = 1e-4
-    step_target = 0.80
-    mcp_target = 0.70
-    patience_counter = 0
-    best_val_score = -float("inf")
-    best_epoch = -1
-    best_state_dict = None
-    best_step_acc = -float("inf")
+    hard_groups = [
+        (0, 5),   # research/search <-> exploit
+        (2, 1),   # explore <-> service enumeration
+        (2, 3),   # explore <-> website enumeration
+        (6, 2),   # analyze <-> explore
+        (1, 3),   # service <-> website enumeration
+        (4, 1),   # domain <-> service enumeration
+    ]
+
+    best_score, best_epoch, no_improve = -1.0, -1, 0
+    patience = 12
     train_losses, val_scores = [], []
-    run_tag = f"seed{RANDOM_SEED}_run{len(os.listdir(os.path.dirname(STAGE1_CKPT))) if os.path.exists(os.path.dirname(STAGE1_CKPT)) else 0}"
-    best_checkpoint_path = STAGE1_CKPT.replace(".pt", f"_{run_tag}_best.pt")
-    # Remove stale training artifacts from previous runs so evaluation always loads the
-    # current run's checkpoint instead of an older file with a matching name.
-    for stale_path in [STAGE1_CKPT, best_checkpoint_path]:
-        if os.path.exists(stale_path):
-            os.remove(stale_path)
-    val_loader = DataLoader(val_ds, batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
 
     for epoch in range(STAGE1_EPOCHS):
         model.train()
-        total_loss = 0.0
-        step_losses, mcp_losses = 0.0, 0.0
+        total_loss = step_run = mcp_run = con_run = hn_run = 0.0
         n_batches = 0
-        
-        # Enable adaptive cost-sensitive learning after warmup
-        use_adaptive_loss = epoch >= STAGE1_WARMUP_EPOCHS
-
-        for graphs, field_embs, step_idx, mcp_vec in train_loader:
+        for graphs, field_embs, step_idx, mcp_vec, sem_tokens, sem_mask in train_loader:
             graphs = graphs.to(device)
-            field_embs, step_idx, mcp_vec = (
-                field_embs.to(device), step_idx.to(device), mcp_vec.to(device)
-            )
-            edge_attr = getattr(graphs, 'edge_attr', None)
-            step_logits, mcp_logits, _ = model(
+            field_embs = field_embs.to(device)
+            step_idx = step_idx.to(device)
+            mcp_vec = mcp_vec.to(device)
+            sem_tokens = sem_tokens.to(device)
+            sem_mask = sem_mask.to(device)
+            edge_attr = getattr(graphs, "edge_attr", None)
+            step_logits, mcp_logits, fused_h = model(
                 graphs.x, graphs.edge_index, graphs.batch, field_embs,
-                edge_attr=edge_attr,
+                semantic_tokens=sem_tokens, semantic_mask=sem_mask, edge_attr=edge_attr
             )
-            
-            # Stronger rare-class handling: focal-style step loss plus weighted BCE.
-            # This is more robust than plain CE on the small and imbalanced class set.
-            step_l = F.cross_entropy(step_logits, step_idx, weight=step_class_weights, reduction='none')
-            step_pt = torch.exp(-step_l)
-            step_focal = (1.0 - step_pt) ** 1.0
-            step_l = (step_focal * step_l).mean()
-
-            if mcp_class_weights is not None:
-                mcp_l = F.binary_cross_entropy_with_logits(mcp_logits, mcp_vec, reduction='none')
-                mcp_pt = torch.exp(-mcp_l)
-                mcp_focal = (1.0 - mcp_pt) ** 1.3
-                mcp_l = (mcp_focal * mcp_l * mcp_class_weights).mean()
-            else:
-                mcp_l = F.binary_cross_entropy_with_logits(mcp_logits, mcp_vec)
-
-            loss = STEP_LOSS_WEIGHT * step_l + MCP_LOSS_WEIGHT * mcp_l
-            
-            opt.zero_grad()
+            base, step_l, mcp_l = model.loss(
+                step_logits, mcp_logits, step_idx, mcp_vec,
+                step_w=STEP_LOSS_WEIGHT, mcp_w=MCP_LOSS_WEIGHT,
+                mcp_class_weights=mcp_weights, use_focal=True, focal_gamma=1.8,
+                label_smoothing=STEP_LABEL_SMOOTHING,
+                step_class_weights=(step_weights if STAGE1_USE_STEP_CLASS_WEIGHTS else None),
+            )
+            hn = hard_negative_margin(step_logits, step_idx, hard_groups, margin=STAGE1_HARD_NEGATIVE_MARGIN)
+            con = fused_h.new_zeros(())
+            loss = base + STAGE1_HARD_NEGATIVE_WEIGHT * hn + STAGE1_SUPCON_WEIGHT * con
+            opt.zero_grad(set_to_none=True)
             loss.backward()
             torch.nn.utils.clip_grad_norm_(model.parameters(), STAGE1_GRAD_CLIP)
-            opt.step()
-            sched.step()
-            total_loss += loss.item()
-            step_losses += step_l.item()
-            mcp_losses += mcp_l.item()
-            n_batches += 1
+            opt.step(); sched.step()
+            total_loss += float(loss.item()); step_run += float(step_l.item()); mcp_run += float(mcp_l.item())
+            hn_run += float(hn.item()); con_run += float(con.item()); n_batches += 1
 
-        current_lr = sched.get_last_lr()[0]
-        train_losses.append(total_loss / n_batches)
-
-        val_metrics = evaluate(model, val_loader, device, threshold=0.5)
-        val_priority_score = 0.7 * val_metrics["step_accuracy"] + 0.3 * val_metrics["mcp_micro_f1"]
-        val_scores.append(val_priority_score)
-
-        meets_target = (
-            val_metrics["step_accuracy"] >= step_target and
-            val_metrics["mcp_micro_f1"] >= mcp_target
-        )
-        if (
-            val_priority_score > best_val_score + tolerance or
-            (abs(val_priority_score - best_val_score) <= tolerance and val_metrics["step_accuracy"] > best_step_acc + tolerance)
-        ):
-            best_val_score = val_priority_score
-            best_step_acc = val_metrics["step_accuracy"]
-            best_epoch = epoch + 1
-            best_state_dict = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
-            patience_counter = 0
-
-            checkpoint = {
-                "model_state_dict": model.state_dict(),
-                "mcp_class_weights": [float(w) for w in mcp_class_weights.cpu().numpy()],
-                "step_class_weights": [float(w) for w in step_class_weights.cpu().numpy()],
-                "train_losses": train_losses,
-                "val_scores": val_scores,
-                "best_val_epoch": best_epoch,
-                "best_val_score": best_val_score,
-                "random_seed": RANDOM_SEED,
-                "run_tag": run_tag,
-                "target_met": bool(meets_target),
-                "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-            }
-            torch.save(checkpoint, STAGE1_CKPT)
-            torch.save(checkpoint, best_checkpoint_path)
-            if meets_target:
-                print(f"[Stage 1] Saved target checkpoint to {STAGE1_CKPT} and {best_checkpoint_path} (step={val_metrics['step_accuracy']:.4f}, mcp={val_metrics['mcp_micro_f1']:.4f})")
-            else:
-                print(f"[Stage 1] Saved best validation checkpoint to {STAGE1_CKPT} and {best_checkpoint_path} (priority={best_val_score:.4f}, step={val_metrics['step_accuracy']:.4f}, mcp={val_metrics['mcp_micro_f1']:.4f})")
-        else:
-            patience_counter += 1
-
+        val_metrics = evaluate(model, val_loader, device)
+        score = (0.60 * val_metrics["step_accuracy"]
+                 + 0.30 * val_metrics["mcp_micro_f1"]
+                 + 0.10 * val_metrics["step_macro_f1"])
+        train_losses.append(total_loss / max(1, n_batches)); val_scores.append(score)
+        lr = sched.get_last_lr()[0]
         print(
-            f"epoch {epoch+1:02d}/{STAGE1_EPOCHS} | "
-            f"lr {current_lr:.2e} | "
-            f"train_loss {total_loss/n_batches:.4f} "
-            f"(step={step_losses/n_batches:.4f}, mcp={mcp_losses/n_batches:.4f}) | "
-            f"val_priority {val_priority_score:.4f}"
+            f"epoch {epoch+1:02d}/{STAGE1_EPOCHS} | lr {lr:.2e} | "
+            f"train {total_loss/max(1,n_batches):.4f} (step={step_run/max(1,n_batches):.4f}, "
+            f"mcp={mcp_run/max(1,n_batches):.4f}, hn={hn_run/max(1,n_batches):.4f}, con={con_run/max(1,n_batches):.4f}) | "
+            f"val_step_acc {val_metrics['step_accuracy']:.3f} "
+            f"val_step_macroF1 {val_metrics['step_macro_f1']:.3f} | "
+            f"val_mcp_microF1 {val_metrics['mcp_micro_f1']:.3f} "
+            f"val_mcp_subsetAcc {val_metrics['mcp_subset_accuracy']:.3f} | score {score:.4f}"
         )
+        if score > best_score + 1e-5:
+            best_score, best_epoch, no_improve = score, epoch + 1, 0
+            torch.save({
+                "model_state_dict": model.state_dict(), "best_epoch": best_epoch,
+                "best_score": best_score, "train_losses": train_losses, "val_scores": val_scores,
+                "architecture": "paper_semantic_cnn_plus_typed_gine_v1",
+            }, STAGE1_CKPT)
+            print(f"  -> saved best checkpoint to {STAGE1_CKPT}")
+        else:
+            no_improve += 1
+            if no_improve >= patience:
+                print(f"[Stage 1] Early stopping at epoch {epoch+1}; best epoch {best_epoch}.")
+                break
 
-        if patience_counter >= early_stop_patience:
-            print(f"[Stage 1] Early stopping triggered after {epoch + 1} epochs; best validation score was {best_val_score:.4f} at epoch {best_epoch}.")
-            break
+    ckpt = torch.load(STAGE1_CKPT, map_location=device, weights_only=False)
+    model.load_state_dict(ckpt["model_state_dict"])
+    val_metrics, probs, gold = evaluate(model, val_loader, device, return_probs=True)
+    rare = [i for i, c in enumerate(mcp_counts) if c < 15]
+    thresholds = search_per_class_thresholds(probs, gold, rare_class_indices=rare)
+    print(f"[Stage 1] Optimized MCP thresholds: {[round(float(x), 2) for x in thresholds]}")
+    ckpt["mcp_thresholds"] = [float(x) for x in thresholds]
+    ckpt["mcp_class_weights"] = [float(x) for x in mcp_w_np]
+    ckpt["step_class_weights"] = [float(x) for x in step_w_np]
+    torch.save(ckpt, STAGE1_CKPT)
 
-    print(f"\n[Stage 1] Training complete. Trained for {epoch + 1} epochs.")
-    if best_state_dict is not None:
-        model.load_state_dict(best_state_dict)
-        print(f"[Stage 1] Restored best validation checkpoint from epoch {best_epoch} (priority={best_val_score:.4f})")
-    else:
-        print("[Stage 1] No validation improvement detected; keeping final model state.")
+    val_selected = os.path.join(ROOT, "checkpoints", "stage1_gnn_classifier_val_selected.pt")
+    torch.save(ckpt, val_selected)
+    print(f"[Stage 1] Saved validation-selected checkpoint to {val_selected}")
 
-    # Tune per-class MCP thresholds on validation data and use them for test evaluation.
-    # This avoids the common failure mode where a uniform 0.5 threshold is too harsh on
-    # imbalanced multi-label heads, especially for sparse classes.
-    mcp_thresholds = tune_mcp_thresholds(model, val_loader, device)
-    print(f"[Stage 1] Tuned MCP thresholds: {mcp_thresholds}")
-
-    # Save final best checkpoint metadata in the canonical checkpoint path.
-    checkpoint = {
-        "model_state_dict": model.state_dict(),
-        "mcp_class_weights": [float(w) for w in mcp_class_weights.cpu().numpy()],
-        "step_class_weights": [float(w) for w in step_class_weights.cpu().numpy()],
-        "train_losses": train_losses,
-        "val_scores": val_scores,
-        "best_val_epoch": best_epoch,
-        "best_val_score": best_val_score,
-        "random_seed": RANDOM_SEED,
-        "run_tag": run_tag,
-        "timestamp": datetime.now(timezone.utc).isoformat().replace("+00:00", "Z"),
-    }
-    torch.save(checkpoint, STAGE1_CKPT)
-    torch.save(checkpoint, best_checkpoint_path)
-    print(f"[Stage 1] Final saved checkpoint: {STAGE1_CKPT}")
-
-    # ── Evaluate on test set and save CSV ─────────────────────────────────────
-    print("\n[Stage 1] Evaluating on test set...")
     test_ds = Stage1Dataset(INPUT_TEST_JSON, split="test")
     test_loader = DataLoader(test_ds, batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
-    test_examples = test_ds.examples
-
-    output_dir = os.path.join(ROOT, "output")
-    os.makedirs(output_dir, exist_ok=True)
-    csv_path = os.path.join(output_dir, "stage1.csv")
-
-    test_metrics = evaluate(
-        model, test_loader, device,
-        threshold=mcp_thresholds,
-        save_csv=True,
-        csv_path=csv_path,
-        dataset=test_examples
-    )
-
-    print(f"\n[Stage 1] ═══════════ TEST SET RESULTS ═══════════")
-    print(f"  Step Accuracy     : {test_metrics['step_accuracy']:.4f}  ({test_metrics['step_accuracy']*100:.2f}%)")
-    print(f"  Step Macro F1     : {test_metrics['step_macro_f1']:.4f}")
-    print(f"  Step Weighted F1  : {test_metrics['step_weighted_f1']:.4f}")
-    print(f"  MCP Micro F1      : {test_metrics['mcp_micro_f1']:.4f}")
-    print(f"  MCP Macro F1      : {test_metrics['mcp_macro_f1']:.4f}")
-    print(f"  MCP Subset Acc    : {test_metrics['mcp_subset_accuracy']:.4f}")
-    print(f"  MCP Samples F1    : {test_metrics['mcp_samples_f1']:.4f}")
-    combined = test_metrics['step_accuracy'] * 0.5 + test_metrics['mcp_micro_f1'] * 0.5
-    print(f"  Combined Score    : {combined:.4f}  (target >= 0.80 for ~80%)")
-    print(f"[Stage 1] ════════════════════════════════════════")
+    test_metrics = evaluate(model, test_loader, device, threshold=thresholds, save_csv=True,
+                            csv_path=os.path.join(ROOT, "output", "stage1.csv"), dataset=test_ds.examples)
+    print("\n[Stage 1] ===== TEST SET RESULTS =====")
+    print(f"  {'step_accuracy':<20}: {test_metrics['step_accuracy']:.4f}")
+    print(f"  {'step_micro_f1':<20}: {test_metrics['step_micro_f1']:.4f}")
+    print(f"  {'step_macro_f1':<20}: {test_metrics['step_macro_f1']:.4f}")
+    print(f"  {'step_weighted_f1':<20}: {test_metrics['step_weighted_f1']:.4f}")
+    print(f"  {'mcp_micro_f1':<20}: {test_metrics['mcp_micro_f1']:.4f}")
+    print(f"  {'mcp_macro_f1':<20}: {test_metrics['mcp_macro_f1']:.4f}")
+    print(f"  {'mcp_subset_accuracy':<20}: {test_metrics['mcp_subset_accuracy']:.4f}")
+    print(f"  {'mcp_samples_f1':<20}: {test_metrics['mcp_samples_f1']:.4f}")
+    combined = 0.5 * test_metrics["step_accuracy"] + 0.5 * test_metrics["mcp_micro_f1"]
+    print(f"  {'combined_score':<20}: {combined:.4f}")
 
 
 if __name__ == "__main__":

@@ -13,8 +13,8 @@ dataset into an attack-graph representation with three node types:
 
 Edges (matching the scheme requested):
     StateTransition (black)  : State  -> State   (advancing through the PTT)
-    SearchUpdate    (green)  : State  -> Action   (starting work on a PTT item)
-    TrackUpdate     (blue)   : Action -> Finding  (execution produced findings)
+    ActionUpdate    (green)  : State  -> Action   (starting work on a PTT item)
+    FindingUpdate     (blue)   : Action -> Finding  (execution produced findings)
     Prediction      (purple) : Finding-> State    (findings lead back into the
                                                     current pentest state)
 
@@ -112,8 +112,8 @@ ACTION_BASE = "#FB5607"    # orange
 FINDING_COLOR = "#06D6A0"  # green
 
 STATE_TRANSITION_COLOR = "#000000"   # black
-SEARCH_UPDATE_COLOR = "#06D6A0"      # green
-TRACK_UPDATE_COLOR = "#3A86FF"       # blue
+ACTION_UPDATE_COLOR = "#06D6A0"      # green
+FINDING_UPDATE_COLOR = "#3A86FF"       # blue
 PREDICTION_COLOR = "#8338EC"         # purple
 
 # Shades: completed = dark, in_progress = mid (base color), to_do = light
@@ -591,14 +591,14 @@ def build_row_graph(machine, row_index, ptt_text, mcp_tasks_raw=None, extra_meta
         add_node(node_id, f"Action {item['number']}\n{short(item['title'], 30)}",
                   "Action", color, a_title, status=item["status"])
         add_edge(current_state, node_id, f"{item['number']} {short(item['title'], 18)}",
-                  "SearchUpdate", SEARCH_UPDATE_COLOR, 2)
+                  "ActionUpdate", ACTION_UPDATE_COLOR, 2)
 
         if item["payload"]:
             finding_id = f"finding:{machine}:r{row_index}:{item['number']}"
             add_node(finding_id, f"Finding {item['number']}\n{short(item['payload'], 30)}",
                       "Finding", FINDING_COLOR, item["payload"], status=None, size=32)
-            add_edge(node_id, finding_id, "Discover", "TrackUpdate",
-                      TRACK_UPDATE_COLOR, 2)
+            add_edge(node_id, finding_id, "Discover", "FindingUpdate",
+                      FINDING_UPDATE_COLOR, 2)
             add_edge(finding_id, current_state, "Leads to", "Prediction",
                       PREDICTION_COLOR, 1)
         else:
@@ -629,8 +629,8 @@ def build_row_graph(machine, row_index, ptt_text, mcp_tasks_raw=None, extra_meta
             },
             "edge_types": {
                 "StateTransition (Black)": "State -> State, advancing through the PTT",
-                "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
-                "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+                "ActionUpdate (Green)": "State -> Action, starting work on a PTT item",
+                "FindingUpdate (Blue)": "Action -> Finding, item execution produced findings",
                 "Prediction (Purple)": "Finding -> State, findings lead back into state",
             },
         },
@@ -694,7 +694,7 @@ def to_html(graph):
       <span><span class="swatch" style="background:#FB5607"></span>Action (mid=in progress)</span>
       <span><span class="swatch" style="background:#FFC7A3"></span>Action (light=to-do)</span>
       <span><span class="swatch" style="background:#06D6A0"></span>Finding</span>
-      <span>Black: StateTransition | Green: SearchUpdate | Blue: TrackUpdate | Purple: Prediction</span>
+      <span>Black: StateTransition | Green: ActionUpdate | Blue: FindingUpdate | Purple: Prediction</span>
     </div>
   </header>
   <div id="network"></div>

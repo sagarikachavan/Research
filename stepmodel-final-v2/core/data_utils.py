@@ -246,10 +246,13 @@ def build_graph_from_input_json_graph(graph_dict: dict):
     Builds a torch_geometric.data.Data object from the Graph JSON (as exported
     by build_input_json.py, which comes from generate_graphs.py).
 
-    Node features (388-dim):
-      - 384-dim: BAAI/bge-small-en-v1.5 embedding of node title  (cached)
-      - 3-dim: one-hot type encoding (Agent=0, Search=1, Track=2)
-      - 1-dim: normalized node degree feature
+    Node features:
+      - TEXT_EMB_DIM: frozen BGE node-title embedding
+      - 3-dim: one-hot node type (State/Action/Finding; legacy Agent/Search/Track supported)
+      - 4-dim: one-hot node status (completed/in_progress/to_do/unknown)
+      - 1-dim: normalized node degree
+      - 1-dim: normalized depth in the PTT hierarchy
+      - 1-dim: normalized position in the ordered PTT snapshot
 
     Edge index: constructed from the 'from' → 'to' field of each edge.
 
@@ -290,8 +293,8 @@ def build_graph_from_input_json_graph(graph_dict: dict):
             type_onehot[i, type_map_v2.get(ntype, 0)] = 1.0
 
     # Build edge_list first (support both stepmodelv2 "from"/"to" and stepmodelv3 "source"/"target")
-    # Also keep each edge's semantic "type" (StateTransition/SearchUpdate/
-    # TrackUpdate/Prediction, as emitted by graph_builder.py) alongside it so
+    # Also keep each edge's semantic "type" (StateTransition/ActionUpdate/
+    # FindingUpdate/Prediction, as emitted by graph_builder.py) alongside it so
     # edge_attr below can actually encode it instead of discarding it.
     edge_list = []
     edge_type_list = []
@@ -316,14 +319,61 @@ def build_graph_from_input_json_graph(graph_dict: dict):
         degree_counts[e[0]] += 1  # out-degree
         degree_counts[e[1]] += 1  # in-degree (undirected)
 
-    # Normalize degrees and add as feature
-    max_degree = max(degree_counts.values()) if degree_counts else 1
-    degree_features = np.zeros((len(nodes), 1), dtype=np.float32)
-    for i in range(len(nodes)):
-        degree_features[i, 0] = degree_counts.get(i, 0) / max_degree
+    # Explicit structural/state features. These are derived only from the graph
+    # itself; no target label or future information is used.
+    n_nodes = len(nodes)
+    in_degree = np.zeros(n_nodes, dtype=np.float32)
+    out_degree = np.zeros(n_nodes, dtype=np.float32)
+    for e in edge_list:
+        out_degree[e[0]] += 1.0
+        in_degree[e[1]] += 1.0
+    total_degree = in_degree + out_degree
 
-    # Combine: (N, TEXT_EMB_DIM + 3 + 1) = (N, TEXT_EMB_DIM + 4)
-    x = np.concatenate([title_embs, type_onehot, degree_features], axis=1)
+    def _norm(arr):
+        m = float(arr.max()) if len(arr) else 1.0
+        return arr / max(m, 1.0)
+
+    total_degree_f = _norm(total_degree).reshape(-1, 1)
+    in_degree_f = _norm(in_degree).reshape(-1, 1)
+    out_degree_f = _norm(out_degree).reshape(-1, 1)
+
+    status_map = {
+        "completed": 0, "in_progress": 1, "to_do": 2, "unknown": 3,
+    }
+    status_onehot = np.zeros((n_nodes, 4), dtype=np.float32)
+
+    depths = np.zeros(n_nodes, dtype=np.float32)
+    for i, n in enumerate(nodes):
+        number = str(n.get("number", "")).strip()
+        if number and number != "0":
+            parts = [p for p in number.split(".") if p.strip()]
+            depths[i] = max(0, len(parts) - 1)
+    depth_features = (depths / max(float(depths.max()), 1.0)).reshape(-1, 1)
+
+    pos_denom = max(1, n_nodes - 1)
+    position_features = (np.arange(n_nodes, dtype=np.float32) / pos_denom).reshape(-1, 1)
+    leaf_flag = (out_degree == 0).astype(np.float32).reshape(-1, 1)
+    root_flag = np.zeros((n_nodes, 1), dtype=np.float32)
+
+    for i, n in enumerate(nodes):
+        status = str(n.get("status", "unknown") or "unknown").strip().lower()
+        status = status.replace("-", "_").replace(" ", "_")
+        status_onehot[i, status_map.get(status, 3)] = 1.0
+        nid = str(n.get("id", ""))
+        number = str(n.get("number", "")).strip()
+        if i == 0 or nid.endswith(":START") or number == "0":
+            root_flag[i, 0] = 1.0
+
+    # Branch-count ratio captures whether a node opens a broad or narrow next
+    # state without encoding the gold next-step label.
+    branch_ratio = (out_degree / np.maximum(total_degree, 1.0)).reshape(-1, 1)
+
+    # Combine: title + type + status + 8 structural features.
+    x = np.concatenate([
+        title_embs, type_onehot, status_onehot,
+        total_degree_f, in_degree_f, out_degree_f,
+        depth_features, position_features, leaf_flag, root_flag, branch_ratio,
+    ], axis=1)
 
     # Build edge_attr: one-hot over the actual semantic edge type emitted by
     # graph_builder.py, not a fixed placeholder.
@@ -334,14 +384,14 @@ def build_graph_from_input_json_graph(graph_dict: dict):
     # state" from "this action's finding fed back into the state" — the
     # exact structural signal that encodes the pentest strategy. The edge
     # dicts already carry this via `e["type"]` (see graph_builder.py's
-    # add_edge calls: StateTransition / SearchUpdate / TrackUpdate /
+    # add_edge calls: StateTransition / ActionUpdate / FindingUpdate /
     # Prediction) — it just wasn't being read.
     #
-    # dims: [StateTransition, SearchUpdate, TrackUpdate, Prediction, SelfLoop]
+    # dims: [StateTransition, ActionUpdate, FindingUpdate, Prediction, SelfLoop]
     EDGE_TYPE_TO_DIM = {
         "StateTransition": 0,
-        "SearchUpdate": 1,
-        "TrackUpdate": 2,
+        "ActionUpdate": 1,
+        "FindingUpdate": 2,
         "Prediction": 3,
     }
     from config import EDGE_ATTR_DIM
@@ -549,7 +599,7 @@ def build_graph_from_ptt(ptt_text: str):
     type_onehot = np.zeros((len(nodes), 3), dtype=np.float32)
     type_onehot[:, 0] = 1.0  # Agent = index 0
 
-    # Calculate node degrees for consistency with JSON loader (needed for 388-dim)
+    # Calculate node degrees for consistency with the primary JSON loader.
     from collections import Counter
     edges_for_degree = []
     stack = []  # (depth, index)
@@ -574,8 +624,20 @@ def build_graph_from_ptt(ptt_text: str):
     for i in range(len(nodes)):
         degree_features[i, 0] = degree_counts.get(i, 0) / max_degree
 
-    # Now: 384 + 3 + 1 = 388 (matches JSON loader and graph_encoder NODE_FEAT_DIM)
-    x = np.concatenate([embs, type_onehot, degree_features], axis=1)  # (N, 388)
+    # Add status, hierarchy depth, and ordered position exactly as in the
+    # primary JSON loader.
+    status_map = {"completed": 0, "in_progress": 1, "to_do": 2, "unknown": 3}
+    status_onehot = np.zeros((len(nodes), 4), dtype=np.float32)
+    depths = np.asarray([max(0, int(n[0])) for n in nodes], dtype=np.float32)
+    max_depth = max(float(depths.max()) if len(depths) else 0.0, 1.0)
+    depth_features = (depths / max_depth).reshape(-1, 1)
+    n_nodes = max(1, len(nodes) - 1)
+    position_features = (np.arange(len(nodes), dtype=np.float32) / float(n_nodes)).reshape(-1, 1)
+    for i, (_, _, status) in enumerate(nodes):
+        status_onehot[i, status_map.get(str(status).strip().lower().replace("-", "_").replace(" ", "_"), 3)] = 1.0
+
+    x = np.concatenate([embs, type_onehot, status_onehot, degree_features,
+                        depth_features, position_features], axis=1)
 
     edges = []
     stack = []  # (depth, index)
@@ -594,13 +656,12 @@ def build_graph_from_ptt(ptt_text: str):
     if not edges:
         edges = [(0, 0)]
 
-    # ── Graph-level structural features (same as JSON loader) ──────────
     edge_index = np.array(edges, dtype=np.int64).T
 
     # Edge features, widened to EDGE_ATTR_DIM (5) to stay shape-compatible
     # with the primary loader's semantic edge-type encoding (see
     # build_graph_from_input_json_graph). This fallback has no access to the
-    # real StateTransition/SearchUpdate/TrackUpdate/Prediction types (it's
+    # real StateTransition/ActionUpdate/FindingUpdate/Prediction types (it's
     # built straight from PTT text, not the graph_builder.py output), so
     # parent-child/sibling/self-loop are mapped onto 3 of the 5 slots and the
     # other 2 are left at zero.
@@ -614,7 +675,7 @@ def build_graph_from_ptt(ptt_text: str):
         if u == v:
             edge_attr[e_idx, 4] = 1.0  # self-loop
         elif (int(u), int(v)) in sibling_set:
-            edge_attr[e_idx, 1] = 1.0  # sibling (sequential) -> SearchUpdate slot
+            edge_attr[e_idx, 1] = 1.0  # sibling (sequential) -> ActionUpdate slot
         else:
             edge_attr[e_idx, 0] = 1.0  # parent-child (hierarchical) -> StateTransition slot
 
@@ -754,3 +815,32 @@ class GNNStageDataset:
         ex = self.examples[idx]
         graph = load_graph(ex["machine"], ex["row_id"], ex["ptt"], self.split)
         return graph, ex
+# ---------------------------------------------------------------------------
+# Frozen token-level semantic features for the paper-inspired Stage-1 CNN.
+# Uses a frozen GPT-2 encoder exactly as the semantic reference architecture;
+# only token hidden states are cached, no labels are involved.
+# ---------------------------------------------------------------------------
+def precompute_semantic_tokens(examples, model_name="gpt2", max_tokens=384, device="cpu"):
+    import torch
+    from transformers import AutoTokenizer, AutoModel
+    tokenizer = AutoTokenizer.from_pretrained(model_name)
+    model = AutoModel.from_pretrained(model_name).to(device).eval()
+    if tokenizer.pad_token is None:
+        tokenizer.pad_token = tokenizer.eos_token
+    for p in model.parameters():
+        p.requires_grad_(False)
+    batch_size = 16 if device == "cuda" else 4
+    for start in range(0, len(examples), batch_size):
+        batch = examples[start:start+batch_size]
+        texts = [str(ex.get("semantic_text", "")) for ex in batch]
+        tok = tokenizer(texts, return_tensors="pt", padding=True, truncation=True,
+                        max_length=max_tokens)
+        tok = {k: v.to(device) for k, v in tok.items()}
+        with torch.no_grad():
+            out = model(**tok).last_hidden_state
+        for i, ex in enumerate(batch):
+            L = int(tok["attention_mask"][i].sum().item())
+            ex["semantic_tokens"] = out[i, :L].detach().cpu().float()
+    del model
+    if device == "cuda":
+        torch.cuda.empty_cache()
