@@ -81,14 +81,18 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
     Handles both checkpoint formats:
       - New (Improvement 2): dict with 'model_state_dict' + 'mcp_thresholds'
       - Legacy: plain state dict
-    Returns (model, mcp_thresholds).
+    Returns (model, mcp_thresholds, step_logit_bias).
     """
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
+    step_logit_bias = None
     if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
         state_dict = ckpt["model_state_dict"]
         mcp_thresholds = ckpt.get(
             "mcp_thresholds", [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)
         )
+        step_logit_bias = ckpt.get("step_logit_bias", None)
+        if step_logit_bias is not None and not any(abs(b) > 1e-9 for b in step_logit_bias):
+            step_logit_bias = None
         print(
             f"[eval] Loaded checkpoint "
             f"(epoch={ckpt.get('best_epoch','?')}, "
@@ -100,6 +104,8 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
             f"[eval] Per-class MCP thresholds: "
             f"{[round(t, 2) for t in mcp_thresholds]}"
         )
+        if step_logit_bias is not None:
+            print(f"[eval] Per-class STEP logit bias: {[round(b, 2) for b in step_logit_bias]}")
     else:
         state_dict = ckpt
         mcp_thresholds = [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)
@@ -108,7 +114,7 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
     model = Stage1Classifier().to(device)
     model.load_state_dict(state_dict)
     model.eval()
-    return model, mcp_thresholds
+    return model, mcp_thresholds, step_logit_bias
 
 
 # ---------------------------------------------------------------------------
@@ -205,7 +211,7 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
         print(f"[eval] Checkpoint not found at {STAGE1_CKPT}. Run stage1_gnn_train.py first.")
         return
 
-    model, ckpt_thresholds = load_stage1_checkpoint(STAGE1_CKPT, device)
+    model, ckpt_thresholds, step_logit_bias = load_stage1_checkpoint(STAGE1_CKPT, device)
     use_thresholds = (
         [float(threshold_override)] * len(MCP_LABELS)
         if threshold_override is not None
@@ -265,7 +271,13 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
                 batch_graphs.x, batch_graphs.edge_index, batch_graphs.batch,
                 semantic_tokens=sem, semantic_mask=mask, edge_attr=edge_attr,
             )
-            step_preds.append(step_logits.argmax(-1).cpu().numpy())
+            sl_np = step_logits.detach().cpu().numpy()
+            if step_logit_bias is not None:
+                step_preds.append(
+                    np.argmax(sl_np + np.asarray(step_logit_bias, dtype=np.float64)[None, :], axis=1)
+                )
+            else:
+                step_preds.append(sl_np.argmax(-1))
             probs = torch.sigmoid(mcp_logits).cpu().numpy()
             mcp_preds.append(predict_with_per_class_thresholds(probs, use_thresholds))
 
@@ -361,7 +373,7 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     if threshold_override is not None:
         use_thresholds = [float(threshold_override)] * len(MCP_LABELS)
     elif os.path.exists(STAGE1_CKPT):
-        _, use_thresholds = load_stage1_checkpoint(STAGE1_CKPT, "cpu")
+        _, use_thresholds, _ = load_stage1_checkpoint(STAGE1_CKPT, "cpu")
         print("[eval] MCP thresholds loaded from Stage-1 checkpoint (for reference).")
     else:
         use_thresholds = [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)

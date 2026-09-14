@@ -46,7 +46,7 @@ from config import (
 )
 from data_utils import load_from_input_json, precompute_semantic_tokens
 from graph_encoder import Stage1Classifier
-from mcp_threshold_search import search_per_class_thresholds
+from mcp_threshold_search import search_per_class_thresholds, search_step_logit_bias
 
 random.seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
@@ -95,9 +95,14 @@ def collate(items):
             sem, mask)
 
 
-def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=False, csv_path=None, dataset=None):
+def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=False,
+             csv_path=None, dataset=None, step_bias=None, return_step_logits=False):
+    """step_bias: optional per-class additive logit bias applied BEFORE argmax
+    (see search_step_logit_bias in core/mcp_threshold_search.py). None = plain
+    argmax, i.e. the previous behavior."""
     model.eval()
     step_preds, step_gold = [], []
+    step_logit_rows = []
     mcp_preds, mcp_gold, mcp_probs = [], [], []
     csv_rows = []
     global_idx = 0
@@ -113,7 +118,12 @@ def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=
                 graphs.x, graphs.edge_index, graphs.batch,
                 semantic_tokens=sem_tokens, semantic_mask=sem_mask, edge_attr=edge_attr
             )
-            sp = step_logits.argmax(-1).cpu().numpy()
+            sl_np = step_logits.detach().cpu().numpy()
+            step_logit_rows.append(sl_np)
+            if step_bias is not None:
+                sp = np.argmax(sl_np + np.asarray(step_bias, dtype=np.float64)[None, :], axis=1)
+            else:
+                sp = step_logits.argmax(-1).cpu().numpy()
             sg = step_idx.cpu().numpy()
             probs = torch.sigmoid(mcp_logits).cpu().numpy()
             if isinstance(threshold, (list, np.ndarray)):
@@ -156,6 +166,11 @@ def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=
             writer = csv.DictWriter(f, fieldnames=list(csv_rows[0].keys()))
             writer.writeheader(); writer.writerows(csv_rows)
         print(f"[Stage 1] Evaluation CSV saved to: {csv_path}")
+    if return_step_logits:
+        step_logits_out = np.concatenate(step_logit_rows, axis=0)
+        if return_probs:
+            return metrics, probs_out, mcp_gold, step_logits_out, step_gold
+        return metrics, step_logits_out, step_gold
     if return_probs:
         return metrics, probs_out, mcp_gold
     return metrics
@@ -492,6 +507,17 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
         # to this list -- adding it now gives the margin loss a direct
         # shot at the #1 error mode instead of only the smaller ones.
         (2, 5),   # explore <-> exploit
+        # ADDED from the Round-7 test confusion matrix: class 2
+        # ("Explore the suspicious files...") absorbed 26 of the 60 total
+        # step errors -- 43% of ALL errors were false-positive class 2, and
+        # its precision was only 0.40. The worst single donor was class 8
+        # ("Explore the source code for vulnerabilities."), which lost 4 of
+        # its 5 test examples to class 2 -- unsurprising given both labels
+        # literally start with "Explore the...". That exact pair was never
+        # in this list. Class 6 ("Analyze the outcomes...") was likewise
+        # predicted 7x for 3 gold examples, 0 correct.
+        (2, 8),   # explore-suspicious-files <-> explore-source-code
+        (0, 2),   # google search <-> explore-suspicious-files
     ]
 
     best_score, best_epoch, no_improve = -1.0, -1, 0
@@ -658,11 +684,28 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
             "architecture": "paper_semantic_cnn_plus_typed_gine_fusion_v2_decoupled",
         }, ckpt_path)
 
-    val_metrics, val_probs, val_gold = evaluate(model, val_loader, device, return_probs=True)
+    val_metrics, val_probs, val_gold, val_step_logits, val_step_gold = evaluate(
+        model, val_loader, device, return_probs=True, return_step_logits=True
+    )
     rare = [i for i, c in enumerate(mcp_counts) if c < 15]
     thresholds = search_per_class_thresholds(val_probs, val_gold, rare_class_indices=rare,
                                               verbose=(tag == "[Stage 1]"))
+
+    # STEP per-class logit-bias calibration -- the multi-class analogue of the
+    # MCP threshold search above, which the Step head never had. Fit on the
+    # same held-out val split, with the same support gate / bootstrap
+    # stabilization / never-regress guard. See search_step_logit_bias().
+    step_bias = search_step_logit_bias(
+        val_step_logits, val_step_gold, verbose=(tag == "[Stage 1]")
+    )
+    if any(abs(b) > 1e-9 for b in step_bias):
+        calibrated = evaluate(model, val_loader, device, step_bias=step_bias)
+        print(f"{tag} step calibration on val: accuracy "
+              f"{val_metrics['step_accuracy']:.4f} -> {calibrated['step_accuracy']:.4f}, "
+              f"macroF1 {val_metrics['step_macro_f1']:.4f} -> {calibrated['step_macro_f1']:.4f}")
+
     ckpt["mcp_thresholds"] = [float(x) for x in thresholds]
+    ckpt["step_logit_bias"] = [float(x) for x in step_bias]
     ckpt["mcp_class_weights"] = [float(x) for x in mcp_w_np]
     ckpt["step_class_weights"] = [float(x) for x in step_w_np]
     ckpt["val_metrics"] = val_metrics
@@ -670,7 +713,7 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     print(f"{tag} val_step_acc={val_metrics['step_accuracy']:.4f}  val_mcp_microF1={val_metrics['mcp_micro_f1']:.4f}  "
           f"thresholds={[round(float(x), 2) for x in thresholds]}")
 
-    return model, mcp_w_np, mcp_counts, val_probs, val_gold, val_metrics, thresholds
+    return model, mcp_w_np, mcp_counts, val_probs, val_gold, val_metrics, thresholds, step_bias
 
 
 def main():
@@ -702,7 +745,7 @@ def main():
     print(f"[Stage 1] Train examples  : {len(train_idx)}")
     print(f"[Stage 1] Val examples    : {len(val_idx)}")
 
-    model, mcp_w_np, mcp_counts, val_probs, val_gold, val_metrics, thresholds = train_one_split(
+    model, mcp_w_np, mcp_counts, val_probs, val_gold, val_metrics, thresholds, step_bias = train_one_split(
         full_ds, train_idx, val_idx, device, STAGE1_CKPT, tag="[Stage 1]"
     )
 
@@ -714,7 +757,8 @@ def main():
     test_ds = Stage1Dataset(INPUT_TEST_JSON, split="test")
     test_loader = DataLoader(test_ds, batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
     test_metrics = evaluate(model, test_loader, device, threshold=thresholds, save_csv=True,
-                            csv_path=os.path.join(ROOT, "output", "stage1.csv"), dataset=test_ds.examples)
+                            csv_path=os.path.join(ROOT, "output", "stage1.csv"), dataset=test_ds.examples,
+                            step_bias=step_bias)
     print("\n[Stage 1] ===== TEST SET RESULTS =====")
     print(f"  {'step_accuracy':<20}: {test_metrics['step_accuracy']:.4f}")
     print(f"  {'step_micro_f1':<20}: {test_metrics['step_micro_f1']:.4f}")

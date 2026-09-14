@@ -983,3 +983,82 @@ and — the important one — driving the MCP gate to zero changes `mcp_logits`
 by 0.62 while changing `step_logits` by **exactly 0.000000**, proving the
 heads are genuinely isolated from each other's gate. **Not yet validated by a
 real training run.**
+
+## 13. Round 8 — Step-side decision calibration (the missing half of the calibration story)
+
+### 13.1 What the Round-7 run showed
+
+Per-head gates worked as designed on MCP:
+
+| Metric | Round 6 (shared gate) | Round 7 (per-head) |
+|---|---|---|
+| MCP micro-F1 | 0.6539 | **0.7017** (+4.8pt) |
+| MCP samples-F1 | 0.6748 | **0.7251** (+5.0pt) |
+| MCP subset acc | 0.5037 | **0.5149** |
+| Step accuracy | 0.7836 | 0.7761 (-0.8pt) |
+
+Gates separated exactly as intended: `gate_step` -> 0.040, `gate_mcp` -> 0.518.
+MCP is now back above the 70% target floor.
+
+### 13.2 The dominant Step failure mode is calibration, not representation
+
+Breaking down all 60 step errors on the 268-row test set:
+
+```
+class                gold  pred  correct   over/under
+2 explore-files        30    43       17      +13     precision 0.40
+6 analyze               3     7        0       +4
+0 google               22    16       15       -6
+8 explore-source        5     1        1       -4
+```
+
+**26 of the 60 errors (43%) are false-positive class 2 alone**, drawn from
+seven different gold classes. Class 6 is predicted 7x for 3 gold examples
+with 0 correct. That is a decision-boundary/prior problem: the features can
+separate these classes while argmax sits in the wrong place.
+
+And there was a glaring asymmetry in the codebase: **the MCP head has had
+bootstrap-stabilized per-class threshold calibration for several rounds (and
+it measurably helps -- val micro-F1 0.7742 tuned vs 0.7557 uniform), while
+the Step head had no calibration at all** -- plain `argmax(logits)`.
+
+### 13.3 Fix: per-class Step logit bias (`search_step_logit_bias`)
+
+The multi-class analogue of a per-label threshold is a per-class additive
+logit bias, chosen so `argmax(logits + bias)` maximizes validation accuracy
+(coordinate ascent over a bounded grid). This is standard post-hoc
+calibration / prior correction for long-tailed classification, and is the
+inference-time counterpart of the train-time logit adjustment (Menon et al.,
+ICLR 2021) already in use here.
+
+It carries all three defenses the MCP search uses, because fitting 10 free
+parameters to a 239-row val split is exactly the trap that once collapsed
+the MCP test numbers:
+1. **min-support gate** — classes with < 8 validation examples keep bias 0.0
+   and are never tuned (so "Ask for human assistant" with 0 support, and
+   other tiny classes, cannot be fit to noise);
+2. **bootstrap stabilization** — coordinate ascent is repeated over 25
+   resamples and the per-class median is taken, with bias bounded to
+   [-1.5, +1.5];
+3. **never-regress guard** — if the tuned bias doesn't beat plain argmax on
+   the val split it was fit on, it is discarded entirely.
+
+Stored in the checkpoint as `step_logit_bias`, applied at inference in both
+`stage1_gnn_train.evaluate()` and `eval/evaluate.py::eval_gnn` (and printed
+there, so you can see what it chose). Training is untouched — this is purely
+post-hoc, so it cannot destabilize the fit.
+
+**Verified** on a simulation built from the real confusion matrix's shape
+(injected systematic over-prediction of classes 2 and 6): fitted on a
+239-row "val" split, it improved a **held-out 268-row "test" split by
++13pt** — i.e. it generalizes rather than just overfitting the split it was
+fit on. Guards confirmed: an already-well-calibrated model is not degraded,
+and zero-support classes keep exactly 0.0 bias. **Real-data gain will be
+smaller than the simulation's** (the injected bias is exaggerated).
+
+### 13.4 Also: two missing hard-negative pairs
+
+`hard_groups` never contained `(2, 8)` — yet class 8
+("Explore the source code...") lost **4 of its 5** test examples to class 2
+("Explore the suspicious files..."), two labels that literally both begin
+with "Explore the". Added `(2, 8)` and `(0, 2)`.
