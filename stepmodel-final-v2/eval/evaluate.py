@@ -61,10 +61,11 @@ for _p in (_ROOT, _os.path.join(_ROOT, "core"), _os.path.join(_ROOT, "data_prep"
 from config import (
     INPUT_TEST_JSON, STAGE1_CKPT, STEP_LABELS, MCP_LABELS, MCP_DECISION_THRESHOLD,
     QWEN_MODEL_NAME, ROOT, LLM_JUDGE_MODEL_NAME,
+    SEMANTIC_LM_NAME, SEMANTIC_MAX_TOKENS,
 )
 from data_utils import (
-    load_from_input_json, CONTEXT_COLUMNS, _embed_texts,
-    mcp_multihot, StepLabelNormalizer, extract_mcp_labels,
+    load_from_input_json, mcp_multihot, StepLabelNormalizer, extract_mcp_labels,
+    precompute_semantic_tokens,
 )
 from graph_encoder import Stage1Classifier
 from mcp_threshold_search import predict_with_per_class_thresholds
@@ -211,13 +212,28 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
         else ckpt_thresholds
     )
 
-    graphs, field_embs_list, step_gold, mcp_gold = [], [], [], []
+    # BUG FIX: this used to build a `field_embs` tensor (a BGE embedding of
+    # CONTEXT_COLUMNS) and pass it as the model's 4th positional arg. That
+    # parameter is accepted by Stage1Classifier.forward() for backward
+    # compatibility but never actually used inside encode_and_predict() --
+    # what the model actually requires (and raises ValueError without) is
+    # `semantic_tokens`/`semantic_mask`: frozen-GPT-2 token embeddings of
+    # "New strategy" + "Strategy explanation", built by
+    # precompute_semantic_tokens() exactly the way
+    # training/stage1_gnn_train.py's Stage1Dataset builds them. This whole
+    # code path had apparently never been run end-to-end before -- the bug
+    # surfaced as an immediate crash, not a silent wrong answer.
+    for ex in examples:
+        texts = [ex["context"].get("New strategy", "") or "empty",
+                 ex["context"].get("Strategy explanation", "") or "empty"]
+        ex["semantic_text"] = f"{texts[0]} {texts[1]}"
+    precompute_semantic_tokens(examples, model_name=SEMANTIC_LM_NAME,
+                                max_tokens=SEMANTIC_MAX_TOKENS, device=device)
+
+    graphs, step_gold, mcp_gold = [], [], []
     for ex in examples:
         # Graph is already a torch_geometric Data object from load_from_input_json
         graphs.append(ex["graph"])
-        field_embs_list.append(
-            _embed_texts([ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS])
-        )
         step_gold.append(ex["step_idx"])
         mcp_gold.append(ex["mcp_vec"])
 
@@ -226,14 +242,28 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
     with torch.no_grad():
         for i in range(0, len(graphs), bs):
             from torch_geometric.data import Batch as PyGBatch
+            batch_examples = examples[i : i + bs]
             batch_graphs = PyGBatch.from_data_list(graphs[i : i + bs]).to(device)
-            batch_fe = torch.tensor(
-                np.stack(field_embs_list[i : i + bs]), dtype=torch.float32
-            ).to(device)
+
+            # Pad this batch's variable-length semantic token sequences into
+            # one (B, max_len, D) tensor + a validity mask -- same padding
+            # logic as training/stage1_gnn_train.py's collate().
+            tokens = [ex["semantic_tokens"] for ex in batch_examples]
+            max_len = max(t.shape[0] for t in tokens)
+            d = tokens[0].shape[1]
+            sem = torch.zeros(len(tokens), max_len, d, dtype=torch.float32)
+            mask = torch.zeros(len(tokens), max_len, dtype=torch.bool)
+            for j, t in enumerate(tokens):
+                L = t.shape[0]
+                sem[j, :L] = t
+                mask[j, :L] = True
+            sem = sem.to(device)
+            mask = mask.to(device)
+
             edge_attr = getattr(batch_graphs, 'edge_attr', None)
             step_logits, mcp_logits, _ = model(
-                batch_graphs.x, batch_graphs.edge_index, batch_graphs.batch, batch_fe,
-                edge_attr=edge_attr,
+                batch_graphs.x, batch_graphs.edge_index, batch_graphs.batch,
+                semantic_tokens=sem, semantic_mask=mask, edge_attr=edge_attr,
             )
             step_preds.append(step_logits.argmax(-1).cpu().numpy())
             probs = torch.sigmoid(mcp_logits).cpu().numpy()
@@ -466,24 +496,45 @@ def eval_llm(adapter_dir: str, threshold_override=None,
             # fp32 forward through the adapter (matching training's
             # forward_batch), cast only the output to the model's dtype.
             prefix_embeds = adapter(graph_h.float()).to(dtype)
+            # BUG FIX (train/eval mismatch): this used
+            # `truncation=True, max_length=900`, which keeps the FIRST 900
+            # tokens and discards the tail -- but the tail is where the
+            # actual "# Strategy" text and "# Task" instruction live
+            # (build_prompt puts Machine first, Strategy/Task last). Stage 2
+            # TRAINING truncates the other way (`prompt_ids[-max_prompt_len:]`
+            # in SFTDataset, keeping the end), so any prompt over 900 tokens
+            # was evaluated with its most important content deleted -- a
+            # deletion that never happens during training. Now matches
+            # training: keep the END, and use the same 1536 budget
+            # SFTDataset uses.
             ids = tokenizer(
                 full_prompt,
                 return_tensors="pt",
                 add_special_tokens=False,
-                truncation=True,
-                max_length=900,
-            ).input_ids.to(device)
+            ).input_ids
+            if ids.shape[1] > 1536:
+                ids = ids[:, -1536:]
+            ids = ids.to(device)
             token_embeds  = embed_layer(ids).to(dtype)
             inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
             attn = torch.ones(inputs_embeds.shape[:2], dtype=torch.long, device=device)
 
+            # BUG FIX (train/eval mismatch): `repetition_penalty=1.1` was
+            # applied here but NOWHERE in training or in stage2_sft_qwen.py's
+            # own test loop. It is actively harmful for this task: the model
+            # must reproduce a long canonical STEP_LABELS string verbatim,
+            # and those labels repeat vocabulary that already appears in the
+            # prompt/taxonomy ("Enumerate", "the", "further", ...), so a
+            # repetition penalty systematically pushes the decoder AWAY from
+            # the exact label text that exact-match scoring requires. Dropped
+            # (along with `temperature=1.0`, which is meaningless and emits a
+            # warning under `do_sample=False`) so evaluation decodes exactly
+            # the way training/Stage-2's own evaluation does.
             out = llm_model.generate(
                 inputs_embeds=inputs_embeds,
                 attention_mask=attn,
                 max_new_tokens=max_new_tokens,
                 do_sample=False,
-                temperature=1.0,
-                repetition_penalty=1.1,
                 pad_token_id=tokenizer.pad_token_id,
                 eos_token_id=tokenizer.eos_token_id,
             )

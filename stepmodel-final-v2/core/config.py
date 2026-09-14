@@ -310,6 +310,45 @@ STAGE1_USE_DECOUPLED_RETRAIN = True
 STAGE1_DECOUPLED_EPOCHS = 15
 STAGE1_DECOUPLED_LR = 5e-4
 
+# ROUND 4 (see STAGE1_IMPROVEMENTS.md): the first real Round-3 run landed
+# step accuracy at 0.7649 test -- identical to Round 2's number, so SupCon/
+# decoupled-retrain/capacity-cut didn't move it either way -- while MCP
+# samples-F1 (0.7109) and subset accuracy (0.5336) both comfortably beat the
+# paper (0.64 / 0.4888). The concrete, causally suggestive data point: the
+# paper's OWN Step Model uses no graph at all (frozen GPT-2 + CNN on text
+# only) and gets 82.87% -- 6.4 points ABOVE this graph-augmented model. That
+# is a real signal the graph branch may currently be injecting noise into
+# Step prediction specifically (MCP tool availability plausibly benefits
+# more from graph/structural grounding than "which step type comes next,"
+# which is largely determined by the strategy text itself).
+#
+# Fix: a single LEARNABLE gate (sigmoid-parameterized scalar) applied to
+# every graph-derived term in the fusion concat (graph_proj, sem2graph_out,
+# graph2sem_out, interaction) -- NOT to semantic_proj, which always enters
+# fusion at full strength. Initialized low (graph starts as a genuine
+# "add-on," per the user's own framing) but is a trainable parameter, not a
+# fixed weight -- unlike a hand-picked constant, gradient descent can grow
+# it back up if the graph does prove useful for a given prediction, so this
+# doesn't foreclose graph-conditioning, it just removes the current
+# hard-imposed assumption that graph and text contribute equally by
+# default. One knob, easy to A/B against STAGE1_USE_GRAPH_GATE=False.
+STAGE1_USE_GRAPH_GATE = True
+STAGE1_GRAPH_GATE_INIT = 0.25   # sigmoid-space initial value: graph terms
+                                  # start at ~25% strength vs semantic's 100%.
+# ROUND 6 (see STAGE1_IMPROVEMENTS.md): the first real run with the gate
+# showed it moving only 0.250 -> 0.232 (~7% relative) over the 44 epochs
+# before early stopping -- far too slow to have reached wherever its actual
+# optimum is within the training budget, which makes that run's result
+# (mixed: step macro-F1 +7.2pt, MCP subset accuracy -3.4pt) inconclusive
+# rather than a real verdict on whether the graph helps or hurts. The gate
+# is a single scalar with a short, cheap gradient path to the loss -- there
+# is no reason for it to move at the same pace as the rest of a 14M-
+# parameter model. Giving it its own, much higher learning rate (a separate
+# optimizer param group, see train_one_split) lets it actually reach
+# equilibrium in the same epoch budget, so the NEXT run's gate trajectory
+# is a real signal instead of a truncated one.
+STAGE1_GRAPH_GATE_LR_MULT = 12.0
+
 # Stochastic Weight Averaging: instead of keeping only the single best-val
 # checkpoint (noisy signal on a 239-example val split -- see log epoch-to-
 # epoch score oscillation between 0.65 and 0.76), average the weights of
@@ -337,15 +376,44 @@ STAGE2_LR = 2e-6
 STAGE2_EPOCHS = 8                # Short bridge stage before GRPO; avoid overtraining
 STAGE2_BATCH_SIZE = 1
 STAGE2_GRAD_ACCUM = 16
+# Upweight the loss on the "New step" label tokens (and MCP tokens) relative
+# to the free-text explanation tokens. WHY: Stage 2's SFT loss is HuggingFace's
+# uniform-average cross-entropy over the ENTIRE JSON target, which is
+# ~200-300 tokens dominated by the free-text "Step explanation". The "New
+# step" canonical label is only ~10-20 of those tokens, so the classification
+# signal is heavily diluted -- the model can minimize loss by writing fluent
+# explanations and defaulting to the majority "Exploit" class, which is
+# EXACTLY what the first real run's confusion matrix showed (predicts
+# "Exploit" ~136x when gold=92; rare classes 4/6/8 -> 0 correct; step
+# macro-F1 collapsed to 0.47). Upweighting the step-value span (already
+# computed as `step_span` in SFTDataset, but previously unused for loss)
+# forces the model to actually learn the classification, not just the prose.
+# 1.0 = original uniform behavior; >1.0 weights the step tokens more. Applied
+# via a manual weighted cross-entropy in forward_batch (train path only;
+# validation still uses the plain loss for its own comparability).
+STAGE2_STEP_TOKEN_LOSS_WEIGHT = 5.0
 STAGE2_VAL_SPLIT = 0.15          # 15% held-out for validation
 STAGE2_EARLY_STOP_PATIENCE = 3   # Stop quickly once validation stops improving
 STAGE2_GRAD_CLIP = 1.0
 STAGE2_WARMUP_RATIO = 0.05       # Short warmup for the compact bridge stage
 STAGE2_WEIGHT_DECAY = 1e-4
 
-STAGE3_GROUP_SIZE = 8            # Reduced to avoid CUDA OOM
-STAGE3_LR = 1e-7                # Optimized for GRPO with enhanced reward
-STAGE3_STEPS = 600              # Increased for better convergence
+# CORRECTED (user-directed, matching the main branch's working Stage-3
+# regime): the previous 1e-7 / 600-step setting produced a DEAD run -- the
+# training log showed kl=0.0000 at steps 1, 50, 100 (the policy literally
+# never moved) because 1e-7 on a 128M-param LoRA over only 600 steps /
+# grad_accum=4 = 150 real updates is far too little signal to change the
+# model at all. The main branch (github.com/sagarikachavan/Research) ran
+# Stage 3 at LR 2e-6 with 3000 steps and group size 4, which actually moves
+# the policy. Restored those values. STAGE3_STEPS also drives the
+# CosineAnnealingLR T_max in the training loop, so this is the schedule
+# length, not just an iteration cap.
+STAGE3_GROUP_SIZE = 8            # 8 completions per prompt for the GRPO group
+STAGE3_LR = 2e-6                # matches main branch's working Stage-3 run;
+                                  # 1e-7 was 20x too small and never moved the policy
+STAGE3_STEPS = 1500             # user-requested; enough real updates to
+                                  # actually shift the policy (150 updates at
+                                  # 600 steps did nothing)
 STAGE3_KL_COEF = 0.08            # Increased for better stability
 STAGE3_PPO_CLIP = 0.2            # Standard (symmetric) PPO clipping lower bound
 # DAPO "Clip-Higher" (Yu et al., "DAPO: An Open-Source LLM Reinforcement
@@ -436,4 +504,7 @@ STAGE3_EARLY_STOP_PATIENCE = 2   # Stop the run after this many consecutive
                                   # no longer paying off — set to None to
                                   # disable and always run the full STEPS.
 
-RANDOM_SEED = 42
+# Env-overridable so a multi-seed variance check (see STAGE1_IMPROVEMENTS.md
+# Round 6) doesn't require editing this file between runs:
+#   RANDOM_SEED=1 python training/stage1_gnn_train.py
+RANDOM_SEED = int(os.environ.get("RANDOM_SEED", "42"))

@@ -762,6 +762,164 @@ Stage-2 eval-time adapter dtype mismatch, dead Stage-2/Stage-3 config wiring
 real run), and a documented Stage-3 PPO-collapse fix (dual-clip PPO) that was
 written up in `config.py` but never actually wired into the training loop.
 
+## 10. Round 5 — Round 3 validated by a real run; graph gate added
+
+### 10.1 The Round-3 real run
+
+First real training run with the Round-3 changes (capacity 384/768, real
+SupCon, decoupled classifier re-balancing) landed at:
+
+| Metric | Round-3 test | Round-2 test (previous) | Target | Paper |
+|---|---|---|---|---|
+| Step accuracy | 0.7649 | 0.7649 | 0.85–0.90 | 0.8287 |
+| Step macro-F1 | 0.5679 | 0.5817 | — | — |
+| MCP micro-F1 (sklearn) | 0.6904 | 0.6944 | 0.70–0.80 | — |
+| MCP samples-F1 (paper-comparable) | **0.7109** | — | — | 0.64 |
+| MCP subset accuracy | **0.5336** | — | — | 0.4888 |
+
+**Step accuracy is identical to Round 2 (0.7649, to four decimal places) —
+Round 3's changes did not move it either way**, and macro-F1 is essentially
+unchanged too (still far below accuracy: the minority-class problem the
+decoupled retrain was aimed at is not resolved). **MCP is now clearly and
+comfortably ahead of the paper** on both paper-comparable numbers (samples-F1
+0.71 vs 0.64, subset accuracy 0.53 vs 0.49) — that head does not need further
+work right now.
+
+### 10.2 A concrete, evidenced hypothesis: the graph may be hurting Step specifically
+
+The user's own read of the numbers, and it holds up: the Pen-Strategist
+paper's Step Model uses **no graph at all** (frozen GPT-2 + CNN on text
+only) and scores 82.87% — **6.4 points above this graph-augmented model's
+76.49%**. A text-only baseline beating a graph-augmented model on the exact
+same task is a real, causally suggestive signal that the graph branch may
+currently be injecting noise into Step prediction specifically — plausible
+on its face, since "which step type comes next" is largely determined by
+the strategy text itself, while MCP tool availability plausibly benefits
+more from graph/structural grounding (consistent with MCP being the metric
+that's ahead, not behind).
+
+### 10.3 Fix: learnable graph gate
+
+Added a single learnable scalar gate (`core/graph_encoder.py`,
+`Stage1Classifier.graph_gate_raw`, a sigmoid-parameterized `nn.Parameter`)
+applied to every graph-**derived** term in the fusion concat (`graph_proj`,
+`sem2graph_out`, `graph2sem_out`, `interaction`) — `semantic_proj` (the one
+term with zero graph involvement) always enters fusion at full, unscaled
+strength. Initialized so `sigmoid(graph_gate_raw) == STAGE1_GRAPH_GATE_INIT
+== 0.25` (graph starts at ~25% strength vs. semantic's 100%, i.e. a genuine
+"add-on" per the user's framing) but is a trainable parameter, not a
+hand-picked constant — gradient descent, not a guess, decides whether to
+grow it back toward 1.0 if the graph does prove useful for a given
+prediction. This deliberately does not foreclose graph-conditioning; it
+just removes the previously-hard-imposed assumption that graph and text
+contribute equally by default. Gated behind `STAGE1_USE_GRAPH_GATE`
+(default `True`) for a clean A/B if needed. The gate's current value is now
+printed every epoch (`training/stage1_gnn_train.py`) so its evolution during
+training is directly observable.
+
+**Verified** (synthetic-tensor smoke test, no GPU needed): the gate
+initializes to exactly `0.25` as configured; it receives real, nonzero
+gradient on a forward+backward pass (confirmed trainable, not just present);
+at `gate≈0` swapping in a completely different graph produces **exactly
+zero** change in step logits (perfect isolation — confirms the gate truly
+controls graph influence, not just dampens it approximately), while at
+`gate≈1` the same swap produces a large change (0.57 max logit diff); and
+`STAGE1_USE_GRAPH_GATE=False` correctly reproduces the pre-gate code path.
+**Not yet validated by a real training run** — this is a single, isolated,
+well-motivated change on top of the now-validated Round 3 baseline, so the
+next real run should cleanly attribute any step-accuracy movement to this
+change alone.
+
+## 11. Round 6 — the gate result was inconclusive, and why; three-way diagnosis
+
+### 11.1 What the Round-5 real run actually showed
+
+| Metric | Round-3 test (no gate) | Round-5 test (gate, init 0.25) | Delta |
+|---|---|---|---|
+| Step accuracy | 0.7649 | 0.7687 | +0.4pt |
+| Step macro-F1 | 0.5679 | 0.6402 | **+7.2pt** |
+| MCP micro-F1 (sklearn) | 0.6904 | 0.7036 | +1.3pt |
+| MCP subset accuracy | 0.5336 | 0.5000 | **-3.4pt** |
+| MCP samples-F1 (paper-comparable) | 0.7109 | 0.7129 | +0.2pt |
+| val_step_acc | 0.8117 | 0.8326 | +2.1pt |
+| val/test step-accuracy gap | 4.7pt | 6.4pt | wider |
+
+Mixed, not a clean win: step macro-F1 improved substantially, but MCP subset
+accuracy regressed and the val/test gap widened. Crucially, **the gate
+itself barely moved** — 0.250 → 0.232 over the 44 epochs before early
+stopping, a ~7% relative change. A single scalar with a short, cheap
+gradient path to the loss should move much faster than a 14M-parameter
+model if it's actually finding a better position; it didn't get the chance
+to within this budget. That makes the Round-5 result genuinely
+**inconclusive** rather than evidence the gate hypothesis is right or
+wrong — it's too early to credit the macro-F1 gain to the gate specifically
+versus ordinary run-to-run variance.
+
+### 11.2 Three-way diagnosis (user asked: architecture, class imbalance, or
+### text understanding?)
+
+- **Not primarily an architecture bug.** A small, surgical, additive change
+  (one scalar) produced a proportionate, directionally sensible response —
+  no collapse, no NaNs, no wild swing. That's the signature of a
+  functioning architecture responding to a real (if small) lever, not a
+  broken one.
+- **Class imbalance is real but only partly explanatory, and has a hard,
+  code-unfixable floor.** Step macro-F1 (0.640) still trails accuracy
+  (0.769) by ~13 points, down from ~20 before this round's change — moving,
+  not stuck. But `"Ask for human assistant"` has **zero training examples**
+  (`count=0` in the per-epoch weight printout) — guaranteed 0 recall
+  regardless of any architecture or loss change, a data-collection gap, not
+  a model gap. Several MCP tools (SQLmap n=22, hydra n=15, three others)
+  have so few validation positives the threshold search explicitly declines
+  to tune them ("not enough support to tune safely") — same story. No
+  further imbalance-specific code change is proposed this round without
+  evidence of which specific mechanism is under/over-correcting; the
+  existing machinery (logit adjustment, capped weights, decoupled retrain,
+  hard-negative margin, focal loss, SupCon, per-class thresholds) is
+  already extensive and visibly working (macro-F1 +7.2pt this round).
+- **Val/test noise is the single biggest unexplained number, and it isn't
+  fully fixable by code on a fixed-size dataset.** val hit 0.8326 (above
+  the 0.8287 target) while test sits at 0.7687 — a 6.4-point gap on a
+  239-row val / 268-row test split, where a handful of flipped rare-class
+  predictions swings the aggregate by several points. This is exactly what
+  the (since-deleted, at the user's explicit request)
+  `stage1_gnn_train_kfold.py` existed to average out by pooling
+  out-of-fold predictions across all ~1.5k rows. It was not restored this
+  round (that decision is the user's to revisit, not something to silently
+  undo) — instead, `RANDOM_SEED` was made env-overridable
+  (`core/config.py`) so a cheap multi-seed check
+  (`RANDOM_SEED=1 python training/stage1_gnn_train.py`, etc.) can quantify
+  how much of any future delta is noise before crediting it to a code
+  change.
+- **Semantic/text understanding was not directly tested this round.** Worth
+  noting for context: the paper's Step Model uses the *same* frozen-GPT-2
+  approach and scores higher (82.87%) than this graph-augmented model
+  (76.87%) — which argues against "GPT-2 itself is too weak" as the primary
+  explanation (the paper gets good results from it alone) and keeps the
+  graph-interference hypothesis on the table instead.
+
+### 11.3 Fix: give the graph gate its own, much faster learning rate
+
+Root cause of Round 5's inconclusive result: the gate was in the same
+`AdamW` parameter group as the rest of the model, sharing one learning
+rate meant for a 14M-parameter network. `core/config.py` adds
+`STAGE1_GRAPH_GATE_LR_MULT = 12.0`; `training/stage1_gnn_train.py`'s
+`train_one_split()` now puts `graph_gate_raw` in its own optimizer param
+group at `STAGE1_LR * 12`, both groups driven by the same warmup/cosine
+`lr_lambda` schedule so the 12x ratio holds throughout training, not just
+at epoch 0. This doesn't change what the gate does or the architecture at
+all — it only changes how fast it's allowed to get there, so the next run's
+gate trajectory (and final value) is a real signal about whether the graph
+helps or hurts Step prediction, not a truncated one.
+
+**Verified** (synthetic, no GPU needed): the gate is correctly isolated
+into its own param group (exactly 1 parameter, `14,311,709 + 1 =
+14,311,710` — matches the Round-5 run's own "Trainable parameters" printout
+exactly); the 12x LR ratio survives a `LambdaLR` schedule step
+mathematically exactly; a full 5-step forward+backward+optimizer-step loop
+on synthetic data runs cleanly with no shape errors and the gate value
+measurably moves. **Not yet validated by a real run.**
+
 Why logit adjustment over Class-Balanced Loss or LDAM-DRW: all three are
 legitimate, well-cited options for this exact problem. Logit adjustment was
 chosen as the primary addition because it's a strictly additive change to

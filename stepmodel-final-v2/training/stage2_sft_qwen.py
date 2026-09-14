@@ -28,6 +28,7 @@ import re
 import numpy as np
 import torch
 import torch.nn as nn
+import torch.nn.functional as F
 from torch.utils.data import Dataset, DataLoader, Subset, WeightedRandomSampler
 from transformers import AutoTokenizer, AutoModelForCausalLM, get_cosine_schedule_with_warmup
 from peft import LoraConfig, get_peft_model, PeftModel
@@ -44,7 +45,7 @@ from config import (
     LORA_R, LORA_ALPHA, LORA_DROPOUT,
     STAGE2_LR, STAGE2_EPOCHS, STAGE2_BATCH_SIZE, STAGE2_GRAD_ACCUM,
     STAGE2_VAL_SPLIT, STAGE2_EARLY_STOP_PATIENCE, STAGE2_GRAD_CLIP, STAGE2_WARMUP_RATIO,
-    STAGE2_WEIGHT_DECAY,
+    STAGE2_WEIGHT_DECAY, STAGE2_STEP_TOKEN_LOSS_WEIGHT,
     STAGE1_CKPT, STAGE2_ADAPTER_DIR,
     RANDOM_SEED, STEP_LABELS, MCP_LABELS, ROOT,
 )
@@ -427,7 +428,8 @@ def collate_fn(batch: list, pad_id: int) -> tuple:
 # ---------------------------------------------------------------------------
 
 def forward_batch(input_ids, attn, labels, graphs,
-                  model, stage1, adapter, embed_layer, device, dtype, return_logits=False):
+                  model, stage1, adapter, embed_layer, device, dtype, return_logits=False,
+                  step_spans=None, step_token_weight=1.0):
     """
     Prepend graph prefix tokens to the token embeddings, run the model,
     and return the scalar loss (and, if return_logits=True, the raw logits
@@ -473,6 +475,12 @@ def forward_batch(input_ids, attn, labels, graphs,
     prefix_lbls  = torch.full((labels.shape[0], n_prefix), -100, device=device, dtype=labels.dtype)
     labels_full  = torch.cat([prefix_lbls, labels], dim=1)
 
+    # When we're going to compute a step-weighted loss ourselves, don't ask
+    # the model to also compute its uniform `out.loss` (we ignore it) -- but
+    # we still need the logits either way.
+    want_weighted = (step_spans is not None) and (step_token_weight is not None) and (step_token_weight != 1.0)
+    hf_labels = None if want_weighted else labels_full
+
     # Qwen forward in bf16 autocast.  The adapter itself is fp32; only its
     # final prefix representation is cast to the model input dtype.
     if device == "cuda":
@@ -480,15 +488,47 @@ def forward_batch(input_ids, attn, labels, graphs,
             out = model(
                 inputs_embeds=inputs_embeds,
                 attention_mask=attn_full,
-                labels=labels_full,
+                labels=hf_labels,
             )
     else:
         out = model(
             inputs_embeds=inputs_embeds,
             attention_mask=attn_full,
-            labels=labels_full,
+            labels=hf_labels,
         )
-    loss = out.loss.float()
+
+    if want_weighted:
+        # Manual next-token cross-entropy with a higher weight on the "New
+        # step" value span (see STAGE2_STEP_TOKEN_LOSS_WEIGHT in config.py).
+        # Coordinate frames: `labels` is un-prefixed (prompt+target);
+        # labels_full = [prefix(-100) | labels], so un-prefixed index j sits
+        # at full index n_prefix+j. Next-token loss predicts label at full
+        # index k from position k-1, so the token at un-prefixed index j is
+        # scored at shift index (n_prefix + j - 1). step_spans[b] = [s, e)
+        # in un-prefixed coords therefore maps to shift indices
+        # [n_prefix+s-1, n_prefix+e-1).
+        logits = out.logits.float()
+        shift_logits = logits[:, :-1, :]
+        shift_labels = labels_full[:, 1:]
+        B, Tm1, V = shift_logits.shape
+        ce = F.cross_entropy(
+            shift_logits.reshape(-1, V), shift_labels.reshape(-1),
+            ignore_index=-100, reduction="none",
+        ).reshape(B, Tm1)
+        valid = (shift_labels != -100).float()
+        weights = valid.clone()  # 1.0 on every real target token
+        for b in range(B):
+            s, e = int(step_spans[b][0].item()), int(step_spans[b][1].item())
+            if e > s:
+                lo = max(0, n_prefix + s - 1)
+                hi = min(Tm1, n_prefix + e - 1)
+                if hi > lo:
+                    weights[b, lo:hi] = valid[b, lo:hi] * step_token_weight
+        denom = weights.sum().clamp_min(1.0)
+        loss = (ce * weights).sum() / denom
+    else:
+        loss = out.loss.float()
+
     if not torch.isfinite(loss):
         raise FloatingPointError("Stage 2 produced a non-finite loss")
     if return_logits:
@@ -521,7 +561,7 @@ def forward_batch(input_ids, attn, labels, graphs,
 # actually matters for checkpoint selection instead of drowning it in
 # explanation-text loss.
 def run_validation(val_loader, model, stage1, adapter, embed_layer, device, dtype,
-                   tokenizer=None, val_examples=None, max_new_tokens=48):
+                   tokenizer=None, val_examples=None, max_new_tokens=64):
     """Validate Stage 2 using leakage-free greedy generation.
 
     The primary checkpoint metric is exact accuracy of the generated ``New step``
@@ -861,12 +901,14 @@ def main():
         accum_count = 0
         opt.zero_grad(set_to_none=True)
 
-        for i, (input_ids, attn, labels, graphs, _step_spans) in enumerate(train_loader):
+        for i, (input_ids, attn, labels, graphs, step_spans) in enumerate(train_loader):
             try:
                 loss = forward_batch(
                     input_ids, attn, labels, graphs,
                     model, stage1, adapter, embed_layer,
                     device, dtype,
+                    step_spans=step_spans,
+                    step_token_weight=STAGE2_STEP_TOKEN_LOSS_WEIGHT,
                 )
             except FloatingPointError:
                 skipped_batches += 1
@@ -942,9 +984,25 @@ def main():
 
         # ── Validation at end of each epoch ───────────────────────────────────
         avg_train_loss = epoch_loss / max(finite_batches, 1)
+        # BUG FIX: this was max_new_tokens=32 -- 15.6x smaller than the final
+        # test-time evaluation's max_new_tokens=500. Measured against
+        # STEP_LABELS: the single longest label alone needs 23 GPT-2 tokens
+        # just to close the `"New step": "..."` field (before any JSON
+        # syntax overhead or preamble the model might emit before starting
+        # the JSON), leaving almost no margin in a 32-token budget. A
+        # generation cut off mid-label produces an unparseable/incomplete
+        # "New step" value, scoring as wrong even when the model predicted
+        # correctly -- this systematically underestimates val accuracy
+        # (observed: val plateaued at 0.74 while the SAME checkpoint scored
+        # 0.88 at final test time with the larger budget) and, worse, feeds
+        # a biased signal into checkpoint selection and early stopping.
+        # 64 tokens comfortably covers the longest label plus JSON overhead
+        # and a real margin for preamble, while staying far cheaper than the
+        # full 500-token budget (which also has to cover the free-text
+        # explanation and MCP dict that this step-only check doesn't need).
         val_loss, step_field_acc = run_validation(
             val_loader, model, stage1, adapter, embed_layer, device, dtype,
-            tokenizer=tokenizer, val_examples=val_examples, max_new_tokens=32
+            tokenizer=tokenizer, val_examples=val_examples, max_new_tokens=64
         )
 
         # Primary: step_field_acc (higher is better). Tiebreak: lower val_loss.

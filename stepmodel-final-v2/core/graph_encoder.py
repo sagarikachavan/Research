@@ -54,11 +54,14 @@ import torch.nn.functional as F
 from torch_geometric.nn import GINEConv, GraphNorm, global_mean_pool, global_max_pool
 from torch_geometric.utils import softmax as pyg_softmax
 
+import math
+
 from config import (
     GNN_HIDDEN, GNN_LAYERS, GNN_OUT_DIM, FUSION_HIDDEN,
     TEXT_EMB_DIM, STEP_LABELS, MCP_LABELS, GNN_DROPOUT,
     EDGE_ATTR_DIM, NODE_AUX_DIM, SEMANTIC_CNN_DIM, SEMANTIC_CNN_KERNELS,
     SEMANTIC_CNN_DROPOUT, STAGE1_EDGE_DROPOUT, STAGE1_NODE_FEAT_DROPOUT,
+    STAGE1_USE_GRAPH_GATE, STAGE1_GRAPH_GATE_INIT,
 )
 from data_utils import CONTEXT_COLUMNS
 
@@ -462,6 +465,24 @@ class Stage1Classifier(nn.Module):
             nn.Dropout(0.10),
         )
 
+        # ROUND 4 (see config.py's STAGE1_USE_GRAPH_GATE comment): learnable
+        # gate on every graph-DERIVED fusion term (graph_proj, sem2graph_out,
+        # graph2sem_out, interaction) -- semantic_proj always enters fusion
+        # at full strength, unscaled. Motivated by a real run where this
+        # graph-augmented model scored BELOW the paper's own text-only (no
+        # graph) Step Model on step accuracy (76.49% vs 82.87%), while MCP
+        # already comfortably beat the paper -- suggesting the graph branch
+        # may be adding noise specifically to step prediction. Stored as a
+        # raw logit and passed through sigmoid so it's always in (0,1);
+        # initialized so sigmoid(graph_gate_raw) == STAGE1_GRAPH_GATE_INIT
+        # (graph starts as a genuine minority contributor) but remains a
+        # trainable nn.Parameter, so gradient descent -- not a hand-picked
+        # constant -- decides whether to grow it back up.
+        self.use_graph_gate = STAGE1_USE_GRAPH_GATE
+        init_p = min(max(STAGE1_GRAPH_GATE_INIT, 1e-4), 1 - 1e-4)
+        init_logit = math.log(init_p / (1.0 - init_p))
+        self.graph_gate_raw = nn.Parameter(torch.tensor(float(init_logit)))
+
         # Enhanced fusion with residual connections
         self.semantic_proj = nn.Sequential(
             nn.Linear(self.semantic_dim, fusion_half),
@@ -565,13 +586,29 @@ class Stage1Classifier(nn.Module):
         # above.
         interaction = self.interaction_proj(semantic_proj * graph_proj)  # (B, D/2)
 
+        # ROUND 4: scale every graph-derived term by the learnable gate (see
+        # __init__ comment) before concatenation. semantic_proj is
+        # deliberately left unscaled -- it is the one term with no graph
+        # involvement at all, and is meant to be the dominant signal for
+        # Step prediction by default.
+        if self.use_graph_gate:
+            graph_scale = torch.sigmoid(self.graph_gate_raw)
+            graph_proj_in = graph_scale * graph_proj
+            sem2graph_in = graph_scale * sem2graph_out
+            graph2sem_in = graph_scale * graph2sem_out
+            interaction_in = graph_scale * interaction
+        else:
+            graph_proj_in, sem2graph_in, graph2sem_in, interaction_in = (
+                graph_proj, sem2graph_out, graph2sem_out, interaction
+            )
+
         # semantic_proj, graph_proj: each modality's own pooled view.
         # sem2graph_out, graph2sem_out: each modality's view AFTER
         # attending to the other modality's real tokens (this is the part
         # that was previously a no-op).
         # interaction: explicit multiplicative cross term.
         combined = torch.cat(
-            [semantic_proj, graph_proj, sem2graph_out, graph2sem_out, interaction],
+            [semantic_proj, graph_proj_in, sem2graph_in, graph2sem_in, interaction_in],
             dim=-1,
         )  # (B, 5*D/2)
 

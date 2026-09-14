@@ -42,6 +42,7 @@ from config import (
     STAGE1_USE_MANIFOLD_MIXUP, STAGE1_MIXUP_ALPHA, STAGE1_MIXUP_WEIGHT,
     STAGE1_SUPCON_TEMPERATURE, STAGE1_USE_DECOUPLED_RETRAIN,
     STAGE1_DECOUPLED_EPOCHS, STAGE1_DECOUPLED_LR,
+    STAGE1_GRAPH_GATE_LR_MULT,
 )
 from data_utils import load_from_input_json, precompute_semantic_tokens
 from graph_encoder import Stage1Classifier
@@ -426,7 +427,27 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     model = Stage1Classifier().to(device)
     print(f"{tag} Trainable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
 
-    opt = torch.optim.AdamW(model.parameters(), lr=STAGE1_LR, weight_decay=STAGE1_WEIGHT_DECAY, betas=(0.9, 0.999), eps=1e-8)
+    # ROUND 6 (see config.py's STAGE1_GRAPH_GATE_LR_MULT comment): the graph
+    # gate is a single scalar with a short gradient path -- give it its own
+    # optimizer param group at a much higher LR so it actually reaches
+    # equilibrium within the training budget instead of creeping (the first
+    # real run moved it only ~7% in 44 epochs). Both groups share the same
+    # `lr_lambda` warmup/cosine schedule below (LambdaLR applies one
+    # multiplicative schedule to every group's own base LR), so the ~12x
+    # ratio between them holds throughout training, not just at epoch 0.
+    if getattr(model, "use_graph_gate", False):
+        gate_params = [model.graph_gate_raw]
+        gate_ids = {id(p) for p in gate_params}
+        other_params = [p for p in model.parameters() if id(p) not in gate_ids]
+        opt = torch.optim.AdamW(
+            [
+                {"params": other_params, "lr": STAGE1_LR},
+                {"params": gate_params, "lr": STAGE1_LR * STAGE1_GRAPH_GATE_LR_MULT},
+            ],
+            weight_decay=STAGE1_WEIGHT_DECAY, betas=(0.9, 0.999), eps=1e-8,
+        )
+    else:
+        opt = torch.optim.AdamW(model.parameters(), lr=STAGE1_LR, weight_decay=STAGE1_WEIGHT_DECAY, betas=(0.9, 0.999), eps=1e-8)
     steps_per_epoch = max(1, len(train_loader))
     total_steps = steps_per_epoch * STAGE1_EPOCHS
     warmup_steps = steps_per_epoch * STAGE1_WARMUP_EPOCHS
@@ -530,6 +551,9 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
                  + 0.50 * val_metrics["mcp_micro_f1"])
         train_losses.append(total_loss / max(1, n_batches)); val_scores.append(score)
         lr = sched.get_last_lr()[0]
+        gate_str = ""
+        if getattr(model, "use_graph_gate", False):
+            gate_str = f" | graph_gate {torch.sigmoid(model.graph_gate_raw).item():.3f}"
         print(
             f"{tag} epoch {epoch+1:02d}/{STAGE1_EPOCHS} | lr {lr:.2e} | "
             f"train {total_loss/max(1,n_batches):.4f} (step={step_run/max(1,n_batches):.4f}, "
@@ -537,7 +561,7 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
             f"val_step_acc {val_metrics['step_accuracy']:.3f} "
             f"val_step_macroF1 {val_metrics['step_macro_f1']:.3f} | "
             f"val_mcp_microF1 {val_metrics['mcp_micro_f1']:.3f} "
-            f"val_mcp_subsetAcc {val_metrics['mcp_subset_accuracy']:.3f} | score {score:.4f}"
+            f"val_mcp_subsetAcc {val_metrics['mcp_subset_accuracy']:.3f} | score {score:.4f}{gate_str}"
         )
         # Maintain the top-K pool for SWA regardless of whether this epoch
         # was the single best -- SWA wants a handful of *good* checkpoints,

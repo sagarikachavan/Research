@@ -141,20 +141,45 @@ if torch.cuda.is_available():
 # `_deterministic_explanation_score()` below.
 # ---------------------------------------------------------------------------
 
-def _parse_completion(text: str) -> dict | None:
-    """Extract the first {...} JSON block from generated text."""
-    try:
-        start = text.index("{")
-        end   = text.rindex("}") + 1
-        return json.loads(text[start:end])
-    except Exception:
-        return None
-
-
 # Shared normalizer instance so the RL reward's step-correctness check uses
 # EXACTLY the same canonicalization evaluate.py uses to compute the
 # "Step Exact Match" metric this reward is meant to optimize toward.
 _step_normalizer = StepLabelNormalizer()
+
+# BUG FIX: this used to be a single-shot `json.loads` between the first `{`
+# and the last `}` -- fragile against anything outside the exact happy path
+# (any stray brace elsewhere in the text, e.g. inside a generated
+# explanation, breaks the whole parse; no fallback if the JSON is slightly
+# malformed). Evidence this was a real, not theoretical, problem: the
+# training log's own `fmt` counter showed as few as 3/8 completions in a
+# group parsing successfully from a model that had JUST been SFT-trained
+# specifically to emit this exact format -- and this same weak parser fed
+# BOTH `compute_reward` (the actual RL reward signal) and
+# `evaluate_policy_on_val` (the Stage-2-baseline/periodic-validation score),
+# while `stage2_sft_qwen.py`'s own final test-set evaluation used the much
+# more robust `build_obj_parser()` (multi-layer regex fallbacks per field,
+# already imported into this file at the top but only ever wired into the
+# very last test-CSV loop). That parser mismatch is very plausibly why the
+# Stage-2-checkpoint "baseline" this file reports (step=0.6318 on val) reads
+# so much lower than the SAME checkpoint's own test-time number (0.8843) --
+# not a real val/test generalization gap, a parser-strictness gap. Now uses
+# the same hardened parser everywhere in this file, so the reward signal
+# GRPO actually trains against stops being artificially pessimistic, and
+# every printed/logged number in this file is comparable to Stage 2's own
+# reported numbers instead of measuring something stricter.
+_obj_parser = build_obj_parser()
+
+
+def _parse_completion(text: str) -> dict | None:
+    """Extract the (possibly partial) prediction object from generated text.
+
+    Delegates to build_obj_parser() (see module-level comment above) instead
+    of a bare json.loads; returns None only when that parser recovers
+    nothing at all, preserving this function's original contract for every
+    caller below (compute_reward, evaluate_policy_on_val, the `fmt` counter).
+    """
+    obj = _obj_parser(text, _step_normalizer)
+    return obj if obj else None
 
 
 _MCP_WEIGHT_CACHE = None

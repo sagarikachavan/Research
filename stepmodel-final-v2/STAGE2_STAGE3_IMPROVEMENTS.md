@@ -328,3 +328,228 @@ run Stage 1 (k-fold) first per `STAGE1_IMPROVEMENTS.md` §9, then Stage 2 SFT,
 then Stage 3 GRPO, and compare against the paper (step accuracy 0.8287, step
 micro-F1 0.80, MCP micro-F1 0.64, MCP subset accuracy 0.4888) and against
 this project's own prior validated numbers.
+
+## 10. First real Stage 2 run: a real bug found and fixed (validation token budget)
+
+First real Stage 2 SFT run (`training/stage2_sft_qwen.py`) landed at a
+striking result: per-epoch validation (`val_generated_step_acc`) plateaued
+around 0.74 and never exceeded 0.7406 across 8 epochs, while the **same
+best checkpoint** scored **0.8843** ("Step Exact Match") on the final test
+set. A 14-point jump from validation to test, in the direction test beating
+validation, is not what normal generalization looks like on splits drawn
+from the same dataset — it's the signature of the two numbers not measuring
+the same thing.
+
+**Root cause, confirmed by reading the code**: the per-epoch validation call
+(`run_validation(...)`, called from the training loop) generated with
+`max_new_tokens=32`, while the final test-set evaluation later in the same
+file generated with `max_new_tokens=500` — a **15.6x** difference, with no
+documented reason for the gap. Measured against the actual `STEP_LABELS`
+taxonomy (GPT-2 tokenizer as a proxy — Qwen's own tokenizer wasn't available
+in this environment, but the order of magnitude holds): the single longest
+label alone (`"Enumerate further on the X service to find software
+versions, hidden directories and file."`) needs 23 tokens just to close the
+`"New step": "..."` field, before any JSON syntax overhead or preamble the
+model might emit before starting the JSON. A 32-token budget leaves almost
+no margin — a generation cut off mid-label produces an incomplete/
+unparseable `"New step"` value, which `build_obj_parser()`'s regex fallback
+can't recover (no closing quote to match), so the row scores as wrong even
+when the model's prediction was correct. This **systematically
+underestimated** validation accuracy for the whole run, and — more
+seriously — fed that biased signal directly into checkpoint selection
+(`step_field_acc > best_step_acc`) and early stopping, both of which drove
+real decisions during training, not just a diagnostic printout.
+
+**Fix**: `run_validation()`'s call site and default both changed from
+`max_new_tokens=32`/`48` to **64** — comfortably covers the longest label
+plus JSON overhead and a real margin for preamble, while staying far
+cheaper per validation pass than the full 500-token budget (which also has
+to cover the free-text explanation and MCP dict that this step-only check
+doesn't need, so it was never the right number to match anyway). No other
+generation call site in the pipeline has this kind of budget mismatch —
+checked `training/stage3_grpo_rl.py` (300 and `MAX_NEW_TOKENS`, default
+260, consistent throughout) and `eval/evaluate.py` (`args.max_new_tokens`
+used consistently everywhere) — this was isolated to Stage 2's validation
+loop.
+
+**What this means for the run that already completed**: the checkpoint it
+selected (epoch 6) still scored well at final test time (88.43%), so this
+specific run's outcome is likely fine — but the *process* that selected it
+was working from a biased signal, so there's no guarantee epoch 6 was
+actually the best of the 8 epochs trained, only the best *as measured by a
+truncated metric*. Not yet validated by a real re-run with the fix.
+
+## 11. `eval/evaluate.py`'s `eval_gnn()` was never actually runnable — real bug, fixed
+
+Running `python evaluate.py --model gnn` (recommended in this same session as
+a diagnostic to get Stage 1's confusion matrix) crashed immediately:
+
+```
+ValueError: Stage 1 requires semantic_tokens and semantic_mask built from
+New strategy + Strategy explanation.
+```
+
+**Root cause**: `eval_gnn()` built a `field_embs` tensor (a BGE embedding of
+`CONTEXT_COLUMNS`) and passed it as `Stage1Classifier.forward()`'s 4th
+positional argument. That parameter exists on the signature for backward
+compatibility but is **never read inside `encode_and_predict()`** — what the
+model actually requires (and raises `ValueError` without) is
+`semantic_tokens`/`semantic_mask`: frozen-GPT-2 token embeddings of `"New
+strategy"` + `"Strategy explanation"`, built via `precompute_semantic_tokens()`.
+`eval_gnn()` never called that function at all. This is not something
+introduced this session — nothing in this engagement touched `eval_gnn()`'s
+call site or `encode_and_predict()`'s required-argument contract before now
+— this code path had apparently never been exercised end-to-end until this
+session asked for it as a diagnostic.
+
+**Fix**: `eval_gnn()` now builds `ex["semantic_text"]` for every example
+(identical logic to `training/stage1_gnn_train.py`'s `Stage1Dataset`) and
+calls `precompute_semantic_tokens()` once up front, then pads each batch's
+variable-length token sequences into a `(B, max_len, D)` tensor + validity
+mask before calling the model — the same collate logic
+`stage1_gnn_train.py`'s `collate()` uses. The dead `field_embs`/
+`CONTEXT_COLUMNS`/`_embed_texts` computation is removed entirely rather than
+kept as an unused side computation.
+
+**Verified end-to-end** (not just `py_compile`): ran the actual fixed code
+path with real GPT-2 tokenization (not synthetic/mocked) against a freshly
+-initialized `Stage1Classifier`, including the empty-text edge case (both
+context fields blank, matching the "empty empty" placeholder text
+`SemanticCNNEncoder`'s own NaN-guard from `STAGE1_IMPROVEMENTS.md` §2 was
+built for) — produced correctly-shaped, finite logits with no crash.
+
+## 12. Stage 3's own reward/validation used a much weaker JSON parser than Stage 2's final eval — the actual RL signal, not just a number
+
+A first real Stage 3 run's own printed baseline was hard to reconcile with
+Stage 2's numbers: `evaluate_policy_on_val()` scored the **same** Stage-2
+checkpoint at `step=0.6318` on val, while that checkpoint's own Stage-2
+test-set evaluation (§10/§11 context) reported `0.8843`. A ~25-point gap
+between val and test on the same checkpoint, both using generous generation
+budgets (this file's `evaluate_policy_on_val` already uses
+`max_new_tokens=300`, not the Stage-2 bug from §10), is too large to be
+ordinary split noise. The training log itself gave a second, independent
+tell: `fmt 3/8` at step 2 — only 3 of 8 completions from a model *freshly
+SFT-trained specifically to emit this format* parsed as valid JSON at all.
+
+**Root cause, confirmed by reading the code**: `training/stage3_grpo_rl.py`
+had two different completion parsers. `stage2_sft_qwen.py::build_obj_parser()`
+— a hardened, multi-layer-fallback parser (balanced-brace regex candidates,
+then a naive first-`{`/last-`}` slice, then per-field regex extraction for
+`"New step"`/`"Step explanation"`/`"MCP_tasks"` independently if full JSON
+parsing fails entirely) — was already imported into this file
+(`training/stage3_grpo_rl.py:119`), but only ever wired into the very last
+test-CSV export loop (`:1149`, post-fix line numbers). Everywhere it
+actually mattered — `compute_reward()` (`:254`, **the actual RL reward
+signal GRPO trains against**), `evaluate_policy_on_val()` (`:546`, the
+baseline/periodic-validation score), and the `fmt` diagnostic counter
+(`:1014`) — used a bare-bones local `_parse_completion()`: a single
+`text.index("{")` / `text.rindex("}")` slice fed straight to `json.loads`,
+with **no fallback at all**. Any stray brace anywhere in the generated text
+(e.g. inside a technical explanation describing a JSON-like config, or a
+completion that runs out of tokens before the object closes) fails the
+*entire* parse, scoring that row as a total miss even when the step
+prediction was sitting right there in the text.
+
+This is not merely a misleading-number bug like §10/§11 — `compute_reward()`
+feeds directly into GRPO's policy gradient. A parser that spuriously
+zeroes out otherwise-correct completions **is a corrupted training signal**,
+not just a corrupted diagnostic; a model can get penalized for a formatting
+quirk unrelated to whether its actual step/tool/explanation prediction was
+right.
+
+**Fix**: `_parse_completion()` now delegates to
+`build_obj_parser()`(instantiated once at module scope as `_obj_parser`),
+preserving its original `text -> dict | None` contract (empty-result cases
+still return `None`) so every caller downstream needed zero changes.
+
+**Verified** with a direct old-vs-new comparison on four realistic
+completion shapes (clean JSON, a stray brace inside the explanation text,
+preamble text before the JSON, and — the case that matters most — a
+completion truncated mid-explanation with no closing brace at all): the old
+parser failed outright (`None`) on the truncated case, silently losing a
+perfectly extractable `"New step"` value; the new parser recovered it
+correctly via `build_obj_parser()`'s per-field fallback, matched the old
+parser exactly on the three cases where the old parser already succeeded
+(no regression), never fabricated a value where nothing was extractable.
+**Not yet validated by a real run** — the in-progress Stage 3 run that
+surfaced this bug was training against the old, corrupted signal; restarting
+Stage 3 with this fix is recommended rather than letting that run continue.
+
+## 13. Second real run: two evaluate.py train/eval mismatches + Stage 3 dead LR + Stage 2 majority-class collapse
+
+A full `run.py` pass plus `python evaluate.py --model llm` surfaced four
+distinct problems, in decreasing severity:
+
+### 13.1 `evaluate.py` was under-reporting Stage 2 by ~16 points (two train/eval mismatches)
+
+The SAME Stage-2 checkpoint scored **88.43%** step-exact-match in
+`stage2_sft_qwen.py`'s own final test loop but only **72.39%** in
+`eval/evaluate.py --model llm`. Reading both generation paths, the
+difference is two eval-only decoding settings that exist NOWHERE in training
+or in Stage 2's own (trusted) test loop:
+
+1. **`repetition_penalty=1.1`** — actively harmful here. The model must
+   reproduce a long *canonical* `STEP_LABELS` string verbatim, and those
+   labels repeat tokens that already appear in the prompt/taxonomy
+   ("Enumerate", "further", "the"...). A repetition penalty pushes the
+   decoder away from exactly the label text that exact-match scoring
+   requires. Removed (along with a meaningless `temperature=1.0` that only
+   emitted a warning under `do_sample=False`).
+2. **`truncation=True, max_length=900` keeping the FIRST 900 tokens** —
+   `build_prompt` puts `Machine` first and the actual `# Strategy` text +
+   `# Task` instruction LAST, so a >900-token prompt was evaluated with its
+   most important content deleted. Training (`SFTDataset`) truncates the
+   other way (`prompt_ids[-max_prompt_len:]`, keeping the end). Changed
+   `evaluate.py` to keep the end and use the same 1536 budget.
+
+Stage 2's own test loop (`stage2_sft_qwen.py:1085`) already used clean
+greedy decoding (no penalty, correct truncation) — so **88.43% is the
+trustworthy number and 72.39% was an `evaluate.py` artifact**. This fix
+aligns the two. (This is the same class of bug as §10 but on the opposite
+side — §10 was validation *under*-generating during training; this is the
+final evaluator *mis*-generating.)
+
+### 13.2 Stage 3 LR was 20x too small — the policy never moved
+
+The user correctly flagged the Stage 3 run as "not right." The log proves
+it: `kl=0.0000` at steps 1, 50, 100 — the policy literally never changed
+from the Stage-2 start. Cause: `STAGE3_LR=1e-7` with `STAGE3_STEPS=600`
+(and grad_accum 4 = 150 real updates) is far too little to move a 128M-param
+LoRA. The project's `main` branch ran Stage 3 at `LR 2e-6` / `3000 steps`,
+which actually trains. Restored `STAGE3_LR=2e-6` and set
+`STAGE3_STEPS=1500` (user-requested); `STAGE3_GROUP_SIZE` stays 8. The
+low-reward-variance skips the user saw at step 150 were a compound symptom
+of this dead LR plus §12's broken parser zeroing rewards — both now fixed.
+
+### 13.3 Stage 2 majority-class collapse — step-token loss weighting
+
+Even at 88% overall, the confusion matrix shows a real structural weakness:
+Stage 2 predicts "Exploit" (the majority class, n=526 train) ~136 times when
+gold=92, and rare classes 4/6/8 get **zero** correct — step macro-F1
+collapsed to 0.468. Root cause: Stage 2's SFT loss is HuggingFace's uniform
+average over the ENTIRE JSON target (~200-300 tokens, dominated by the
+free-text explanation); the "New step" canonical label is only ~10-20 of
+those tokens, so the classification signal is heavily diluted and the model
+minimizes loss via fluent prose + the majority default.
+
+Fix: `STAGE2_STEP_TOKEN_LOSS_WEIGHT=5.0` (config) upweights the loss on the
+"New step" value span — which `SFTDataset` already computes as `step_span`
+but never used for loss — via a manual next-token weighted cross-entropy in
+`forward_batch` (train path only; validation keeps the plain loss for
+comparability). Verified numerically in isolation: the coordinate-frame math
+(un-prefixed span → prefix-shifted → next-token-shifted indices) upweights
+exactly the two step-value tokens 5x and leaves explanation tokens at 1x,
+prompt/prefix tokens masked at 0; the resulting loss is finite, differs from
+uniform, and backprops cleanly. **Not yet validated by a real Stage 2
+retrain** — this changes the training objective, so it needs a real run to
+confirm it lifts the rare-class recall without hurting the majority class.
+
+### Recommended next steps (in order)
+1. `python eval/evaluate.py --model llm --adapter-dir ../checkpoints/stage2_qwen_lora`
+   with NO retrain — the eval fixes (§13.1) alone should lift the *reported*
+   Stage-2 numbers from 72% toward the ~88% Stage 2's own loop already sees.
+2. Retrain Stage 2 (`python training/stage2_sft_qwen.py`) with the
+   step-token weighting (§13.3) to attack the rare-class collapse, then
+   re-eval.
+3. Run Stage 3 (`python training/stage3_grpo_rl.py`) with the fixed LR
+   (§13.2) on top of the improved Stage 2.
