@@ -41,19 +41,19 @@ for _p in (_ROOT, _os.path.join(_ROOT, "core"), _os.path.join(_ROOT, "data_prep"
 
 from config import (
     INPUT_TRAIN_JSON, INPUT_TEST_JSON, QWEN_MODEL_NAME, GRAPH_PREFIX_TOKENS, GNN_OUT_DIM,
-    FUSION_HIDDEN, MCP_DECISION_THRESHOLD,
     LORA_R, LORA_ALPHA, LORA_DROPOUT,
     STAGE2_LR, STAGE2_EPOCHS, STAGE2_BATCH_SIZE, STAGE2_GRAD_ACCUM,
     STAGE2_VAL_SPLIT, STAGE2_EARLY_STOP_PATIENCE, STAGE2_GRAD_CLIP, STAGE2_WARMUP_RATIO,
+    STAGE2_WEIGHT_DECAY,
     STAGE1_CKPT, STAGE2_ADAPTER_DIR,
-    RANDOM_SEED, STEP_LABELS, MCP_LABELS, IDX2STEP, IDX2MCP, ROOT,
+    RANDOM_SEED, STEP_LABELS, MCP_LABELS, ROOT,
 )
 
 # Stage-2 consumes ONLY the raw 512-d GINE graph representation from the
 # frozen Stage-1 checkpoint. The private Stage-1 fusion/classifier vector is
 # never used by the prefix adapter.
 GRAPH_PREFIX_SRC_DIM = GNN_OUT_DIM
-from data_utils import load_from_input_json, _embed_texts, CONTEXT_COLUMNS, StepLabelNormalizer, extract_mcp_labels
+from data_utils import load_from_input_json, StepLabelNormalizer, extract_mcp_labels
 from graph_encoder import Stage1Classifier
 
 random.seed(RANDOM_SEED)
@@ -78,7 +78,7 @@ SYSTEM_PROMPT = (
 )
 
 
-def build_prompt(ex: dict, mask_hint: bool = False) -> str:
+def build_prompt(ex: dict) -> str:
     """
     Enhanced prompt building based on research from GTA and ReFT papers.
     Structured prompt with clear sections for better reasoning guidance.
@@ -88,9 +88,17 @@ def build_prompt(ex: dict, mask_hint: bool = False) -> str:
     # fields -- see CONTEXT_COLUMNS / EXTRA_OUTPUT_KEYS in data_utils.py and
     # build_input_json.py for why they were removed.
 
-    Args:
-        ex: Example dictionary with context and optional stage1_hint
-        mask_hint: If True, omit the Stage 1 hint to force learning from graph tokens
+    CLEANUP (architecture re-audit): this previously took a `mask_hint`
+    parameter and referenced an optional `ex["stage1_hint"]` text field
+    (produced by a `precompute_stage1_hints()` function elsewhere in this
+    file). That mechanism was fully dead: `precompute_stage1_hints()` was
+    never called from anywhere in the repo (confirmed by grep), so
+    `ex["stage1_hint"]` never existed on any real example, and this
+    function's body never actually read `mask_hint` or the hint field
+    regardless -- every prompt was identical no matter what was passed.
+    Removed both the dead parameter and the now-inapplicable docstring/
+    comments describing it, and removed `format_stage1_hint()` /
+    `precompute_stage1_hints()` themselves.
     """
     ctx = ex["context"]
     lines = [
@@ -104,62 +112,7 @@ def build_prompt(ex: dict, mask_hint: bool = False) -> str:
         "# Task",
         "Based on the machine and strategy above, determine the next step, the tools needed, and explain your reasoning.",
     ]
-    # Stage-1 classifier hint (optional -- set by precompute_stage1_hints()).
-    # WHY: the graph-prefix soft tokens already encode Stage 1's fused
-    # representation, but a 7B model with LoRA has no guarantee of reliably
-    # DECODING a specific classification decision out of 16 continuous
-    # vectors purely from language-modeling loss on ~1.5k rows. Spelling
-    # the classifier's own (possibly wrong) top prediction out as TEXT gives
-    # the model a floor roughly equal to Stage 1's accuracy for free, and
-    # lets it spend its capacity on: (a) rendering the exact canonical
-    # label string correctly, (b) writing a good explanation, (c) refining
-    # MCP tool selection, and (d) OVERRIDING the hint on the examples where
-    # the fuller strategy text makes the graph-only classifier's guess
-    # wrong. It is explicitly labeled as fallible so the model isn't
-    # trained to treat it as ground truth.
-    #
-    # HINT MASKING: During training, we randomly mask the hint (mask_hint=True)
-    # to force the model to learn from the graph prefix tokens directly.
-    # This prevents the model from simply copying the hint and ignoring the
-    # graph conditioning.
     return "\n".join(lines)
-
-
-def format_stage1_hint(step_label: str, mcp_labels: list) -> str:
-    tools = ", ".join(mcp_labels) if mcp_labels else "none confident"
-    return (
-        f"Classifier signal (a graph-only model's best guess, may be wrong -- "
-        f"verify against the strategy above and correct it if needed): "
-        f"most likely next step = \"{step_label}\"; likely tool(s) = {tools}."
-    )
-
-
-def precompute_stage1_hints(examples: list, stage1, device, dtype) -> None:
-    """
-    Runs the frozen Stage-1 classifier once over every example and attaches
-    ex["stage1_hint"] (a text string; see build_prompt / format_stage1_hint).
-    Mutates `examples` in place. One-time cost (~seconds for ~1.5k rows),
-    done once in main() before dataset/prompt construction so
-    __getitem__ doesn't need model access.
-    """
-    from torch_geometric.data import Batch as PyGBatch
-    stage1.eval()
-    with torch.no_grad():
-        for ex in examples:
-            graph = PyGBatch.from_data_list([ex["graph"]]).to(device)
-            field_embs = torch.tensor(
-                _embed_texts([ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]),
-                dtype=torch.float32,
-            ).unsqueeze(0).to(device)
-            edge_attr = getattr(graph, "edge_attr", None)
-            _, step_logits, mcp_logits = stage1.encode_and_predict(
-                graph.x, graph.edge_index, graph.batch, field_embs, edge_attr=edge_attr
-            )
-            step_pred = IDX2STEP[int(step_logits.argmax(-1).item())]
-            mcp_probs = torch.sigmoid(mcp_logits).squeeze(0)
-            mcp_pred = [IDX2MCP[i] for i in range(len(MCP_LABELS))
-                        if mcp_probs[i].item() >= MCP_DECISION_THRESHOLD]
-            ex["stage1_hint"] = format_stage1_hint(step_pred, mcp_pred)
 
 
 def build_target(ex: dict) -> str:
@@ -351,11 +304,10 @@ class GraphPrefixAdapter(nn.Module):
 # ---------------------------------------------------------------------------
 
 class SFTDataset(Dataset):
-    def __init__(self, examples: list, tokenizer, max_len: int = 1536, mask_hint_prob: float = 0.0, is_training: bool = True):
+    def __init__(self, examples: list, tokenizer, max_len: int = 1536, is_training: bool = True):
         self.examples = examples
         self.tok = tokenizer
         self.max_len = max_len
-        self.mask_hint_prob = mask_hint_prob
         self.is_training = is_training
 
     def __len__(self) -> int:
@@ -365,7 +317,7 @@ class SFTDataset(Dataset):
         ex = self.examples[idx]
         prompt_text = (
             f"<|system|>\n{SYSTEM_PROMPT}\n"
-            f"<|user|>\n{build_prompt(ex, mask_hint=(np.random.random() < self.mask_hint_prob) if self.is_training else True)}\n"
+            f"<|user|>\n{build_prompt(ex)}\n"
             f"<|assistant|>\n"
         )
         target_text = build_target(ex)
@@ -441,14 +393,10 @@ class SFTDataset(Dataset):
                 step_tok_end = min(len(prompt_ids) + found_end, self.max_len)
                 step_tok_start = min(step_tok_start, step_tok_end)
 
-        field_embs = _embed_texts(
-            [ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]
-        )
         return {
             "input_ids":  torch.tensor(input_ids),
             "labels":     torch.tensor(labels),
             "graph":      ex["graph"],          # torch_geometric Data (pre-built)
-            "field_embs": torch.tensor(field_embs, dtype=torch.float32),
             "step_span":  torch.tensor([step_tok_start, step_tok_end], dtype=torch.long),
         }
 
@@ -470,16 +418,15 @@ def collate_fn(batch: list, pad_id: int) -> tuple:
         attn[i, :L]      = 1
 
     graphs     = PyGBatch.from_data_list([b["graph"] for b in batch])
-    field_embs = torch.stack([b["field_embs"] for b in batch])
     step_spans = torch.stack([b["step_span"] for b in batch])  # (B, 2) = [start, end)
-    return input_ids, attn, labels, graphs, field_embs, step_spans
+    return input_ids, attn, labels, graphs, step_spans
 
 
 # ---------------------------------------------------------------------------
 # Single forward pass (shared by train and val loops)
 # ---------------------------------------------------------------------------
 
-def forward_batch(input_ids, attn, labels, graphs, field_embs,
+def forward_batch(input_ids, attn, labels, graphs,
                   model, stage1, adapter, embed_layer, device, dtype, return_logits=False):
     """
     Prepend graph prefix tokens to the token embeddings, run the model,
@@ -492,12 +439,19 @@ def forward_batch(input_ids, attn, labels, graphs, field_embs,
     Stage 1 is frozen. Only its raw GINE encoder output (512-d) is
     consumed here; the private Stage-1 fusion and classifier heads are not
     part of the Stage-2/3 graph-conditioning interface.
+
+    CLEANUP (architecture re-audit): this used to also take a `field_embs`
+    tensor (a BGE embedding of the New-strategy/Strategy-explanation text,
+    computed per example in SFTDataset.__getitem__) and thread it through
+    every call site (collate_fn, run_validation, the train/test loops) --
+    but the body here never consumed it beyond `.to(device)`, so it was
+    computing and moving a real embedding-model output every batch for zero
+    effect on the forward pass. Removed end-to-end.
     """
     input_ids = input_ids.to(device)
     attn      = attn.to(device)
     labels    = labels.to(device)
     graphs    = graphs.to(device)
-    field_embs = field_embs.to(device)
 
     with torch.no_grad():
         edge_attr = getattr(graphs, 'edge_attr', None)
@@ -590,10 +544,10 @@ def run_validation(val_loader, model, stage1, adapter, embed_layer, device, dtyp
     obj_parser = build_obj_parser()
 
     with torch.no_grad():
-        for batch_idx, (input_ids, attn, labels, graphs, field_embs, _step_spans) in enumerate(val_loader):
+        for batch_idx, (input_ids, attn, labels, graphs, _step_spans) in enumerate(val_loader):
             # 1) Normal validation loss on the complete prompt+target sequence.
             loss = forward_batch(
-                input_ids, attn, labels, graphs, field_embs,
+                input_ids, attn, labels, graphs,
                 model, stage1, adapter, embed_layer, device, dtype, return_logits=False,
             )
             total_loss += loss.item()
@@ -604,7 +558,6 @@ def run_validation(val_loader, model, stage1, adapter, embed_layer, device, dtyp
             input_ids = input_ids.to(device)
             labels = labels.to(device)
             graphs = graphs.to(device)
-            field_embs = field_embs.to(device)
 
             B = input_ids.shape[0]
             prompt_lens = []
@@ -792,8 +745,8 @@ def main():
     # copying Stage 1 predictions. This is essential for Stage 2 to actually
     # improve over Stage 1 performance.
 
-    train_ds = SFTDataset(train_examples, tokenizer, mask_hint_prob=float(os.environ.get("STAGE2_HINT_MASK_PROB", "0.5")), is_training=True)
-    val_ds   = SFTDataset(val_examples,   tokenizer, mask_hint_prob=1.0, is_training=False)
+    train_ds = SFTDataset(train_examples, tokenizer, is_training=True)
+    val_ds   = SFTDataset(val_examples,   tokenizer, is_training=False)
 
     # ── Class-balanced sampling for training ──────────────────────────────
     # step_label support is heavily skewed (e.g. "Exploit the selected
@@ -851,8 +804,16 @@ def main():
     # graph-to-prefix projector while the 14B base is frozen.  The previous
     # 1e-5 setting was capable of producing a non-finite update in this
     # manual bf16 training loop.
-    stage2_lr = float(os.environ.get("STAGE2_SAFE_LR", "2e-6"))
-    stage2_wd = float(os.environ.get("STAGE2_WEIGHT_DECAY", "1e-4"))
+    # CLEANUP (architecture re-audit): config.py's STAGE2_LR/STAGE2_WEIGHT_DECAY
+    # were imported (or, for STAGE2_LR, imported but silently ignored) in
+    # favor of these two independently hardcoded literal defaults -- editing
+    # config.py had zero effect on the actual LR/weight-decay used. config.py
+    # has been updated to the values actually proven in practice (2e-6 /
+    # 1e-4, matching what was hardcoded here), and both env vars now fall
+    # back to it, restoring config.py as the real source of truth with no
+    # change to today's behavior.
+    stage2_lr = float(os.environ.get("STAGE2_SAFE_LR", str(STAGE2_LR)))
+    stage2_wd = float(os.environ.get("STAGE2_SAFE_WEIGHT_DECAY", str(STAGE2_WEIGHT_DECAY)))
     opt = torch.optim.AdamW(
         trainable_params,
         lr=stage2_lr,
@@ -900,10 +861,10 @@ def main():
         accum_count = 0
         opt.zero_grad(set_to_none=True)
 
-        for i, (input_ids, attn, labels, graphs, field_embs, _step_spans) in enumerate(train_loader):
+        for i, (input_ids, attn, labels, graphs, _step_spans) in enumerate(train_loader):
             try:
                 loss = forward_batch(
-                    input_ids, attn, labels, graphs, field_embs,
+                    input_ids, attn, labels, graphs,
                     model, stage1, adapter, embed_layer,
                     device, dtype,
                 )
@@ -1079,11 +1040,10 @@ def main():
     csv_rows = []
     
     with torch.no_grad():
-        for input_ids, attn, labels, graphs, field_embs, _step_spans in test_loader:
+        for input_ids, attn, labels, graphs, _step_spans in test_loader:
             input_ids = input_ids.to(device)
             attn = attn.to(device)
             graphs = graphs.to(device)
-            field_embs = field_embs.to(device)
 
             # Fused Stage-1 representation (matching training -- see
             # forward_batch / encode_and_predict). Was an ad hoc
@@ -1168,7 +1128,7 @@ def main():
                     pred_expl = str(obj.get("Step explanation", "")).strip()
                     gold_expl = ex.get("gold_step_explanation", "")
 
-                    prompt = build_prompt(ex, mask_hint=True)
+                    prompt = build_prompt(ex)
                     csv_rows.append({
                         "machine": ex.get("machine", ""),
                         "new_strategy": ex.get("new strategy", ""),

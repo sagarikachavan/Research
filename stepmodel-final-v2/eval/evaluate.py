@@ -392,7 +392,18 @@ def eval_llm(adapter_dir: str, threshold_override=None,
 
     from config import GRAPH_PREFIX_TOKENS
     llm_hidden = llm_model.config.hidden_size
-    adapter = GraphPrefixAdapter(GRAPH_PREFIX_SRC_DIM, llm_hidden).to(device).to(dtype)
+    # FIX (architecture re-audit): this used to build the adapter directly in
+    # bf16 (`.to(dtype)`) before loading its checkpoint. Training deliberately
+    # keeps the adapter itself in fp32 throughout and only casts its OUTPUT to
+    # bf16 right before concatenation (see stage2_sft_qwen.py's forward_batch
+    # -- an explicit comment there documents this as the fix for
+    # "intermittent NaNs" seen when the adapter was trained directly in
+    # bf16). Loading fp32-trained weights into a module whose parameters are
+    # already bf16 silently downcasts them in place, so evaluation was
+    # running the adapter's LayerNorms/GELUs/matmuls in a precision it was
+    # deliberately trained to avoid. Keep the adapter in fp32 and only cast
+    # its output below, exactly matching training's forward_batch.
+    adapter = GraphPrefixAdapter(GRAPH_PREFIX_SRC_DIM, llm_hidden).to(device)
     adapter_ckpt = os.path.join(adapter_dir, "graph_adapter.pt")
     if os.path.exists(adapter_ckpt):
         adapter.load_state_dict(torch.load(adapter_ckpt, map_location=device))
@@ -428,25 +439,33 @@ def eval_llm(adapter_dir: str, threshold_override=None,
         with torch.no_grad():
             pyg_batch = PyGBatch.from_data_list([ex["graph"]]).to(device)
             edge_attr = getattr(pyg_batch, 'edge_attr', None)
-            # Stage 2/3 were trained from the classification-calibrated fused
-            # Stage-1 representation, not the raw 512-d graph encoder output.
-            # Reproduce that exact interface at evaluation time.
-            context_texts = [
-                ex["context"].get("New strategy", "") or "empty",
-                ex["context"].get("Strategy explanation", "") or "empty",
-            ]
-            with torch.no_grad():
-                graph_h = stage1.graph_encoder(
-                    pyg_batch.x, pyg_batch.edge_index, pyg_batch.batch,
-                    edge_attr=edge_attr
-                )
+            # Stage 2/3 graph conditioning uses ONLY the raw 512-d GINE
+            # representation (see stage2_sft_qwen.py's forward_batch comment
+            # and module docstring) -- the private Stage-1 fusion/classifier
+            # vector is never exposed to the LLM. Reproduce that exact
+            # interface at evaluation time.
+            #
+            # CLEANUP (architecture re-audit): removed a `context_texts`
+            # variable and a comment claiming Stage 2/3 were trained from a
+            # "classification-calibrated fused Stage-1 representation" --
+            # both were dead/stale. context_texts was computed and never
+            # used, and the code beneath it has always called
+            # stage1.graph_encoder(...) (the raw GINE output), matching
+            # training exactly; the comment described a different, earlier
+            # design that isn't what this code (or training) actually does.
+            graph_h = stage1.graph_encoder(
+                pyg_batch.x, pyg_batch.edge_index, pyg_batch.batch,
+                edge_attr=edge_attr
+            )
             expected_dim = adapter.proj[0].in_features
             if graph_h.shape[-1] != expected_dim:
                 raise RuntimeError(
                     f"Evaluation graph-prefix dimension mismatch: Stage-1 GINE produced {graph_h.shape[-1]} dims, "
                     f"but the adapter expects {expected_dim}."
                 )
-            prefix_embeds = adapter(graph_h.to(dtype))
+            # fp32 forward through the adapter (matching training's
+            # forward_batch), cast only the output to the model's dtype.
+            prefix_embeds = adapter(graph_h.float()).to(dtype)
             ids = tokenizer(
                 full_prompt,
                 return_tensors="pt",
@@ -629,8 +648,10 @@ def eval_llm(adapter_dir: str, threshold_override=None,
 
     # ── Classification report ─────────────────────────────────────────────
     llm_model_tag = os.path.basename(os.path.normpath(adapter_dir)) or "llm"
-    report_classification(step_preds_arr, step_gold_arr, mcp_preds_arr, mcp_gold_arr,
-                           model_tag=llm_model_tag, mcp_thresholds=use_thresholds)
+    metrics_summary = report_classification(
+        step_preds_arr, step_gold_arr, mcp_preds_arr, mcp_gold_arr,
+        model_tag=llm_model_tag, mcp_thresholds=use_thresholds,
+    )
 
     # ── Explanation quality report (LLM Judge) ────────────────────────────────
     print("\n\n" + "=" * 60)
@@ -639,8 +660,17 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     if use_llm_judge:
         print("Computing reference-based explanation metrics (BERTScore/BLEURT when installed)...")
         ref_metrics = compute_reference_explanation_metrics(pred_explanations, gold_explanations)
-        print(f"  BERTScore F1 : {ref_metrics.get('bertscore_f1')}")
+        print(f"  BERTScore F1 : {ref_metrics.get('bertscore_f1')}  "
+              f"(secondary signal -- semantic similarity only, not factual "
+              f"correctness; see the LLM judge below for that)")
         print(f"  BLEURT       : {ref_metrics.get('bleurt')}")
+        # Persist alongside the step/MCP summary so BERTScore/BLEURT are
+        # comparable across runs without re-parsing console output, same as
+        # every other metric in this file.
+        metrics_summary["explanation_reference_metrics"] = ref_metrics
+        out_path = os.path.join(ROOT, "output", f"eval_metrics_{llm_model_tag}.json")
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(metrics_summary, f, indent=2)
         print("Using LLM to evaluate explanation quality...")
         # Run LLM judge evaluation
         llm_results = compute_explanation_metrics_with_llm_judge(
@@ -773,6 +803,12 @@ def report_classification(
     # gold tools were omitted and how many non-gold tools were added.
     missing_counts = []
     extra_counts = []
+    missing_rates = []  # per-row: |missing| / |gold| -- "what fraction of the
+                         # tools we needed did we forget", only defined for
+                         # rows with a non-empty gold set.
+    extra_rates = []    # per-row: |extra| / |predicted| -- "what fraction of
+                         # what we predicted was wrong", only defined for
+                         # rows where we predicted at least one tool.
     missing_total = 0
     extra_total = 0
     exact_match_count = 0
@@ -783,11 +819,17 @@ def report_classification(
         extra = pred_set - gold_set
         missing_counts.append(len(missing))
         extra_counts.append(len(extra))
+        if gold_set:
+            missing_rates.append(len(missing) / len(gold_set))
+        if pred_set:
+            extra_rates.append(len(extra) / len(pred_set))
         missing_total += len(missing)
         extra_total += len(extra)
         exact_match_count += int(pred_set == gold_set)
     avg_missing_tools = float(np.mean(missing_counts)) if missing_counts else 0.0
     avg_extra_tools = float(np.mean(extra_counts)) if extra_counts else 0.0
+    missing_tool_rate = float(np.mean(missing_rates)) if missing_rates else 0.0
+    extra_tool_rate = float(np.mean(extra_rates)) if extra_rates else 0.0
     exact_match_rate = float(exact_match_count / len(mcp_preds)) if len(mcp_preds) else 0.0
 
     # ── STEP metrics ──
@@ -839,7 +881,11 @@ def report_classification(
     print(f"  Subset (exact-match) accuracy : {subset_acc:.4f}")
     print(f"  Exact MCP set match rate      : {exact_match_rate:.4f}")
     print(f"  Avg missing gold tools / row  : {avg_missing_tools:.3f}  (total={missing_total})")
+    print(f"  Missing-tool rate             : {missing_tool_rate:.4f}  "
+          f"(mean of |missing|/|gold| per row)")
     print(f"  Avg extra predicted tools/row : {avg_extra_tools:.3f}  (total={extra_total})")
+    print(f"  Extra-tool rate               : {extra_tool_rate:.4f}  "
+          f"(mean of |extra|/|predicted| per row)")
     print(f"  Micro F1  (pooled over matrix): {micro_f1:.4f}")
     print(f"  Macro F1  (per-label avg)     : {macro_f1:.4f}")
     print(f"  Samples F1 (per-row avg, ***paper-comparable Micro F1***): {samples_f1:.4f}")
@@ -892,6 +938,8 @@ def report_classification(
             "exact_match_rate": exact_match_rate,
             "avg_missing_tools": avg_missing_tools,
             "avg_extra_tools": avg_extra_tools,
+            "missing_tool_rate": missing_tool_rate,
+            "extra_tool_rate": extra_tool_rate,
             "total_missing_tools": int(missing_total),
             "total_extra_tools": int(extra_total),
             "micro_f1": micro_f1,

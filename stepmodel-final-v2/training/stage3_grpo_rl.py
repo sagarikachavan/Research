@@ -24,20 +24,29 @@ The custom loop is not complicated:
      add a KL penalty against a frozen reference copy of Stage 2.
   6. Gradient update on LoRA weights + GraphPrefixAdapter weights.
 
-Reward composition:
-  r = 0.10 × format_ok          — valid JSON with all 3 required keys
-    + 0.30 × step_similarity    — embedding similarity between predicted and gold step
-    + 0.30 × mcp_set_F1         — set F1 between predicted and gold tools
-    + 0.30 × explanation_score  — LLM judge correctness score (0.0-1.0)
-                                   using GPT-4o to evaluate if explanation
-                                   conveys the same meaning as gold explanation.
-                                   Uses caching to avoid repeated API calls.
+Reward composition (see compute_reward() below for the exact, current weights):
+  r = 0.01 × format_ok          — valid JSON with all 3 required keys
+    + 0.33 × step_r              — exact match on the normalized predicted step
+    + 0.33 × mcp_r                — Jaccard set-F1 between predicted and gold tools
+    + 0.33 × exp_r                — deterministic explanation-quality score:
+                                     0.60 * BGE cosine similarity
+                                   + 0.20 * lexical (difflib) ratio
+                                   + 0.10 * step-keyword support
+                                   + 0.10 * predicted/gold tool-set overlap
+                                   (see _deterministic_explanation_score() below).
 
-WHY LLM JUDGE FOR EXPLANATION:
-  - Teacher-style evaluation focusing on semantic correctness
-  - Captures whether the explanation conveys the same meaning, not just lexical overlap
-  - More robust to paraphrasing than BERTScore/BLEU/ROUGE
-  - Caching mechanism makes it feasible for training
+WHY A DETERMINISTIC SCORE FOR EXPLANATION, NOT THE TEST-TIME LLM JUDGE:
+  - The project's actual test-time explanation metric is core/llm_judge.py's
+    4-dimension rubric gate (a separate Qwen model, used only by eval/evaluate.py).
+    An earlier version of this file called that judge in-loop during RL (a GPT-4o
+    call was never implemented here; the removed code called a local Qwen judge).
+  - Using the same noisy, slow evaluator as both the RL reward AND the reported
+    test metric risks the policy learning to game the judge's specific quirks
+    rather than the underlying explanation quality (reward hacking against your
+    own eval). The current deterministic proxy is cheap (reuses the project's
+    frozen BGE encoder, no extra model forward pass) and reference-aware, and
+    is deliberately kept separate from the test-time judge -- see compute_reward
+    below and its docstring.
 
 -----------------------------------------------------------------------------
 FIX (this revision): completion-slicing bug when generating with inputs_embeds
@@ -58,10 +67,8 @@ per-row trailing pad tokens (rows are padded to a common length because
 import json
 import os
 import random
-import hashlib
 import csv
 import shutil
-from functools import lru_cache
 
 import numpy as np
 import torch
@@ -92,6 +99,8 @@ from config import (
     STAGE3_STEPS,
     STAGE3_KL_COEF,
     STAGE3_PPO_CLIP,
+    STAGE3_USE_CLIP_HIGHER,
+    STAGE3_CLIP_HIGH,
     STAGE3_GRAD_ACCUM,
     STAGE3_GRAD_CLIP,
     STAGE3_DUAL_CLIP_COEF,
@@ -116,165 +125,20 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed_all(RANDOM_SEED)
 
 # ---------------------------------------------------------------------------
-# Value function for baseline reduction
-# ---------------------------------------------------------------------------
-
-class ValueHead(nn.Module):
-    """
-    Value function head for computing state value estimates.
-    Used in GRPO to reduce variance by subtracting a learned baseline.
-    """
-    def __init__(self, hidden_size: int):
-        super().__init__()
-        self.value_net = nn.Sequential(
-            nn.Linear(hidden_size, 128),
-            nn.ReLU(),
-            nn.Linear(128, 1)
-        )
-
-    def forward(self, hidden_states: torch.Tensor) -> torch.Tensor:
-        """
-        Args:
-            hidden_states: (B, seq_len, hidden_size) or (B, hidden_size)
-        Returns:
-            value: (B, 1) scalar value estimate
-        """
-        if hidden_states.dim() == 3:
-            # Pool over sequence dimension (mean pooling)
-            hidden_states = hidden_states.mean(dim=1)
-        return self.value_net(hidden_states)
-
-# ---------------------------------------------------------------------------
-# Explanation quality: LLM judge with caching
-# ---------------------------------------------------------------------------
-
-# LLM judge system prompt for reward computation
-LLM_JUDGE_SYSTEM_PROMPT = """You are an expert penetration-testing instructor evaluating student answers in a pentesting planning system.
-
-You will be given:
-1. A predicted step explanation (what the model/student generated)
-2. A ground truth step explanation (what a human expert wrote)
-
-Your task is to evaluate whether the predicted explanation conveys the SAME MEANING as the ground truth explanation, like a teacher grading a student's answer.
-
-Evaluation Criteria:
-- Does the predicted explanation convey the same core reasoning and justification as the ground truth?
-- Are the technical concepts and logic equivalent, even if worded differently?
-- Would this explanation be acceptable as a correct answer in a classroom setting?
-
-Scoring:
-- Return a correctness score between 0.0 and 1.0
-- 1.0 = Perfect match - conveys exactly the same meaning and reasoning
-- 0.8-0.9 = Very good - minor differences in wording but same core meaning
-- 0.6-0.7 = Good - mostly correct with some minor omissions or slight inaccuracies
-- 0.4-0.5 = Partial - captures some key points but misses important aspects
-- 0.2-0.3 = Poor - misses the main point or has significant errors
-- 0.0-0.1 = Very poor - completely wrong or irrelevant
-
-Respond in JSON format:
-{
-    "correctness_score": <float 0.0-1.0>,
-    "justification": "<brief explanation of why this score was given>",
-    "is_correct": <boolean - true if score >= 0.6, false otherwise>
-}"""
-
-
-def _get_cache_key(pred_expl: str, gold_expl: str) -> str:
-    """Generate a cache key from the explanation pair."""
-    combined = f"{pred_expl}|||{gold_expl}"
-    return hashlib.md5(combined.encode()).hexdigest()
-
-
-# Global reference to the loaded LLM judge model (separate from training model)
-_llm_judge_model = None
-_llm_judge_tokenizer = None
-_llm_judge_device = None
-
-def set_llm_judge_model(model, tokenizer, device):
-    """Set the LLM judge model reference (separate from training model)."""
-    global _llm_judge_model, _llm_judge_tokenizer, _llm_judge_device
-    _llm_judge_model = model
-    _llm_judge_tokenizer = tokenizer
-    _llm_judge_device = device
-
-@lru_cache(maxsize=1000)
-def _explanation_llm_judge_cached(pred_expl: str, gold_expl: str) -> float:
-    """
-    LLM judge evaluation using separate QWEN model for explanation quality assessment.
-
-    Returns correctness score (0.0-1.0) using cached results when available.
-    Uses a separate model from the one being fine-tuned to avoid bias.
-    """
-    if not pred_expl.strip() or not gold_expl.strip():
-        return 0.0
-
-    # If LLM judge model is not available, use heuristic fallback
-    if _llm_judge_model is None or _llm_judge_tokenizer is None:
-        expl_len = len(pred_expl)
-        if expl_len < 20:
-            return 0.3
-        elif expl_len < 50:
-            return 0.5
-        elif expl_len < 100:
-            return 0.7
-        else:
-            return 0.8
-
-    try:
-        judge_prompt = f"""Evaluate whether the predicted explanation conveys the same meaning as the ground truth explanation.
-
-PREDICTED EXPLANATION: {pred_expl}
-
-GROUND TRUTH EXPLANATION: {gold_expl}
-
-Rate the similarity on a scale of 0.0 to 1.0 where:
-- 0.0: Completely different meaning
-- 0.5: Partially similar
-- 1.0: Identical or very similar meaning
-
-Respond with just the number (e.g., 0.7)."""
-
-        inputs = _llm_judge_tokenizer(
-            judge_prompt,
-            return_tensors="pt",
-            truncation=True,
-            max_length=512
-        ).to(_llm_judge_device)
-
-        with torch.no_grad():
-            outputs = _llm_judge_model.generate(
-                **inputs,
-                max_new_tokens=10,
-                do_sample=False,
-                pad_token_id=_llm_judge_tokenizer.pad_token_id
-            )
-
-        response = _llm_judge_tokenizer.decode(outputs[0], skip_special_tokens=True)
-
-        # Extract the score from the response
-        import re
-        score_match = re.search(r'(\d+\.?\d*)', response)
-        if score_match:
-            score = float(score_match.group(1))
-            return min(max(score, 0.0), 1.0)  # Clamp to [0, 1]
-        else:
-            return 0.5  # Fallback if parsing fails
-
-    except Exception as e:
-        print(f"[LLM Judge Error] LLM judge evaluation failed: {e}, using heuristic fallback")
-        expl_len = len(pred_expl)
-        if expl_len < 20:
-            return 0.3
-        elif expl_len < 50:
-            return 0.5
-        elif expl_len < 100:
-            return 0.7
-        else:
-            return 0.8
-
-
-# ---------------------------------------------------------------------------
 # Reward function
+#
+# CLEANUP (architecture re-audit): removed a dead `ValueHead` class (never
+# instantiated anywhere -- advantages here are GRPO's group-relative z-score,
+# not a learned value baseline) and a dead in-loop LLM-judge path
+# (`LLM_JUDGE_SYSTEM_PROMPT`, `_get_cache_key`, `set_llm_judge_model`,
+# `_explanation_llm_judge_cached`): `set_llm_judge_model` was never called
+# from anywhere in the repo, so `_llm_judge_model`/`_llm_judge_tokenizer` were
+# always None and every call would have silently fallen through to the
+# length-bucket heuristic branch, not an actual judge call -- confirmed dead,
+# not merely unused. The module docstring above previously described this
+# reward component as "GPT-4o" LLM-judge scoring, which was never true of any
+# code in this file; the actual, live explanation reward is
+# `_deterministic_explanation_score()` below.
 # ---------------------------------------------------------------------------
 
 def _parse_completion(text: str) -> dict | None:
@@ -610,6 +474,17 @@ def evaluate_policy_on_val(policy, adapter, stage1, embed_layer, tokenizer,
     tracked separately so the caller can require step performance not to
     regress before promoting a checkpoint (see the model-selection block in
     `main()`).
+
+    ALSO returns the detailed Step/MCP metric suite requested for periodic
+    Stage-3 validation (not just the end-of-run test report): step_micro_f1
+    (mathematically identical to step exact-match accuracy for single-label
+    classification -- sklearn's average="micro" F1 over a single-label task
+    reduces to accuracy, since every example contributes exactly one
+    predicted and one gold label from the same space), mcp_exact_match,
+    mcp_micro_f1/precision/recall (pooled TP/FP/FN across the whole sample,
+    matching eval/evaluate.py's definition), and avg_missing/extra_mcp_tools.
+    All computed from the same greedy-decoded completions already generated
+    for the reward above -- no extra generation calls.
     """
     was_training = policy.training
     policy.eval()
@@ -620,6 +495,10 @@ def evaluate_policy_on_val(policy, adapter, stage1, embed_layer, tokenizer,
     step_exact = []
     mcp_jaccard = []
     mcp_pass = []
+    mcp_exact = []
+    missing_counts = []
+    extra_counts = []
+    mcp_tp = mcp_fp = mcp_fn = 0
     with torch.no_grad():
         for ex in sample:
             gold = {
@@ -660,12 +539,42 @@ def evaluate_policy_on_val(policy, adapter, stage1, embed_layer, tokenizer,
             mcp_jaccard.append(comp["mcp"])
             mcp_pass.append(1.0 if comp["mcp"] >= 0.5 else 0.0)
 
+            # Detailed MCP tool-set breakdown, parsed the same way
+            # compute_reward's own MCP scoring does (extract_mcp_labels on
+            # the parsed "MCP_tasks" object) so this never drifts from the
+            # reward's own notion of "predicted tools".
+            obj = _parse_completion(completion_text)
+            mcp_val = obj.get("MCP_tasks", {}) if obj else {}
+            pred_mcp_set = set(extract_mcp_labels(str(mcp_val))) if isinstance(mcp_val, dict) else set()
+            gold_mcp_set = set(gold["mcp_labels"])
+            missing = gold_mcp_set - pred_mcp_set
+            extra = pred_mcp_set - gold_mcp_set
+            missing_counts.append(len(missing))
+            extra_counts.append(len(extra))
+            mcp_exact.append(1.0 if pred_mcp_set == gold_mcp_set else 0.0)
+            mcp_tp += len(pred_mcp_set & gold_mcp_set)
+            mcp_fp += len(extra)
+            mcp_fn += len(missing)
+
     if was_training:
         policy.train()
+    mcp_micro_precision = mcp_tp / max(1, mcp_tp + mcp_fp)
+    mcp_micro_recall = mcp_tp / max(1, mcp_tp + mcp_fn)
+    mcp_micro_f1 = (
+        2 * mcp_micro_precision * mcp_micro_recall / max(1e-9, mcp_micro_precision + mcp_micro_recall)
+        if (mcp_micro_precision + mcp_micro_recall) > 0 else 0.0
+    )
     return {**{k: (float(np.mean(v)) if v else 0.0) for k, v in components.items()},
             "step_exact": float(np.mean(step_exact)) if step_exact else 0.0,
+            "step_micro_f1": float(np.mean(step_exact)) if step_exact else 0.0,
             "mcp_jaccard": float(np.mean(mcp_jaccard)) if mcp_jaccard else 0.0,
-            "mcp_pass": float(np.mean(mcp_pass)) if mcp_pass else 0.0}
+            "mcp_pass": float(np.mean(mcp_pass)) if mcp_pass else 0.0,
+            "mcp_exact_match": float(np.mean(mcp_exact)) if mcp_exact else 0.0,
+            "mcp_micro_f1": float(mcp_micro_f1),
+            "mcp_micro_precision": float(mcp_micro_precision),
+            "mcp_micro_recall": float(mcp_micro_recall),
+            "avg_missing_mcp_tools": float(np.mean(missing_counts)) if missing_counts else 0.0,
+            "avg_extra_mcp_tools": float(np.mean(extra_counts)) if extra_counts else 0.0}
 
 
 def _save_policy_snapshot(policy, adapter, value_head, tokenizer, out_dir):
@@ -710,16 +619,43 @@ def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     dtype = torch.bfloat16 if device == "cuda" else torch.float32
 
-    # These are deliberately conservative and can be overridden without
-    # editing config.py.  They are safer for the already-strong Stage-2 model
-    # than the previous 8e-7 / 1600-step configuration.
-    G = int(os.environ.get("STAGE3_SAFE_GROUP_SIZE", "8"))
-    SAFE_LR = float(os.environ.get("STAGE3_SAFE_LR", "1.0e-7"))
-    SAFE_STEPS = int(os.environ.get("STAGE3_SAFE_STEPS", "600"))
-    SAFE_KL = float(os.environ.get("STAGE3_SAFE_KL", "0.08"))
-    SAFE_CLIP = float(os.environ.get("STAGE3_SAFE_CLIP", "0.20"))
-    SAFE_ACCUM = int(os.environ.get("STAGE3_SAFE_GRAD_ACCUM", "4"))
-    SAFE_PATIENCE = int(os.environ.get("STAGE3_SAFE_PATIENCE", "2"))
+    # These CAN be overridden per-run via env vars without editing config.py,
+    # but the fallback default (when no env var is set) now comes from
+    # config.py's corresponding STAGE3_* constant instead of an independently
+    # hardcoded literal -- architecture re-audit found all ten STAGE3_*/GRPO
+    # constants in config.py were imported above but silently never read
+    # again, so tuning config.py had zero effect on a real run. This restores
+    # config.py as the actual source of truth with NO change to today's
+    # values (every default below matches what was already hardcoded here,
+    # except SAFE_GRAD_CLIP/SAFE_DUAL_CLIP/SAFE_KL_HARD_CAP -- see below).
+    G = int(os.environ.get("STAGE3_SAFE_GROUP_SIZE", str(STAGE3_GROUP_SIZE)))
+    SAFE_LR = float(os.environ.get("STAGE3_SAFE_LR", str(STAGE3_LR)))
+    SAFE_STEPS = int(os.environ.get("STAGE3_SAFE_STEPS", str(STAGE3_STEPS)))
+    SAFE_KL = float(os.environ.get("STAGE3_SAFE_KL", str(STAGE3_KL_COEF)))
+    SAFE_CLIP = float(os.environ.get("STAGE3_SAFE_CLIP", str(STAGE3_PPO_CLIP)))
+    # DAPO Clip-Higher (see config.py's STAGE3_USE_CLIP_HIGHER comment): an
+    # asymmetric upper PPO clip bound, wider than SAFE_CLIP, to avoid
+    # prematurely capping the update for a completion whose probability
+    # should increase a lot. Falls back to SAFE_CLIP (symmetric clipping)
+    # when disabled.
+    SAFE_USE_CLIP_HIGHER = os.environ.get(
+        "STAGE3_SAFE_USE_CLIP_HIGHER", str(STAGE3_USE_CLIP_HIGHER)
+    ).lower() in ("1", "true", "yes")
+    SAFE_CLIP_HIGH = float(os.environ.get("STAGE3_SAFE_CLIP_HIGH", str(STAGE3_CLIP_HIGH)))
+    SAFE_ACCUM = int(os.environ.get("STAGE3_SAFE_GRAD_ACCUM", str(STAGE3_GRAD_ACCUM)))
+    SAFE_PATIENCE = int(os.environ.get("STAGE3_SAFE_PATIENCE", str(STAGE3_EARLY_STOP_PATIENCE)))
+    # Grad-norm clip: config.py had drifted to 1.0 while the training loop
+    # below hardcoded 0.5 -- config.py's value is now corrected to 0.5 (the
+    # value actually exercised by every real run so far), so this env-var
+    # override is truly optional rather than silently ignored either way.
+    SAFE_GRAD_CLIP = float(os.environ.get("STAGE3_SAFE_GRAD_CLIP_NORM", str(STAGE3_GRAD_CLIP)))
+    # Dual-clip PPO coefficient and per-micro-batch KL hard cap: config.py
+    # documents both as the fix for a real observed pg_loss/KL explosion (see
+    # the STAGE3_DUAL_CLIP_COEF/STAGE3_KL_HARD_CAP comments there) but neither
+    # was actually wired into the loss below until this pass -- see the PPO
+    # loss and KL-cap sections further down.
+    SAFE_DUAL_CLIP = float(os.environ.get("STAGE3_SAFE_DUAL_CLIP_COEF", str(STAGE3_DUAL_CLIP_COEF)))
+    SAFE_KL_HARD_CAP = float(os.environ.get("STAGE3_SAFE_KL_HARD_CAP", str(STAGE3_KL_HARD_CAP)))
     EVAL_EVERY = int(os.environ.get("STAGE3_SAFE_EVAL_EVERY", "200"))
     VAL_MAX = int(os.environ.get("STAGE3_SAFE_VAL_MAX", "239"))
     MAX_NEW_TOKENS = int(os.environ.get("STAGE3_SAFE_MAX_NEW_TOKENS", "260"))
@@ -731,9 +667,13 @@ def main():
     print(f"[Stage 3] Total steps    : {SAFE_STEPS}")
     print(f"[Stage 3] Group size (G) : {G}")
     print(f"[Stage 3] KL coef        : {SAFE_KL}")
-    print(f"[Stage 3] PPO clip eps   : {SAFE_CLIP}")
+    print(f"[Stage 3] PPO clip eps   : {SAFE_CLIP}"
+          + (f" (clip-higher: upper={SAFE_CLIP_HIGH})" if SAFE_USE_CLIP_HIGHER else " (symmetric)"))
     print(f"[Stage 3] LR             : {SAFE_LR:.2e}")
     print(f"[Stage 3] Grad accum     : {SAFE_ACCUM}")
+    print(f"[Stage 3] Grad clip norm : {SAFE_GRAD_CLIP}")
+    print(f"[Stage 3] Dual-clip coef : {SAFE_DUAL_CLIP}")
+    print(f"[Stage 3] KL hard cap    : {SAFE_KL_HARD_CAP}")
     print(f"[Stage 3] Train graph adapter during RL: {TRAIN_ADAPTER}")
     print(f"[Stage 3] Stage-2 supervised anchor weight: {SFT_ANCHOR:.2f}")
 
@@ -847,6 +787,10 @@ def main():
     baseline_score = (baseline_step + baseline_mcp + baseline_exp) / 3.0
     print(f"[Stage 3] Stage-2 baseline: task={baseline_score:.4f} | "
           f"step={baseline_step:.4f} | mcpJ={baseline_mcp:.4f} | exp={baseline_exp:.4f}")
+    print(f"[Stage 3] Stage-2 baseline (detailed): step_microF1={baseline['step_micro_f1']:.4f} | "
+          f"mcp_exact={baseline['mcp_exact_match']:.4f} | mcp_microF1={baseline['mcp_micro_f1']:.4f} | "
+          f"mcp_P={baseline['mcp_micro_precision']:.4f} | mcp_R={baseline['mcp_micro_recall']:.4f} | "
+          f"avg_missing={baseline['avg_missing_mcp_tools']:.3f} | avg_extra={baseline['avg_extra_mcp_tools']:.3f}")
 
     best_score = baseline_score
     best_step_metric = baseline_step
@@ -992,10 +936,30 @@ def main():
             # Correct PPO ratio: current policy / rollout (old) policy.
             log_ratio = torch.clamp(new_lp - old_lp, -4.0, 4.0)
             ratio = torch.exp(log_ratio)
-            clipped_ratio = torch.clamp(ratio, 1.0 - SAFE_CLIP, 1.0 + SAFE_CLIP)
+            # DAPO Clip-Higher (see config.py's STAGE3_USE_CLIP_HIGHER
+            # comment): widen only the upper clip bound so a completion
+            # whose probability should increase a lot isn't prematurely
+            # capped -- the lower bound (downweighting a bad completion)
+            # is unaffected. Falls back to symmetric SAFE_CLIP when off.
+            clip_hi = SAFE_CLIP_HIGH if SAFE_USE_CLIP_HIGHER else SAFE_CLIP
+            clipped_ratio = torch.clamp(ratio, 1.0 - SAFE_CLIP, 1.0 + clip_hi)
             surr1 = ratio * adv
             surr2 = clipped_ratio * adv
-            pg = -torch.minimum(surr1, surr2)
+            clip_obj = torch.minimum(surr1, surr2)
+            # Dual-clip PPO (Ye et al. 2020; see config.py's
+            # STAGE3_DUAL_CLIP_COEF comment for the real pg_loss-explosion
+            # incident -- pg_loss 127->8255, val reward 0.454->0.29 -- this
+            # fixes). For a NEGATIVE-advantage sample whose ratio has drifted
+            # far above 1, single-clip's min(surr1, surr2) does not bound the
+            # objective from below -- only the "good news" direction is
+            # capped, so a single exploding-ratio, negative-advantage
+            # completion can dominate the whole batch loss. Floor the
+            # objective at SAFE_DUAL_CLIP * adv (adv < 0 here, SAFE_DUAL_CLIP
+            # > 1, so this floor is always looser than the raw unclipped
+            # surr1 could otherwise fall to as ratio -> exp(4) ~ 55).
+            dual_clip_obj = torch.maximum(clip_obj, SAFE_DUAL_CLIP * adv)
+            obj = torch.where(adv < 0, dual_clip_obj, clip_obj)
+            pg = -obj
 
             # KL anchor to the actual Stage-2 policy.  This is separate from
             # the PPO denominator; conflating the two was a major bug before.
@@ -1015,12 +979,18 @@ def main():
             continue
 
         mean_kl = kl_sum / valid
-        if mean_kl > 1.0:
-            # Safety rail is intentionally much tighter than the old cap of 4.
+        if mean_kl > SAFE_KL_HARD_CAP:
+            # Per-micro-batch KL safety rail (config.py's STAGE3_KL_HARD_CAP:
+            # this used to be hardcoded to 1.0 here regardless of config, which
+            # config.py's own comment documents as too tight -- it discarded
+            # ~28% of micro-batches, including good ones, for no real safety
+            # benefit once dual-clip PPO above already keeps pg_loss bounded
+            # even when an individual micro-batch's KL spikes to 5-6. Now
+            # reads the documented 4.0 default from config.py.
             kl_skipped += 1
             optimizer.zero_grad(set_to_none=True)
             if step % 50 == 0:
-                print(f"[Stage 3] step {step:4d}: KL {mean_kl:.3f} > 1.0; skipping update")
+                print(f"[Stage 3] step {step:4d}: KL {mean_kl:.3f} > {SAFE_KL_HARD_CAP:.2f}; skipping update")
             continue
 
         # Keep a small supervised anchor to the exact Stage-2 target contract.
@@ -1035,7 +1005,7 @@ def main():
         applied += 1
 
         if step % SAFE_ACCUM == 0:
-            torch.nn.utils.clip_grad_norm_(trainable, 0.5)
+            torch.nn.utils.clip_grad_norm_(trainable, SAFE_GRAD_CLIP)
             optimizer.step()
             optimizer.zero_grad(set_to_none=True)
             scheduler.step()
@@ -1094,6 +1064,12 @@ def main():
                 f"(step={val_step:.4f}, mcpJ={val_mcp:.4f}, exp={val_exp:.4f}) | "
                 f"baseline={baseline_score:.4f} (step={baseline_step:.4f}, mcpJ={baseline_mcp:.4f}, exp={baseline_exp:.4f}) | "
                 f"best={best_score:.4f} @ {best_step}{flag}"
+            )
+            print(
+                f"[Stage 3] step {step:4d} | val detailed: step_microF1={val['step_micro_f1']:.4f} | "
+                f"mcp_exact={val['mcp_exact_match']:.4f} | mcp_microF1={val['mcp_micro_f1']:.4f} | "
+                f"mcp_P={val['mcp_micro_precision']:.4f} | mcp_R={val['mcp_micro_recall']:.4f} | "
+                f"avg_missing={val['avg_missing_mcp_tools']:.3f} | avg_extra={val['avg_extra_mcp_tools']:.3f}"
             )
 
             if no_improve >= SAFE_PATIENCE:
