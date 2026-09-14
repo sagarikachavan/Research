@@ -85,21 +85,20 @@ STAGE3_ADAPTER_DIR = os.environ.get(
 TEXT_ENCODER_NAME = "BAAI/bge-base-en-v1.5"   # upgraded for better semantic understanding
 TEXT_EMB_DIM = 768
 
-# Stage-1 graph encoder: deliberately moderate capacity for the machine-held-out
-# dataset.  Capacity is spent on graph/context interaction rather than a very
-# deep graph stack, which was prone to overfitting the small training set.
-GNN_HIDDEN = 384
-GNN_LAYERS = 3
+# Stage-1 graph encoder: increased capacity for better representation learning
+# while maintaining regularization to prevent overfitting on small dataset.
+GNN_HIDDEN = 512  # increased from 384 for more expressive power
+GNN_LAYERS = 4  # increased from 3 for deeper graph reasoning
 GNN_OUT_DIM = 512
-FUSION_HIDDEN = 768
-GNN_DROPOUT = 0.12  # was 0.10 -- small bump, see CHANGES_AND_FINDINGS.md refinement notes
+FUSION_HIDDEN = 1024  # increased from 768 for richer fusion
+GNN_DROPOUT = 0.15  # increased for better regularization
 
 # Training-time-only graph augmentation (no-op at eval). Cheap regularizer
 # for a 7.8M-param model trained on ~1.5k examples: randomly drops edges /
 # node feature channels each forward pass so the model can't over-rely on
 # any single PTT edge or feature dimension. Set either to 0.0 to disable.
-STAGE1_EDGE_DROPOUT = 0.10
-STAGE1_NODE_FEAT_DROPOUT = 0.05
+STAGE1_EDGE_DROPOUT = 0.15  # increased for stronger regularization
+STAGE1_NODE_FEAT_DROPOUT = 0.08  # increased for better generalization
 
 # One shallow global graph-token Transformer after local GINE message passing.
 GLOBAL_ATTN_LAYERS = 1
@@ -115,11 +114,11 @@ NODE_AUX_DIM = 3 + 4 + 8
 # multiple temporal convolution kernels + global max pooling.
 SEMANTIC_LM_NAME = "gpt2"
 SEMANTIC_LM_DIM = 768
-SEMANTIC_MAX_TOKENS = 384
+SEMANTIC_MAX_TOKENS = 512  # increased from 384 for more context
 SEMANTIC_PROTOTYPE_TOKENS = 64
-SEMANTIC_CNN_DIM = 128
-SEMANTIC_CNN_KERNELS = (2, 3, 4, 5)
-SEMANTIC_CNN_DROPOUT = 0.10
+SEMANTIC_CNN_DIM = 192  # increased from 128 for richer semantic features
+SEMANTIC_CNN_KERNELS = (2, 3, 4, 5, 7)  # added larger kernel for wider context
+SEMANTIC_CNN_DROPOUT = 0.12  # increased for better regularization
 
 # 5-dim edge attr: one-hot over the 4 semantic PTT edge types
 # (StateTransition, ActionUpdate, FindingUpdate, Prediction) + a self-loop
@@ -127,23 +126,22 @@ SEMANTIC_CNN_DROPOUT = 0.10
 # graph_encoder.py (typed edge-aware convolution) cannot drift out of sync.
 EDGE_ATTR_DIM = 5
 
-MCP_LOSS_WEIGHT = 1.50
-STEP_LOSS_WEIGHT = 1.00
+MCP_LOSS_WEIGHT = 1.80  # increased from 1.50 to emphasize MCP learning
+STEP_LOSS_WEIGHT = 1.20  # increased from 1.00 for better step classification
 MCP_DECISION_THRESHOLD = 0.5
-STEP_LABEL_SMOOTHING = 0.01
+STEP_LABEL_SMOOTHING = 0.05  # increased from 0.01 for better generalization
 
-STAGE1_LR = 2.0e-4
-STAGE1_EPOCHS = 60
-STAGE1_BATCH_SIZE = 16
-STAGE1_WARMUP_EPOCHS = 4
+STAGE1_LR = 3.0e-4  # increased from 2.0e-4 for faster convergence
+STAGE1_EPOCHS = 80  # increased from 60 for longer training
+STAGE1_BATCH_SIZE = 20  # increased from 16 for larger batch (if memory allows)
+STAGE1_WARMUP_EPOCHS = 5  # increased from 4
 STAGE1_GRAD_CLIP = 1.0
-STAGE1_WEIGHT_DECAY = 8e-3  # was 5e-3 -- a bit more L2 given train loss << val plateau gap
-STAGE1_MAX_CLASS_WEIGHT = 2.0  # was 3.0 -- capped lower now that step weighting is enabled below,
-                                # so rare-class upweighting can't dominate the majority "Exploit" class
-STAGE1_MAX_MCP_WEIGHT = 4.0
-STAGE1_HARD_NEGATIVE_WEIGHT = 0.15
+STAGE1_WEIGHT_DECAY = 1e-2  # increased from 8e-3 for stronger L2 regularization
+STAGE1_MAX_CLASS_WEIGHT = 2.5  # increased from 2.0 for better rare class handling
+STAGE1_MAX_MCP_WEIGHT = 5.0  # increased from 4.0
+STAGE1_HARD_NEGATIVE_WEIGHT = 0.20  # increased from 0.15
 STAGE1_SUPCON_WEIGHT = 0.00
-STAGE1_HARD_NEGATIVE_MARGIN = 0.20
+STAGE1_HARD_NEGATIVE_MARGIN = 0.25  # increased from 0.20
 # Optional per-class boosts used by the Stage-1 hard-negative/class-aware loss.
 # Keep these modest so rare/confusable classes get extra emphasis without
 # distorting the overall class distribution.
@@ -157,15 +155,15 @@ STAGE1_HARD_NEGATIVE_MARGIN = 0.20
 # "Exploit the selected exploitations" class (n=526) that accuracy leans on.
 STAGE1_USE_STEP_CLASS_WEIGHTS = True
 STAGE1_USE_STEP_FOCAL = True
-STAGE1_STEP_FOCAL_GAMMA = 1.0  # mild -- 1.8 (the MCP value) was too aggressive for a 10-way softmax
+STAGE1_STEP_FOCAL_GAMMA = 1.5  # increased from 1.0 for better hard example focus
 STAGE1_STEP_HARD_CLASS_BOOSTS = {
-    0: 1.10,
-    1: 1.10,
-    2: 1.10,
-    3: 1.10,
-    4: 1.15,
-    6: 1.15,
-    8: 1.20,
+    0: 1.15,  # increased from 1.10
+    1: 1.15,  # increased from 1.10
+    2: 1.15,  # increased from 1.10
+    3: 1.15,  # increased from 1.10
+    4: 1.25,  # increased from 1.15 (rare class)
+    6: 1.20,  # increased from 1.15
+    8: 1.30,  # increased from 1.20 (rare class)
 }
 
 # Stochastic Weight Averaging: instead of keeping only the single best-val

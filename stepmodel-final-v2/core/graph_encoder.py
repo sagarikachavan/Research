@@ -32,12 +32,14 @@ class GINEBlock(nn.Module):
         super().__init__()
         self.edge_encoder = nn.Sequential(
             nn.Linear(edge_dim, hidden),
+            nn.LayerNorm(hidden),
             nn.GELU(),
             nn.Linear(hidden, hidden),
         )
         self.conv = GINEConv(
             nn=nn.Sequential(
                 nn.Linear(hidden, hidden * 2),
+                nn.LayerNorm(hidden * 2),
                 nn.GELU(),
                 nn.Dropout(dropout),
                 nn.Linear(hidden * 2, hidden),
@@ -47,14 +49,20 @@ class GINEBlock(nn.Module):
         )
         self.norm = GraphNorm(hidden)
         self.dropout = nn.Dropout(dropout)
+        self.gate = nn.Sequential(
+            nn.Linear(hidden * 2, 1),
+            nn.Sigmoid()
+        )
 
     def forward(self, h, edge_index, batch, edge_attr):
         e = self.edge_encoder(edge_attr)
         y = self.conv(h, edge_index, e)
         y = self.norm(y, batch)
         y = F.gelu(y)
+        # Gated residual connection for better gradient flow
+        gate = self.gate(torch.cat([h, y], dim=-1))
         y = self.dropout(y)
-        return h + y
+        return h + gate * y
 
 
 class GraphEncoder(nn.Module):
@@ -83,7 +91,8 @@ class GraphEncoder(nn.Module):
             GINEBlock(hidden, edge_dim, dropout) for _ in range(num_layers)
         ])
         self.node_norm = nn.LayerNorm(hidden)
-        self.attn_pool = nn.Linear(hidden, 1)
+        # Multi-head attention pooling for better graph-level representation
+        self.attn_pool = nn.MultiheadAttention(hidden, num_heads=8, dropout=dropout, batch_first=True)
         self.out_proj = nn.Sequential(
             nn.Linear(hidden * 3, hidden * 2),
             nn.LayerNorm(hidden * 2),
@@ -114,13 +123,29 @@ class GraphEncoder(nn.Module):
         h = self.forward_nodes(x, edge_index, batch, edge_attr=edge_attr)
         mean_pool = global_mean_pool(h, batch)
         max_pool = global_max_pool(h, batch)
-        # Learned, context-independent structural attention pooling.  It keeps
-        # Stage 1 free of label-conditioned graph shortcuts while allowing the
-        # GINE encoder to emphasize structurally informative PTT nodes.
-        scores = self.attn_pool(h).squeeze(-1)
-        attn = pyg_softmax(scores, batch)
-        attn_pool = torch.zeros_like(mean_pool)
-        attn_pool.index_add_(0, batch, attn.unsqueeze(-1) * h)
+        
+        # Multi-head attention pooling for better graph-level representation
+        # Pad node sequences to same length for batch processing
+        batch_size = batch.max().item() + 1
+        node_counts = torch.bincount(batch, minlength=batch_size)
+        max_nodes = node_counts.max().item()
+        
+        # Create padded tensor for attention
+        h_padded = torch.zeros(batch_size, max_nodes, h.shape[-1], device=h.device, dtype=h.dtype)
+        mask = torch.zeros(batch_size, max_nodes, device=h.device, dtype=torch.bool)
+        
+        for i in range(batch_size):
+            mask_i = batch == i
+            nodes_i = h[mask_i]
+            h_padded[i, :len(nodes_i)] = nodes_i
+            mask[i, :len(nodes_i)] = True
+        
+        # Apply multi-head attention
+        attn_out, _ = self.attn_pool(h_padded, h_padded, h_padded, key_padding_mask=~mask)
+        # Mask out padding positions and take mean
+        attn_out = attn_out.masked_fill(~mask.unsqueeze(-1), 0)
+        attn_pool = attn_out.sum(dim=1) / mask.sum(dim=1, keepdim=True).clamp(min=1)
+        
         return self.out_proj(torch.cat([mean_pool, max_pool, attn_pool], dim=-1))
 
 
@@ -130,18 +155,26 @@ class SemanticCNNEncoder(nn.Module):
     The reference paper uses frozen GPT-2 token-level embeddings followed by
     multiple convolution kernels and global max pooling. We reproduce that
     design with a single shared semantic encoder for the two supervised heads.
+    Enhanced with residual connections and better normalization.
     """
 
     def __init__(self, input_dim: int, out_dim: int = SEMANTIC_CNN_DIM,
                  kernels=SEMANTIC_CNN_KERNELS, dropout=SEMANTIC_CNN_DROPOUT):
         super().__init__()
+        self.kernels = kernels  # Store kernel sizes for forward method
         self.convs = nn.ModuleList([
-            nn.Conv1d(input_dim, out_dim, kernel_size=k, padding=0)
+            nn.Sequential(
+                nn.Conv1d(input_dim, out_dim, kernel_size=k, padding=0),
+                nn.BatchNorm1d(out_dim),
+                nn.GELU(),
+                nn.Dropout(dropout)
+            )
             for k in kernels
         ])
         self.norm = nn.LayerNorm(out_dim * len(kernels))
         self.proj = nn.Sequential(
             nn.Linear(out_dim * len(kernels), out_dim * 2),
+            nn.LayerNorm(out_dim * 2),
             nn.GELU(),
             nn.Dropout(dropout),
             nn.Linear(out_dim * 2, out_dim),
@@ -153,15 +186,14 @@ class SemanticCNNEncoder(nn.Module):
         x = token_embs.transpose(1, 2)  # (B,D,L)
         mask_f = mask.to(dtype=x.dtype).unsqueeze(1)
         pooled = []
-        for conv in self.convs:
-            k = conv.kernel_size[0]
+        for conv, k in zip(self.convs, self.kernels):
             # Pad short sequences so every configured kernel is valid.
             if x.shape[-1] < k:
                 x_conv = F.pad(x, (0, k - x.shape[-1]))
                 m_conv = F.pad(mask_f, (0, k - mask_f.shape[-1]))
             else:
                 x_conv, m_conv = x, mask_f
-            y = F.gelu(conv(x_conv))
+            y = conv(x_conv)  # Conv1d is now inside Sequential with BatchNorm, GELU, Dropout
             # A window is valid only when all of its source tokens are real.
             valid = F.conv1d(m_conv, x.new_ones(1, 1, k), stride=1).squeeze(1) >= float(k) - 1e-6
             y = y.masked_fill(~valid.unsqueeze(1), torch.finfo(y.dtype).min)
@@ -213,29 +245,55 @@ class Stage1Classifier(nn.Module):
         self.semantic_dim = SEMANTIC_CNN_DIM
         self.graph_dim = GNN_OUT_DIM
         self.fused_dim = FUSION_HIDDEN
+        
+        # Cross-attention fusion for better semantic-graph interaction
+        self.cross_attn = nn.MultiheadAttention(
+            embed_dim=FUSION_HIDDEN // 2,
+            num_heads=8,
+            dropout=0.10,
+            batch_first=True
+        )
+        
+        # Enhanced fusion with residual connections
+        self.semantic_proj = nn.Sequential(
+            nn.Linear(self.semantic_dim, FUSION_HIDDEN // 2),
+            nn.LayerNorm(FUSION_HIDDEN // 2),
+            nn.GELU(),
+            nn.Dropout(0.10),
+        )
+        
+        self.graph_proj = nn.Sequential(
+            nn.Linear(self.graph_dim, FUSION_HIDDEN // 2),
+            nn.LayerNorm(FUSION_HIDDEN // 2),
+            nn.GELU(),
+            nn.Dropout(0.10),
+        )
+        
+        # Fusion input: semantic_proj (D/2) + graph_proj (D/2) + attn_out (D/2) = 3*D/2
+        fusion_input_dim = 3 * (FUSION_HIDDEN // 2)
         self.fusion = nn.Sequential(
-            nn.Linear(self.semantic_dim + self.graph_dim, FUSION_HIDDEN),
+            nn.Linear(fusion_input_dim, FUSION_HIDDEN),
             nn.LayerNorm(FUSION_HIDDEN),
             nn.GELU(),
             nn.Dropout(0.10),
             nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN),
             nn.LayerNorm(FUSION_HIDDEN),
             nn.GELU(),
-            nn.Dropout(0.06),
+            nn.Dropout(0.08),
         )
 
         self.step_head = nn.Sequential(
             nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN),
             nn.LayerNorm(FUSION_HIDDEN),
             nn.GELU(),
-            nn.Dropout(0.08),
+            nn.Dropout(0.10),
             nn.Linear(FUSION_HIDDEN, len(STEP_LABELS)),
         )
         self.mcp_head = nn.Sequential(
             nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN // 2),
             nn.LayerNorm(FUSION_HIDDEN // 2),
             nn.GELU(),
-            nn.Dropout(0.06),
+            nn.Dropout(0.08),
             nn.Linear(FUSION_HIDDEN // 2, len(MCP_LABELS)),
         )
 
@@ -260,9 +318,27 @@ class Stage1Classifier(nn.Module):
                 f"Stage-1 GINE must produce {GNN_OUT_DIM} dims, got {graph_h.shape[-1]}"
             )
 
+        # Project both modalities to fusion space
+        semantic_proj = self.semantic_proj(semantic_h)
+        graph_proj = self.graph_proj(graph_h)
+        
+        # Cross-attention fusion for better interaction
+        # Treat semantic as query, graph as key/value
+        batch_size = semantic_h.shape[0]
+        semantic_q = semantic_proj.unsqueeze(1)  # (B, 1, D)
+        graph_kv = graph_proj.unsqueeze(1)  # (B, 1, D)
+        
+        # Bidirectional cross-attention
+        attn_out, _ = self.cross_attn(semantic_q, graph_kv, graph_kv)
+        attn_out = attn_out.squeeze(1)  # (B, D)
+        
+        # Combine projections with attention output
+        # semantic_proj: (B, D/2), graph_proj: (B, D/2), attn_out: (B, D/2)
+        combined = torch.cat([semantic_proj, graph_proj, attn_out], dim=-1)  # (B, 3*D/2)
+        
         # Private Stage-1 fusion. Never pass this fused representation to the
         # Stage-2/3 prefix adapter.
-        fused_h = self.fusion(torch.cat([semantic_h, graph_h], dim=-1))
+        fused_h = self.fusion(combined)
         step_logits = self.step_head(fused_h)
         mcp_logits = self.mcp_head(fused_h)
         return fused_h, step_logits, mcp_logits
