@@ -92,7 +92,14 @@ GNN_HIDDEN = 384
 GNN_LAYERS = 3
 GNN_OUT_DIM = 512
 FUSION_HIDDEN = 768
-GNN_DROPOUT = 0.10
+GNN_DROPOUT = 0.12  # was 0.10 -- small bump, see CHANGES_AND_FINDINGS.md refinement notes
+
+# Training-time-only graph augmentation (no-op at eval). Cheap regularizer
+# for a 7.8M-param model trained on ~1.5k examples: randomly drops edges /
+# node feature channels each forward pass so the model can't over-rely on
+# any single PTT edge or feature dimension. Set either to 0.0 to disable.
+STAGE1_EDGE_DROPOUT = 0.10
+STAGE1_NODE_FEAT_DROPOUT = 0.05
 
 # One shallow global graph-token Transformer after local GINE message passing.
 GLOBAL_ATTN_LAYERS = 1
@@ -130,8 +137,9 @@ STAGE1_EPOCHS = 60
 STAGE1_BATCH_SIZE = 16
 STAGE1_WARMUP_EPOCHS = 4
 STAGE1_GRAD_CLIP = 1.0
-STAGE1_WEIGHT_DECAY = 5e-3
-STAGE1_MAX_CLASS_WEIGHT = 3.0
+STAGE1_WEIGHT_DECAY = 8e-3  # was 5e-3 -- a bit more L2 given train loss << val plateau gap
+STAGE1_MAX_CLASS_WEIGHT = 2.0  # was 3.0 -- capped lower now that step weighting is enabled below,
+                                # so rare-class upweighting can't dominate the majority "Exploit" class
 STAGE1_MAX_MCP_WEIGHT = 4.0
 STAGE1_HARD_NEGATIVE_WEIGHT = 0.15
 STAGE1_SUPCON_WEIGHT = 0.00
@@ -139,7 +147,17 @@ STAGE1_HARD_NEGATIVE_MARGIN = 0.20
 # Optional per-class boosts used by the Stage-1 hard-negative/class-aware loss.
 # Keep these modest so rare/confusable classes get extra emphasis without
 # distorting the overall class distribution.
-STAGE1_USE_STEP_CLASS_WEIGHTS = False  # paper-style plain Step CE for accuracy-focused ablation
+#
+# CHANGED: turned back on. The v2 run's step_macro_f1 (0.557 test) sitting
+# far below step_accuracy (0.746 test) means the plain-CE ablation was
+# leaving several minority Step classes (esp. idx 4 "Enumerate the domain",
+# n=23, and idx 8 "Explore source code", n=19) under-fit. Capped at 2.0x
+# (STAGE1_MAX_CLASS_WEIGHT above) plus a very mild focal term (gamma=1.0
+# below) is enough to lift them without meaningfully hurting the majority
+# "Exploit the selected exploitations" class (n=526) that accuracy leans on.
+STAGE1_USE_STEP_CLASS_WEIGHTS = True
+STAGE1_USE_STEP_FOCAL = True
+STAGE1_STEP_FOCAL_GAMMA = 1.0  # mild -- 1.8 (the MCP value) was too aggressive for a 10-way softmax
 STAGE1_STEP_HARD_CLASS_BOOSTS = {
     0: 1.10,
     1: 1.10,
@@ -149,6 +167,22 @@ STAGE1_STEP_HARD_CLASS_BOOSTS = {
     6: 1.15,
     8: 1.20,
 }
+
+# Stochastic Weight Averaging: instead of keeping only the single best-val
+# checkpoint (noisy signal on a 239-example val split -- see log epoch-to-
+# epoch score oscillation between 0.65 and 0.76), average the weights of
+# the top-K checkpoints by val score and keep whichever (single-best vs.
+# SWA) scores higher on val. LayerNorm/GraphNorm have no running batch
+# stats, so plain weight averaging is safe here without a recalibration pass.
+STAGE1_SWA_TOP_K = 5
+
+# Machine-level k-fold count for the optional ensemble trainer
+# (training/stage1_gnn_train_kfold.py). Averaging predictions across
+# folds trained on different train/val machine splits is the single
+# highest-leverage change for a dataset this small (149 train machines /
+# ~1.5k rows) -- it directly reduces the split-variance visible in the v2
+# single-split log.
+STAGE1_N_FOLDS = 5
 
 QWEN_MODEL_NAME = "Qwen/Qwen3-14B"
 LLM_JUDGE_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct" # Separate model for LLM judge evaluation

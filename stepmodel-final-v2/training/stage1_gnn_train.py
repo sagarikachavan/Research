@@ -36,6 +36,7 @@ from config import (
     STAGE1_MAX_MCP_WEIGHT, STAGE1_HARD_NEGATIVE_WEIGHT,
     STAGE1_SUPCON_WEIGHT, STAGE1_HARD_NEGATIVE_MARGIN, STAGE1_USE_STEP_CLASS_WEIGHTS, STAGE2_VAL_SPLIT,
     SEMANTIC_LM_NAME, SEMANTIC_MAX_TOKENS, SEMANTIC_LM_DIM, SEMANTIC_PROTOTYPE_TOKENS,
+    STAGE1_USE_STEP_FOCAL, STAGE1_STEP_FOCAL_GAMMA, STAGE1_SWA_TOP_K,
 )
 from data_utils import load_from_input_json, precompute_semantic_tokens
 from graph_encoder import Stage1Classifier
@@ -192,6 +193,204 @@ def hard_negative_margin(logits, labels, groups, margin=0.20):
     return torch.stack(losses).mean() if losses else logits.new_zeros(())
 
 
+def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 1]"):
+    """Train a single Stage-1 model on one train/val machine split.
+
+    Factored out of main() so the k-fold ensemble trainer
+    (training/stage1_gnn_train_kfold.py) can reuse the exact same training
+    procedure -- loss, sampler, scheduler, hard-negative margin, SWA -- for
+    each fold without duplicating (and risking drifting) the logic.
+
+    Returns (model, mcp_w_np, mcp_counts, val_probs, val_gold, val_metrics)
+    where val_probs/val_gold are the *sigmoid* MCP probabilities and binary
+    targets on this split's val set (used for threshold search / OOF pooling).
+    """
+    train_ds = torch.utils.data.Subset(full_ds, train_idx)
+    val_ds = torch.utils.data.Subset(full_ds, val_idx)
+    val_loader = DataLoader(val_ds, batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
+
+    step_counts = np.bincount([full_ds[i]["step_idx"].item() for i in train_idx], minlength=len(STEP_LABELS)).astype(np.float64)
+    mcp_counts = np.zeros(len(MCP_LABELS), dtype=np.float64)
+    for i in train_idx:
+        mcp_counts += full_ds[i]["mcp_vec"].numpy()
+    step_w_np = _soft_class_weights(step_counts, STAGE1_MAX_CLASS_WEIGHT, rare_boost=1.20)
+    mcp_w_np = _soft_class_weights(mcp_counts, STAGE1_MAX_MCP_WEIGHT, rare_boost=1.15)
+    step_weights = torch.tensor(step_w_np, dtype=torch.float32, device=device)
+    mcp_weights = torch.tensor(mcp_w_np, dtype=torch.float32, device=device)
+
+    print(f"{tag} STEP weights:")
+    for i, lab in enumerate(STEP_LABELS):
+        print(f"  [{i}] {lab[:54]:<54}: w={step_w_np[i]:.3f} count={int(step_counts[i])}")
+    print(f"{tag} MCP weights:")
+    for i, lab in enumerate(MCP_LABELS):
+        print(f"  {lab:<22}: w={mcp_w_np[i]:.3f} count={int(mcp_counts[i])}")
+
+    # Gentle class-aware sampling: square-root inverse frequency, clipped.
+    sample_weights = []
+    for idx in train_idx:
+        step_i = full_ds[idx]["step_idx"].item()
+        w = max(float(step_w_np[step_i]), 1e-6)
+        active = full_ds[idx]["mcp_vec"].numpy() > 0
+        if active.any():
+            w = max(w, float(np.sqrt(np.max(mcp_w_np[active]))))
+        sample_weights.append(np.sqrt(w))
+    sample_weights = np.asarray(sample_weights, dtype=np.float64)
+    sample_weights /= max(np.median(sample_weights), 1e-8)
+    sample_weights = np.clip(sample_weights, 0.70, 2.0)
+    sampler = WeightedRandomSampler(torch.as_tensor(sample_weights, dtype=torch.double), num_samples=len(train_idx), replacement=True)
+    train_loader = DataLoader(train_ds, batch_size=STAGE1_BATCH_SIZE, sampler=sampler, collate_fn=collate, drop_last=False)
+
+    model = Stage1Classifier().to(device)
+    print(f"{tag} Trainable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
+
+    opt = torch.optim.AdamW(model.parameters(), lr=STAGE1_LR, weight_decay=STAGE1_WEIGHT_DECAY, betas=(0.9, 0.999), eps=1e-8)
+    steps_per_epoch = max(1, len(train_loader))
+    total_steps = steps_per_epoch * STAGE1_EPOCHS
+    warmup_steps = steps_per_epoch * STAGE1_WARMUP_EPOCHS
+
+    def lr_lambda(step):
+        if step < warmup_steps:
+            return float(step + 1) / float(max(1, warmup_steps))
+        progress = (step - warmup_steps) / float(max(1, total_steps - warmup_steps))
+        return max(0.10, 0.5 * (1.0 + np.cos(np.pi * progress)))
+
+    sched = torch.optim.lr_scheduler.LambdaLR(opt, lr_lambda)
+
+    hard_groups = [
+        (0, 5),   # research/search <-> exploit
+        (2, 1),   # explore <-> service enumeration
+        (2, 3),   # explore <-> website enumeration
+        (6, 2),   # analyze <-> explore
+        (1, 3),   # service <-> website enumeration
+        (4, 1),   # domain <-> service enumeration
+    ]
+
+    best_score, best_epoch, no_improve = -1.0, -1, 0
+    patience = 12
+    train_losses, val_scores = [], []
+    # Rolling pool of the top-K checkpoints by val score, kept in CPU RAM,
+    # used for Stochastic Weight Averaging after training ends (see
+    # STAGE1_SWA_TOP_K in config.py for rationale).
+    top_k_ckpts = []
+
+    for epoch in range(STAGE1_EPOCHS):
+        model.train()
+        total_loss = step_run = mcp_run = con_run = hn_run = 0.0
+        n_batches = 0
+        for graphs, step_idx, mcp_vec, sem_tokens, sem_mask in train_loader:
+            graphs = graphs.to(device)
+            step_idx = step_idx.to(device)
+            mcp_vec = mcp_vec.to(device)
+            sem_tokens = sem_tokens.to(device)
+            sem_mask = sem_mask.to(device)
+            edge_attr = getattr(graphs, "edge_attr", None)
+            step_logits, mcp_logits, fused_h = model(
+                graphs.x, graphs.edge_index, graphs.batch,
+                semantic_tokens=sem_tokens, semantic_mask=sem_mask, edge_attr=edge_attr
+            )
+            base, step_l, mcp_l = model.loss(
+                step_logits, mcp_logits, step_idx, mcp_vec,
+                step_w=STEP_LOSS_WEIGHT, mcp_w=MCP_LOSS_WEIGHT,
+                mcp_class_weights=mcp_weights, use_focal=True, focal_gamma=1.8,
+                label_smoothing=STEP_LABEL_SMOOTHING,
+                step_class_weights=(step_weights if STAGE1_USE_STEP_CLASS_WEIGHTS else None),
+                use_step_focal=STAGE1_USE_STEP_FOCAL, step_focal_gamma=STAGE1_STEP_FOCAL_GAMMA,
+            )
+            hn = hard_negative_margin(step_logits, step_idx, hard_groups, margin=STAGE1_HARD_NEGATIVE_MARGIN)
+            con = fused_h.new_zeros(())
+            loss = base + STAGE1_HARD_NEGATIVE_WEIGHT * hn + STAGE1_SUPCON_WEIGHT * con
+            opt.zero_grad(set_to_none=True)
+            loss.backward()
+            torch.nn.utils.clip_grad_norm_(model.parameters(), STAGE1_GRAD_CLIP)
+            opt.step(); sched.step()
+            total_loss += float(loss.item()); step_run += float(step_l.item()); mcp_run += float(mcp_l.item())
+            hn_run += float(hn.item()); con_run += float(con.item()); n_batches += 1
+
+        val_metrics = evaluate(model, val_loader, device)
+        # Stage-1 checkpoint selection gives equal priority to the two actual
+        # supervised objectives: Step and MCP. Macro-F1 remains diagnostic.
+        score = (0.50 * val_metrics["step_accuracy"]
+                 + 0.50 * val_metrics["mcp_micro_f1"])
+        train_losses.append(total_loss / max(1, n_batches)); val_scores.append(score)
+        lr = sched.get_last_lr()[0]
+        print(
+            f"{tag} epoch {epoch+1:02d}/{STAGE1_EPOCHS} | lr {lr:.2e} | "
+            f"train {total_loss/max(1,n_batches):.4f} (step={step_run/max(1,n_batches):.4f}, "
+            f"mcp={mcp_run/max(1,n_batches):.4f}, hn={hn_run/max(1,n_batches):.4f}, con={con_run/max(1,n_batches):.4f}) | "
+            f"val_step_acc {val_metrics['step_accuracy']:.3f} "
+            f"val_step_macroF1 {val_metrics['step_macro_f1']:.3f} | "
+            f"val_mcp_microF1 {val_metrics['mcp_micro_f1']:.3f} "
+            f"val_mcp_subsetAcc {val_metrics['mcp_subset_accuracy']:.3f} | score {score:.4f}"
+        )
+        # Maintain the top-K pool for SWA regardless of whether this epoch
+        # was the single best -- SWA wants a handful of *good* checkpoints,
+        # not just the current best.
+        top_k_ckpts.append((score, {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}))
+        top_k_ckpts.sort(key=lambda t: t[0], reverse=True)
+        del top_k_ckpts[STAGE1_SWA_TOP_K:]
+
+        if score > best_score + 1e-5:
+            best_score, best_epoch, no_improve = score, epoch + 1, 0
+            torch.save({
+                "model_state_dict": model.state_dict(), "best_epoch": best_epoch,
+                "best_score": best_score, "train_losses": train_losses, "val_scores": val_scores,
+                "architecture": "paper_semantic_cnn_plus_typed_gine_fusion_v2",
+            }, ckpt_path)
+            print(f"{tag}   -> saved best checkpoint to {ckpt_path}")
+        else:
+            no_improve += 1
+            if no_improve >= patience:
+                print(f"{tag} Early stopping at epoch {epoch+1}; best epoch {best_epoch}.")
+                break
+
+    ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
+    model.load_state_dict(ckpt["model_state_dict"])
+
+    # --- Stochastic Weight Averaging over the top-K checkpoints ------------
+    # LayerNorm/GraphNorm carry no running batch statistics, so averaging
+    # weights directly (no extra forward pass needed to "recalibrate") is
+    # safe here. Only adopt SWA if it actually beats the single best
+    # checkpoint on the same val split -- never regress silently.
+    if len(top_k_ckpts) >= 2:
+        swa_state = {}
+        for key in top_k_ckpts[0][1]:
+            stacked = torch.stack([sd[key].float() for _, sd in top_k_ckpts], dim=0)
+            swa_state[key] = stacked.mean(dim=0).to(top_k_ckpts[0][1][key].dtype)
+        swa_model = Stage1Classifier().to(device)
+        swa_model.load_state_dict(swa_state)
+        swa_val_metrics = evaluate(swa_model, val_loader, device)
+        swa_score = 0.50 * swa_val_metrics["step_accuracy"] + 0.50 * swa_val_metrics["mcp_micro_f1"]
+        print(f"{tag} SWA over top-{len(top_k_ckpts)} checkpoints: val score {swa_score:.4f} "
+              f"(single-best checkpoint was {best_score:.4f})")
+        if swa_score >= best_score:
+            print(f"{tag} SWA improves (or matches) the single-best checkpoint -- adopting SWA weights.")
+            model = swa_model
+            best_score = swa_score
+            ckpt = {
+                "model_state_dict": model.state_dict(), "best_epoch": best_epoch,
+                "best_score": best_score, "train_losses": train_losses, "val_scores": val_scores,
+                "architecture": "paper_semantic_cnn_plus_typed_gine_fusion_v2_swa",
+                "swa_k": len(top_k_ckpts),
+            }
+            torch.save(ckpt, ckpt_path)
+        else:
+            print(f"{tag} SWA did not beat the single-best checkpoint -- keeping single-best weights.")
+
+    val_metrics, val_probs, val_gold = evaluate(model, val_loader, device, return_probs=True)
+    rare = [i for i, c in enumerate(mcp_counts) if c < 15]
+    thresholds = search_per_class_thresholds(val_probs, val_gold, rare_class_indices=rare,
+                                              verbose=(tag == "[Stage 1]"))
+    ckpt["mcp_thresholds"] = [float(x) for x in thresholds]
+    ckpt["mcp_class_weights"] = [float(x) for x in mcp_w_np]
+    ckpt["step_class_weights"] = [float(x) for x in step_w_np]
+    ckpt["val_metrics"] = val_metrics
+    torch.save(ckpt, ckpt_path)
+    print(f"{tag} val_step_acc={val_metrics['step_accuracy']:.4f}  val_mcp_microF1={val_metrics['mcp_micro_f1']:.4f}  "
+          f"thresholds={[round(float(x), 2) for x in thresholds]}")
+
+    return model, mcp_w_np, mcp_counts, val_probs, val_gold, val_metrics, thresholds
+
+
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"[Stage 1] Training input : {INPUT_TRAIN_JSON}")
@@ -221,144 +420,12 @@ def main():
     print(f"[Stage 1] Train examples  : {len(train_idx)}")
     print(f"[Stage 1] Val examples    : {len(val_idx)}")
 
-    train_ds = torch.utils.data.Subset(full_ds, train_idx)
-    val_ds = torch.utils.data.Subset(full_ds, val_idx)
-    val_loader = DataLoader(val_ds, batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
-
-    step_counts = np.bincount([full_ds[i]["step_idx"].item() for i in train_idx], minlength=len(STEP_LABELS)).astype(np.float64)
-    mcp_counts = np.zeros(len(MCP_LABELS), dtype=np.float64)
-    for i in train_idx:
-        mcp_counts += full_ds[i]["mcp_vec"].numpy()
-    step_w_np = _soft_class_weights(step_counts, STAGE1_MAX_CLASS_WEIGHT, rare_boost=1.20)
-    mcp_w_np = _soft_class_weights(mcp_counts, STAGE1_MAX_MCP_WEIGHT, rare_boost=1.15)
-    step_weights = torch.tensor(step_w_np, dtype=torch.float32, device=device)
-    mcp_weights = torch.tensor(mcp_w_np, dtype=torch.float32, device=device)
-
-    print("[Stage 1] STEP weights:")
-    for i, lab in enumerate(STEP_LABELS):
-        print(f"  [{i}] {lab[:54]:<54}: w={step_w_np[i]:.3f} count={int(step_counts[i])}")
-    print("[Stage 1] MCP weights:")
-    for i, lab in enumerate(MCP_LABELS):
-        print(f"  {lab:<22}: w={mcp_w_np[i]:.3f} count={int(mcp_counts[i])}")
-
-    # Gentle class-aware sampling: square-root inverse frequency, clipped.
-    sample_weights = []
-    for idx in train_idx:
-        step_i = full_ds[idx]["step_idx"].item()
-        w = max(float(step_w_np[step_i]), 1e-6)
-        active = full_ds[idx]["mcp_vec"].numpy() > 0
-        if active.any():
-            w = max(w, float(np.sqrt(np.max(mcp_w_np[active]))))
-        sample_weights.append(np.sqrt(w))
-    sample_weights = np.asarray(sample_weights, dtype=np.float64)
-    sample_weights /= max(np.median(sample_weights), 1e-8)
-    sample_weights = np.clip(sample_weights, 0.70, 2.0)
-    sampler = WeightedRandomSampler(torch.as_tensor(sample_weights, dtype=torch.double), num_samples=len(train_idx), replacement=True)
-    train_loader = DataLoader(train_ds, batch_size=STAGE1_BATCH_SIZE, sampler=sampler, collate_fn=collate, drop_last=False)
-
-    model = Stage1Classifier().to(device)
-    print(f"[Stage 1] Trainable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
-
-    opt = torch.optim.AdamW(model.parameters(), lr=STAGE1_LR, weight_decay=STAGE1_WEIGHT_DECAY, betas=(0.9, 0.999), eps=1e-8)
-    steps_per_epoch = max(1, len(train_loader))
-    total_steps = steps_per_epoch * STAGE1_EPOCHS
-    warmup_steps = steps_per_epoch * STAGE1_WARMUP_EPOCHS
-
-    def lr_lambda(step):
-        if step < warmup_steps:
-            return float(step + 1) / float(max(1, warmup_steps))
-        progress = (step - warmup_steps) / float(max(1, total_steps - warmup_steps))
-        return max(0.10, 0.5 * (1.0 + np.cos(np.pi * progress)))
-
-    sched = torch.optim.lr_scheduler.LambdaLR(opt, lr_lambda)
-
-    hard_groups = [
-        (0, 5),   # research/search <-> exploit
-        (2, 1),   # explore <-> service enumeration
-        (2, 3),   # explore <-> website enumeration
-        (6, 2),   # analyze <-> explore
-        (1, 3),   # service <-> website enumeration
-        (4, 1),   # domain <-> service enumeration
-    ]
-
-    best_score, best_epoch, no_improve = -1.0, -1, 0
-    patience = 12
-    train_losses, val_scores = [], []
-
-    for epoch in range(STAGE1_EPOCHS):
-        model.train()
-        total_loss = step_run = mcp_run = con_run = hn_run = 0.0
-        n_batches = 0
-        for graphs, step_idx, mcp_vec, sem_tokens, sem_mask in train_loader:
-            graphs = graphs.to(device)
-            step_idx = step_idx.to(device)
-            mcp_vec = mcp_vec.to(device)
-            sem_tokens = sem_tokens.to(device)
-            sem_mask = sem_mask.to(device)
-            edge_attr = getattr(graphs, "edge_attr", None)
-            step_logits, mcp_logits, fused_h = model(
-                graphs.x, graphs.edge_index, graphs.batch,
-                semantic_tokens=sem_tokens, semantic_mask=sem_mask, edge_attr=edge_attr
-            )
-            base, step_l, mcp_l = model.loss(
-                step_logits, mcp_logits, step_idx, mcp_vec,
-                step_w=STEP_LOSS_WEIGHT, mcp_w=MCP_LOSS_WEIGHT,
-                mcp_class_weights=mcp_weights, use_focal=True, focal_gamma=1.8,
-                label_smoothing=STEP_LABEL_SMOOTHING,
-                step_class_weights=(step_weights if STAGE1_USE_STEP_CLASS_WEIGHTS else None),
-            )
-            hn = hard_negative_margin(step_logits, step_idx, hard_groups, margin=STAGE1_HARD_NEGATIVE_MARGIN)
-            con = fused_h.new_zeros(())
-            loss = base + STAGE1_HARD_NEGATIVE_WEIGHT * hn + STAGE1_SUPCON_WEIGHT * con
-            opt.zero_grad(set_to_none=True)
-            loss.backward()
-            torch.nn.utils.clip_grad_norm_(model.parameters(), STAGE1_GRAD_CLIP)
-            opt.step(); sched.step()
-            total_loss += float(loss.item()); step_run += float(step_l.item()); mcp_run += float(mcp_l.item())
-            hn_run += float(hn.item()); con_run += float(con.item()); n_batches += 1
-
-        val_metrics = evaluate(model, val_loader, device)
-        # Stage-1 checkpoint selection gives equal priority to the two actual
-        # supervised objectives: Step and MCP. Macro-F1 remains diagnostic.
-        score = (0.50 * val_metrics["step_accuracy"]
-                 + 0.50 * val_metrics["mcp_micro_f1"])
-        train_losses.append(total_loss / max(1, n_batches)); val_scores.append(score)
-        lr = sched.get_last_lr()[0]
-        print(
-            f"epoch {epoch+1:02d}/{STAGE1_EPOCHS} | lr {lr:.2e} | "
-            f"train {total_loss/max(1,n_batches):.4f} (step={step_run/max(1,n_batches):.4f}, "
-            f"mcp={mcp_run/max(1,n_batches):.4f}, hn={hn_run/max(1,n_batches):.4f}, con={con_run/max(1,n_batches):.4f}) | "
-            f"val_step_acc {val_metrics['step_accuracy']:.3f} "
-            f"val_step_macroF1 {val_metrics['step_macro_f1']:.3f} | "
-            f"val_mcp_microF1 {val_metrics['mcp_micro_f1']:.3f} "
-            f"val_mcp_subsetAcc {val_metrics['mcp_subset_accuracy']:.3f} | score {score:.4f}"
-        )
-        if score > best_score + 1e-5:
-            best_score, best_epoch, no_improve = score, epoch + 1, 0
-            torch.save({
-                "model_state_dict": model.state_dict(), "best_epoch": best_epoch,
-                "best_score": best_score, "train_losses": train_losses, "val_scores": val_scores,
-                "architecture": "paper_semantic_cnn_plus_typed_gine_fusion_v2",
-            }, STAGE1_CKPT)
-            print(f"  -> saved best checkpoint to {STAGE1_CKPT}")
-        else:
-            no_improve += 1
-            if no_improve >= patience:
-                print(f"[Stage 1] Early stopping at epoch {epoch+1}; best epoch {best_epoch}.")
-                break
-
-    ckpt = torch.load(STAGE1_CKPT, map_location=device, weights_only=False)
-    model.load_state_dict(ckpt["model_state_dict"])
-    val_metrics, probs, gold = evaluate(model, val_loader, device, return_probs=True)
-    rare = [i for i, c in enumerate(mcp_counts) if c < 15]
-    thresholds = search_per_class_thresholds(probs, gold, rare_class_indices=rare)
-    print(f"[Stage 1] Optimized MCP thresholds: {[round(float(x), 2) for x in thresholds]}")
-    ckpt["mcp_thresholds"] = [float(x) for x in thresholds]
-    ckpt["mcp_class_weights"] = [float(x) for x in mcp_w_np]
-    ckpt["step_class_weights"] = [float(x) for x in step_w_np]
-    torch.save(ckpt, STAGE1_CKPT)
+    model, mcp_w_np, mcp_counts, val_probs, val_gold, val_metrics, thresholds = train_one_split(
+        full_ds, train_idx, val_idx, device, STAGE1_CKPT, tag="[Stage 1]"
+    )
 
     val_selected = os.path.join(ROOT, "checkpoints", "stage1_gnn_classifier_val_selected.pt")
+    ckpt = torch.load(STAGE1_CKPT, map_location=device, weights_only=False)
     torch.save(ckpt, val_selected)
     print(f"[Stage 1] Saved validation-selected checkpoint to {val_selected}")
 

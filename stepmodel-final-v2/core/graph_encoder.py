@@ -20,7 +20,7 @@ from config import (
     GNN_HIDDEN, GNN_LAYERS, GNN_OUT_DIM, FUSION_HIDDEN,
     TEXT_EMB_DIM, STEP_LABELS, MCP_LABELS, GNN_DROPOUT,
     EDGE_ATTR_DIM, NODE_AUX_DIM, SEMANTIC_CNN_DIM, SEMANTIC_CNN_KERNELS,
-    SEMANTIC_CNN_DROPOUT,
+    SEMANTIC_CNN_DROPOUT, STAGE1_EDGE_DROPOUT, STAGE1_NODE_FEAT_DROPOUT,
 )
 from data_utils import CONTEXT_COLUMNS
 
@@ -62,8 +62,17 @@ class GraphEncoder(nn.Module):
 
     def __init__(self, in_dim=NODE_FEAT_DIM, hidden=GNN_HIDDEN,
                  out_dim=GNN_OUT_DIM, num_layers=GNN_LAYERS,
-                 dropout=GNN_DROPOUT, edge_dim=EDGE_ATTR_DIM):
+                 dropout=GNN_DROPOUT, edge_dim=EDGE_ATTR_DIM,
+                 edge_dropout=STAGE1_EDGE_DROPOUT,
+                 node_feat_dropout=STAGE1_NODE_FEAT_DROPOUT):
         super().__init__()
+        # Training-only graph augmentation (both are no-ops in eval mode via
+        # self.training / nn.Dropout). Cheap regularizer for a small dataset:
+        # random edge drop prevents the GINE stack from leaning on any one
+        # PTT transition, random node-feature-channel drop does the same for
+        # the 387-dim title+aux node features.
+        self.edge_dropout_p = float(edge_dropout)
+        self.node_feat_dropout = nn.Dropout(node_feat_dropout) if node_feat_dropout > 0 else None
         self.input_proj = nn.Sequential(
             nn.Linear(in_dim, hidden),
             nn.LayerNorm(hidden),
@@ -88,6 +97,14 @@ class GraphEncoder(nn.Module):
     def forward_nodes(self, x, edge_index, batch, edge_attr=None):
         if edge_attr is None:
             edge_attr = x.new_zeros((edge_index.shape[1], EDGE_ATTR_DIM))
+        if self.training and self.edge_dropout_p > 0 and edge_index.shape[1] > 1:
+            # Never drop every edge of a batch -- keep at least one.
+            keep = torch.rand(edge_index.shape[1], device=edge_index.device) > self.edge_dropout_p
+            if bool(keep.any()):
+                edge_index = edge_index[:, keep]
+                edge_attr = edge_attr[keep]
+        if self.node_feat_dropout is not None:
+            x = self.node_feat_dropout(x)
         h = self.input_proj(x)
         for block in self.blocks:
             h = block(h, edge_index, batch, edge_attr)
