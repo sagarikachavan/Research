@@ -159,6 +159,39 @@ STAGE1_BATCH_SIZE = 20  # increased from 16 for larger batch (if memory allows)
 STAGE1_WARMUP_EPOCHS = 5  # increased from 4
 STAGE1_GRAD_CLIP = 1.0
 STAGE1_WEIGHT_DECAY = 1e-2  # increased from 8e-3 for stronger L2 regularization
+# ----------------------------------------------------------------------------
+# Stage-1 K-fold ensembling (machine-grouped)
+# ----------------------------------------------------------------------------
+# WHY (evidence from output/stage1.csv, 268 test rows / 29 machines, acc 0.7948):
+#
+#  * There is NO label noise to blame: 262 distinct model inputs cover all 268
+#    rows and ZERO inputs carry conflicting gold labels, so the achievable
+#    ceiling on this test set is 100%. 85-90% is not blocked by the data.
+#  * Errors are SPREAD, not clustered: per-machine accuracy std is 0.115 across
+#    all 29 machines (min 0.57, max 1.00); the worst 5 machines hold only 33%
+#    of errors while covering 18% of rows. That is a VARIANCE signature, not a
+#    distribution-shift cliff -- and variance is exactly what ensembling fixes.
+#  * 29 of 55 errors are rows pulled into two "attractor" classes: class 2
+#    (predicted 39x, gold 30, precision 0.46 -- a catch-all sink) and class 5
+#    (predicted 103x, gold 92). Correcting that needs a per-class logit bias
+#    fit on data that actually EXHIBITS the pattern.
+#
+# The single 15%-machine val split could not deliver that second point: val
+# scored 0.8410 vs test 0.7948 and simply does not show the attractor skew, so
+# the bias search (which is itself sound -- verified against direct coordinate
+# ascent on simulated data) found almost nothing to correct and transferred
+# nothing. K-fold fixes BOTH problems at once:
+#
+#   1. K models averaged  -> attacks the variance that dominates the error.
+#   2. Pooled OUT-OF-FOLD predictions over ALL training machines -> a
+#      calibration set ~7x larger and far more representative than 48 val
+#      machines, so the step-bias / MCP-threshold search is fit on data that
+#      looks like the test distribution.
+#
+# Set STAGE1_USE_KFOLD=False to fall back to the original single-split path.
+STAGE1_USE_KFOLD = os.environ.get("STAGE1_USE_KFOLD", "1") not in ("0", "false", "False")
+STAGE1_N_FOLDS = int(os.environ.get("STAGE1_N_FOLDS", "5"))
+
 STAGE1_MAX_CLASS_WEIGHT = 2.5  # increased from 2.0 for better rare class handling
 STAGE1_MAX_MCP_WEIGHT = 5.0  # increased from 4.0
 STAGE1_HARD_NEGATIVE_WEIGHT = 0.20  # increased from 0.15
@@ -425,6 +458,29 @@ STAGE2_EARLY_STOP_PATIENCE = 3   # Stop quickly once validation stops improving
 STAGE2_GRAD_CLIP = 1.0
 STAGE2_WARMUP_RATIO = 0.05       # Short warmup for the compact bridge stage
 STAGE2_WEIGHT_DECAY = 1e-4
+
+# CORRECTED (Stage-2 regression post-mortem): the GraphPrefixAdapter is a
+# ~14.6M-parameter RANDOMLY-INITIALIZED cross-attention resampler, while the
+# LoRA adapters it shares an optimizer with are low-rank deltas on an
+# already-pretrained 14B model. Training both at STAGE2_LR=2e-6 is correct
+# for LoRA and catastrophically too slow for the resampler: AdamW's update
+# magnitude is ~lr per step (the gradient is normalized by sqrt(v)), so over
+# a typical 744-step run a parameter can travel at most ~744*2e-6 = 1.5e-3.
+# The learned queries are initialized at randn*0.02, so they move only ~7%
+# of their init scale and stay effectively RANDOM. Random queries attend
+# near-uniformly over the node set, which collapses all GRAPH_PREFIX_TOKENS
+# outputs toward the same vector (the mean node state) -- strictly less
+# informative than the previous adapter's 8 distinct fixed random
+# projections. This is what regressed Stage 2 from 0.7950 -> 0.6151
+# val_step_acc and 88.43% -> 66.42% test Step Exact Match.
+#
+# Fix (same shape as STAGE1_GRAPH_GATE_LR_MULT, which fixed the identical
+# class of bug on Stage 1's graph gates): give the adapter its own AdamW
+# param group at STAGE2_LR * STAGE2_ADAPTER_LR_MULT. 50x -> 1e-4, the
+# standard LR for training a small projector/resampler from scratch on top
+# of a frozen LLM (Flamingo/BLIP-2 train their resamplers at 1e-4). The LoRA
+# params keep 2e-6 and are unaffected.
+STAGE2_ADAPTER_LR_MULT = 50.0
 
 # CORRECTED (user-directed, matching the main branch's working Stage-3
 # regime): the previous 1e-7 / 600-step setting produced a DEAD run -- the

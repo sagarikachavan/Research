@@ -1062,3 +1062,111 @@ smaller than the simulation's** (the injected bias is exaggerated).
 ("Explore the source code...") lost **4 of its 5** test examples to class 2
 ("Explore the suspicious files..."), two labels that literally both begin
 with "Explore the". Added `(2, 8)` and `(0, 2)`.
+
+---
+
+## Round 9 — Machine-grouped K-fold ensembling + pooled out-of-fold calibration
+
+### What the test-set CSV actually showed
+
+Analysis of `output/stage1.csv` (268 rows, 29 machines, step accuracy 0.7948):
+
+**1. There is no label noise to blame.** 262 distinct model inputs cover all 268
+rows, and **zero** inputs carry conflicting gold labels. The achievable ceiling
+on this test set is **100%** — 85-90% is not blocked by the data.
+
+**2. Errors are spread, not clustered.** Per-machine accuracy std = 0.115 across
+all 29 machines (min 0.57, max 1.00). The worst 5 machines hold only 33% of
+errors while covering 18% of rows. That is a **variance** signature, not a
+distribution-shift cliff — and variance is what ensembling fixes.
+
+**3. Two "attractor" classes absorb most errors.**
+
+| class | gold | pred | recall | precision |
+|---|---|---|---|---|
+| [2] Explore suspicious files | 30 | **39** | 0.60 | **0.46** |
+| [5] Exploit | 92 | **103** | 0.92 | 0.83 |
+| [1] Enumerate X service | 59 | **49** | 0.80 | 0.96 |
+| [8] Explore source code | 5 | **1** | 0.20 | 1.00 |
+
+Class 2 is a catch-all sink: predicted 39 times, correct 18, absorbing rows from
+classes 1, 3, 5, 6 and 8. Meanwhile class 1 has 0.96 precision but 0.80 recall —
+the model is *too conservative* about it. That asymmetry is exactly what a
+per-class logit bias corrects.
+
+**Error budget (55 errors, need +15 rows for 85%):**
+
+| bucket | n | recoverable? |
+|---|---|---|
+| pulled into attractors 2/5 | **29** | yes — calibration target |
+| other confusions | 15 | partly |
+| rare-class starved (gold 4/6/8, <=30 train rows) | 11 | no — needs data |
+
+### Why the existing calibration did not fix it
+
+The per-class step logit bias search is **not** broken. Verified against a
+simulated val set carrying the same attractor pathology: the bootstrap-median
+aggregation recovered `class 2: -1.00` and matched direct (non-bootstrapped)
+coordinate ascent exactly (0.7714 -> 0.8393 for both). It only zeroes classes
+whose mean bias is already negligible, which is correct conservative behavior.
+
+The real problem is that **val does not look like test**. Val scored 0.8410 vs
+test 0.7948 and does not exhibit the attractor skew, so the search found almost
+nothing to correct and transferred nothing. A single 15%-machine split (48
+machines, ~279 rows) is too small and too unrepresentative to calibrate on.
+
+### The change
+
+Machine-grouped 5-fold cross-validation in `training/stage1_gnn_train.py`,
+addressing both findings at once:
+
+1. **Ensemble** — `evaluate()` now accepts a list of models. Step **logits** are
+   averaged across folds; MCP **sigmoid probabilities** are averaged. This
+   attacks the variance that finding (2) identifies as the bottleneck.
+2. **Pooled out-of-fold calibration** — every training row gets a prediction
+   from a model that never saw its machine. The MCP threshold search and step
+   bias search are fit on all **1865** pooled OOF rows covering all 302 training
+   machines, instead of ~279 rows from 48 machines — a **6.7x larger** and far
+   more representative calibration set.
+
+Step logits are averaged rather than softmax probabilities because an additive
+per-class bias commutes with the mean:
+`mean_k(logits_k + b) == mean_k(logits_k) + b`. So a bias calibrated on
+single-model OOF logits applies unchanged to the ensemble. **Verified
+numerically**, not just asserted.
+
+**Caveat, stated honestly:** OOF logits come from one fold model each, while
+test-time logits average K models, so the ensemble's logit spread is slightly
+narrower and a bias fit on OOF is marginally aggressive. Both searches keep
+their never-regress guards (now fit on the OOF pool), and the run prints an
+explicit single-best-fold vs ensemble comparison so the effect is measurable
+rather than assumed.
+
+### Compatibility
+
+`STAGE1_CKPT` stays a **single-model** checkpoint — `stage2_sft_qwen.py`,
+`stage3_grpo_rl.py` and `eval/evaluate.py` all load it as one
+`model_state_dict`. The best fold's weights are written there, carrying the
+pooled-OOF thresholds and bias, plus `kfold_members` / `kfold_val_scores` /
+`test_metrics_single` / `test_metrics_ensemble` metadata. Stages 2 and 3 are
+unchanged by this. Individual members live at `checkpoints/stage1_fold{k}.pt`.
+
+`STAGE1_USE_KFOLD=0` restores the original single-split path
+(`_main_single_split`), preserved intact.
+
+### Verification
+
+- single model vs `[single model]` produce identical metrics (backward compatible)
+- step logits and MCP probabilities verified averaged correctly across members
+- additive bias verified to commute with the mean
+- real-data folds: 1865 rows / 302 machines -> 5 folds of 365-390 rows,
+  49-76 machines each, **all 9 populated step classes present in every fold**,
+  disjoint machines, full row coverage
+- each fold trains on 80% of rows (~1497) vs 85% (~1585) for the single split —
+  slightly less data per model, offset by averaging K models and a 6.7x larger
+  calibration set
+
+### Cost
+
+Stage 1 wall-clock is ~5x (five models instead of one). Stages 2 and 3 are
+unaffected.

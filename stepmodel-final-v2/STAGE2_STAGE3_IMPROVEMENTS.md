@@ -604,3 +604,84 @@ learned queries and node projection both receive gradient; and the full
 frozen-GINE -> resampler path handles ragged node counts (6/11/3) correctly.
 **Not yet validated by a real training run — this changes the Stage-2
 interface, so Stage 2 (and Stage 3 after it) must be retrained.**
+
+---
+
+## 15. Stage-2 regression post-mortem: the adapter rewrite could not train
+
+### Symptom
+
+The `GraphPrefixAdapter` rewrite (§ earlier — learned-query cross-attention
+resampler) made Stage 2 *worse*, not better:
+
+| Metric | Before rewrite | After rewrite |
+|---|---|---|
+| `val_step_acc` @ epoch 7 | 0.7950 | **0.6151** |
+| `train_loss` @ epoch 2 | 1.6653 | **2.4312** |
+| Step Exact Match (test) | 88.43% | **66.42%** |
+| Mean MCP Jaccard | 0.8675 | **0.7602** |
+
+Stage 1 improved over the same period (step_accuracy 0.7761 → 0.7948), so the
+regression was isolated to Stage 2, and the adapter rewrite was the only change.
+
+### Root cause 1 — the resampler shared LoRA's learning rate
+
+The optimizer put LoRA and the adapter in a single param group at
+`STAGE2_LR = 2e-6`. That is right for LoRA (low-rank deltas on an already
+pretrained 14B) and badly wrong for the adapter (14.6M parameters trained
+**from random init**).
+
+AdamW's per-step update magnitude is ~`lr` (the gradient is normalized by
+`sqrt(v)`), so over the run's 744 optimizer steps a parameter can travel at
+most `744 x 2e-6 = 1.5e-3`. The learned queries are initialized at
+`randn * 0.02`, so they move only ~7% of their init scale and stay effectively
+**random**. Random queries attend near-uniformly over the node set, which
+collapses all 16 prefix tokens toward the same vector (the mean node state) —
+strictly *less* informative than the old adapter's 8 distinct fixed random
+projections.
+
+Measured directly (744 AdamW steps, same init, same target):
+
+| LR | query movement `|dq|/|q0|` | mean inter-token cosine | final loss |
+|---|---|---|---|
+| 2e-6 (shared) | 3.38% | +0.157 (partially collapsed) | 1.1314 |
+| 1e-4 (x50) | 11.20% | **-0.001** (fully distinct) | **0.0045** |
+
+**Fix:** give the adapter its own AdamW param group at
+`STAGE2_LR * STAGE2_ADAPTER_LR_MULT` (50x → 1e-4, the standard LR for
+training a projector/resampler from scratch on a frozen LLM; Flamingo and
+BLIP-2 both train their resamplers at 1e-4). LoRA keeps 2e-6.
+`get_cosine_schedule_with_warmup` is a `LambdaLR`, so it scales each group's
+own `base_lr` — the 50x ratio is verified preserved at steps 20/372/744.
+
+This is the **same bug class** as Stage 1's graph gates, fixed the same way
+(`STAGE1_GRAPH_GATE_LR_MULT`). `trainable_params` is still built as a flat
+list so the existing grad-clip and non-finite guards are untouched.
+
+### Root cause 2 — soft tokens entered the residual stream ~70x oversized
+
+The adapter ended in `nn.LayerNorm(llm_hidden)`, which forces unit per-element
+RMS, i.e. per-token L2 norm `sqrt(5120) = 71.6`. Real Qwen `embed_tokens` rows
+have L2 norm **~1.0** (measured on the locally cached Qwen2.5-1.5B-Instruct:
+mean 1.023, median 1.015, p99 1.259 — Qwen3-14B weights are not cached on this
+machine, so this is a same-family proxy).
+
+Qwen is a **pre-norm** transformer: each block reads `RMSNorm(h)` but writes an
+O(1) update back into `h`. Against a norm-71 residual that update is ~70x too
+weak to move the token, so the graph prefix passed through all 40 layers
+essentially **unchanged** — never contextualized by the LLM, never integrated
+with the text.
+
+**Fix:** initialize the final LayerNorm's gain to `1/sqrt(llm_hidden)`, putting
+the output at per-token L2 norm ~1.0 (verified: 1.0000). It stays learnable and
+per-channel, so training can still adjust it — this only fixes the *starting*
+scale. Done via the existing LayerNorm weight rather than a new parameter, so
+**state_dict keys are unchanged** and previously saved `graph_adapter.pt` files
+still load `strict=True` (verified: 25 tensors, clean load).
+
+### Verification
+
+- Adapter output: `(B, 16, 5120)`, per-token norm 1.0000, 14.6M params, finite.
+- NaN safety retained: all-nodes-masked and no-`node_states` paths both finite
+  (the always-valid global token keeps every softmax row populated).
+- LR-group ratio held at exactly 50.0x across warmup, mid-run, and decay.

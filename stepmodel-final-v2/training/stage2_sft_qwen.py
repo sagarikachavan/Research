@@ -20,6 +20,7 @@ Run:
     python stage2_sft_qwen.py
 """
 import json
+import math
 import os
 import random
 import csv
@@ -45,7 +46,7 @@ from config import (
     LORA_R, LORA_ALPHA, LORA_DROPOUT,
     STAGE2_LR, STAGE2_EPOCHS, STAGE2_BATCH_SIZE, STAGE2_GRAD_ACCUM,
     STAGE2_VAL_SPLIT, STAGE2_EARLY_STOP_PATIENCE, STAGE2_GRAD_CLIP, STAGE2_WARMUP_RATIO,
-    STAGE2_WEIGHT_DECAY, STAGE2_STEP_TOKEN_LOSS_WEIGHT,
+    STAGE2_WEIGHT_DECAY, STAGE2_STEP_TOKEN_LOSS_WEIGHT, STAGE2_ADAPTER_LR_MULT,
     STAGE1_CKPT, STAGE2_ADAPTER_DIR,
     RANDOM_SEED, STEP_LABELS, MCP_LABELS, ROOT,
 )
@@ -335,6 +336,25 @@ class GraphPrefixAdapter(nn.Module):
             nn.Linear(d_model, llm_hidden),
             nn.LayerNorm(llm_hidden),
         )
+        # SCALE-MATCH THE SOFT TOKENS TO REAL TOKEN EMBEDDINGS.
+        # A plain LayerNorm forces unit per-element RMS, i.e. per-token L2 norm
+        # == sqrt(llm_hidden) == ~71.6 at Qwen3-14B's hidden size of 5120.
+        # Real Qwen embed_tokens rows have L2 norm ~1.0 (measured: mean 1.023,
+        # median 1.015 on Qwen2.5-1.5B-Instruct), so the soft tokens entered
+        # the residual stream ~70x oversized. Qwen is a PRE-NORM transformer:
+        # every block reads RMSNorm(h) but writes an O(1) update back into h.
+        # Against a norm-71 residual that update is ~70x too weak to move the
+        # token, so the graph prefix passed through all 40 layers essentially
+        # UNCHANGED -- never contextualized, and never integrated with the
+        # text. Initializing the final LayerNorm's gain to 1/sqrt(llm_hidden)
+        # puts the output at per-token L2 norm ~1.0, matching the embedding
+        # table the LLM was actually trained on. It stays learnable (and
+        # per-channel), so training can still adjust it; this only fixes the
+        # starting scale. Done via the existing LayerNorm weight rather than a
+        # new parameter so the state_dict keys are unchanged and previously
+        # saved graph_adapter.pt files still load.
+        with torch.no_grad():
+            self.out_proj[-1].weight.fill_(1.0 / math.sqrt(llm_hidden))
 
     def forward(self, graph_emb: torch.Tensor,
                 node_states: torch.Tensor | None = None,
@@ -918,10 +938,11 @@ def main():
     val_loader   = make_loader(val_ds,   shuffle=False)
 
     # ── Optimizer + scheduler ─────────────────────────────────────────────────
-    trainable_params = (
-        [p for p in model.parameters() if p.requires_grad]
-        + list(adapter.parameters())
-    )
+    lora_params    = [p for p in model.parameters() if p.requires_grad]
+    adapter_params = [p for p in adapter.parameters() if p.requires_grad]
+    # Flat list is what the grad-clip / non-finite guards below iterate over;
+    # the optimizer gets the same parameters split into two LR groups.
+    trainable_params = lora_params + adapter_params
     # A conservative LR is intentional: Stage 2 only trains LoRA + the
     # graph-to-prefix projector while the 14B base is frozen.  The previous
     # 1e-5 setting was capable of producing a non-finite update in this
@@ -936,8 +957,24 @@ def main():
     # change to today's behavior.
     stage2_lr = float(os.environ.get("STAGE2_SAFE_LR", str(STAGE2_LR)))
     stage2_wd = float(os.environ.get("STAGE2_SAFE_WEIGHT_DECAY", str(STAGE2_WEIGHT_DECAY)))
+    # SEPARATE LR GROUP FOR THE GRAPH PREFIX ADAPTER.
+    # WHY: `lora_params` are low-rank deltas on an already-pretrained 14B model
+    # and genuinely want a tiny LR; `adapter_params` are a ~14.6M-parameter
+    # cross-attention resampler being trained FROM RANDOM INIT. AdamW moves a
+    # parameter by ~lr per step, so at 2e-6 over ~744 steps the adapter's
+    # learned queries travel ~1.5e-3 against a randn*0.02 init -- i.e. they
+    # stay random, attend near-uniformly, and emit GRAPH_PREFIX_TOKENS nearly
+    # identical soft tokens. That regressed Stage 2 to 0.6151 val_step_acc /
+    # 66.42% test Step Exact Match. Same bug class (and same fix) as Stage 1's
+    # graph-gate param group at STAGE1_GRAPH_GATE_LR_MULT.
+    adapter_lr_mult = float(os.environ.get("STAGE2_SAFE_ADAPTER_LR_MULT",
+                                          str(STAGE2_ADAPTER_LR_MULT)))
+    adapter_lr = stage2_lr * adapter_lr_mult
     opt = torch.optim.AdamW(
-        trainable_params,
+        [
+            {"params": lora_params,    "lr": stage2_lr},
+            {"params": adapter_params, "lr": adapter_lr},
+        ],
         lr=stage2_lr,
         weight_decay=stage2_wd,
         betas=(0.9, 0.95),
@@ -955,7 +992,9 @@ def main():
 
     print(f"[Stage 2] Steps/epoch     : {steps_per_epoch}")
     print(f"[Stage 2] Total steps     : {total_steps}  (warmup {warmup_steps})")
-    print(f"[Stage 2] Safe LR          : {stage2_lr:.2e} | weight_decay={stage2_wd:.1e} | fp32 trainables + bf16 Qwen")
+    print(f"[Stage 2] Safe LR          : {stage2_lr:.2e} (LoRA, {sum(p.numel() for p in lora_params)/1e6:.1f}M) | "
+          f"{adapter_lr:.2e} (adapter x{adapter_lr_mult:g}, {sum(p.numel() for p in adapter_params)/1e6:.1f}M)")
+    print(f"[Stage 2] Regularization   : weight_decay={stage2_wd:.1e} | fp32 trainables + bf16 Qwen")
 
     # ── Training loop with val + early stopping ────────────────────────────────
     # FIX: selection metric changed from raw val_loss to step_field_acc (see

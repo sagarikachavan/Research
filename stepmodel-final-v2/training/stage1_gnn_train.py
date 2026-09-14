@@ -43,6 +43,7 @@ from config import (
     STAGE1_SUPCON_TEMPERATURE, STAGE1_USE_DECOUPLED_RETRAIN,
     STAGE1_DECOUPLED_EPOCHS, STAGE1_DECOUPLED_LR,
     STAGE1_GRAPH_GATE_LR_MULT,
+    STAGE1_USE_KFOLD, STAGE1_N_FOLDS,
 )
 from data_utils import load_from_input_json, precompute_semantic_tokens
 from graph_encoder import Stage1Classifier
@@ -99,8 +100,18 @@ def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=
              csv_path=None, dataset=None, step_bias=None, return_step_logits=False):
     """step_bias: optional per-class additive logit bias applied BEFORE argmax
     (see search_step_logit_bias in core/mcp_threshold_search.py). None = plain
-    argmax, i.e. the previous behavior."""
-    model.eval()
+    argmax, i.e. the previous behavior.
+
+    `model` may be a single nn.Module OR a list of nn.Modules. With a list this
+    runs a K-FOLD ENSEMBLE: step LOGITS are averaged across members and MCP
+    SIGMOID PROBABILITIES are averaged across members. Averaging step logits
+    (rather than softmax probabilities) is deliberate -- an additive per-class
+    bias `b` commutes with the mean, i.e. mean_k(logits_k + b) == mean_k(logits_k) + b,
+    so a bias calibrated on single-model out-of-fold logits applies unchanged to
+    the ensemble. See the caveat in main()'s K-fold block."""
+    models = list(model) if isinstance(model, (list, tuple)) else [model]
+    for _m in models:
+        _m.eval()
     step_preds, step_gold = [], []
     step_logit_rows = []
     mcp_preds, mcp_gold, mcp_probs = [], [], []
@@ -114,23 +125,32 @@ def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=
             sem_tokens = sem_tokens.to(device)
             sem_mask = sem_mask.to(device)
             edge_attr = getattr(graphs, "edge_attr", None)
-            step_logits, mcp_logits, _ = model(
-                graphs.x, graphs.edge_index, graphs.batch,
-                semantic_tokens=sem_tokens, semantic_mask=sem_mask, edge_attr=edge_attr
-            )
-            sl_np = step_logits.detach().cpu().numpy()
+            sl_sum, mp_sum = None, None
+            for _m in models:
+                step_logits, mcp_logits, _ = _m(
+                    graphs.x, graphs.edge_index, graphs.batch,
+                    semantic_tokens=sem_tokens, semantic_mask=sem_mask, edge_attr=edge_attr
+                )
+                sl = step_logits.detach().float()
+                mprob = torch.sigmoid(mcp_logits.detach().float())
+                sl_sum = sl if sl_sum is None else sl_sum + sl
+                mp_sum = mprob if mp_sum is None else mp_sum + mprob
+            step_logits = sl_sum / len(models)
+            mcp_prob_t = mp_sum / len(models)
+
+            sl_np = step_logits.cpu().numpy()
             step_logit_rows.append(sl_np)
             if step_bias is not None:
                 sp = np.argmax(sl_np + np.asarray(step_bias, dtype=np.float64)[None, :], axis=1)
             else:
                 sp = step_logits.argmax(-1).cpu().numpy()
             sg = step_idx.cpu().numpy()
-            probs = torch.sigmoid(mcp_logits).cpu().numpy()
+            probs = mcp_prob_t.cpu().numpy()
             if isinstance(threshold, (list, np.ndarray)):
                 thr = torch.tensor(threshold, dtype=torch.float32, device=device)
-                mp = (torch.sigmoid(mcp_logits) >= thr).float().cpu().numpy()
+                mp = (mcp_prob_t >= thr).float().cpu().numpy()
             else:
-                mp = (torch.sigmoid(mcp_logits) >= threshold).float().cpu().numpy()
+                mp = (mcp_prob_t >= threshold).float().cpu().numpy()
             mg = mcp_vec.cpu().numpy()
             step_preds.append(sp); step_gold.append(sg)
             mcp_preds.append(mp); mcp_gold.append(mg); mcp_probs.append(probs)
@@ -716,6 +736,38 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     return model, mcp_w_np, mcp_counts, val_probs, val_gold, val_metrics, thresholds, step_bias
 
 
+def _machine_folds(examples, n_folds, seed):
+    """Partition MACHINES (never rows) into n_folds groups.
+
+    Machine-grouped so no machine's rows ever straddle a fold boundary -- the
+    same contract the train/test split already enforces, and the reason the
+    val/test comparison is honest. Machines are shuffled, then dealt
+    round-robin into folds ordered by current row count, which keeps folds
+    close in size even though machines contribute very different row counts.
+    """
+    by_machine = {}
+    for i, e in enumerate(examples):
+        by_machine.setdefault(e["machine"], []).append(i)
+    machines = sorted(by_machine)
+    rng = np.random.default_rng(seed)
+    rng.shuffle(machines)
+    folds = [[] for _ in range(n_folds)]
+    for m in machines:
+        smallest = min(range(n_folds), key=lambda k: len(folds[k]))
+        folds[smallest].extend(by_machine[m])
+    return [sorted(f) for f in folds]
+
+
+def _print_test_metrics(test_metrics, header):
+    print(f"\n[Stage 1] ===== {header} =====")
+    for k in ("step_accuracy", "step_micro_f1", "step_macro_f1", "step_weighted_f1",
+              "mcp_micro_f1", "mcp_macro_f1", "mcp_subset_accuracy", "mcp_samples_f1"):
+        print(f"  {k:<20}: {test_metrics[k]:.4f}")
+    combined = 0.5 * test_metrics["step_accuracy"] + 0.5 * test_metrics["mcp_micro_f1"]
+    print(f"  {'combined_score':<20}: {combined:.4f}")
+    return combined
+
+
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"[Stage 1] Training input : {INPUT_TRAIN_JSON}")
@@ -726,7 +778,132 @@ def main():
 
     full_ds = Stage1Dataset(INPUT_TRAIN_JSON, split="train")
     examples = full_ds.examples
-    all_machines = sorted(set(e["machine"] for e in examples))
+    all_machines = set(e["machine"] for e in examples)
+
+    test_pre = load_from_input_json(INPUT_TEST_JSON, "test")
+    test_machines = set(e["machine"] for e in test_pre)
+    assert not (all_machines & test_machines), "TRAIN/TEST machine overlap detected"
+    print("[Stage 1] ✓ No machine overlap between train and test sets")
+
+    test_ds = Stage1Dataset(INPUT_TEST_JSON, split="test")
+    test_loader = DataLoader(test_ds, batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
+    csv_path = os.path.join(ROOT, "output", "stage1.csv")
+
+    if not STAGE1_USE_KFOLD:
+        _main_single_split(full_ds, examples, all_machines, device, test_ds, test_loader, csv_path)
+        return
+
+    # ── K-fold, machine-grouped ───────────────────────────────────────────────
+    folds = _machine_folds(examples, STAGE1_N_FOLDS, RANDOM_SEED + 1)
+    print(f"[Stage 1] K-fold ensembling: {STAGE1_N_FOLDS} machine-grouped folds "
+          f"over {len(all_machines)} machines / {len(examples)} rows")
+    for k, f in enumerate(folds):
+        n_mach = len(set(examples[i]["machine"] for i in f))
+        print(f"[Stage 1]   fold {k}: {len(f):>5} rows, {n_mach:>3} machines")
+
+    models, fold_scores = [], []
+    oof_step_logits, oof_step_gold = [], []
+    oof_mcp_probs, oof_mcp_gold = [], []
+    mcp_counts_ref = None
+
+    for k in range(STAGE1_N_FOLDS):
+        val_idx = folds[k]
+        train_idx = [i for j, f in enumerate(folds) if j != k for i in f]
+        # Every fold's val machines are disjoint from its own train machines by
+        # construction; assert it rather than trust it.
+        tm = set(examples[i]["machine"] for i in train_idx)
+        vm = set(examples[i]["machine"] for i in val_idx)
+        assert not (tm & vm), f"fold {k}: TRAIN/VAL machine overlap"
+
+        fold_ckpt = os.path.join(ROOT, "checkpoints", f"stage1_fold{k}.pt")
+        tag = f"[Stage 1][fold {k}]"
+        print(f"\n{tag} train {len(train_idx)} rows / {len(tm)} machines  |  "
+              f"val {len(val_idx)} rows / {len(vm)} machines")
+        (model, mcp_w_np, mcp_counts, val_probs, val_gold,
+         val_metrics, _thr, _bias) = train_one_split(
+            full_ds, train_idx, val_idx, device, fold_ckpt, tag=tag
+        )
+        models.append(model)
+        mcp_counts_ref = mcp_counts if mcp_counts_ref is None else mcp_counts_ref
+        fold_scores.append(0.5 * val_metrics["step_accuracy"] + 0.5 * val_metrics["mcp_micro_f1"])
+
+        # Out-of-fold predictions: this model never saw these machines.
+        val_loader = DataLoader(torch.utils.data.Subset(full_ds, val_idx),
+                                batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
+        _m, p_probs, p_gold, s_logits, s_gold = evaluate(
+            model, val_loader, device, return_probs=True, return_step_logits=True
+        )
+        oof_step_logits.append(s_logits); oof_step_gold.append(s_gold)
+        oof_mcp_probs.append(p_probs);    oof_mcp_gold.append(p_gold)
+
+    oof_step_logits = np.concatenate(oof_step_logits, axis=0)
+    oof_step_gold   = np.concatenate(oof_step_gold, axis=0)
+    oof_mcp_probs   = np.concatenate(oof_mcp_probs, axis=0)
+    oof_mcp_gold    = np.concatenate(oof_mcp_gold, axis=0)
+
+    print(f"\n[Stage 1] Pooled OUT-OF-FOLD calibration set: {len(oof_step_gold)} rows "
+          f"covering all {len(all_machines)} training machines "
+          f"(vs {int(len(examples) * (STAGE2_VAL_SPLIT or 0.15))} rows from a single split)")
+    print(f"[Stage 1] Per-fold val scores: "
+          + ", ".join(f"fold{k}={v:.4f}" for k, v in enumerate(fold_scores))
+          + f"  (mean {np.mean(fold_scores):.4f}, std {np.std(fold_scores):.4f})")
+
+    # Calibrate on POOLED OOF rather than one 15% split -- the whole point of
+    # the K-fold change. CAVEAT: OOF logits come from a single fold model each,
+    # while test-time logits are an average of K models, so the ensemble's
+    # logit spread is slightly narrower and a bias fit here is marginally
+    # aggressive. It is applied anyway because an additive bias commutes with
+    # the mean (see evaluate()'s docstring), and because both the bias search
+    # and the threshold search carry never-regress guards fit on this same OOF
+    # pool. The ensemble-vs-single comparison printed below is the check.
+    rare = [i for i, c in enumerate(mcp_counts_ref) if c < 15]
+    thresholds = search_per_class_thresholds(oof_mcp_probs, oof_mcp_gold,
+                                             rare_class_indices=rare, verbose=True)
+    step_bias = search_step_logit_bias(oof_step_logits, oof_step_gold, verbose=True)
+
+    # ── Test: single best fold vs the ensemble ────────────────────────────────
+    best_k = int(np.argmax(fold_scores))
+    print(f"\n[Stage 1] Best single fold by val score: fold {best_k} ({fold_scores[best_k]:.4f})")
+    single_metrics = evaluate(models[best_k], test_loader, device,
+                              threshold=thresholds, step_bias=step_bias)
+    _print_test_metrics(single_metrics, f"TEST — SINGLE BEST FOLD ({best_k})")
+
+    test_metrics = evaluate(models, test_loader, device, threshold=thresholds,
+                            save_csv=True, csv_path=csv_path, dataset=test_ds.examples,
+                            step_bias=step_bias)
+    _print_test_metrics(test_metrics, f"TEST — {STAGE1_N_FOLDS}-FOLD ENSEMBLE")
+    print(f"\n[Stage 1] Ensemble vs single-best  step_accuracy: "
+          f"{single_metrics['step_accuracy']:.4f} -> {test_metrics['step_accuracy']:.4f} "
+          f"({test_metrics['step_accuracy'] - single_metrics['step_accuracy']:+.4f})")
+    print(f"[Stage 1] Ensemble vs single-best  mcp_micro_f1 : "
+          f"{single_metrics['mcp_micro_f1']:.4f} -> {test_metrics['mcp_micro_f1']:.4f} "
+          f"({test_metrics['mcp_micro_f1'] - single_metrics['mcp_micro_f1']:+.4f})")
+
+    # ── Persist ───────────────────────────────────────────────────────────────
+    # STAGE1_CKPT must stay a SINGLE-model checkpoint: stage2_sft_qwen.py,
+    # stage3_grpo_rl.py and eval/evaluate.py all load it as one
+    # `model_state_dict`. Write the best fold's weights there, carrying the
+    # pooled-OOF thresholds/bias, so those stages are unchanged by K-fold.
+    best_ckpt = torch.load(os.path.join(ROOT, "checkpoints", f"stage1_fold{best_k}.pt"),
+                           map_location=device, weights_only=False)
+    best_ckpt["mcp_thresholds"]   = [float(x) for x in thresholds]
+    best_ckpt["step_logit_bias"]  = [float(x) for x in step_bias]
+    best_ckpt["kfold_n"]          = STAGE1_N_FOLDS
+    best_ckpt["kfold_best"]       = best_k
+    best_ckpt["kfold_members"]    = [os.path.join(ROOT, "checkpoints", f"stage1_fold{k}.pt")
+                                     for k in range(STAGE1_N_FOLDS)]
+    best_ckpt["kfold_val_scores"] = [float(v) for v in fold_scores]
+    best_ckpt["test_metrics_single"]   = {k: float(v) for k, v in single_metrics.items()}
+    best_ckpt["test_metrics_ensemble"] = {k: float(v) for k, v in test_metrics.items()}
+    torch.save(best_ckpt, STAGE1_CKPT)
+    print(f"\n[Stage 1] Saved single-model checkpoint (fold {best_k} + pooled-OOF calibration) "
+          f"to {STAGE1_CKPT}")
+    print(f"[Stage 1] Ensemble members: {STAGE1_N_FOLDS} files at checkpoints/stage1_fold*.pt")
+
+
+def _main_single_split(full_ds, examples, all_machines, device, test_ds, test_loader, csv_path):
+    """Original single 15%-machine-split path (STAGE1_USE_KFOLD=False)."""
+    all_machines = sorted(all_machines)
     rng = np.random.default_rng(RANDOM_SEED + 1)
     perm = rng.permutation(len(all_machines))
     n_val = max(1, int(len(all_machines) * (STAGE2_VAL_SPLIT if STAGE2_VAL_SPLIT else 0.15)))
@@ -734,42 +911,21 @@ def main():
     train_machines = set(all_machines) - val_machines
     train_idx = [i for i, e in enumerate(examples) if e["machine"] in train_machines]
     val_idx = [i for i, e in enumerate(examples) if e["machine"] in val_machines]
-
-    test_pre = load_from_input_json(INPUT_TEST_JSON, "test")
-    test_machines = set(e["machine"] for e in test_pre)
-    assert not (train_machines & test_machines), "TRAIN/TEST machine overlap detected"
-    assert not (val_machines & test_machines), "VAL/TEST machine overlap detected"
-    print("[Stage 1] ✓ No machine overlap between (train ∪ val) and test sets")
     print(f"[Stage 1] Train machines  : {len(train_machines)}")
     print(f"[Stage 1] Val machines    : {len(val_machines)}")
     print(f"[Stage 1] Train examples  : {len(train_idx)}")
     print(f"[Stage 1] Val examples    : {len(val_idx)}")
 
-    model, mcp_w_np, mcp_counts, val_probs, val_gold, val_metrics, thresholds, step_bias = train_one_split(
+    model, _mcp_w, _mcp_c, _vp, _vg, _vm, thresholds, step_bias = train_one_split(
         full_ds, train_idx, val_idx, device, STAGE1_CKPT, tag="[Stage 1]"
     )
-
     val_selected = os.path.join(ROOT, "checkpoints", "stage1_gnn_classifier_val_selected.pt")
-    ckpt = torch.load(STAGE1_CKPT, map_location=device, weights_only=False)
-    torch.save(ckpt, val_selected)
+    torch.save(torch.load(STAGE1_CKPT, map_location=device, weights_only=False), val_selected)
     print(f"[Stage 1] Saved validation-selected checkpoint to {val_selected}")
 
-    test_ds = Stage1Dataset(INPUT_TEST_JSON, split="test")
-    test_loader = DataLoader(test_ds, batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
     test_metrics = evaluate(model, test_loader, device, threshold=thresholds, save_csv=True,
-                            csv_path=os.path.join(ROOT, "output", "stage1.csv"), dataset=test_ds.examples,
-                            step_bias=step_bias)
-    print("\n[Stage 1] ===== TEST SET RESULTS =====")
-    print(f"  {'step_accuracy':<20}: {test_metrics['step_accuracy']:.4f}")
-    print(f"  {'step_micro_f1':<20}: {test_metrics['step_micro_f1']:.4f}")
-    print(f"  {'step_macro_f1':<20}: {test_metrics['step_macro_f1']:.4f}")
-    print(f"  {'step_weighted_f1':<20}: {test_metrics['step_weighted_f1']:.4f}")
-    print(f"  {'mcp_micro_f1':<20}: {test_metrics['mcp_micro_f1']:.4f}")
-    print(f"  {'mcp_macro_f1':<20}: {test_metrics['mcp_macro_f1']:.4f}")
-    print(f"  {'mcp_subset_accuracy':<20}: {test_metrics['mcp_subset_accuracy']:.4f}")
-    print(f"  {'mcp_samples_f1':<20}: {test_metrics['mcp_samples_f1']:.4f}")
-    combined = 0.5 * test_metrics["step_accuracy"] + 0.5 * test_metrics["mcp_micro_f1"]
-    print(f"  {'combined_score':<20}: {combined:.4f}")
+                            csv_path=csv_path, dataset=test_ds.examples, step_bias=step_bias)
+    _print_test_metrics(test_metrics, "TEST SET RESULTS")
 
 
 if __name__ == "__main__":
