@@ -934,3 +934,52 @@ epochs) is the most natural next thing to try, since it addresses a
 different mechanism (training a large margin between the closest confusable
 classes, deferred so it doesn't destabilize early training) rather than
 just re-deriving another class-weight number.
+
+## 12. Round 7 — per-head graph gates (the shared gate was empirically forced to compromise)
+
+### 12.1 The measurement that forced this
+
+Round 6 (giving the single shared graph gate its own 12x LR so it could
+actually reach equilibrium) produced the decisive result:
+
+| Metric | Round 5 (slow gate) | Round 6 (fast gate) |
+|---|---|---|
+| Step accuracy | 0.7687 | **0.7836** |
+| Step macro-F1 | 0.6402 | 0.6475 |
+| MCP micro-F1 | **0.7036** | 0.6539 |
+| MCP samples-F1 | 0.7129 | 0.6748 |
+
+Letting the gate move pushed Step UP ~1.5pt and MCP DOWN ~5pt. That is not
+noise in one direction — it is the signature of **one scalar being pulled by
+two tasks that want opposite things**. Step is largely determined by the
+strategy wording (the paper's text-only Step model gets 82.87% with no graph
+at all); MCP depends on graph state (which services/findings exist decides
+which tools are usable). A single shared gate can only land on a compromise
+that is wrong for both.
+
+### 12.2 Fix: one gate per head (MMoE-style)
+
+`Stage1Classifier` now carries `graph_gate_step_raw` and
+`graph_gate_mcp_raw`, and runs the (small) fusion MLP once per head, so each
+head reads a fused vector built with its own graph weighting. Per-task gating
+over a shared bottom is exactly the Multi-gate Mixture-of-Experts formulation
+(Ma et al., KDD 2018), which exists for precisely this
+tasks-conflict-over-a-shared-representation situation. The GINE encoder and
+semantic CNN still run once and stay shared — this remains a shared-bottom
+multi-task model, not two models.
+
+Initialized asymmetrically in the direction the data already points
+(`STAGE1_GRAPH_GATE_INIT_STEP=0.15`, `STAGE1_GRAPH_GATE_INIT_MCP=0.60`), both
+trainable so gradient descent can overrule the prior. Both gates share the
+fast LR group. `STAGE1_USE_PER_HEAD_GRAPH_GATE=False` restores the single-gate
+behavior for a one-flag A/B. SupCon now runs on the Step-side fused vector
+(its positives are defined by the Step label, so that is the semantically
+correct one); Manifold Mixup mixes both fused vectors using the same lambda
+and permutation so the soft-mixed targets stay valid for both heads.
+
+**Verified** (synthetic, no GPU): gates initialize to exactly their configured
+values; both receive independent nonzero gradient; `fused_step != fused_mcp`;
+and — the important one — driving the MCP gate to zero changes `mcp_logits`
+by 0.62 while changing `step_logits` by **exactly 0.000000**, proving the
+heads are genuinely isolated from each other's gate. **Not yet validated by a
+real training run.**

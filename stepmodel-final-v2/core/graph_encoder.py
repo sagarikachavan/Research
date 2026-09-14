@@ -62,7 +62,15 @@ from config import (
     EDGE_ATTR_DIM, NODE_AUX_DIM, SEMANTIC_CNN_DIM, SEMANTIC_CNN_KERNELS,
     SEMANTIC_CNN_DROPOUT, STAGE1_EDGE_DROPOUT, STAGE1_NODE_FEAT_DROPOUT,
     STAGE1_USE_GRAPH_GATE, STAGE1_GRAPH_GATE_INIT,
+    STAGE1_USE_PER_HEAD_GRAPH_GATE,
+    STAGE1_GRAPH_GATE_INIT_STEP, STAGE1_GRAPH_GATE_INIT_MCP,
 )
+
+
+def _inv_sigmoid(p: float) -> float:
+    """Logit of p, so sigmoid(logit) == p at initialization."""
+    p = min(max(float(p), 1e-4), 1.0 - 1e-4)
+    return math.log(p / (1.0 - p))
 from data_utils import CONTEXT_COLUMNS
 
 NODE_FEAT_DIM = TEXT_EMB_DIM + NODE_AUX_DIM
@@ -479,9 +487,20 @@ class Stage1Classifier(nn.Module):
         # trainable nn.Parameter, so gradient descent -- not a hand-picked
         # constant -- decides whether to grow it back up.
         self.use_graph_gate = STAGE1_USE_GRAPH_GATE
-        init_p = min(max(STAGE1_GRAPH_GATE_INIT, 1e-4), 1 - 1e-4)
-        init_logit = math.log(init_p / (1.0 - init_p))
-        self.graph_gate_raw = nn.Parameter(torch.tensor(float(init_logit)))
+        # ROUND 7: per-head gates (see config.py's
+        # STAGE1_USE_PER_HEAD_GRAPH_GATE comment). `graph_gate_raw` stays as
+        # the single shared gate for the legacy/disabled path so an A/B
+        # against the old behavior is still one flag away.
+        self.use_per_head_gate = STAGE1_USE_PER_HEAD_GRAPH_GATE
+        self.graph_gate_raw = nn.Parameter(
+            torch.tensor(_inv_sigmoid(STAGE1_GRAPH_GATE_INIT))
+        )
+        self.graph_gate_step_raw = nn.Parameter(
+            torch.tensor(_inv_sigmoid(STAGE1_GRAPH_GATE_INIT_STEP))
+        )
+        self.graph_gate_mcp_raw = nn.Parameter(
+            torch.tensor(_inv_sigmoid(STAGE1_GRAPH_GATE_INIT_MCP))
+        )
 
         # Enhanced fusion with residual connections
         self.semantic_proj = nn.Sequential(
@@ -586,38 +605,48 @@ class Stage1Classifier(nn.Module):
         # above.
         interaction = self.interaction_proj(semantic_proj * graph_proj)  # (B, D/2)
 
-        # ROUND 4: scale every graph-derived term by the learnable gate (see
-        # __init__ comment) before concatenation. semantic_proj is
-        # deliberately left unscaled -- it is the one term with no graph
-        # involvement at all, and is meant to be the dominant signal for
-        # Step prediction by default.
-        if self.use_graph_gate:
-            graph_scale = torch.sigmoid(self.graph_gate_raw)
-            graph_proj_in = graph_scale * graph_proj
-            sem2graph_in = graph_scale * sem2graph_out
-            graph2sem_in = graph_scale * graph2sem_out
-            interaction_in = graph_scale * interaction
+        # ROUND 4/7: scale every graph-derived term by a learnable gate before
+        # concatenation. semantic_proj is deliberately left unscaled -- it is
+        # the one term with no graph involvement at all.
+        #
+        # ROUND 7: the gate is now PER HEAD. Step and MCP demonstrably want
+        # different amounts of graph (see config.py's
+        # STAGE1_USE_PER_HEAD_GRAPH_GATE comment: moving the shared gate
+        # raised Step 0.7687->0.7836 while dropping MCP micro-F1
+        # 0.7036->0.6539), so each head gets its own gate and its own pass
+        # through the fusion MLP. The fusion MLP is small (5*D/2 -> D -> D)
+        # relative to the GINE stack and the semantic CNN, so running it
+        # twice is cheap; the graph/semantic encoders themselves still run
+        # exactly once and are shared, which is what keeps this a
+        # shared-bottom multi-task model rather than two separate models.
+        def _fuse(gate_raw):
+            if not self.use_graph_gate:
+                return self.fusion(torch.cat(
+                    [semantic_proj, graph_proj, sem2graph_out, graph2sem_out, interaction],
+                    dim=-1,
+                ))
+            g = torch.sigmoid(gate_raw)
+            return self.fusion(torch.cat(
+                [semantic_proj,
+                 g * graph_proj,
+                 g * sem2graph_out,
+                 g * graph2sem_out,
+                 g * interaction],
+                dim=-1,
+            ))
+
+        if self.use_graph_gate and self.use_per_head_gate:
+            fused_step = _fuse(self.graph_gate_step_raw)
+            fused_mcp = _fuse(self.graph_gate_mcp_raw)
         else:
-            graph_proj_in, sem2graph_in, graph2sem_in, interaction_in = (
-                graph_proj, sem2graph_out, graph2sem_out, interaction
-            )
+            fused_step = _fuse(self.graph_gate_raw)
+            fused_mcp = fused_step
 
-        # semantic_proj, graph_proj: each modality's own pooled view.
-        # sem2graph_out, graph2sem_out: each modality's view AFTER
-        # attending to the other modality's real tokens (this is the part
-        # that was previously a no-op).
-        # interaction: explicit multiplicative cross term.
-        combined = torch.cat(
-            [semantic_proj, graph_proj_in, sem2graph_in, graph2sem_in, interaction_in],
-            dim=-1,
-        )  # (B, 5*D/2)
-
-        # Private Stage-1 fusion. Never pass this fused representation to the
-        # Stage-2/3 prefix adapter.
-        fused_h = self.fusion(combined)
-        step_logits = self.step_head(fused_h)
-        mcp_logits = self.mcp_head(fused_h)
-        return fused_h, step_logits, mcp_logits
+        # Private Stage-1 fusion. Never pass these fused representations to
+        # the Stage-2/3 prefix adapter.
+        step_logits = self.step_head(fused_step)
+        mcp_logits = self.mcp_head(fused_mcp)
+        return (fused_step, fused_mcp), step_logits, mcp_logits
 
     def forward(self, x, edge_index, batch, field_embs=None,
                 semantic_tokens=None, semantic_mask=None, edge_attr=None):
@@ -629,13 +658,21 @@ class Stage1Classifier(nn.Module):
         )
         return step_logits, mcp_logits, h
 
-    def predict_from_fused(self, fused_h):
-        """Run only the (cheap) classification heads on an already-fused
-        representation. Used by the optional Manifold Mixup auxiliary loss
-        (training/stage1_gnn_train.py) to score mixed-up fused vectors
-        without re-running the graph/semantic encoders.
+    def predict_from_fused(self, fused_h, fused_mcp=None):
+        """Run only the (cheap) classification heads on already-fused
+        representation(s). Used by the optional Manifold Mixup auxiliary loss
+        and by the decoupled classifier re-balancing phase
+        (training/stage1_gnn_train.py) without re-running the graph/semantic
+        encoders.
+
+        ROUND 7: with per-head gates the two heads read DIFFERENT fused
+        vectors, so callers should pass both. `fused_h` is the Step-side
+        representation; `fused_mcp` defaults to it for the single-gate /
+        gate-disabled path and for any caller that still has only one tensor.
         """
-        return self.step_head(fused_h), self.mcp_head(fused_h)
+        if fused_mcp is None:
+            fused_mcp = fused_h
+        return self.step_head(fused_h), self.mcp_head(fused_mcp)
 
     def loss(self, step_logits, mcp_logits, step_labels, mcp_targets,
              step_w=1.0, mcp_w=1.0, mcp_class_weights=None,

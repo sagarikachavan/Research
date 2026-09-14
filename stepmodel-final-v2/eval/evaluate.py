@@ -483,11 +483,11 @@ def eval_llm(adapter_dir: str, threshold_override=None,
             # stage1.graph_encoder(...) (the raw GINE output), matching
             # training exactly; the comment described a different, earlier
             # design that isn't what this code (or training) actually does.
-            graph_h = stage1.graph_encoder(
+            graph_h, node_states, node_mask = stage1.graph_encoder.forward_with_nodes(
                 pyg_batch.x, pyg_batch.edge_index, pyg_batch.batch,
                 edge_attr=edge_attr
             )
-            expected_dim = adapter.proj[0].in_features
+            expected_dim = adapter.graph_dim
             if graph_h.shape[-1] != expected_dim:
                 raise RuntimeError(
                     f"Evaluation graph-prefix dimension mismatch: Stage-1 GINE produced {graph_h.shape[-1]} dims, "
@@ -495,7 +495,9 @@ def eval_llm(adapter_dir: str, threshold_override=None,
                 )
             # fp32 forward through the adapter (matching training's
             # forward_batch), cast only the output to the model's dtype.
-            prefix_embeds = adapter(graph_h.float()).to(dtype)
+            # Per-node states are passed so the resampler sees real graph
+            # structure, exactly as in Stage-2 training.
+            prefix_embeds = adapter(graph_h.float(), node_states.float(), node_mask).to(dtype)
             # BUG FIX (train/eval mismatch): this used
             # `truncation=True, max_length=900`, which keeps the FIRST 900
             # tokens and discards the tail -- but the tail is where the

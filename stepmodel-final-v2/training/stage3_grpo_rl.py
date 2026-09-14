@@ -327,19 +327,21 @@ def build_prefix_embeds(ex, stage1, adapter, device, dtype):
     graph = PyGBatch.from_data_list([ex["graph"]]).to(device)
     with torch.no_grad():
         edge_attr = getattr(graph, "edge_attr", None)
-        graph_emb = stage1.graph_encoder(
+        # forward_with_nodes so the adapter's resampler sees per-node graph
+        # states, matching Stage-2 training exactly (see GraphPrefixAdapter).
+        graph_emb, node_states, node_mask = stage1.graph_encoder.forward_with_nodes(
             graph.x, graph.edge_index, graph.batch, edge_attr=edge_attr
         )
     if graph_emb.shape[-1] != GNN_OUT_DIM:
         raise RuntimeError(
             f"Stage-1 GINE must produce {GNN_OUT_DIM} dims, got {graph_emb.shape[-1]}"
         )
-    expected_dim = adapter.proj[0].in_features
+    expected_dim = adapter.graph_dim
     if expected_dim != GNN_OUT_DIM:
         raise RuntimeError(
             f"GraphPrefixAdapter expects {expected_dim} dims; expected raw GINE {GNN_OUT_DIM}."
         )
-    return adapter(graph_emb.float()).to(dtype)
+    return adapter(graph_emb.float(), node_states.float(), node_mask).to(dtype)
 
 
 def build_prompt_embeds(prompt_text: str, tokenizer, embed_layer, prefix_embeds, device, dtype):

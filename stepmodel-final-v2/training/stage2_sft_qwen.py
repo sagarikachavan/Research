@@ -41,7 +41,7 @@ for _p in (_ROOT, _os.path.join(_ROOT, "core"), _os.path.join(_ROOT, "data_prep"
         _sys.path.insert(0, _p)
 
 from config import (
-    INPUT_TRAIN_JSON, INPUT_TEST_JSON, QWEN_MODEL_NAME, GRAPH_PREFIX_TOKENS, GNN_OUT_DIM,
+    INPUT_TRAIN_JSON, INPUT_TEST_JSON, QWEN_MODEL_NAME, GRAPH_PREFIX_TOKENS, GNN_OUT_DIM, GNN_HIDDEN,
     LORA_R, LORA_ALPHA, LORA_DROPOUT,
     STAGE2_LR, STAGE2_EPOCHS, STAGE2_BATCH_SIZE, STAGE2_GRAD_ACCUM,
     STAGE2_VAL_SPLIT, STAGE2_EARLY_STOP_PATIENCE, STAGE2_GRAD_CLIP, STAGE2_WARMUP_RATIO,
@@ -263,41 +263,116 @@ def build_obj_parser():
 
 class GraphPrefixAdapter(nn.Module):
     """
-    Projects a single graph embedding into GRAPH_PREFIX_TOKENS
-    soft-prompt embeddings that live in the LLM's hidden space.
+    Turns the frozen Stage-1 GINE output into GRAPH_PREFIX_TOKENS soft-prompt
+    embeddings in the LLM's hidden space, using a learned-query cross-attention
+    resampler over the graph's PER-NODE states.
 
-    Enhanced version with LayerNorm, residual connections, and dropout for
-    more stable training.
+    ---------------------------------------------------------------------
+    REWRITTEN (see STAGE2_STAGE3_IMPROVEMENTS.md). The previous version was:
 
-        graph_emb (B, GNN_OUT_DIM)
-            → Linear(GNN_OUT_DIM, H*2) → LN → GELU → Dropout
-            → Linear(H*2, H*2) → LN → GELU → Dropout
-            → Linear(H*2, H*n_tokens) → reshape
-            → (B, n_tokens, H)
+        graph_emb (B, 512)
+          -> Linear(512, H*2) -> Linear(H*2, H*2) -> Linear(H*2, H*n_tokens)
+          -> reshape (B, n_tokens, H)
+
+    Two serious problems with that:
+
+    1. INFORMATION. Every one of the 8 output tokens was a slice of a single
+       expansion of ONE pooled 512-d vector. The tokens could not carry
+       independent graph content -- the whole PTT graph (node titles, types,
+       statuses, degrees, depths, edge types, topology) was squeezed through
+       one global summary before the LLM saw anything. The GNN already
+       computes per-node hidden states (`GraphEncoder.forward_with_nodes`),
+       and they were being discarded at exactly the point the LLM needed them.
+
+    2. PARAMETERS. With llm_hidden=5120 and n_tokens=8 that stack is
+       Linear(512,10240) + Linear(10240,10240) + Linear(10240,40960)
+       ~= 530M trainable parameters -- on ~1.5k training examples. That is a
+       severe overfitting liability and by far the largest trainable block in
+       Stage 2 (much larger than the LoRA itself).
+
+    This version instead uses the standard mechanism for feeding a
+    variable-size encoder output into a frozen LLM: a small set of LEARNED
+    QUERY VECTORS that cross-attend over the encoder's token set, as in
+    Flamingo's Perceiver Resampler (Alayrac et al., NeurIPS 2022) and BLIP-2's
+    Q-Former (Li et al., ICML 2023). Each output token is free to attend to a
+    different part of the graph, and the global pooled vector is prepended to
+    the key/value set so it is always available (and so every row has at least
+    one valid key even if a graph somehow has no nodes).
+
+        queries (n_tokens, d)  --cross-attn-->  [global ; nodes] (B, 1+N, d)
+          -> residual + FFN -> Linear(d, H) -> (B, n_tokens, H)
+
+    At d_model=1024 / n_tokens=16 this is ~15M parameters: ~36x smaller than
+    the old stack while passing twice as many, genuinely distinct, tokens.
     """
 
     def __init__(self, graph_dim: int, llm_hidden: int,
-                 n_tokens: int = GRAPH_PREFIX_TOKENS, dropout: float = 0.1):
+                 n_tokens: int = GRAPH_PREFIX_TOKENS, node_dim: int = GNN_HIDDEN,
+                 d_model: int = 1024, n_heads: int = 8, dropout: float = 0.1):
         super().__init__()
         self.n_tokens = n_tokens
         self.llm_hidden = llm_hidden
-        self.proj = nn.Sequential(
-            nn.Linear(graph_dim, llm_hidden * 2),
-            nn.LayerNorm(llm_hidden * 2),
+        self.graph_dim = graph_dim
+        self.node_dim = node_dim
+        self.d_model = d_model
+
+        self.queries = nn.Parameter(torch.randn(n_tokens, d_model) * 0.02)
+        self.global_proj = nn.Linear(graph_dim, d_model)
+        self.node_proj = nn.Linear(node_dim, d_model)
+
+        self.ln_q = nn.LayerNorm(d_model)
+        self.ln_kv = nn.LayerNorm(d_model)
+        self.attn = nn.MultiheadAttention(d_model, n_heads, dropout=dropout, batch_first=True)
+        self.ln_ffn = nn.LayerNorm(d_model)
+        self.ffn = nn.Sequential(
+            nn.Linear(d_model, d_model * 2),
             nn.GELU(),
             nn.Dropout(dropout),
-            nn.Linear(llm_hidden * 2, llm_hidden * 2),
-            nn.LayerNorm(llm_hidden * 2),
-            nn.GELU(),
-            nn.Dropout(dropout * 0.5),
-            nn.Linear(llm_hidden * 2, llm_hidden * n_tokens),
+            nn.Linear(d_model * 2, d_model),
         )
-        self.output_norm = nn.LayerNorm(llm_hidden)
+        self.out_proj = nn.Sequential(
+            nn.LayerNorm(d_model),
+            nn.Linear(d_model, llm_hidden),
+            nn.LayerNorm(llm_hidden),
+        )
 
-    def forward(self, graph_emb: torch.Tensor) -> torch.Tensor:
-        b = graph_emb.shape[0]
-        raw = self.proj(graph_emb).view(b, self.n_tokens, self.llm_hidden)
-        return self.output_norm(raw)
+    def forward(self, graph_emb: torch.Tensor,
+                node_states: torch.Tensor | None = None,
+                node_mask: torch.Tensor | None = None) -> torch.Tensor:
+        """
+        graph_emb   : (B, graph_dim)          pooled Stage-1 GINE output
+        node_states : (B, N, node_dim) or None  per-node GINE hidden states
+        node_mask   : (B, N) bool or None       True where a node is real
+
+        Returns (B, n_tokens, llm_hidden).
+
+        `node_states=None` falls back to global-only conditioning (the
+        queries attend to the single global token), so any caller that only
+        has the pooled vector still works.
+        """
+        B = graph_emb.shape[0]
+        g = self.global_proj(graph_emb).unsqueeze(1)            # (B, 1, d)
+
+        key_padding_mask = None
+        if node_states is not None and node_states.shape[1] > 0:
+            kv = torch.cat([g, self.node_proj(node_states)], dim=1)   # (B, 1+N, d)
+            if node_mask is not None:
+                gmask = torch.ones(B, 1, dtype=torch.bool, device=node_mask.device)
+                # The global token is always valid, so no row is ever fully
+                # masked -- which is what keeps softmax from producing NaN
+                # on a graph whose nodes are all padding.
+                key_padding_mask = ~torch.cat([gmask, node_mask], dim=1)
+        else:
+            kv = g
+
+        q = self.queries.unsqueeze(0).expand(B, -1, -1)         # (B, n_tokens, d)
+        attended, _ = self.attn(
+            self.ln_q(q), self.ln_kv(kv), self.ln_kv(kv),
+            key_padding_mask=key_padding_mask,
+        )
+        h = q + attended
+        h = h + self.ffn(self.ln_ffn(h))
+        return self.out_proj(h)                                 # (B, n_tokens, H)
 
 
 # ---------------------------------------------------------------------------
@@ -461,11 +536,18 @@ def forward_batch(input_ids, attn, labels, graphs,
         # representation enters the prefix adapter. The Stage-1 checkpoint is
         # a set of weights, not an input tensor; classifier/fusion outputs are
         # deliberately not exposed to Qwen.
-        graph_emb = stage1.graph_encoder(
+        #
+        # Now uses forward_with_nodes() so the adapter's resampler can attend
+        # to PER-NODE graph states, not just the single pooled vector (see
+        # GraphPrefixAdapter's docstring). Still purely the GINE encoder --
+        # no fusion/classifier output crosses this boundary.
+        graph_emb, node_states, node_mask = stage1.graph_encoder.forward_with_nodes(
             graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
-        )  # (B, 512)
+        )  # (B, 512), (B, N, GNN_HIDDEN), (B, N)
 
-    prefix_embeds = adapter(graph_emb.float()).to(dtype)  # (B, n_tokens, H)
+    prefix_embeds = adapter(
+        graph_emb.float(), node_states.float(), node_mask
+    ).to(dtype)  # (B, n_tokens, H)
     token_embeds  = embed_layer(input_ids).to(dtype)          # (B, T, H)
     inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
 
@@ -614,10 +696,10 @@ def run_validation(val_loader, model, stage1, adapter, embed_layer, device, dtyp
                     prompt_ids[b, plen:] = tokenizer.pad_token_id
 
             edge_attr = getattr(graphs, 'edge_attr', None)
-            graph_emb = stage1.graph_encoder(
+            graph_emb, node_states, node_mask = stage1.graph_encoder.forward_with_nodes(
                 graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
             )
-            prefix_embeds = adapter(graph_emb.float()).to(dtype)
+            prefix_embeds = adapter(graph_emb.float(), node_states.float(), node_mask).to(dtype)
             token_embeds = embed_layer(prompt_ids).to(dtype)
             inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
 
@@ -1111,11 +1193,11 @@ def main():
             # generation see the identical distribution.
             edge_attr = getattr(graphs, 'edge_attr', None)
             with torch.no_grad():
-                graph_emb = stage1.graph_encoder(
+                graph_emb, node_states, node_mask = stage1.graph_encoder.forward_with_nodes(
                     graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
-                )  # (B, 512)
+                )  # (B, 512), (B, N, GNN_HIDDEN), (B, N)
 
-            prefix_embeds = adapter(graph_emb.float()).to(dtype)
+            prefix_embeds = adapter(graph_emb.float(), node_states.float(), node_mask).to(dtype)
             token_embeds = embed_layer(input_ids).to(dtype)
             inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
             

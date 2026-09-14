@@ -333,8 +333,31 @@ STAGE1_DECOUPLED_LR = 5e-4
 # hard-imposed assumption that graph and text contribute equally by
 # default. One knob, easy to A/B against STAGE1_USE_GRAPH_GATE=False.
 STAGE1_USE_GRAPH_GATE = True
-STAGE1_GRAPH_GATE_INIT = 0.25   # sigmoid-space initial value: graph terms
-                                  # start at ~25% strength vs semantic's 100%.
+STAGE1_GRAPH_GATE_INIT = 0.25   # legacy single-gate init; kept as the
+                                  # fallback when per-head gating is disabled.
+
+# ROUND 7 -- PER-HEAD GRAPH GATES (this is now empirically forced, not a
+# hypothesis). The Round-6 run gave the decisive measurement: letting the
+# SINGLE shared gate actually move (12x LR) pushed Step accuracy UP
+# (0.7687 -> 0.7836) while pushing MCP micro-F1 DOWN (0.7036 -> 0.6539).
+# One shared scalar cannot satisfy both heads at once -- Step wants LESS
+# graph (its label is largely determined by the strategy wording), MCP wants
+# MORE graph (which tools are usable depends on services/findings//state in
+# the graph). The shared gate was therefore being pulled in two directions
+# and settled on a compromise that is wrong for both.
+#
+# Fix: give each head its own gate over the graph-derived fusion terms, and
+# run the (small) fusion MLP once per head. This is standard multi-task
+# practice -- per-task gating over a shared bottom is exactly the Multi-gate
+# Mixture-of-Experts formulation (Ma et al., "Modeling Task Relationships in
+# Multi-task Learning with Multi-gate Mixture-of-Experts", KDD 2018), which
+# exists precisely for tasks that conflict over a shared representation.
+# Initialized asymmetrically in the direction the data already points:
+# Step semantic-dominant, MCP graph-dominant. Both remain trainable, so
+# gradient descent can still overrule these priors.
+STAGE1_USE_PER_HEAD_GRAPH_GATE = True
+STAGE1_GRAPH_GATE_INIT_STEP = 0.15   # Step: text-dominant, graph assists
+STAGE1_GRAPH_GATE_INIT_MCP = 0.60    # MCP: graph-dominant, text assists
 # ROUND 6 (see STAGE1_IMPROVEMENTS.md): the first real run with the gate
 # showed it moving only 0.250 -> 0.232 (~7% relative) over the 44 epochs
 # before early stopping -- far too slow to have reached wherever its actual
@@ -360,7 +383,12 @@ STAGE1_SWA_TOP_K = 5
 
 QWEN_MODEL_NAME = "Qwen/Qwen3-14B"
 LLM_JUDGE_MODEL_NAME = "Qwen/Qwen2.5-7B-Instruct" # Separate model for LLM judge evaluation
-GRAPH_PREFIX_TOKENS = 8           # Further reduced to save memory
+# Raised 8 -> 16: the adapter is now a learned-query resampler over per-node
+# GINE states (see GraphPrefixAdapter in stage2_sft_qwen.py), so each token
+# can carry distinct graph content instead of being a slice of one pooled
+# vector -- and the rewrite made the adapter ~36x SMALLER in parameters, so
+# doubling the token count is still a large net reduction.
+GRAPH_PREFIX_TOKENS = 16
 LORA_R = 32                      # Reduced to save memory
 LORA_ALPHA = 64                  # Reduced proportionally
 LORA_DROPOUT = 0.12              # Slightly increased for regularization

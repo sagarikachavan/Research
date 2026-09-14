@@ -301,11 +301,11 @@ def retrain_classifier_heads(model, full_ds, train_idx, device, val_loader,
             sem_mask = sem_mask.to(device)
             edge_attr = getattr(graphs, "edge_attr", None)
             with torch.no_grad():
-                _, _, fused_h = model(
+                _, _, (fused_step, fused_mcp) = model(
                     graphs.x, graphs.edge_index, graphs.batch,
                     semantic_tokens=sem_tokens, semantic_mask=sem_mask, edge_attr=edge_attr,
                 )
-            step_logits, mcp_logits = model.predict_from_fused(fused_h)
+            step_logits, mcp_logits = model.predict_from_fused(fused_step, fused_mcp)
             step_loss = F.cross_entropy(step_logits, step_idx, label_smoothing=0.05)
             bce = F.binary_cross_entropy_with_logits(mcp_logits, mcp_vec, reduction="none")
             bce = bce * mcp_class_weights.view(1, -1)
@@ -334,6 +334,7 @@ def retrain_classifier_heads(model, full_ds, train_idx, device, val_loader,
 
 
 def manifold_mixup_loss(model, fused_h, step_idx, mcp_vec, num_step_classes,
+                         fused_mcp=None,
                          alpha=0.2, mcp_class_weights=None):
     """Manifold Mixup auxiliary loss (Verma et al., ICML 2019) computed on
     the fused Stage-1 representation.
@@ -350,8 +351,16 @@ def manifold_mixup_loss(model, fused_h, step_idx, mcp_vec, num_step_classes,
     lam = float(np.random.beta(alpha, alpha)) if alpha > 0 else 1.0
     perm = torch.randperm(fused_h.size(0), device=fused_h.device)
     mixed_h = lam * fused_h + (1.0 - lam) * fused_h[perm]
+    # ROUND 7: with per-head gates the MCP head reads its own fused vector,
+    # so mix that one too (using the SAME lambda and permutation, so the
+    # mixed Step/MCP views correspond to the same pair of examples and the
+    # soft-mixed targets below stay valid for both heads).
+    if fused_mcp is None:
+        mixed_mcp_h = mixed_h
+    else:
+        mixed_mcp_h = lam * fused_mcp + (1.0 - lam) * fused_mcp[perm]
 
-    mix_step_logits, mix_mcp_logits = model.predict_from_fused(mixed_h)
+    mix_step_logits, mix_mcp_logits = model.predict_from_fused(mixed_h, mixed_mcp_h)
 
     step_onehot = F.one_hot(step_idx, num_step_classes).float()
     mixed_step_target = lam * step_onehot + (1.0 - lam) * step_onehot[perm]
@@ -436,7 +445,12 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     # multiplicative schedule to every group's own base LR), so the ~12x
     # ratio between them holds throughout training, not just at epoch 0.
     if getattr(model, "use_graph_gate", False):
-        gate_params = [model.graph_gate_raw]
+        # ROUND 7: all gate scalars (shared + per-head) share the fast LR
+        # group -- they are single scalars with a short gradient path and
+        # would otherwise creep (see STAGE1_GRAPH_GATE_LR_MULT).
+        gate_params = [model.graph_gate_raw,
+                       model.graph_gate_step_raw,
+                       model.graph_gate_mcp_raw]
         gate_ids = {id(p) for p in gate_params}
         other_params = [p for p in model.parameters() if id(p) not in gate_ids]
         opt = torch.optim.AdamW(
@@ -499,7 +513,7 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
             sem_tokens = sem_tokens.to(device)
             sem_mask = sem_mask.to(device)
             edge_attr = getattr(graphs, "edge_attr", None)
-            step_logits, mcp_logits, fused_h = model(
+            step_logits, mcp_logits, (fused_step, fused_mcp) = model(
                 graphs.x, graphs.edge_index, graphs.batch,
                 semantic_tokens=sem_tokens, semantic_mask=sem_mask, edge_attr=edge_attr
             )
@@ -518,9 +532,11 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
             )
             hn = hard_negative_margin(step_logits, step_idx, hard_groups, margin=STAGE1_HARD_NEGATIVE_MARGIN)
             if STAGE1_SUPCON_WEIGHT > 0:
-                con = supervised_contrastive_loss(fused_h, step_idx, temperature=STAGE1_SUPCON_TEMPERATURE)
+                # SupCon's positives are defined by the STEP label, so it
+                # belongs on the Step-side fused representation (ROUND 7).
+                con = supervised_contrastive_loss(fused_step, step_idx, temperature=STAGE1_SUPCON_TEMPERATURE)
             else:
-                con = fused_h.new_zeros(())
+                con = fused_step.new_zeros(())
             loss = base + STAGE1_HARD_NEGATIVE_WEIGHT * hn + STAGE1_SUPCON_WEIGHT * con
 
             # Optional Manifold Mixup auxiliary term (default OFF -- see
@@ -529,10 +545,11 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
             # cheap linear heads on a convex combination of two examples'
             # fused vectors + soft-mixed targets, so it cannot change the
             # primary forward pass even when enabled.
-            if STAGE1_USE_MANIFOLD_MIXUP and fused_h.size(0) > 1:
+            if STAGE1_USE_MANIFOLD_MIXUP and fused_step.size(0) > 1:
                 mix_loss = manifold_mixup_loss(
-                    model, fused_h, step_idx, mcp_vec,
+                    model, fused_step, step_idx, mcp_vec,
                     num_step_classes=len(STEP_LABELS),
+                    fused_mcp=fused_mcp,
                     alpha=STAGE1_MIXUP_ALPHA, mcp_class_weights=mcp_weights,
                 )
                 loss = loss + STAGE1_MIXUP_WEIGHT * mix_loss
@@ -553,7 +570,13 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
         lr = sched.get_last_lr()[0]
         gate_str = ""
         if getattr(model, "use_graph_gate", False):
-            gate_str = f" | graph_gate {torch.sigmoid(model.graph_gate_raw).item():.3f}"
+            if getattr(model, "use_per_head_gate", False):
+                gate_str = (
+                    f" | gate_step {torch.sigmoid(model.graph_gate_step_raw).item():.3f}"
+                    f" gate_mcp {torch.sigmoid(model.graph_gate_mcp_raw).item():.3f}"
+                )
+            else:
+                gate_str = f" | graph_gate {torch.sigmoid(model.graph_gate_raw).item():.3f}"
         print(
             f"{tag} epoch {epoch+1:02d}/{STAGE1_EPOCHS} | lr {lr:.2e} | "
             f"train {total_loss/max(1,n_batches):.4f} (step={step_run/max(1,n_batches):.4f}, "

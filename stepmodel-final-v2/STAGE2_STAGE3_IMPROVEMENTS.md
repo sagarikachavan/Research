@@ -553,3 +553,54 @@ confirm it lifts the rare-class recall without hurting the majority class.
    re-eval.
 3. Run Stage 3 (`python training/stage3_grpo_rl.py`) with the fixed LR
    (§13.2) on top of the improved Stage 2.
+
+## 14. Stage-1 -> Stage-2 interface rewritten (the real bottleneck)
+
+The `GraphPrefixAdapter` was:
+
+```
+graph_emb (B,512) -> Linear(512,10240) -> Linear(10240,10240)
+                  -> Linear(10240, 8*5120) -> reshape (B,8,5120)
+```
+
+Two serious problems:
+
+1. **Information.** All 8 tokens were slices of a single expansion of ONE
+   pooled 512-d vector. They could not carry independent graph content — the
+   entire PTT graph (node titles/types/statuses, degrees, depths, edge types,
+   topology) was squeezed through one global summary before Qwen saw
+   anything. Meanwhile `GraphEncoder.forward_with_nodes()` already computes
+   per-node hidden states and Stage 1 uses them internally for its own
+   cross-attention — they were simply discarded at the boundary.
+2. **Parameters.** That stack is **~530M trainable parameters** (measured:
+   529.5M at llm_hidden=5120) to expand one 512-d vector, trained on ~1.5k
+   examples — larger than the LoRA itself and a severe overfitting liability.
+
+**Fix:** replaced with a learned-query cross-attention resampler — the
+standard mechanism for feeding a variable-size encoder output into a frozen
+LLM (Flamingo's Perceiver Resampler, Alayrac et al. NeurIPS 2022; BLIP-2's
+Q-Former, Li et al. ICML 2023). `GRAPH_PREFIX_TOKENS` learned queries
+cross-attend over `[global_pooled ; per-node states]`, then residual + FFN +
+projection to the LLM hidden size. `GRAPH_PREFIX_TOKENS` raised 8 -> 16.
+
+Measured: **529.5M -> 14.6M parameters (36.3x smaller) with 2x the tokens**,
+each free to attend to a different part of the graph. Prepending the global
+token to the key/value set also guarantees every row has at least one valid
+key, so a graph whose nodes are all padding cannot produce a softmax NaN.
+
+All four call sites now pass per-node states (`forward_with_nodes`):
+`stage2_sft_qwen.forward_batch`, Stage 2's validation and test loops,
+`stage3_grpo_rl.build_prefix_embeds`, and `evaluate.py::eval_llm` (the
+graph-conditioning ablation script inherits it via `build_prefix_embeds`).
+The two `adapter.proj[0].in_features` dimension checks were updated to
+`adapter.graph_dim` since `.proj` no longer exists.
+
+**Verified** (synthetic, no GPU): output shape `(B, 16, H)`; finite output
+including a row whose nodes are ALL padding; tokens carry distinct content
+(max pairwise diff 3.08, not degenerate copies); output genuinely changes
+when per-node states change (delta 5.86 — it is not ignoring them); the
+global-only fallback path still works for any caller without node states;
+learned queries and node projection both receive gradient; and the full
+frozen-GINE -> resampler path handles ragged node counts (6/11/3) correctly.
+**Not yet validated by a real training run — this changes the Stage-2
+interface, so Stage 2 (and Stage 3 after it) must be retrained.**
