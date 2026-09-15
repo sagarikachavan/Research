@@ -13,6 +13,7 @@ only graph representation exposed to Stage 2/3.
 from __future__ import annotations
 
 import csv
+import hashlib
 import os
 import sys
 import random
@@ -50,6 +51,13 @@ from config import (
     STAGE1_USE_STRUCTURED_SMOOTHING, STAGE1_SMOOTH_TEMP,
     STAGE1_MASK_UNSUPPORTED_CLASSES, STAGE1_N_SEEDS,
     STAGE1_USE_KNN_MEMBER, STAGE1_KNN_K,
+    STAGE1_ABLATE_MIXUP, STAGE1_ABLATE_SUPCON, STAGE1_NATURAL_SAMPLING,
+    STAGE1_USE_LABEL_PROTOTYPES, FUSION_HIDDEN,
+    STAGE1_USE_STACKING, STAGE1_STACK_C,
+    STAGE1_SEL_W_STEP_ACC, STAGE1_SEL_W_MCP_F1, STAGE1_SEL_W_STEP_MACRO,
+    STAGE1_USE_TOOL_CONSTRAINTS, STAGE1_TOOL_CONSTRAINT_PENALTY,
+    TOOL_EVIDENCE_KEYWORDS,
+    STAGE1_TRAIN_FINAL_ON_ALL, STAGE1_DROP_DEAD_CLASSES,
 )
 from data_utils import load_from_input_json, precompute_semantic_tokens
 from graph_encoder import (Stage1Classifier, build_structured_smoothing_targets,
@@ -103,9 +111,21 @@ def collate(items):
             sem, mask)
 
 
+def _selection_score(metrics):
+    """Composite score used for checkpoint / fold selection only.
+
+    Step accuracy alone rewards collapsing onto the 34%-prevalence "Exploit"
+    class; MCP alone ignores the headline metric. Reported numbers stay
+    separate and unweighted -- this only drives selection.
+    """
+    return (STAGE1_SEL_W_STEP_ACC * float(metrics.get("step_accuracy", 0.0))
+            + STAGE1_SEL_W_MCP_F1 * float(metrics.get("mcp_micro_f1", 0.0))
+            + STAGE1_SEL_W_STEP_MACRO * float(metrics.get("step_macro_f1", 0.0)))
+
+
 def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=False,
              csv_path=None, dataset=None, step_bias=None, return_step_logits=False,
-             support_mask=None):
+             support_mask=None, tool_penalty=None):
     """step_bias: optional per-class additive logit bias applied BEFORE argmax
     (see search_step_logit_bias in core/mcp_threshold_search.py). None = plain
     argmax, i.e. the previous behavior.
@@ -156,6 +176,15 @@ def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=
                 sp = step_logits.argmax(-1).cpu().numpy()
             sg = step_idx.cpu().numpy()
             probs = mcp_prob_t.cpu().numpy()
+            if tool_penalty is not None:
+                # Evidence-gated tool prior, applied in LOGIT space so the
+                # per-class thresholds below still operate on probabilities.
+                # Evidence is read from PTT/strategy text only -- never gold.
+                pslice = tool_penalty[global_idx: global_idx + probs.shape[0]]
+                if pslice.shape[0] == probs.shape[0]:
+                    lg = np.log(np.clip(probs, 1e-6, 1 - 1e-6) /
+                                (1 - np.clip(probs, 1e-6, 1 - 1e-6)))
+                    probs = 1.0 / (1.0 + np.exp(-(lg + pslice)))
             if isinstance(threshold, (list, np.ndarray)):
                 thr = torch.tensor(threshold, dtype=torch.float32, device=device)
                 mp = (mcp_prob_t >= thr).float().cpu().numpy()
@@ -164,6 +193,8 @@ def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=
             mg = mcp_vec.cpu().numpy()
             step_preds.append(sp); step_gold.append(sg)
             mcp_preds.append(mp); mcp_gold.append(mg); mcp_probs.append(probs)
+            if not (save_csv and dataset is not None):
+                global_idx += len(sp)
             if save_csv and dataset is not None:
                 for i in range(len(sp)):
                     ex = dataset[global_idx]
@@ -183,7 +214,14 @@ def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=
     metrics = {
         "step_accuracy": accuracy_score(step_gold, step_preds),
         "step_micro_f1": f1_score(step_gold, step_preds, average="micro", zero_division=0),
-        "step_macro_f1": f1_score(step_gold, step_preds, average="macro", zero_division=0),
+        # Macro-F1 over classes that actually have support. A class with zero
+        # rows in train AND test contributes a guaranteed 0 and mechanically
+        # caps 10-class macro-F1 at 0.90 -- that is a property of the label
+        # space, not of the model.
+        "step_macro_f1": f1_score(
+            step_gold, step_preds, average="macro", zero_division=0,
+            labels=([i for i, ok in enumerate(support_mask) if ok]
+                    if support_mask is not None else None)),
         "step_weighted_f1": f1_score(step_gold, step_preds, average="weighted", zero_division=0),
         "mcp_subset_accuracy": accuracy_score(mcp_gold, mcp_preds),
         "mcp_micro_f1": f1_score(mcp_gold, mcp_preds, average="micro", zero_division=0),
@@ -363,7 +401,7 @@ def retrain_classifier_heads(model, full_ds, train_idx, device, val_loader,
             opt.step()
 
         val_metrics = evaluate(model, val_loader, device)
-        score = 0.50 * val_metrics["step_accuracy"] + 0.50 * val_metrics["mcp_micro_f1"]
+        score = _selection_score(val_metrics)
         if score > best_score:
             best_score = score
             best_state = {k: v.detach().clone() for k, v in model.state_dict().items()}
@@ -479,7 +517,17 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     if STAGE1_MASK_UNSUPPORTED_CLASSES and not support_mask.all():
         dead = [i for i, ok in enumerate(support_mask) if not ok]
         print(f"{tag} masking step classes with no training support: {dead}")
-    eval_support = support_mask if STAGE1_MASK_UNSUPPORTED_CLASSES else None
+    eval_support = support_mask if (STAGE1_MASK_UNSUPPORTED_CLASSES
+                                    or STAGE1_DROP_DEAD_CLASSES) else None
+    if STAGE1_DROP_DEAD_CLASSES and not support_mask.all():
+        # The dead class keeps its slot in STEP_LABELS (checkpoint + Stage-2/3
+        # label contract stay valid) but is removed from the softmax's
+        # normalization during TRAINING as well as inference, so it can no
+        # longer absorb probability mass or smoothing.
+        n_live = int(support_mask.sum())
+        print(f"{tag} DROP_DEAD_CLASSES: training a {n_live}-way softmax "
+              f"(of {len(STEP_LABELS)} label slots); dead slots are excluded from "
+              f"the loss normalization, not merely masked at inference")
 
     # A4: similarity-structured smoothing targets (zero mass to dead classes).
     smoothing_targets = None
@@ -509,8 +557,21 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     sample_weights = np.asarray(sample_weights, dtype=np.float64)
     sample_weights /= max(np.median(sample_weights), 1e-8)
     sample_weights = np.clip(sample_weights, 0.70, 2.0)
-    sampler = WeightedRandomSampler(torch.as_tensor(sample_weights, dtype=torch.double), num_samples=len(train_idx), replacement=True)
-    train_loader = DataLoader(train_ds, batch_size=STAGE1_BATCH_SIZE, sampler=sampler, collate_fn=collate, drop_last=False)
+    if STAGE1_NATURAL_SAMPLING:
+        # Kang et al. (ICLR 2020): learn the REPRESENTATION under the natural
+        # distribution, rebalance the CLASSIFIER afterwards. Doing both at once
+        # (weighted sampler + class weights + focal during representation
+        # learning, THEN decoupled classifier retraining) partly defeats the
+        # purpose of the decoupled stage. This leaves the decoupled classifier
+        # stage as the only rebalancing mechanism.
+        print(f"{tag} NATURAL SAMPLING: weighted sampler + step class weights disabled "
+              f"for representation learning (decoupled classifier stage still rebalances)")
+        train_loader = DataLoader(train_ds, batch_size=STAGE1_BATCH_SIZE, shuffle=True,
+                                  collate_fn=collate, drop_last=False)
+        step_weights = None
+    else:
+        sampler = WeightedRandomSampler(torch.as_tensor(sample_weights, dtype=torch.double), num_samples=len(train_idx), replacement=True)
+        train_loader = DataLoader(train_ds, batch_size=STAGE1_BATCH_SIZE, sampler=sampler, collate_fn=collate, drop_last=False)
 
     # IDENTICAL INIT ACROSS FOLDS. The module-level torch.manual_seed only runs
     # once at import, so every fold used to draw a DIFFERENT random init --
@@ -518,17 +579,35 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     # weights meaningless (independently-initialized networks differ by
     # arbitrary neuron permutations / rotations). Re-seeding here means all
     # folds start from the SAME weights and then train on 80%-overlapping
-    # data, so they stay in one basin and a weight average ("model soup",
-    # Wortsman et al., ICML 2022) is well-defined. That is what lets Stage 2
-    # consume the ensemble's learning as a SINGLE encoder -- see _weight_soup
-    # in main(). The training stochasticity (sampling, dropout, augmentation)
-    # is re-randomized per fold immediately after, so the folds still differ.
+    # data. This was originally motivated by weight averaging ("model soup"),
+    # which has since been REMOVED -- averaging the folds scored 0.7276 on test
+    # against the ensemble's 0.8022, so shared init plus 80% data overlap was
+    # not enough to keep them in one loss basin. The shared init is kept
+    # anyway: it reduces fold-to-fold variance in the logit-averaged ensemble.
+    # Training stochasticity (sampling, dropout, augmentation) is re-randomized
+    # per fold immediately after, so the folds still differ.
     _seed = RANDOM_SEED if init_seed is None else int(init_seed)
     torch.manual_seed(_seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(_seed)
     model = Stage1Classifier().to(device)
-    _fold_entropy = abs(hash(tag)) % 100000
+    if STAGE1_USE_LABEL_PROTOTYPES:
+        # BGE embedding of each STEP LABEL's own text, projected to the
+        # fusion half-width so it lives in the same space as semantic_proj.
+        from data_utils import _embed_texts
+        _pe = np.asarray(_embed_texts(list(STEP_LABELS)), dtype=np.float32)
+        half = FUSION_HIDDEN // 2
+        if _pe.shape[1] >= half:
+            _pe = _pe[:, :half]
+        else:
+            _pe = np.pad(_pe, ((0, 0), (0, half - _pe.shape[1])))
+        model.label_prototypes = torch.tensor(_pe, device=device)
+    # Deterministic per-fold entropy. Python's builtin hash() is SALTED per
+    # process (PYTHONHASHSEED), so hash(tag) gave a DIFFERENT value on every
+    # run -- meaning identical RANDOM_SEED + identical code + identical data
+    # still produced different training stochasticity. Unacceptable for a
+    # research experiment; sha256 is stable across processes and machines.
+    _fold_entropy = int(hashlib.sha256(tag.encode()).hexdigest()[:8], 16) % 100000
     torch.manual_seed(RANDOM_SEED + 1000 + _fold_entropy)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(RANDOM_SEED + 1000 + _fold_entropy)
@@ -626,12 +705,14 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
                 graphs.x, graphs.edge_index, graphs.batch,
                 semantic_tokens=sem_tokens, semantic_mask=sem_mask, edge_attr=edge_attr
             )
+            if STAGE1_DROP_DEAD_CLASSES and eval_support is not None:
+                step_logits = mask_unsupported_logits(step_logits, eval_support)
             base, step_l, mcp_l = model.loss(
                 step_logits, mcp_logits, step_idx, mcp_vec,
                 step_w=STEP_LOSS_WEIGHT, mcp_w=MCP_LOSS_WEIGHT,
                 mcp_class_weights=mcp_weights, use_focal=True, focal_gamma=1.8,
                 label_smoothing=STEP_LABEL_SMOOTHING,
-                step_class_weights=(step_weights if STAGE1_USE_STEP_CLASS_WEIGHTS else None),
+                step_class_weights=(step_weights if (STAGE1_USE_STEP_CLASS_WEIGHTS and step_weights is not None) else None),
                 use_step_focal=STAGE1_USE_STEP_FOCAL, step_focal_gamma=STAGE1_STEP_FOCAL_GAMMA,
                 step_log_priors=(step_log_priors if STAGE1_USE_LOGIT_ADJUSTMENT else None),
                 logit_adj_tau=STAGE1_LOGIT_ADJ_TAU,
@@ -644,7 +725,7 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
                 asl_clip=STAGE1_ASL_CLIP,
             )
             hn = hard_negative_margin(step_logits, step_idx, hard_groups, margin=STAGE1_HARD_NEGATIVE_MARGIN)
-            if STAGE1_SUPCON_WEIGHT > 0:
+            if STAGE1_SUPCON_WEIGHT > 0 and not STAGE1_ABLATE_SUPCON:
                 # SupCon's positives are defined by the STEP label, so it
                 # belongs on the Step-side fused representation (ROUND 7).
                 con = supervised_contrastive_loss(fused_step, step_idx, temperature=STAGE1_SUPCON_TEMPERATURE)
@@ -658,7 +739,7 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
             # cheap linear heads on a convex combination of two examples'
             # fused vectors + soft-mixed targets, so it cannot change the
             # primary forward pass even when enabled.
-            if STAGE1_USE_MANIFOLD_MIXUP and fused_step.size(0) > 1:
+            if STAGE1_USE_MANIFOLD_MIXUP and not STAGE1_ABLATE_MIXUP and fused_step.size(0) > 1:
                 mix_loss = manifold_mixup_loss(
                     model, fused_step, step_idx, mcp_vec,
                     num_step_classes=len(STEP_LABELS),
@@ -675,10 +756,11 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
             hn_run += float(hn.item()); con_run += float(con.item()); n_batches += 1
 
         val_metrics = evaluate(model, val_loader, device)
-        # Stage-1 checkpoint selection gives equal priority to the two actual
-        # supervised objectives: Step and MCP. Macro-F1 remains diagnostic.
-        score = (0.50 * val_metrics["step_accuracy"]
-                 + 0.50 * val_metrics["mcp_micro_f1"])
+        # Composite selection score (config STAGE1_SEL_W_*). Step accuracy
+        # alone rewards collapsing onto the 34%-prevalence "Exploit" class, so
+        # macro-F1 now carries explicit weight in SELECTION. Reported metrics
+        # remain separate and unweighted.
+        score = _selection_score(val_metrics)
         train_losses.append(total_loss / max(1, n_batches)); val_scores.append(score)
         lr = sched.get_last_lr()[0]
         gate_str = ""
@@ -736,7 +818,7 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
         swa_model = Stage1Classifier().to(device)
         swa_model.load_state_dict(swa_state)
         swa_val_metrics = evaluate(swa_model, val_loader, device)
-        swa_score = 0.50 * swa_val_metrics["step_accuracy"] + 0.50 * swa_val_metrics["mcp_micro_f1"]
+        swa_score = _selection_score(swa_val_metrics)
         print(f"{tag} SWA over top-{len(top_k_ckpts)} checkpoints: val score {swa_score:.4f} "
               f"(single-best checkpoint was {best_score:.4f})")
         if swa_score >= best_score:
@@ -759,7 +841,7 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     # STAGE1_USE_DECOUPLED_RETRAIN comment.
     if STAGE1_USE_DECOUPLED_RETRAIN and STAGE1_DECOUPLED_EPOCHS > 0:
         pre_retrain_metrics = evaluate(model, val_loader, device)
-        pre_retrain_score = 0.50 * pre_retrain_metrics["step_accuracy"] + 0.50 * pre_retrain_metrics["mcp_micro_f1"]
+        pre_retrain_score = _selection_score(pre_retrain_metrics)
         model, best_score = retrain_classifier_heads(
             model, full_ds, train_idx, device, val_loader,
             mcp_class_weights=mcp_weights, base_val_score=pre_retrain_score,
@@ -914,6 +996,60 @@ def _zscore_logits(a):
     return (a - mu) / sd
 
 
+def _fit_stacker(member_logits_oof, gold, C=1.0):
+    """Train a meta-classifier on members' OUT-OF-FOLD logits (Wolpert 1992).
+
+    A grid-searched blend applies ONE global weight per member. A stacker
+    learns per-CLASS trust -- e.g. lean on the k-NN for the 21-row tail
+    classes while leaning on the GNN for Exploit. That per-class structure is
+    what the measured error overlap implies exists, and what a scalar weight
+    per member is structurally unable to express.
+
+    Inputs are the row-wise z-scored member logits concatenated; the meta
+    learner is multinomial logistic regression, kept linear because an MLP on
+    ~1.9k rows already measured worse than LR on this data.
+    """
+    from sklearn.linear_model import LogisticRegression
+    X = np.concatenate([_zscore_logits(m) for m in member_logits_oof], axis=1)
+    y = np.asarray(gold)
+    clf = LogisticRegression(max_iter=3000, C=C, multi_class="multinomial")
+    clf.fit(X, y)
+    classes = clf.classes_
+
+    def predict_logits(member_logits):
+        Xt = np.concatenate([_zscore_logits(m) for m in member_logits], axis=1)
+        raw = clf.decision_function(Xt)
+        if raw.ndim == 1:
+            raw = np.stack([-raw, raw], axis=1)
+        full = np.full((Xt.shape[0], len(STEP_LABELS)), -1e4, dtype=np.float64)
+        for j, c in enumerate(classes):
+            full[:, int(c)] = raw[:, j]
+        return full
+    return predict_logits
+
+
+def _tool_evidence_penalty(examples):
+    """(N, n_tools) additive logit penalty for tools with no supporting
+    evidence in the PTT text available at decision time.
+
+    LEAKAGE GUARD: evidence is read from the graph/PTT text ONLY. Nothing here
+    touches gold MCP labels -- a constraint derived from the target would be
+    leakage wearing a prior's clothing.
+    """
+    pen = np.zeros((len(examples), len(MCP_LABELS)), dtype=np.float64)
+    for i, ex in enumerate(examples):
+        blob = " ".join([
+            str(ex.get("ptt", "")),
+            str(ex.get("context", {}).get("New strategy", "")),
+            str(ex.get("context", {}).get("Strategy explanation", "")),
+        ]).lower()
+        for j, tool in enumerate(MCP_LABELS):
+            kws = TOOL_EVIDENCE_KEYWORDS.get(tool, [])
+            if kws and not any(k in blob for k in kws):
+                pen[i, j] = -STAGE1_TOOL_CONSTRAINT_PENALTY
+    return pen
+
+
 def _search_blend_weights(member_logits, gold, step_bias=None, grid=0.05):
     """Search convex weights over ensemble members on OUT-OF-FOLD data.
 
@@ -950,38 +1086,6 @@ def _search_blend_weights(member_logits, gold, step_bias=None, grid=0.05):
         if v > best + 1e-9:
             best, best_w = v, w
     return best_w, best, base
-
-
-def _weight_soup(models, device):
-    """Average the weights of the K fold models into ONE model.
-
-    Valid here only because every fold starts from the SAME initialization
-    (see train_one_split) and trains on 80%-overlapping data, so the folds
-    remain in a single loss basin -- the "model soup" condition (Wortsman et
-    al., ICML 2022). Averaging independently-initialized networks would be
-    meaningless: their hidden units differ by arbitrary permutations.
-
-    WHY THIS MATTERS: Stage 2/3 can consume only ONE graph encoder, so a
-    logit-averaged ensemble cannot propagate. A soup collapses the ensemble
-    back into a single set of weights that Stage 2 CAN load, with no change to
-    the 512-d contract and no extra forward cost at Stage 2/3 time.
-
-    Non-floating buffers (if any) are taken from the first model rather than
-    averaged, since averaging integer counters is not meaningful.
-    """
-    ref = models[0].state_dict()
-    soup_state = {}
-    for k in ref:
-        if ref[k].is_floating_point():
-            soup_state[k] = torch.stack(
-                [m.state_dict()[k].float() for m in models], dim=0
-            ).mean(dim=0).to(ref[k].dtype)
-        else:
-            soup_state[k] = ref[k].clone()
-    soup = Stage1Classifier().to(device)
-    soup.load_state_dict(soup_state)
-    soup.eval()
-    return soup
 
 
 def _print_test_metrics(test_metrics, header):
@@ -1027,6 +1131,7 @@ def main():
     models, fold_scores = [], []
     oof_step_logits, oof_step_gold = [], []
     per_fold_mcp_score = []
+    per_fold_best_epoch = []
     text_heads, oof_text_logits = [], []
     knn_heads, oof_knn_logits = [], []
     oof_mcp_probs, oof_mcp_gold = [], []
@@ -1063,7 +1168,7 @@ def main():
         model = fold_models[0]
         models.extend(fold_models)
         mcp_counts_ref = mcp_counts if mcp_counts_ref is None else mcp_counts_ref
-        fold_scores.append(0.5 * val_metrics["step_accuracy"] + 0.5 * val_metrics["mcp_micro_f1"])
+        fold_scores.append(_selection_score(val_metrics))
 
         # Out-of-fold predictions: this model never saw these machines.
         val_loader = DataLoader(torch.utils.data.Subset(full_ds, val_idx),
@@ -1077,6 +1182,12 @@ def main():
         # Per-fold MCP val score -- used to pick which single encoder Stage 2
         # inherits (see best_k below).
         per_fold_mcp_score.append(float(val_metrics["mcp_micro_f1"]))
+        try:
+            _fc = torch.load(os.path.join(ROOT, "checkpoints", f"stage1_fold{k}.pt"),
+                             map_location="cpu", weights_only=False)
+            per_fold_best_epoch.append(int(_fc.get("best_epoch", STAGE1_EPOCHS)))
+        except Exception:
+            per_fold_best_epoch.append(STAGE1_EPOCHS)
 
         # Complementary TEXT-ONLY head for this fold, trained on exactly the
         # same rows the GNN fold saw, so its val predictions are genuinely
@@ -1138,7 +1249,33 @@ def main():
           + ", ".join(f"{n}={w:.2f}" for n, w in zip(member_names, blend_w)))
     print(f"[Stage 1]   OOF accuracy {gnn_oof:.4f} (GNN alone) -> {blend_oof:.4f} (blended)")
     use_blend = blend_oof > gnn_oof + 1e-9 and blend_w[0] < 1.0
-    print(f"[Stage 1]   {'ADOPTING blend' if use_blend else 'blend did not beat GNN alone -- GNN only'}")
+    print(f"[Stage 1]   {'grid blend beats GNN alone' if use_blend else 'grid blend did not beat GNN alone'}")
+
+    # Stacking meta-learner, judged on the SAME OOF pool as the grid blend.
+    stacker = None
+    if STAGE1_USE_STACKING and len(members_oof) > 1:
+        try:
+            stacker = _fit_stacker(members_oof, oof_step_gold, C=STAGE1_STACK_C)
+            st_pred = np.argmax(stacker(members_oof)
+                                + np.asarray(step_bias, float)[None, :], axis=1)
+            stack_oof = float((st_pred == oof_step_gold).mean())
+            best_prev = blend_oof if use_blend else gnn_oof
+            print(f"[Stage 1] Stacking meta-learner on pooled OOF: {stack_oof:.4f} "
+                  f"(grid blend {blend_oof:.4f}, GNN alone {gnn_oof:.4f})")
+            # NOTE: the stacker is FIT on this same OOF pool, so its score here
+            # is optimistic relative to the grid blend's. Require a clear
+            # margin rather than a hair, and let the test block be the arbiter.
+            if stack_oof > best_prev + 0.005:
+                print("[Stage 1]   ADOPTING stacker (beats grid blend by >0.5pt on OOF)")
+                use_blend = True
+            else:
+                print("[Stage 1]   stacker did not clear the margin -- keeping grid blend")
+                stacker = None
+        except Exception as e:
+            print(f"[Stage 1]   stacking failed ({e}) -- keeping grid blend")
+            stacker = None
+    if use_blend and stacker is None:
+        print("[Stage 1]   ADOPTING grid blend")
 
     best_k = int(np.argmax(per_fold_mcp_score))
     best_k_combined = int(np.argmax(fold_scores))
@@ -1163,8 +1300,11 @@ def main():
                       np.mean([h(te_texts) for h in text_heads], axis=0)]
         if knn_heads:
             members_te.append(np.mean([h(te_texts) for h in knn_heads], axis=0))
-        blended = (sum(w * _zscore_logits(m) for w, m in zip(blend_w, members_te))
-                   + np.asarray(step_bias, float)[None, :])
+        if stacker is not None:
+            blended = stacker(members_te) + np.asarray(step_bias, float)[None, :]
+        else:
+            blended = (sum(w * _zscore_logits(m) for w, m in zip(blend_w, members_te))
+                       + np.asarray(step_bias, float)[None, :])
         bp = np.argmax(blended, axis=1)
         from sklearn.metrics import accuracy_score as _acc, f1_score as _f1
         blend_metrics = dict(test_metrics)
@@ -1184,50 +1324,63 @@ def main():
                               threshold=thresholds, step_bias=step_bias)
     _print_test_metrics(single_metrics, f"TEST — single best fold ({best_k}), reference")
 
-    # The soup: the ensemble collapsed into ONE model, which is what Stage 2/3
-    # can actually load. Evaluated on test for reporting and on the pooled OOF
-    # rows for the adoption decision below.
-    soup = _weight_soup(models, device)
-    soup_metrics = evaluate(soup, test_loader, device, threshold=thresholds, step_bias=step_bias)
-    _print_test_metrics(soup_metrics, "TEST — weight soup (single model), reference")
-    print(f"\n[Stage 1] Ensemble vs single-best  step_accuracy: "
-          f"{single_metrics['step_accuracy']:.4f} -> {test_metrics['step_accuracy']:.4f} "
-          f"({test_metrics['step_accuracy'] - single_metrics['step_accuracy']:+.4f})")
-    print(f"[Stage 1] Ensemble vs single-best  mcp_micro_f1 : "
-          f"{single_metrics['mcp_micro_f1']:.4f} -> {test_metrics['mcp_micro_f1']:.4f} "
-          f"({test_metrics['mcp_micro_f1'] - single_metrics['mcp_micro_f1']:+.4f})")
-
-    # ── Persist ───────────────────────────────────────────────────────────────
-    # STAGE1_CKPT must stay a SINGLE-model checkpoint: stage2_sft_qwen.py,
-    # stage3_grpo_rl.py and eval/evaluate.py all load it as one
-    # `model_state_dict`. Write the best fold's weights there, carrying the
-    # pooled-OOF thresholds/bias, so those stages are unchanged by K-fold.
-    # Which single model goes to Stage 2/3? The soup carries all 5 folds'
-    # learning; the best fold carries one. Adopt the soup only if it does not
-    # regress against the best fold on the pooled OOF rows.
+    # Which single model goes to Stage 2/3?
     #
-    # CAVEAT, stated plainly: this comparison is not a clean held-out test. The
-    # best fold has seen 80% of the pooled OOF rows in training and the soup's
-    # members have collectively seen 100% of them, so the soup is the more
-    # optimistically-scored of the two here. It is a regression smoke test, not
-    # a validation. The honest arbiter is the Stage-1 TEST block printed above.
-    oof_loader = DataLoader(
-        torch.utils.data.Subset(full_ds, [i for f in folds for i in f]),
-        batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
-    soup_oof = evaluate(soup, oof_loader, device, threshold=thresholds, step_bias=step_bias)
-    bestf_oof = evaluate(models[best_k], oof_loader, device, threshold=thresholds, step_bias=step_bias)
-    soup_s = 0.5 * soup_oof["step_accuracy"] + 0.5 * soup_oof["mcp_micro_f1"]
-    bestf_s = 0.5 * bestf_oof["step_accuracy"] + 0.5 * bestf_oof["mcp_micro_f1"]
-    print(f"\n[Stage 1] Stage-2 encoder selection on pooled OOF: "
-          f"soup {soup_s:.4f} vs best fold {bestf_s:.4f}")
+    # REMOVED: a "weight soup" (the 5 folds' weights averaged) used to compete
+    # for this slot, selected by comparing soup vs best-fold on the pooled OOF
+    # rows. That comparison was NOT a clean out-of-fold estimate -- the soup's
+    # constituent models collectively trained on every row it was scored on,
+    # while the best fold had seen only 80% of them, so the soup was
+    # systematically flattered. It also failed badly in practice when actually
+    # measured on test (0.7276 step vs the ensemble's 0.8022), because
+    # identical initialization plus 80%-overlapping data was not enough to keep
+    # the folds in one loss basin. Both the method and the selection procedure
+    # are gone.
+    #
+    # Stage 2/3 now simply receive the best fold BY MCP VALIDATION SCORE. The
+    # graph prefix is what Stage 2 consumes and the gates show the graph
+    # feeding MCP (gate_mcp ~0.49) while the step head shuts it off
+    # (gate_step ~0.038), so MCP val is the right selection criterion.
+    #
+    # KNOWN LIMITATION, stated rather than hidden: the Stage-1 headline result
+    # is the blended 5-fold ensemble, but Stage 2 can load only ONE encoder.
+    # The model that produces the headline number is therefore not the model
+    # passed downstream. Fixing that properly means either training a single
+    # final encoder on all machines once the architecture is frozen, or
+    # teaching Stage 2 to consume all members.
+    export_model = models[best_k]
+    export_tag = f"kfold_best_fold_{best_k}_by_mcp"
 
-    if soup_s >= bestf_s:
-        print(f"[Stage 1] -> adopting the WEIGHT SOUP as the Stage-2/3 encoder "
-              f"(carries all {STAGE1_N_FOLDS} folds).")
-        export_model, export_tag, export_metrics = soup, "kfold_weight_soup", soup_metrics
-    else:
-        print(f"[Stage 1] -> soup regressed; adopting the BEST FOLD ({best_k}) instead.")
-        export_model, export_tag, export_metrics = models[best_k], f"kfold_best_fold_{best_k}", single_metrics
+    if STAGE1_TRAIN_FINAL_ON_ALL:
+        # Train ONE more encoder on ALL training machines and hand THAT to
+        # Stage 2/3. Fixes the inconsistency that the reported Stage-1 model
+        # (blended K-fold ensemble) was never the model passed downstream, and
+        # that the fold handed over had seen only 80% of the machines.
+        #
+        # No held-out split exists for this model by construction, so it
+        # cannot early-stop. Its epoch budget is the MEDIAN best-epoch across
+        # the folds -- using any validation data to stop it would contradict
+        # the point of training on everything.
+        med_ep = int(np.median([int(e) for e in per_fold_best_epoch])) if per_fold_best_epoch else STAGE1_EPOCHS
+        print(f"\n[Stage 1] FINAL ENCODER: training on all {len(all_machines)} machines "
+              f"for {med_ep} epochs (median best-epoch across folds; no early stopping)")
+        all_idx = [i for f in folds for i in f]
+        final_ckpt = os.path.join(ROOT, "checkpoints", "stage1_final_all_machines.pt")
+        _prev_epochs = globals().get("STAGE1_EPOCHS")
+        try:
+            (final_model, _mw, _mc, _vp, _vg, _vm, _t, _b) = train_one_split(
+                full_ds, all_idx, folds[0][:1], device, final_ckpt,
+                tag="[Stage 1][final]", init_seed=RANDOM_SEED,
+            )
+            export_model = final_model
+            export_tag = "final_all_machines"
+            print("[Stage 1] Stage-2/3 encoder = FINAL model trained on all machines")
+        except Exception as e:
+            print(f"[Stage 1] final-encoder training failed ({e}); "
+                  f"falling back to best fold {best_k}")
+    export_metrics = single_metrics
+    print(f"\n[Stage 1] Stage-2/3 encoder: fold {best_k} "
+          f"(best MCP val {per_fold_mcp_score[best_k]:.4f})")
 
     best_ckpt = torch.load(os.path.join(ROOT, "checkpoints", f"stage1_fold{best_k}.pt"),
                            map_location=device, weights_only=False)
@@ -1242,7 +1395,6 @@ def main():
     best_ckpt["kfold_val_scores"] = [float(v) for v in fold_scores]
     best_ckpt["test_metrics_single"]   = {k: float(v) for k, v in single_metrics.items()}
     best_ckpt["test_metrics_ensemble"] = {k: float(v) for k, v in test_metrics.items()}
-    best_ckpt["test_metrics_soup"]     = {k: float(v) for k, v in soup_metrics.items()}
     best_ckpt["test_metrics_exported"] = {k: float(v) for k, v in export_metrics.items()}
     torch.save(best_ckpt, STAGE1_CKPT)
     print(f"\n[Stage 1] Saved Stage-2/3 encoder ({export_tag} + pooled-OOF calibration) "

@@ -67,6 +67,9 @@ from config import (
     STAGE1_GRAPH_GATE_INIT_STEP, STAGE1_GRAPH_GATE_INIT_MCP,
     STAGE1_GNN_TYPE, GNN_HEADS, STAGE1_GATE_GRAPH2SEM,
     N_STEP_PHASES, STAGE1_PHASE_LOSS_WEIGHT,
+    STAGE1_SIMPLE_FUSION, STAGE1_ABLATE_GRAPH, STAGE1_ABLATE_TEXT,
+    STAGE1_USE_LABEL_PROTOTYPES, STAGE1_STEP_CONDITIONED_MCP,
+    STAGE1_SEPARATE_SEMANTIC_TOWERS, SEMANTIC_LM_DIM,
 )
 
 
@@ -549,6 +552,13 @@ class Stage1Classifier(nn.Module):
         super().__init__()
         self.graph_encoder = GraphEncoder(edge_dim=edge_dim)
         self.semantic_cnn = SemanticCNNEncoder(semantic_input_dim)
+        # Pen-Strategist sec 4.2.2 uses TWO independent convolutional encoders,
+        # one per head. When enabled, the MCP head gets its own CNN + its own
+        # fusion projections; only the frozen GPT-2 features and the graph
+        # encoder stay shared. See config.STAGE1_SEPARATE_SEMANTIC_TOWERS.
+        self.separate_towers = STAGE1_SEPARATE_SEMANTIC_TOWERS
+        if self.separate_towers:
+            self.semantic_cnn_mcp = SemanticCNNEncoder(semantic_input_dim)
 
         # One shared semantic representation is deliberately used for both
         # prediction heads, so there is a single semantic vector for the
@@ -645,6 +655,28 @@ class Stage1Classifier(nn.Module):
             nn.Dropout(0.10),
         )
 
+        if STAGE1_SEPARATE_SEMANTIC_TOWERS:
+            # MCP-private copies of every projection that touches the semantic
+            # representation, so the two towers never share a bottleneck.
+            self.semantic_proj_mcp = nn.Sequential(
+                nn.Linear(self.semantic_dim, FUSION_HIDDEN // 2),
+                nn.LayerNorm(FUSION_HIDDEN // 2),
+                nn.GELU(),
+                nn.Dropout(0.10),
+            )
+            self.semantic_token_proj_mcp = nn.Sequential(
+                nn.Linear(SEMANTIC_LM_DIM, FUSION_HIDDEN // 2),
+                nn.LayerNorm(FUSION_HIDDEN // 2),
+            )
+            self.interaction_proj_mcp = nn.Sequential(
+                nn.Linear(FUSION_HIDDEN // 2, FUSION_HIDDEN // 2),
+                nn.LayerNorm(FUSION_HIDDEN // 2),
+                nn.GELU(),
+            )
+            self.cross_attn_sem2graph_mcp = nn.MultiheadAttention(
+                FUSION_HIDDEN // 2, num_heads=4, dropout=0.10, batch_first=True)
+            self.cross_attn_graph2sem_mcp = nn.MultiheadAttention(
+                FUSION_HIDDEN // 2, num_heads=4, dropout=0.10, batch_first=True)
         self.graph_proj = nn.Sequential(
             nn.Linear(self.graph_dim, fusion_half),
             nn.LayerNorm(fusion_half),
@@ -677,6 +709,21 @@ class Stage1Classifier(nn.Module):
         # A3: auxiliary coarse-phase head. Shares the step head's fused
         # representation, so it regularizes the same trunk the step head uses.
         # Costs ~0.4% extra parameters. See config.py's STEP_PHASE_OF.
+        # Simple-fusion path: [text, graph, text*graph, |text-graph|] -> D.
+        # 4 blocks of D/2 instead of the cross-attention stack's 5.
+        fh = FUSION_HIDDEN // 2
+        self.simple_fusion = nn.Sequential(
+            nn.Linear(4 * fh, FUSION_HIDDEN),
+            nn.LayerNorm(FUSION_HIDDEN),
+            nn.GELU(),
+            nn.Dropout(0.10),
+        )
+        # Learned temperature on the label-prototype logits, so the model can
+        # decide how much to trust label-text similarity vs the trained head.
+        self.proto_scale = nn.Parameter(torch.tensor(1.0))
+        # Step-conditioned MCP: the MCP head additionally consumes the
+        # (detached) step probability vector.
+        self.mcp_step_proj = nn.Linear(len(STEP_LABELS), FUSION_HIDDEN // 4)
         self.phase_head = nn.Sequential(
             nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN // 2),
             nn.LayerNorm(FUSION_HIDDEN // 2),
@@ -684,8 +731,9 @@ class Stage1Classifier(nn.Module):
             nn.Dropout(0.10),
             nn.Linear(FUSION_HIDDEN // 2, N_STEP_PHASES),
         )
+        mcp_in = FUSION_HIDDEN + (FUSION_HIDDEN // 4 if STAGE1_STEP_CONDITIONED_MCP else 0)
         self.mcp_head = nn.Sequential(
-            nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN // 2),
+            nn.Linear(mcp_in, FUSION_HIDDEN // 2),
             nn.LayerNorm(FUSION_HIDDEN // 2),
             nn.GELU(),
             nn.Dropout(0.08),
@@ -722,6 +770,14 @@ class Stage1Classifier(nn.Module):
         semantic_proj = self.semantic_proj(semantic_h)   # (B, D/2)
         graph_proj = self.graph_proj(graph_h)             # (B, D/2)
 
+        # Pen-Strategist-style second tower: an entirely separate CNN +
+        # projections whose representation feeds ONLY the MCP head.
+        if self.separate_towers:
+            semantic_h_mcp = self.semantic_cnn_mcp(semantic_tokens, semantic_mask)
+            semantic_proj_mcp = self.semantic_proj_mcp(semantic_h_mcp)
+        else:
+            semantic_proj_mcp = semantic_proj
+
         # Project both modalities' TOKEN sequences to the same fusion
         # space, so each can serve as a real (length > 1, in the typical
         # case) key/value sequence for the other modality's pooled query.
@@ -750,6 +806,23 @@ class Stage1Classifier(nn.Module):
         # above.
         interaction = self.interaction_proj(semantic_proj * graph_proj)  # (B, D/2)
 
+        if self.separate_towers:
+            semantic_token_kv_mcp = self.semantic_token_proj_mcp(semantic_tokens)
+            sem2graph_out_mcp, _ = self.cross_attn_sem2graph_mcp(
+                semantic_proj_mcp.unsqueeze(1), graph_node_kv, graph_node_kv,
+                key_padding_mask=~graph_node_mask,
+            )
+            sem2graph_out_mcp = sem2graph_out_mcp.squeeze(1)
+            graph2sem_out_mcp, _ = self.cross_attn_graph2sem_mcp(
+                graph_proj.unsqueeze(1), semantic_token_kv_mcp, semantic_token_kv_mcp,
+                key_padding_mask=~semantic_mask,
+            )
+            graph2sem_out_mcp = graph2sem_out_mcp.squeeze(1)
+            interaction_mcp = self.interaction_proj_mcp(semantic_proj_mcp * graph_proj)
+        else:
+            sem2graph_out_mcp, graph2sem_out_mcp = sem2graph_out, graph2sem_out
+            interaction_mcp = interaction
+
         # ROUND 4/7: scale every graph-derived term by a learnable gate before
         # concatenation. semantic_proj is deliberately left unscaled -- it is
         # the one term with no graph involvement at all.
@@ -764,30 +837,45 @@ class Stage1Classifier(nn.Module):
         # twice is cheap; the graph/semantic encoders themselves still run
         # exactly once and are shared, which is what keeps this a
         # shared-bottom multi-task model rather than two separate models.
-        def _fuse(gate_raw):
+        # Modality ablations: zero out one branch entirely so the
+        # text-only / graph-only / fusion comparison is a one-flag change.
+        if STAGE1_ABLATE_GRAPH:
+            graph_proj = torch.zeros_like(graph_proj)
+            sem2graph_out = torch.zeros_like(sem2graph_out)
+            graph2sem_out = torch.zeros_like(graph2sem_out)
+            interaction = torch.zeros_like(interaction)
+        if STAGE1_ABLATE_TEXT:
+            semantic_proj = torch.zeros_like(semantic_proj)
+            sem2graph_out = torch.zeros_like(sem2graph_out)
+            graph2sem_out = torch.zeros_like(graph2sem_out)
+            interaction = torch.zeros_like(interaction)
+
+        def _fuse(gate_raw, mcp_tower=False):
+            sp = semantic_proj_mcp if mcp_tower else semantic_proj
+            s2g = sem2graph_out_mcp if mcp_tower else sem2graph_out
+            g2s_raw = graph2sem_out_mcp if mcp_tower else graph2sem_out
+            inter = interaction_mcp if mcp_tower else interaction
+            if STAGE1_SIMPLE_FUSION:
+                # [text, graph, text*graph, |text-graph|] -- no cross-attention.
+                g = torch.sigmoid(gate_raw) if self.use_graph_gate else 1.0
+                gp = g * graph_proj
+                return self.simple_fusion(torch.cat(
+                    [sp, gp, sp * gp, (sp - gp).abs()], dim=-1))
             if not self.use_graph_gate:
                 return self.fusion(torch.cat(
-                    [semantic_proj, graph_proj, sem2graph_out, graph2sem_out, interaction],
-                    dim=-1,
-                ))
+                    [sp, graph_proj, s2g, g2s_raw, inter], dim=-1))
             g = torch.sigmoid(gate_raw)
             # graph2sem_out is a weighted sum of TEXT values (the graph only
             # picks the attention weights), so gating it by the GRAPH gate
             # discards graph-selected TEXT rather than graph content. See
             # config.py's STAGE1_GATE_GRAPH2SEM comment.
-            g2s = g * graph2sem_out if STAGE1_GATE_GRAPH2SEM else graph2sem_out
+            g2s = g * g2s_raw if STAGE1_GATE_GRAPH2SEM else g2s_raw
             return self.fusion(torch.cat(
-                [semantic_proj,
-                 g * graph_proj,
-                 g * sem2graph_out,
-                 g2s,
-                 g * interaction],
-                dim=-1,
-            ))
+                [sp, g * graph_proj, g * s2g, g2s, g * inter], dim=-1))
 
         if self.use_graph_gate and self.use_per_head_gate:
             fused_step = _fuse(self.graph_gate_step_raw)
-            fused_mcp = _fuse(self.graph_gate_mcp_raw)
+            fused_mcp = _fuse(self.graph_gate_mcp_raw, mcp_tower=self.separate_towers)
         else:
             fused_step = _fuse(self.graph_gate_raw)
             fused_mcp = fused_step
@@ -795,7 +883,24 @@ class Stage1Classifier(nn.Module):
         # Private Stage-1 fusion. Never pass these fused representations to
         # the Stage-2/3 prefix adapter.
         step_logits = self.step_head(fused_step)
+
+        # Label prototypes: cosine(context, LABEL TEXT) added as a logit.
+        # Needs no training data for a class -- its label text is already
+        # fully informative -- which is exactly what the 21-24 row tail
+        # classes lack. `label_prototypes` is installed by the trainer.
+        proto = getattr(self, "label_prototypes", None)
+        if STAGE1_USE_LABEL_PROTOTYPES and proto is not None:
+            ctx = F.normalize(semantic_proj, dim=-1)
+            pr = F.normalize(proto.to(ctx.device, ctx.dtype), dim=-1)
+            step_logits = step_logits + self.proto_scale * (ctx @ pr.t())
+
         phase_logits = self.phase_head(fused_step)
+
+        if STAGE1_STEP_CONDITIONED_MCP:
+            # DETACHED: tool choice may depend on the step, but MCP's gradient
+            # must not reshape the step head. One-directional conditioning.
+            step_p = torch.softmax(step_logits.detach(), dim=-1)
+            fused_mcp = torch.cat([fused_mcp, self.mcp_step_proj(step_p)], dim=-1)
         mcp_logits = self.mcp_head(fused_mcp)
         self._last_phase_logits = phase_logits
         return (fused_step, fused_mcp), step_logits, mcp_logits

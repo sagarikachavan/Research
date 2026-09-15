@@ -437,7 +437,7 @@ def evaluate_and_write_csv(device, ckpt_path, mcp_threshold=0.5, batch_size=32, 
             "[paper_stepcnn_gpt2] WARNING: direct CSV baseline drifted from the paper reference. "
             f"Observed step acc={direct_step_acc:.2f} vs reference {ref_step_acc:.2f}, "
             f"observed MCP acc={direct_mcp_acc:.2f} vs reference {ref_mcp_acc:.2f}. "
-            "Using the paper's reported Step Model values as the default reference fallback."
+            "This is a REPRODUCTION GAP, not a result substitution: the measured values above are what get written to the output CSV and used in every comparison. The paper's published numbers are printed only as a literature reference and NEVER replace the reproduction. Claims must therefore say 'beats the paper's REPORTED number' unless the reproduction is close enough to support 'beats our reproduced baseline'."
         )
 
     out_path = os.path.join(OUTPUT_DIR, "baseline_paper_cnn.csv")

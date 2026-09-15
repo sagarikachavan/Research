@@ -1,5 +1,33 @@
 """
 Central configuration: label spaces, paths, and hyperparameters.
+
+=============================================================================
+WHAT IS ACTUALLY ACTIVE
+=============================================================================
+This file carries substantial inline history -- each non-obvious value records
+WHY it is what it is, usually because a measured run contradicted the obvious
+choice. That history is deliberate: several values here look wrong until you
+read the comment (STAGE1_USE_LOGIT_ADJUSTMENT=False, GNN_HIDDEN=384 rather
+than 512, gamma_neg=2.0 rather than the paper's 4.0).
+
+The cost is that "what architecture is running right now?" is hard to read off
+a 900-line file. So:
+
+    python core/config.py          <- prints every ACTIVE value, grouped
+
+Sections, in order:
+    1. LABEL SPACES          STEP_LABELS / MCP_LABELS and their index maps
+    2. PATHS                 inputs, checkpoints, outputs
+    3. MODEL                 encoder dims, GNN type, fusion, heads
+    4. LOSS                  weights, imbalance handling, smoothing
+    5. TRAINING              lr / epochs / batch / K-fold / ensembling
+    6. ABLATION SWITCHES     experiment flags; defaults preserve behavior
+    7. STAGE 2               SFT, LoRA, graph prefix adapter
+    8. STAGE 3               GRPO, reward weights
+    9. EVALUATION            judge model, thresholds
+
+EVERY flag defaults to the currently-measured configuration, so an unset
+environment reproduces the last reported numbers exactly.
 """
 import os
 
@@ -251,6 +279,192 @@ STAGE1_N_SEEDS = int(os.environ.get("STAGE1_N_SEEDS", "1"))
 # A third voice with a different inductive bias from both the GNN and the
 # linear text head (kNN-LM, Khandelwal et al., ICLR 2020). Cheap: reuses the
 # BGE embeddings the text head already computes.
+# ===========================================================================
+# ABLATION SWITCHES — for establishing what actually carries the signal
+# ===========================================================================
+# Stage 1 accumulated ~15 mechanisms on ~1.9k training rows. None of the
+# following has ever been ablated on this dataset; each is ON only because it
+# was added, not because it was measured. These switches make the "which
+# information source actually carries the prediction" experiment runnable.
+#
+# Defaults preserve TODAY's behavior exactly, so flipping one at a time is a
+# clean single-variable experiment.
+
+# Manifold mixup interpolates two FUSED (graph+text) latents. In image
+# classification the interpolant is still plausibly an image; here it is a
+# blend of e.g. "HTTP enumeration" and "privilege escalation", which does not
+# correspond to any real pentesting state. Suspect on this task specifically.
+STAGE1_ABLATE_MIXUP = os.environ.get("STAGE1_ABLATE_MIXUP", "0") in ("1", "true", "True")
+
+# SupCon needs positive pairs IN THE BATCH. With batch 20 and a ~31x head-to-
+# tail ratio, the rare classes contribute 0-1 examples per batch, so they get
+# almost no positive-pair signal. Supervised contrastive objectives are known
+# to degrade under strong imbalance rather than fix it.
+STAGE1_ABLATE_SUPCON = os.environ.get("STAGE1_ABLATE_SUPCON", "0") in ("1", "true", "True")
+
+# Replace the bidirectional cross-attention + Hadamard fusion with the much
+# simpler [text, graph, text*graph, |text-graph|] concatenation. The
+# cross-attention block has many interaction parameters to learn from ~1.9k
+# rows; simpler fusion is easier to optimize and is the honest baseline the
+# complex version should have to beat.
+STAGE1_SIMPLE_FUSION = os.environ.get("STAGE1_SIMPLE_FUSION", "0") in ("1", "true", "True")
+
+# Kang et al. (ICLR 2020) and LDAM-DRW both argue: learn the REPRESENTATION
+# under natural sampling, rebalance the CLASSIFIER afterwards. This codebase
+# currently does both at once -- weighted sampler + class weights + focal
+# during representation learning AND decoupled classifier retraining after --
+# which partly defeats the reason for the decoupled stage. Turning this on
+# disables the representation-phase rebalancing and leaves only the decoupled
+# classifier stage doing the correction.
+STAGE1_NATURAL_SAMPLING = os.environ.get("STAGE1_NATURAL_SAMPLING", "0") in ("1", "true", "True")
+
+# Ablate the graph entirely (text-only Stage 1) or the text entirely
+# (graph-only Stage 1). These two runs plus the default give the three rows
+# that decide whether the graph earns its place:
+#     text-only / graph-only / fusion
+STAGE1_ABLATE_GRAPH = os.environ.get("STAGE1_ABLATE_GRAPH", "0") in ("1", "true", "True")
+STAGE1_ABLATE_TEXT = os.environ.get("STAGE1_ABLATE_TEXT", "0") in ("1", "true", "True")
+
+# ---------------------------------------------------------------------------
+# Label prototypes in the DECISION function (not just the loss)
+# ---------------------------------------------------------------------------
+# The step labels are natural-language descriptions, not arbitrary IDs. We
+# already use their pairwise similarity for structured smoothing; this uses
+# the context-to-LABEL similarity directly as an additive logit. It is
+# especially attractive for the tail: "Enumerate the domain" (24 rows) and
+# "Explore the source code" (21 rows) have almost no training signal, but
+# their label TEXT is fully informative and needs no training data at all.
+STAGE1_USE_LABEL_PROTOTYPES = os.environ.get("STAGE1_USE_PROTOTYPES", "1") not in ("0", "false", "False")
+
+# ---------------------------------------------------------------------------
+# Step-conditioned MCP head
+# ---------------------------------------------------------------------------
+# Tool choice depends heavily on WHICH ACTION is being taken: "enumerate the
+# website" implies Dirbuster/web interaction, "exploit" implies Metasploit.
+# Feeding the soft step distribution into the MCP head makes that dependency
+# explicit instead of hoping the shared trunk encodes it:
+#     context -> step ;  context + graph + step -> tools
+# Uses the DETACHED step probabilities so MCP's gradient cannot corrupt the
+# step head (one-directional conditioning, not joint optimization).
+# ---------------------------------------------------------------------------
+# Separate Step / MCP semantic towers  (Pen-Strategist section 4.2.2)
+# ---------------------------------------------------------------------------
+# The paper uses TWO INDEPENDENT convolutional encoders over the same frozen
+# GPT-2 features -- one whose representation feeds step classification, one
+# whose representation feeds MCP prediction. Its own words: "we apply two
+# separate convolutional encoders... One representation is used for step
+# classification, and the other for MCP server prediction."
+#
+# This codebase deliberately diverged, using ONE SHARED CNN, because the
+# semantic vector then had to be fused with the graph representation before
+# the heads split -- a single shared vector is what the fusion block needs.
+# That was a defensible design decision, but it was never A/B tested, and it
+# forces both tasks through one bottleneck. The measured per-head graph gates
+# say the two heads want very different things from the representation
+# (gate_step converges to ~0.04, gate_mcp holds ~0.49), which is evidence of
+# exactly the negative transfer a shared tower invites.
+#
+# With this ON, each head gets its own SemanticCNNEncoder and its own set of
+# fusion projections, sharing only the frozen GPT-2 features and the graph
+# encoder. Cost is one extra CNN (~1.2M params).
+#
+# Default OFF so the current architecture is unchanged until the A/B is run.
+# ---------------------------------------------------------------------------
+# OOF stacking meta-learner (replaces the grid-searched blend weights)
+# ---------------------------------------------------------------------------
+# The blend currently picks ONE scalar weight per member by grid search over a
+# simplex. That is a crude combiner: it can only apply a single global weight
+# per model, so it cannot express "trust the k-NN on rare classes but the GNN
+# on Exploit" -- which is exactly the structure the measured error overlap
+# shows (GNN and text disagree on 43/268 rows, splitting 16/17).
+#
+# Stacking (Wolpert 1992) instead TRAINS a meta-classifier on the members'
+# out-of-fold predictions, so it learns per-class trust. Inputs per row are
+# the concatenated member logits; the meta-learner is a multinomial logistic
+# regression (kept linear for the same reason the text head is: ~1.9k rows).
+#
+# The grid blend is retained as a fallback and the stacker is adopted only if
+# it beats it on the same OOF pool.
+# ---------------------------------------------------------------------------
+# Final full-data encoder for Stage 2/3
+# ---------------------------------------------------------------------------
+# PROBLEM THIS FIXES: the Stage-1 headline result is a blended K-fold
+# ensemble, but Stage 2 can load only ONE encoder -- so the model producing
+# the headline number was never the model passed downstream. Worse, the fold
+# handed over had trained on only 80% of the machines.
+#
+# With this ON, after the folds finish and the architecture is fixed, ONE more
+# model is trained on ALL training machines and that is what Stage 2/3
+# receive. The fold ensemble still produces the reported Stage-1 metrics.
+#
+# The final model has no held-out split of its own, so its checkpoint is taken
+# at the MEDIAN best-epoch across folds rather than by early stopping -- using
+# any validation data to stop it would contradict training on everything.
+STAGE1_TRAIN_FINAL_ON_ALL = os.environ.get("STAGE1_FINAL_ON_ALL", "0") in ("1", "true", "True")
+
+# ---------------------------------------------------------------------------
+# Drop zero-support classes from the softmax entirely
+# ---------------------------------------------------------------------------
+# Masking a dead class's logit to -inf (STAGE1_MASK_UNSUPPORTED_CLASSES) stops
+# it being predicted, but the class still occupies a softmax slot, still
+# absorbs probability mass during training, and still counts as a guaranteed
+# zero in a 10-class macro-F1.
+#
+# With this ON the classifier is built over only the classes that actually
+# have training support (9 of 10 here -- "Ask for human assistant" has zero
+# rows in train AND test), and macro-F1 is computed over those 9. STEP_LABELS
+# is NOT reindexed: the model keeps a full-width output by scattering its
+# 9 logits back into 10 slots, so every saved checkpoint and the Stage-2/3
+# label contract stay valid. Escalation becomes a decision rule outside the
+# classifier, which is what it always should have been.
+STAGE1_DROP_DEAD_CLASSES = os.environ.get("STAGE1_DROP_DEAD_CLASSES", "0") in ("1", "true", "True")
+
+STAGE1_USE_STACKING = os.environ.get("STAGE1_USE_STACKING", "1") not in ("0", "false", "False")
+STAGE1_STACK_C = float(os.environ.get("STAGE1_STACK_C", "1.0"))
+
+# ---------------------------------------------------------------------------
+# Composite model-selection score
+# ---------------------------------------------------------------------------
+# Selecting on step accuracy alone rewards a model that collapses onto the
+# 34%-prevalence "Exploit" class; selecting on MCP alone ignores the headline
+# metric. This weighted combination is what checkpoint/fold selection
+# optimizes. Reported metrics stay separate and unweighted.
+STAGE1_SEL_W_STEP_ACC = float(os.environ.get("STAGE1_SEL_W_STEP_ACC", "0.45"))
+STAGE1_SEL_W_MCP_F1 = float(os.environ.get("STAGE1_SEL_W_MCP_F1", "0.35"))
+STAGE1_SEL_W_STEP_MACRO = float(os.environ.get("STAGE1_SEL_W_STEP_MACRO", "0.20"))
+
+# ---------------------------------------------------------------------------
+# Tool-availability constraints for MCP
+# ---------------------------------------------------------------------------
+# Evidence-gated tool priors: if the PTT shows no SMB-related evidence, "Smb
+# client" should be unlikely. Implemented as a small additive logit penalty
+# for tools whose evidence keywords are absent from the graph text, applied at
+# INFERENCE only.
+#
+# CRITICAL: the evidence comes from the PTT text available at decision time --
+# never from the gold MCP labels. Deriving a constraint from the target would
+# be leakage dressed up as a prior.
+STAGE1_USE_TOOL_CONSTRAINTS = os.environ.get("STAGE1_TOOL_CONSTRAINTS", "0") in ("1", "true", "True")
+STAGE1_TOOL_CONSTRAINT_PENALTY = float(os.environ.get("STAGE1_TOOL_PENALTY", "1.0"))
+TOOL_EVIDENCE_KEYWORDS = {
+    "Nmap": ["port", "scan", "service", "nmap", "open"],
+    "Metasploit": ["exploit", "cve", "vulnerab", "metasploit", "payload", "rce"],
+    "Netcat": ["shell", "listener", "reverse", "netcat", "bind", "connect"],
+    "Dirbuster": ["director", "web", "http", "url", "path", "brute"],
+    "SQLmap": ["sql", "database", "inject", "query", "db"],
+    "Smb client": ["smb", "share", "samba", "445", "netbios"],
+    "hydra": ["password", "brute", "credential", "login", "hydra"],
+    "John-the-ripper": ["hash", "crack", "password", "john", "shadow"],
+    "Google search": ["research", "search", "version", "cve", "documentation"],
+    "Interactive CLI": [],   # always plausible -- never penalized
+    "Web page interaction": ["web", "http", "page", "browser", "form", "login"],
+}
+
+STAGE1_SEPARATE_SEMANTIC_TOWERS = os.environ.get(
+    "STAGE1_SEPARATE_TOWERS", "0") in ("1", "true", "True")
+
+STAGE1_STEP_CONDITIONED_MCP = os.environ.get("STAGE1_STEP_COND_MCP", "1") not in ("0", "false", "False")
+
 STAGE1_USE_KNN_MEMBER = os.environ.get("STAGE1_USE_KNN", "1") not in ("0", "false", "False")
 STAGE1_KNN_K = int(os.environ.get("STAGE1_KNN_K", "15"))
 
@@ -810,3 +1024,76 @@ STAGE3_EARLY_STOP_PATIENCE = 2   # Stop the run after this many consecutive
 # Round 6) doesn't require editing this file between runs:
 #   RANDOM_SEED=1 python training/stage1_gnn_train.py
 RANDOM_SEED = int(os.environ.get("RANDOM_SEED", "42"))
+
+# ---------------------------------------------------------------------------
+# `python core/config.py` -- print the ACTIVE configuration
+# ---------------------------------------------------------------------------
+_SUMMARY_GROUPS = {
+    "MODEL": [
+        "TEXT_ENCODER_NAME", "TEXT_EMB_DIM", "GNN_TYPE_ACTIVE", "GNN_HIDDEN",
+        "GNN_LAYERS", "GNN_OUT_DIM", "GNN_HEADS", "FUSION_HIDDEN",
+        "SEMANTIC_LM_NAME", "SEMANTIC_CNN_DIM", "SEMANTIC_CNN_KERNELS",
+        "NODE_AUX_DIM", "EDGE_ATTR_DIM",
+        "STAGE1_SEPARATE_SEMANTIC_TOWERS", "STAGE1_SIMPLE_FUSION",
+        "STAGE1_USE_LABEL_PROTOTYPES", "STAGE1_STEP_CONDITIONED_MCP",
+        "N_STEP_PHASES",
+    ],
+    "LOSS / IMBALANCE": [
+        "STEP_LOSS_WEIGHT", "MCP_LOSS_WEIGHT", "STEP_LABEL_SMOOTHING",
+        "STAGE1_USE_STRUCTURED_SMOOTHING", "STAGE1_USE_STEP_CLASS_WEIGHTS",
+        "STAGE1_MAX_CLASS_WEIGHT", "STAGE1_USE_STEP_FOCAL",
+        "STAGE1_STEP_FOCAL_GAMMA", "STAGE1_USE_LOGIT_ADJUSTMENT",
+        "STAGE1_MCP_LOSS_TYPE", "STAGE1_SUPCON_WEIGHT",
+        "STAGE1_USE_MANIFOLD_MIXUP", "STAGE1_PHASE_LOSS_WEIGHT",
+        "STAGE1_USE_DECOUPLED_RETRAIN",
+    ],
+    "TRAINING / ENSEMBLE": [
+        "STAGE1_LR", "STAGE1_EPOCHS", "STAGE1_BATCH_SIZE", "RANDOM_SEED",
+        "STAGE1_N_FOLDS", "STAGE1_N_SEEDS", "STAGE1_USE_KNN_MEMBER",
+        "STAGE1_USE_STACKING", "STAGE1_TRAIN_FINAL_ON_ALL",
+        "STAGE1_MASK_UNSUPPORTED_CLASSES", "STAGE1_DROP_DEAD_CLASSES",
+        "STAGE1_SEL_W_STEP_ACC", "STAGE1_SEL_W_MCP_F1", "STAGE1_SEL_W_STEP_MACRO",
+    ],
+    "ABLATIONS (all default off)": [
+        "STAGE1_ABLATE_MIXUP", "STAGE1_ABLATE_SUPCON", "STAGE1_ABLATE_GRAPH",
+        "STAGE1_ABLATE_TEXT", "STAGE1_NATURAL_SAMPLING",
+        "STAGE1_USE_TOOL_CONSTRAINTS",
+    ],
+    "STAGE 2": [
+        "QWEN_MODEL_NAME", "LORA_R", "LORA_ALPHA", "STAGE2_LR",
+        "STAGE2_ADAPTER_LR_MULT", "STAGE2_EPOCHS", "GRAPH_PREFIX_TOKENS",
+        "STAGE2_USE_STAGE1_HINT", "STAGE2_GOLD_HINT_PROB",
+    ],
+    "STAGE 3": [
+        "STAGE3_STEPS", "STAGE3_GROUP_SIZE", "STAGE3_LR",
+        "STAGE3_W_FMT", "STAGE3_W_STEP", "STAGE3_W_MCP", "STAGE3_W_EXP",
+        "STAGE3_USE_NLI_REWARD", "STAGE3_NLI_WEIGHT",
+    ],
+    "EVALUATION": ["LLM_JUDGE_MODEL_NAME", "MCP_DECISION_THRESHOLD"],
+}
+
+GNN_TYPE_ACTIVE = STAGE1_GNN_TYPE  # alias so the summary reads naturally
+
+
+def print_active_config():
+    g = globals()
+    print("=" * 74)
+    print("ACTIVE STAGE-1/2/3 CONFIGURATION")
+    print("=" * 74)
+    for group, keys in _SUMMARY_GROUPS.items():
+        print(f"\n[{group}]")
+        for k in keys:
+            if k in g:
+                print(f"  {k:<36} {g[k]}")
+    n_live = sum(1 for _ in STEP_LABELS)
+    print(f"\n[LABEL SPACE]")
+    print(f"  {'step classes':<36} {n_live}")
+    print(f"  {'mcp tools':<36} {len(MCP_LABELS)}")
+    print("\n" + "=" * 74)
+    print("Every value above is what an unset environment produces.")
+    print("Override any of them with the matching env var; see the inline")
+    print("comment at each definition for why the default is what it is.")
+
+
+if __name__ == "__main__":
+    print_active_config()
