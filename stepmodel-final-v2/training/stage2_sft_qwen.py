@@ -47,6 +47,7 @@ from config import (
     STAGE2_LR, STAGE2_EPOCHS, STAGE2_BATCH_SIZE, STAGE2_GRAD_ACCUM,
     STAGE2_VAL_SPLIT, STAGE2_EARLY_STOP_PATIENCE, STAGE2_GRAD_CLIP, STAGE2_WARMUP_RATIO,
     STAGE2_WEIGHT_DECAY, STAGE2_STEP_TOKEN_LOSS_WEIGHT, STAGE2_ADAPTER_LR_MULT,
+    STAGE2_USE_STAGE1_HINT, STAGE2_GOLD_HINT_PROB,
     STAGE1_CKPT, STAGE2_ADAPTER_DIR,
     RANDOM_SEED, STEP_LABELS, MCP_LABELS, ROOT,
 )
@@ -80,7 +81,7 @@ SYSTEM_PROMPT = (
 )
 
 
-def build_prompt(ex: dict) -> str:
+def build_prompt(ex: dict, hint: dict | None = None) -> str:
     """
     Enhanced prompt building based on research from GTA and ReFT papers.
     Structured prompt with clear sections for better reasoning guidance.
@@ -110,11 +111,46 @@ def build_prompt(ex: dict) -> str:
         "# Strategy",
         f"New strategy: {ctx['New strategy']}",
         f"Strategy explanation: {ctx['Strategy explanation']}",
+    ]
+    # B1: condition on Stage 1's classification instead of re-deriving it.
+    # `hint` is {"step": <label>, "mcp": [tools]}. During training it is the
+    # GOLD answer with probability STAGE2_GOLD_HINT_PROB and Stage 1's actual
+    # PREDICTION otherwise (scheduled sampling), so the model sees realistic
+    # wrong hints and learns it may override them. At inference only the
+    # prediction exists. See config.py's STAGE2_USE_STAGE1_HINT.
+    if hint:
+        lines += [
+            "",
+            "# Classifier prediction (may be wrong — correct it if the strategy says otherwise)",
+            f"Predicted step: {hint.get('step','')}",
+            f"Predicted tools: {', '.join(hint.get('mcp', [])) or 'none'}",
+        ]
+    lines += [
         "",
         "# Task",
         "Based on the machine and strategy above, determine the next step, the tools needed, and explain your reasoning.",
     ]
     return "\n".join(lines)
+
+
+def make_stage1_hint(ex: dict, training: bool, rng=None) -> dict | None:
+    """Scheduled-sampling hint selector for build_prompt.
+
+    Training: gold with prob STAGE2_GOLD_HINT_PROB, else the Stage-1
+    prediction stored on the example. Inference: always the prediction.
+    Returns None when hints are disabled or no prediction is available, in
+    which case build_prompt emits exactly the pre-B1 prompt.
+    """
+    if not STAGE2_USE_STAGE1_HINT:
+        return None
+    pred = ex.get("stage1_pred")
+    if training and rng is not None and rng.random() < STAGE2_GOLD_HINT_PROB:
+        gold_step = ex.get("gold_new_step") or ex.get("step_label")
+        if gold_step:
+            return {"step": gold_step, "mcp": list(ex.get("gold_mcp_raw") or ex.get("mcp_labels") or [])}
+    if pred:
+        return {"step": pred.get("step", ""), "mcp": list(pred.get("mcp", []))}
+    return None
 
 
 def build_target(ex: dict) -> str:

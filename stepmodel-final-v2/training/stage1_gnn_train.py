@@ -46,9 +46,14 @@ from config import (
     STAGE1_GRAPH_GATE_LR_MULT,
     STAGE1_N_FOLDS,
     STAGE1_GNN_TYPE, GNN_HEADS,
+    STEP_PHASE_OF, STAGE1_PHASE_LOSS_WEIGHT,
+    STAGE1_USE_STRUCTURED_SMOOTHING, STAGE1_SMOOTH_TEMP,
+    STAGE1_MASK_UNSUPPORTED_CLASSES, STAGE1_N_SEEDS,
+    STAGE1_USE_KNN_MEMBER, STAGE1_KNN_K,
 )
 from data_utils import load_from_input_json, precompute_semantic_tokens
-from graph_encoder import Stage1Classifier
+from graph_encoder import (Stage1Classifier, build_structured_smoothing_targets,
+                            mask_unsupported_logits)
 from mcp_threshold_search import search_per_class_thresholds, search_step_logit_bias
 
 random.seed(RANDOM_SEED)
@@ -99,7 +104,8 @@ def collate(items):
 
 
 def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=False,
-             csv_path=None, dataset=None, step_bias=None, return_step_logits=False):
+             csv_path=None, dataset=None, step_bias=None, return_step_logits=False,
+             support_mask=None):
     """step_bias: optional per-class additive logit bias applied BEFORE argmax
     (see search_step_logit_bias in core/mcp_threshold_search.py). None = plain
     argmax, i.e. the previous behavior.
@@ -140,6 +146,8 @@ def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=
             step_logits = sl_sum / len(models)
             mcp_prob_t = mp_sum / len(models)
 
+            if support_mask is not None:
+                step_logits = mask_unsupported_logits(step_logits, support_mask)
             sl_np = step_logits.cpu().numpy()
             step_logit_rows.append(sl_np)
             if step_bias is not None:
@@ -414,7 +422,8 @@ def manifold_mixup_loss(model, fused_h, step_idx, mcp_vec, num_step_classes,
     return step_loss + mcp_loss
 
 
-def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 1]"):
+def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 1]",
+                    init_seed=None):
     """Train a single Stage-1 model on one train/val machine split.
 
     Factored out of main() as a single, reusable training procedure -- loss,
@@ -465,6 +474,22 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     _log_priors[step_counts <= 0] = 0.0
     step_log_priors = torch.tensor(_log_priors, dtype=torch.float32, device=device)
 
+    # A5: which step classes actually have training support in THIS fold.
+    support_mask = (step_counts > 0)
+    if STAGE1_MASK_UNSUPPORTED_CLASSES and not support_mask.all():
+        dead = [i for i, ok in enumerate(support_mask) if not ok]
+        print(f"{tag} masking step classes with no training support: {dead}")
+    eval_support = support_mask if STAGE1_MASK_UNSUPPORTED_CLASSES else None
+
+    # A4: similarity-structured smoothing targets (zero mass to dead classes).
+    smoothing_targets = None
+    if STAGE1_USE_STRUCTURED_SMOOTHING and STEP_LABEL_SMOOTHING > 0:
+        smoothing_targets = build_structured_smoothing_targets(
+            STEP_LABEL_SMOOTHING, support_mask, STAGE1_SMOOTH_TEMP).to(device)
+
+    # A3: coarse-phase target for every step label.
+    phase_of = torch.tensor(STEP_PHASE_OF, dtype=torch.long, device=device)
+
     print(f"{tag} STEP weights:")
     for i, lab in enumerate(STEP_LABELS):
         print(f"  [{i}] {lab[:54]:<54}: w={step_w_np[i]:.3f} count={int(step_counts[i])}")
@@ -498,9 +523,10 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     # consume the ensemble's learning as a SINGLE encoder -- see _weight_soup
     # in main(). The training stochasticity (sampling, dropout, augmentation)
     # is re-randomized per fold immediately after, so the folds still differ.
-    torch.manual_seed(RANDOM_SEED)
+    _seed = RANDOM_SEED if init_seed is None else int(init_seed)
+    torch.manual_seed(_seed)
     if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(RANDOM_SEED)
+        torch.cuda.manual_seed_all(_seed)
     model = Stage1Classifier().to(device)
     _fold_entropy = abs(hash(tag)) % 100000
     torch.manual_seed(RANDOM_SEED + 1000 + _fold_entropy)
@@ -609,6 +635,10 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
                 use_step_focal=STAGE1_USE_STEP_FOCAL, step_focal_gamma=STAGE1_STEP_FOCAL_GAMMA,
                 step_log_priors=(step_log_priors if STAGE1_USE_LOGIT_ADJUSTMENT else None),
                 logit_adj_tau=STAGE1_LOGIT_ADJ_TAU,
+                smoothing_targets=smoothing_targets,
+                phase_logits=getattr(model, "_last_phase_logits", None),
+                phase_labels=phase_of[step_idx],
+                phase_loss_weight=STAGE1_PHASE_LOSS_WEIGHT,
                 use_asl=(STAGE1_MCP_LOSS_TYPE == "asl"),
                 asl_gamma_neg=STAGE1_ASL_GAMMA_NEG, asl_gamma_pos=STAGE1_ASL_GAMMA_POS,
                 asl_clip=STAGE1_ASL_CLIP,
@@ -795,6 +825,41 @@ def _machine_folds(examples, n_folds, seed):
     return [sorted(f) for f in folds]
 
 
+def _fit_knn_head(train_texts, train_y, k=15):
+    """k-NN over BGE strategy embeddings -> class score distribution.
+
+    A third ensemble voice with a different inductive bias from both the GNN
+    (graph message passing) and the linear text head (global decision
+    boundaries): k-NN is purely local, so it can be right exactly where a
+    linear boundary is wrong. kNN-LM (Khandelwal et al., ICLR 2020) is the
+    precedent for pairing a parametric model with a non-parametric retrieval
+    member. Reuses the same BGE embeddings the text head already computes, so
+    the extra cost is one matrix multiply.
+
+    Returns log-scores so the output composes with the other members' logits.
+    """
+    from data_utils import _embed_texts
+    E = np.asarray(_embed_texts(list(train_texts)), dtype=np.float32)
+    E = E / (np.linalg.norm(E, axis=1, keepdims=True) + 1e-8)
+    Y = np.asarray(train_y, dtype=int)
+    kk = int(min(k, len(Y)))
+
+    def predict_logits(texts):
+        Q = np.asarray(_embed_texts(list(texts)), dtype=np.float32)
+        Q = Q / (np.linalg.norm(Q, axis=1, keepdims=True) + 1e-8)
+        sims = Q @ E.T
+        idx = np.argpartition(-sims, kk - 1, axis=1)[:, :kk]
+        out = np.zeros((len(texts), len(STEP_LABELS)), dtype=np.float64)
+        for r in range(len(texts)):
+            nb = idx[r]
+            w = np.exp((sims[r, nb] - sims[r, nb].max()) / 0.05)
+            for j, lbl in zip(w, Y[nb]):
+                out[r, lbl] += float(j)
+        out = out / np.maximum(out.sum(axis=1, keepdims=True), 1e-9)
+        return np.log(np.maximum(out, 1e-9))
+    return predict_logits
+
+
 def _fit_text_head(train_texts, train_y, C=4.0):
     """A deliberately SIMPLE text-only step classifier: BGE sentence embedding
     of "New strategy" + "Strategy explanation" -> multinomial logistic
@@ -843,28 +908,48 @@ def _example_text(ex):
     return f"{c.get('New strategy','')} {c.get('Strategy explanation','')}".strip() or "empty"
 
 
-def _search_blend_alpha(z_gnn, z_txt, gold, step_bias=None):
-    """Pick alpha in  alpha*z_gnn + (1-alpha)*z_txt  on out-of-fold data.
+def _zscore_logits(a):
+    a = np.asarray(a, dtype=np.float64)
+    mu, sd = a.mean(axis=1, keepdims=True), a.std(axis=1, keepdims=True) + 1e-8
+    return (a - mu) / sd
 
-    alpha=1.0 reproduces the GNN-only model EXACTLY, so this can only be
-    adopted when it beats that baseline on OOF -- it cannot regress.
-    Logits are z-scored per model first: the GNN's and the LR's raw logits
-    live on different scales, and blending unnormalized scores would just
-    hand the decision to whichever has the larger magnitude.
+
+def _search_blend_weights(member_logits, gold, step_bias=None, grid=0.05):
+    """Search convex weights over ensemble members on OUT-OF-FOLD data.
+
+    member_logits[0] MUST be the GNN. The all-weight-on-GNN corner is always
+    in the search space, so the result can never be worse than GNN-alone on
+    the OOF set -- adoption is additionally gated on that in main().
+
+    Members are z-scored per row first: the GNN's logits, the LR's decision
+    function and the k-NN's log-probabilities live on completely different
+    scales, and blending raw scores would just hand the decision to whichever
+    has the largest magnitude rather than whichever is most informative.
     """
-    def _z(a):
-        m, sd = a.mean(axis=1, keepdims=True), a.std(axis=1, keepdims=True) + 1e-8
-        return (a - m) / sd
-    zg, zt = _z(np.asarray(z_gnn, float)), _z(np.asarray(z_txt, float))
+    Z = [_zscore_logits(m) for m in member_logits]
+    gold = np.asarray(gold)
     bias = np.zeros(len(STEP_LABELS)) if step_bias is None else np.asarray(step_bias, float)
-    best_a, best_acc = 1.0, -1.0
-    for a in np.arange(0.0, 1.0001, 0.05):
-        pred = np.argmax(a * zg + (1 - a) * zt + bias[None, :], axis=1)
-        acc = float((pred == gold).mean())
-        if acc > best_acc + 1e-9:
-            best_a, best_acc = float(a), acc
-    base = float((np.argmax(zg + bias[None, :], axis=1) == gold).mean())
-    return best_a, best_acc, base
+    n = len(Z)
+
+    def acc(wts):
+        agg = sum(w * z for w, z in zip(wts, Z)) + bias[None, :]
+        return float((np.argmax(agg, axis=1) == gold).mean())
+
+    base = acc([1.0] + [0.0] * (n - 1))
+    best_w, best = [1.0] + [0.0] * (n - 1), base
+    steps = int(round(1.0 / grid))
+    if n == 2:
+        cand = [[a / steps, 1 - a / steps] for a in range(steps + 1)]
+    elif n == 3:
+        cand = [[a / steps, b / steps, 1 - a / steps - b / steps]
+                for a in range(steps + 1) for b in range(steps + 1 - a)]
+    else:
+        cand = [[1.0] + [0.0] * (n - 1)]
+    for w in cand:
+        v = acc(w)
+        if v > best + 1e-9:
+            best, best_w = v, w
+    return best_w, best, base
 
 
 def _weight_soup(models, device):
@@ -943,6 +1028,7 @@ def main():
     oof_step_logits, oof_step_gold = [], []
     per_fold_mcp_score = []
     text_heads, oof_text_logits = [], []
+    knn_heads, oof_knn_logits = [], []
     oof_mcp_probs, oof_mcp_gold = [], []
     mcp_counts_ref = None
 
@@ -955,15 +1041,27 @@ def main():
         vm = set(examples[i]["machine"] for i in val_idx)
         assert not (tm & vm), f"fold {k}: TRAIN/VAL machine overlap"
 
-        fold_ckpt = os.path.join(ROOT, "checkpoints", f"stage1_fold{k}.pt")
-        tag = f"[Stage 1][fold {k}]"
-        print(f"\n{tag} train {len(train_idx)} rows / {len(tm)} machines  |  "
-              f"val {len(val_idx)} rows / {len(vm)} machines")
-        (model, mcp_w_np, mcp_counts, val_probs, val_gold,
-         val_metrics, _thr, _bias) = train_one_split(
-            full_ds, train_idx, val_idx, device, fold_ckpt, tag=tag
-        )
-        models.append(model)
+        print(f"\n[Stage 1][fold {k}] train {len(train_idx)} rows / {len(tm)} machines  |  "
+              f"val {len(val_idx)} rows / {len(vm)} machines"
+              + (f"  x{STAGE1_N_SEEDS} seeds" if STAGE1_N_SEEDS > 1 else ""))
+        # A2: several independently-initialized models per fold. Deep
+        # ensembling (Lakshminarayanan et al., NeurIPS 2017) targets the
+        # variance that the 0.115 per-machine accuracy std says dominates our
+        # error. Seed 0 keeps the canonical fold filename so every existing
+        # consumer (kfold_members, Stage 2/3) is unchanged.
+        fold_models = []
+        for sd in range(max(1, STAGE1_N_SEEDS)):
+            suffix = "" if sd == 0 else f"_s{sd}"
+            fold_ckpt = os.path.join(ROOT, "checkpoints", f"stage1_fold{k}{suffix}.pt")
+            tag = f"[Stage 1][fold {k}]" + (f"[seed {sd}]" if STAGE1_N_SEEDS > 1 else "")
+            (m_sd, mcp_w_np, mcp_counts, val_probs, val_gold,
+             val_metrics, _thr, _bias) = train_one_split(
+                full_ds, train_idx, val_idx, device, fold_ckpt, tag=tag,
+                init_seed=RANDOM_SEED + 977 * sd,
+            )
+            fold_models.append(m_sd)
+        model = fold_models[0]
+        models.extend(fold_models)
         mcp_counts_ref = mcp_counts if mcp_counts_ref is None else mcp_counts_ref
         fold_scores.append(0.5 * val_metrics["step_accuracy"] + 0.5 * val_metrics["mcp_micro_f1"])
 
@@ -985,15 +1083,21 @@ def main():
         # out-of-fold too. See _fit_text_head for the measured justification.
         t_train_txt = [_example_text(examples[i]) for i in train_idx]
         t_train_y   = [int(full_ds[i]["step_idx"]) for i in train_idx]
+        val_txt = [_example_text(examples[i]) for i in val_idx]
         head = _fit_text_head(t_train_txt, t_train_y)
         text_heads.append(head)
-        oof_text_logits.append(head([_example_text(examples[i]) for i in val_idx]))
+        oof_text_logits.append(head(val_txt))
+        if STAGE1_USE_KNN_MEMBER:
+            kh = _fit_knn_head(t_train_txt, t_train_y, k=STAGE1_KNN_K)
+            knn_heads.append(kh)
+            oof_knn_logits.append(kh(val_txt))
 
     oof_step_logits = np.concatenate(oof_step_logits, axis=0)
     oof_step_gold   = np.concatenate(oof_step_gold, axis=0)
     oof_mcp_probs   = np.concatenate(oof_mcp_probs, axis=0)
     oof_mcp_gold    = np.concatenate(oof_mcp_gold, axis=0)
     oof_text_logits = np.concatenate(oof_text_logits, axis=0)
+    oof_knn_logits = np.concatenate(oof_knn_logits, axis=0) if knn_heads else None
 
     print(f"\n[Stage 1] Pooled OUT-OF-FOLD calibration set: {len(oof_step_gold)} rows "
           f"covering all {len(all_machines)} training machines "
@@ -1024,11 +1128,16 @@ def main():
     # top combined val score (0.7769) but the WORST test MCP micro-F1 (0.6555
     # vs the ensemble's 0.7231), and that is the encoder Stage 2 inherited.
     # ── GNN + text blend, weight chosen on pooled OOF ────────────────────────
-    alpha, blend_oof, gnn_oof = _search_blend_alpha(
-        oof_step_logits, oof_text_logits, oof_step_gold, step_bias)
-    print(f"\n[Stage 1] GNN+text blend search on pooled OOF: "
-          f"alpha={alpha:.2f} -> {blend_oof:.4f}  (GNN alone {gnn_oof:.4f})")
-    use_blend = blend_oof > gnn_oof + 1e-9 and alpha < 1.0
+    members_oof = [oof_step_logits, oof_text_logits]
+    member_names = ["GNN", "text-LR"]
+    if oof_knn_logits is not None:
+        members_oof.append(oof_knn_logits); member_names.append("kNN")
+    blend_w, blend_oof, gnn_oof = _search_blend_weights(
+        members_oof, oof_step_gold, step_bias)
+    print(f"\n[Stage 1] Blend search on pooled OOF over {len(members_oof)} members: "
+          + ", ".join(f"{n}={w:.2f}" for n, w in zip(member_names, blend_w)))
+    print(f"[Stage 1]   OOF accuracy {gnn_oof:.4f} (GNN alone) -> {blend_oof:.4f} (blended)")
+    use_blend = blend_oof > gnn_oof + 1e-9 and blend_w[0] < 1.0
     print(f"[Stage 1]   {'ADOPTING blend' if use_blend else 'blend did not beat GNN alone -- GNN only'}")
 
     best_k = int(np.argmax(per_fold_mcp_score))
@@ -1046,15 +1155,15 @@ def main():
     _print_test_metrics(test_metrics, f"TEST — {STAGE1_N_FOLDS}-FOLD ENSEMBLE (GNN only)")
 
     if use_blend:
-        te_txt = np.mean([h([_example_text(e) for e in test_ds.examples])
-                          for h in text_heads], axis=0)
+        te_texts = [_example_text(e) for e in test_ds.examples]
         _m, _p, _g, te_gnn_logits, te_gold = evaluate(
             models, test_loader, device, threshold=thresholds,
             return_probs=True, return_step_logits=True)
-        def _z(a):
-            mu, sd = a.mean(axis=1, keepdims=True), a.std(axis=1, keepdims=True) + 1e-8
-            return (a - mu) / sd
-        blended = (alpha * _z(te_gnn_logits) + (1 - alpha) * _z(te_txt)
+        members_te = [te_gnn_logits,
+                      np.mean([h(te_texts) for h in text_heads], axis=0)]
+        if knn_heads:
+            members_te.append(np.mean([h(te_texts) for h in knn_heads], axis=0))
+        blended = (sum(w * _zscore_logits(m) for w, m in zip(blend_w, members_te))
                    + np.asarray(step_bias, float)[None, :])
         bp = np.argmax(blended, axis=1)
         from sklearn.metrics import accuracy_score as _acc, f1_score as _f1
@@ -1063,7 +1172,8 @@ def main():
         blend_metrics["step_micro_f1"]    = float(_f1(te_gold, bp, average="micro", zero_division=0))
         blend_metrics["step_macro_f1"]    = float(_f1(te_gold, bp, average="macro", zero_division=0))
         blend_metrics["step_weighted_f1"] = float(_f1(te_gold, bp, average="weighted", zero_division=0))
-        _print_test_metrics(blend_metrics, f"TEST — GNN+TEXT BLEND (alpha={alpha:.2f})  [PRIMARY]")
+        _print_test_metrics(blend_metrics, "TEST — BLENDED ENSEMBLE ("
+            + ", ".join(f"{n} {w:.2f}" for n, w in zip(member_names, blend_w)) + ")  [PRIMARY]")
         print(f"[Stage 1] Blend vs GNN-only step_accuracy: "
               f"{test_metrics['step_accuracy']:.4f} -> {blend_metrics['step_accuracy']:.4f} "
               f"({blend_metrics['step_accuracy'] - test_metrics['step_accuracy']:+.4f})")

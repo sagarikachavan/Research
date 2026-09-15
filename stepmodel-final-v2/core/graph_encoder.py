@@ -66,6 +66,7 @@ from config import (
     STAGE1_USE_PER_HEAD_GRAPH_GATE,
     STAGE1_GRAPH_GATE_INIT_STEP, STAGE1_GRAPH_GATE_INIT_MCP,
     STAGE1_GNN_TYPE, GNN_HEADS, STAGE1_GATE_GRAPH2SEM,
+    N_STEP_PHASES, STAGE1_PHASE_LOSS_WEIGHT,
 )
 
 
@@ -76,6 +77,63 @@ def _inv_sigmoid(p: float) -> float:
 from data_utils import CONTEXT_COLUMNS
 
 NODE_FEAT_DIM = TEXT_EMB_DIM + NODE_AUX_DIM
+
+
+_STRUCT_SMOOTH_CACHE = {}
+
+
+def build_structured_smoothing_targets(eps: float, support_mask, temp: float = 0.10):
+    """(C, C) soft-target matrix for similarity-structured label smoothing.
+
+    Row i is the training target for a true label i: (1-eps) on i, and eps
+    distributed over the OTHER classes in proportion to how semantically
+    similar their label TEXT is to label i (softmax over BGE cosine at
+    temperature `temp`). Classes with no training support get zero mass.
+
+    Why not uniform smoothing: uniform spreads eps equally onto every class,
+    including semantically unrelated ones AND zero-support ones. The
+    zero-support case is not hypothetical here -- uniform smoothing feeding
+    mass to class 7 is precisely what let logit adjustment blow that class's
+    logit up (see stage1_gnn_train.py's step_log_priors comment). Structured
+    smoothing keeps the regularization benefit while putting the mass where a
+    confusion would actually be plausible. Mueller et al., "When Does Label
+    Smoothing Help?" (NeurIPS 2019).
+    """
+    import numpy as np
+    key = (round(float(eps), 6), round(float(temp), 6), tuple(bool(b) for b in support_mask))
+    if key in _STRUCT_SMOOTH_CACHE:
+        return _STRUCT_SMOOTH_CACHE[key]
+    from data_utils import _embed_texts
+    C = len(STEP_LABELS)
+    E = np.asarray(_embed_texts(list(STEP_LABELS)), dtype=np.float64)
+    sim = E @ E.T
+    sup = np.asarray(support_mask, dtype=bool)
+    T = np.zeros((C, C), dtype=np.float64)
+    for i in range(C):
+        others = np.array([j for j in range(C) if j != i and sup[j]], dtype=int)
+        T[i, i] = 1.0 - eps
+        if len(others) == 0:
+            T[i, i] = 1.0
+            continue
+        w = np.exp((sim[i, others] - sim[i, others].max()) / max(temp, 1e-6))
+        w = w / w.sum()
+        T[i, others] = eps * w
+    out = torch.tensor(T, dtype=torch.float32)
+    _STRUCT_SMOOTH_CACHE[key] = out
+    return out
+
+
+def mask_unsupported_logits(step_logits, support_mask):
+    """Set logits of zero-training-support classes to -inf.
+
+    STEP_LABELS is intentionally NOT reindexed -- that would invalidate every
+    saved checkpoint and the Stage-2/3 label contract. Masking achieves the
+    same effect at inference without touching the label space.
+    """
+    if support_mask is None:
+        return step_logits
+    m = torch.as_tensor(support_mask, dtype=torch.bool, device=step_logits.device)
+    return step_logits.masked_fill(~m.view(1, -1), float("-inf"))
 
 
 def asymmetric_loss(logits, targets, gamma_neg=2.0, gamma_pos=0.0,
@@ -616,6 +674,16 @@ class Stage1Classifier(nn.Module):
             nn.Dropout(0.10),
             nn.Linear(FUSION_HIDDEN, len(STEP_LABELS)),
         )
+        # A3: auxiliary coarse-phase head. Shares the step head's fused
+        # representation, so it regularizes the same trunk the step head uses.
+        # Costs ~0.4% extra parameters. See config.py's STEP_PHASE_OF.
+        self.phase_head = nn.Sequential(
+            nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN // 2),
+            nn.LayerNorm(FUSION_HIDDEN // 2),
+            nn.GELU(),
+            nn.Dropout(0.10),
+            nn.Linear(FUSION_HIDDEN // 2, N_STEP_PHASES),
+        )
         self.mcp_head = nn.Sequential(
             nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN // 2),
             nn.LayerNorm(FUSION_HIDDEN // 2),
@@ -727,7 +795,9 @@ class Stage1Classifier(nn.Module):
         # Private Stage-1 fusion. Never pass these fused representations to
         # the Stage-2/3 prefix adapter.
         step_logits = self.step_head(fused_step)
+        phase_logits = self.phase_head(fused_step)
         mcp_logits = self.mcp_head(fused_mcp)
+        self._last_phase_logits = phase_logits
         return (fused_step, fused_mcp), step_logits, mcp_logits
 
     def forward(self, x, edge_index, batch, field_embs=None,
@@ -761,6 +831,8 @@ class Stage1Classifier(nn.Module):
              use_focal=True, focal_gamma=2.0, label_smoothing=0.0,
              step_class_weights=None, use_step_focal=False,
              step_focal_gamma=2.0, step_log_priors=None, logit_adj_tau=0.0,
+             smoothing_targets=None, phase_logits=None, phase_labels=None,
+             phase_loss_weight=0.0,
              use_asl=False, asl_gamma_neg=4.0, asl_gamma_pos=0.0, asl_clip=0.05):
         """
         step_log_priors / logit_adj_tau: optional logit adjustment (Menon
@@ -784,21 +856,40 @@ class Stage1Classifier(nn.Module):
         if step_log_priors is not None and logit_adj_tau:
             adj_step_logits = step_logits + logit_adj_tau * step_log_priors.view(1, -1)
 
-        step_loss = F.cross_entropy(
-            adj_step_logits, step_labels,
-            weight=step_class_weights,
-            label_smoothing=label_smoothing,
-        )
+        if smoothing_targets is not None:
+            # A4: similarity-structured soft targets replace uniform smoothing.
+            tgt = smoothing_targets.to(adj_step_logits.device)[step_labels]
+            logp = F.log_softmax(adj_step_logits, dim=-1)
+            per_row = -(tgt * logp).sum(dim=-1)
+            if step_class_weights is not None:
+                per_row = per_row * step_class_weights.to(per_row.device)[step_labels]
+            step_loss = per_row.mean()
+        else:
+            step_loss = F.cross_entropy(
+                adj_step_logits, step_labels,
+                weight=step_class_weights,
+                label_smoothing=label_smoothing,
+            )
         if use_step_focal:
             p = torch.softmax(adj_step_logits, dim=-1)
             pt = p.gather(1, step_labels.view(-1, 1)).squeeze(1).clamp_min(1e-7)
-            ce = F.cross_entropy(
-                adj_step_logits, step_labels,
-                weight=step_class_weights,
-                reduction="none",
-                label_smoothing=label_smoothing,
-            )
+            if smoothing_targets is not None:
+                tgt = smoothing_targets.to(adj_step_logits.device)[step_labels]
+                ce = -(tgt * F.log_softmax(adj_step_logits, dim=-1)).sum(dim=-1)
+                if step_class_weights is not None:
+                    ce = ce * step_class_weights.to(ce.device)[step_labels]
+            else:
+                ce = F.cross_entropy(
+                    adj_step_logits, step_labels,
+                    weight=step_class_weights,
+                    reduction="none",
+                    label_smoothing=label_smoothing,
+                )
             step_loss = ((1.0 - pt).pow(step_focal_gamma) * ce).mean()
+
+        # A3: auxiliary coarse-phase loss on the same fused representation.
+        if phase_logits is not None and phase_labels is not None and phase_loss_weight:
+            step_loss = step_loss + phase_loss_weight * F.cross_entropy(phase_logits, phase_labels)
 
         if use_asl:
             mcp_loss = asymmetric_loss(

@@ -182,6 +182,79 @@ MCP_LOSS_WEIGHT = 1.80  # increased from 1.50 to emphasize MCP learning
 # shows MCP regressing, dial STEP_LOSS_WEIGHT back toward 1.20 rather than
 # raising MCP_LOSS_WEIGHT further, to keep this a one-variable change.
 STEP_LOSS_WEIGHT = 1.50
+
+# ---------------------------------------------------------------------------
+# A3 — auxiliary coarse "phase" head (hierarchical supervision)
+# ---------------------------------------------------------------------------
+# The 10 step labels are not independent categories; they are positions in a
+# pentest workflow. Grouping them by phase:
+#
+#   RESEARCH  : 0            (google search)
+#   ENUMERATE : 1, 3, 4      (enumerate service / website / domain)
+#   ANALYZE   : 2, 6, 8      (explore files / analyze outcomes / read source)
+#   EXPLOIT   : 5
+#   END       : 9
+#   OTHER     : 7            (dead class, zero rows anywhere)
+#
+# Implemented as an AUXILIARY head rather than a hard two-stage decision.
+# Honest reason: the measured confusions are mostly CROSS-phase (1->2, 1->6,
+# 3->2, 2->5), so a hard hierarchy would not fix them and could lock in a
+# wrong coarse decision. What a coarse head does buy is multi-task
+# regularization -- an easier, lower-variance target on the same shared trunk,
+# which is the standard argument for auxiliary supervision on small data.
+# Set STAGE1_PHASE_LOSS_WEIGHT = 0.0 to disable entirely.
+STEP_PHASE_OF = [0, 1, 2, 1, 1, 3, 2, 5, 2, 4]
+N_STEP_PHASES = 6
+STAGE1_PHASE_LOSS_WEIGHT = float(os.environ.get("STAGE1_PHASE_LOSS_WEIGHT", "0.30"))
+
+# ---------------------------------------------------------------------------
+# A4 — similarity-structured label smoothing
+# ---------------------------------------------------------------------------
+# Uniform label smoothing spreads target mass EQUALLY over all 10 classes,
+# including ones that are semantically unrelated -- and including class 7,
+# which has zero rows and which is exactly how the logit-adjustment collapse
+# got started. Structured smoothing instead spreads the smoothing mass in
+# proportion to how similar the label TEXTS are (BGE cosine over STEP_LABELS),
+# so "Further enumerate the website" leaks toward "Enumerate the X service"
+# rather than toward "End task". Mueller et al., "When Does Label Smoothing
+# Help?" (NeurIPS 2019) for why the target distribution's shape matters.
+# Classes with zero training support receive zero smoothing mass.
+STAGE1_USE_STRUCTURED_SMOOTHING = os.environ.get(
+    "STAGE1_USE_STRUCTURED_SMOOTHING", "1") not in ("0", "false", "False")
+STAGE1_SMOOTH_TEMP = 0.10        # softmax temperature over label-text similarity
+
+# ---------------------------------------------------------------------------
+# A5 — mask step classes that have no training support
+# ---------------------------------------------------------------------------
+# Class 7 ("Ask for human assistant") has 0 rows in train AND test. It cannot
+# ever be predicted correctly, it contributes a guaranteed 0 to macro-F1
+# (capping it at 0.90), and it is the class that triggered the
+# label-smoothing x logit-adjustment collapse. STEP_LABELS is deliberately NOT
+# reindexed -- that would break every saved checkpoint and the Stage-2/3 label
+# contract. Instead its logit is masked to -inf at inference and it is
+# excluded from macro-F1.
+STAGE1_MASK_UNSUPPORTED_CLASSES = os.environ.get(
+    "STAGE1_MASK_UNSUPPORTED", "1") not in ("0", "false", "False")
+
+# ---------------------------------------------------------------------------
+# A2 — seed x fold ensembling
+# ---------------------------------------------------------------------------
+# Per-machine accuracy std is 0.115 across the 29 test machines: variance, not
+# bias, is the dominant error source. Deep ensembles (Lakshminarayanan et al.,
+# NeurIPS 2017) are the standard remedy. STAGE1_N_SEEDS=1 reproduces today's
+# behavior exactly; 3 gives 5 folds x 3 seeds = 15 members at 3x wall-clock.
+STAGE1_N_SEEDS = int(os.environ.get("STAGE1_N_SEEDS", "1"))
+
+# ---------------------------------------------------------------------------
+# A6 — k-NN retrieval member for the step blend
+# ---------------------------------------------------------------------------
+# A third voice with a different inductive bias from both the GNN and the
+# linear text head (kNN-LM, Khandelwal et al., ICLR 2020). Cheap: reuses the
+# BGE embeddings the text head already computes.
+STAGE1_USE_KNN_MEMBER = os.environ.get("STAGE1_USE_KNN", "1") not in ("0", "false", "False")
+STAGE1_KNN_K = int(os.environ.get("STAGE1_KNN_K", "15"))
+
+
 MCP_DECISION_THRESHOLD = 0.5
 STEP_LABEL_SMOOTHING = 0.05  # increased from 0.01 for better generalization
 
@@ -536,6 +609,68 @@ STAGE2_GRAD_ACCUM = 16
 # via a manual weighted cross-entropy in forward_batch (train path only;
 # validation still uses the plain loss for its own comparability).
 STAGE2_STEP_TOKEN_LOSS_WEIGHT = 5.0
+
+# ---------------------------------------------------------------------------
+# B1 — feed Stage-1's prediction into the Stage-2 prompt
+# ---------------------------------------------------------------------------
+# Stage 2 currently RE-SOLVES classification from scratch: build_prompt gives
+# it machine + strategy + graph prefix, and build_target asks for step +
+# explanation + MCP. It never sees what Stage 1 already decided. That is the
+# same problem solved twice, and it is why STAGE2_STEP_TOKEN_LOSS_WEIGHT has
+# to be 5.0 -- the explanation tokens otherwise drown the label.
+#
+# With Stage 1 now at ~0.80 step / ~0.73 MCP samples-F1, its prediction is a
+# strong prior worth conditioning on, letting Stage 2 specialize on the thing
+# it is uniquely good at: the free-text explanation.
+#
+# ERROR PROPAGATION is the obvious risk -- a confidently wrong Stage-1 step
+# would get an eloquent justification. Mitigated by SCHEDULED SAMPLING (Bengio
+# et al., NeurIPS 2015): during training the prompt carries the GOLD step with
+# probability STAGE2_GOLD_HINT_PROB and Stage 1's actual PREDICTION otherwise,
+# so the model sees realistic wrong hints during training and learns it may
+# override them. At inference only the prediction is available.
+#
+# NOTE: an earlier version of this repo had exactly this idea as a `mask_hint`
+# parameter with a `stage1_hint` field -- but it was DEAD CODE (the function
+# that produced the hint was never called anywhere, so every prompt was
+# identical). The idea was right; it simply never ran.
+STAGE2_USE_STAGE1_HINT = os.environ.get("STAGE2_USE_STAGE1_HINT", "1") not in ("0", "false", "False")
+STAGE2_GOLD_HINT_PROB = float(os.environ.get("STAGE2_GOLD_HINT_PROB", "0.5"))
+
+# ---------------------------------------------------------------------------
+# B2 — Stage-3 reward rebalanced toward explanation
+# ---------------------------------------------------------------------------
+# Was 0.01 / 0.33 / 0.33 / 0.33 (format / step / mcp / explanation), i.e. GRPO
+# spent two thirds of its signal re-optimizing classification that Stage 1
+# already does better. Stage 1 beats the Pen-Strategist paper on MCP
+# (0.7287 samples-F1 vs 0.64) and is within ~3pt on step, so Stage 3's job is
+# the explanation. Step and MCP stay in the reward as GUARDRAILS -- non-zero
+# so the policy cannot trade classification away, small enough that
+# explanation dominates the gradient.
+STAGE3_W_FMT = float(os.environ.get("STAGE3_W_FMT", "0.01"))
+STAGE3_W_STEP = float(os.environ.get("STAGE3_W_STEP", "0.15"))
+STAGE3_W_MCP = float(os.environ.get("STAGE3_W_MCP", "0.15"))
+STAGE3_W_EXP = float(os.environ.get("STAGE3_W_EXP", "0.69"))
+
+# ---------------------------------------------------------------------------
+# B3 — entailment-based explanation reward
+# ---------------------------------------------------------------------------
+# The current explanation reward is 0.60*BGE-cosine + 0.20*lexical +
+# 0.10*step-support + 0.10*tool-support. BGE cosine between any two on-topic
+# pentest explanations is high, so it barely separates good reasoning from
+# fluent-but-wrong reasoning -- GRPO is optimizing something close to noise on
+# its largest-weighted term.
+#
+# An NLI model asks a sharper question: does the explanation ENTAIL the step
+# that was chosen? That is much closer to what the LLM judge's "relevance" and
+# "technical accuracy" dimensions actually measure, while staying cheap enough
+# for the RL sampling loop and remaining a DIFFERENT model from the judge (so
+# the judge stays an independent test-time measure and is not optimized
+# against). Falls back to the existing proxy if the model cannot be loaded.
+STAGE3_USE_NLI_REWARD = os.environ.get("STAGE3_USE_NLI_REWARD", "1") not in ("0", "false", "False")
+STAGE3_NLI_MODEL = os.environ.get("STAGE3_NLI_MODEL", "cross-encoder/nli-deberta-v3-small")
+STAGE3_NLI_WEIGHT = float(os.environ.get("STAGE3_NLI_WEIGHT", "0.45"))
+
 STAGE2_VAL_SPLIT = 0.15          # 15% held-out for validation
 STAGE2_EARLY_STOP_PATIENCE = 3   # Stop quickly once validation stops improving
 STAGE2_GRAD_CLIP = 1.0

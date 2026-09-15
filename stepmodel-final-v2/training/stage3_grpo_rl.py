@@ -95,6 +95,8 @@ from config import (
     STAGE2_ADAPTER_DIR,
     STAGE3_ADAPTER_DIR,
     STAGE3_GROUP_SIZE,
+    STAGE3_W_FMT, STAGE3_W_STEP, STAGE3_W_MCP, STAGE3_W_EXP,
+    STAGE3_USE_NLI_REWARD, STAGE3_NLI_MODEL, STAGE3_NLI_WEIGHT,
     STAGE3_LR,
     STAGE3_STEPS,
     STAGE3_KL_COEF,
@@ -223,6 +225,52 @@ def _mcp_label_weights() -> dict:
     return _MCP_WEIGHT_CACHE
 
 
+_NLI_PIPE = None
+_NLI_FAILED = False
+
+
+def _nli_entailment_score(explanation: str, step_label: str) -> float | None:
+    """P(explanation entails "The next step is <step_label>"), or None.
+
+    WHY: the deterministic proxy's largest term is BGE cosine against the
+    reference explanation -- but any two on-topic pentest explanations score
+    high on that, so it separates "fluent and correct" from "fluent and wrong"
+    only weakly. GRPO therefore spends most of its explanation signal on
+    something close to noise. Entailment asks the sharper question the LLM
+    judge's `relevance` / `technical_accuracy` dimensions actually ask: does
+    this text SUPPORT the step that was chosen?
+
+    Deliberately a DIFFERENT model from the test-time judge, so the judge
+    stays an independent measure and is never optimized against. Returns None
+    on any failure so the caller falls back to the existing proxy -- this must
+    never take the RL loop down.
+    """
+    global _NLI_PIPE, _NLI_FAILED
+    if _NLI_FAILED or not STAGE3_USE_NLI_REWARD:
+        return None
+    if not explanation.strip() or not step_label.strip():
+        return None
+    if _NLI_PIPE is None:
+        try:
+            from sentence_transformers import CrossEncoder
+            _NLI_PIPE = CrossEncoder(STAGE3_NLI_MODEL)
+        except Exception as e:
+            print(f"[Stage 3] NLI reward unavailable ({e}); using the deterministic proxy alone.")
+            _NLI_FAILED = True
+            return None
+    try:
+        import numpy as _np
+        scores = _NLI_PIPE.predict([(explanation, f"The next step is to {step_label}")])
+        arr = _np.asarray(scores, dtype=_np.float64).reshape(-1)
+        if arr.size >= 3:                      # [contradiction, entailment, neutral]
+            e = _np.exp(arr - arr.max())
+            return float(e[1] / e.sum())
+        return float(1.0 / (1.0 + _np.exp(-arr[0])))
+    except Exception:
+        _NLI_FAILED = True
+        return None
+
+
 def _deterministic_explanation_score(pred_expl: str, gold_expl: str,
                                       pred_step: str = "", gold_step: str = "",
                                       pred_mcp: set[str] | None = None,
@@ -260,14 +308,20 @@ def _deterministic_explanation_score(pred_expl: str, gold_expl: str,
     gold_mcp = gold_mcp or set()
     tool_support = (len(pred_mcp & gold_mcp) / len(gold_mcp)) if gold_mcp else (1.0 if not pred_mcp else 0.5)
     # Semantic similarity is primary; technical support is a bounded modifier.
-    return float(max(0.0, min(1.0, 0.60 * semantic + 0.20 * lexical + 0.10 * step_support + 0.10 * tool_support)))
+    base = 0.60 * semantic + 0.20 * lexical + 0.10 * step_support + 0.10 * tool_support
+    # B3: blend in entailment when available. Weight comes off the proxy, so
+    # the term stays in [0,1] and the reward scale is unchanged.
+    nli = _nli_entailment_score(pred, pred_step or gold_step)
+    if nli is not None:
+        base = (1.0 - STAGE3_NLI_WEIGHT) * base + STAGE3_NLI_WEIGHT * nli
+    return float(max(0.0, min(1.0, base)))
 
 
 def compute_reward(completion: str, gold: dict,
-                   w_fmt: float = 0.01,
-                   w_step: float = 0.33,
-                   w_mcp: float = 0.33,
-                   w_exp: float = 0.33,
+                   w_fmt: float = STAGE3_W_FMT,
+                   w_step: float = STAGE3_W_STEP,
+                   w_mcp: float = STAGE3_W_MCP,
+                   w_exp: float = STAGE3_W_EXP,
                    return_components: bool = False):
     """Equal-objective reward: Step, MCP, and explanation dominate.
 
