@@ -81,7 +81,23 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
     Handles both checkpoint formats:
       - New (Improvement 2): dict with 'model_state_dict' + 'mcp_thresholds'
       - Legacy: plain state dict
-    Returns (model, mcp_thresholds, step_logit_bias).
+    Returns (models, mcp_thresholds, step_logit_bias) where `models` is a LIST.
+
+    ---------------------------------------------------------------------
+    FIX — eval used to disagree with training on the same run.
+    Stage 1 trains 5 machine-grouped folds and reports the 5-FOLD ENSEMBLE as
+    its primary result, but STAGE1_CKPT can only hold ONE model's weights (it
+    is what Stage 2/3 load). This function loaded that single fold, so
+    `evaluate.py --model gnn` scored the single fold while the training log
+    scored the ensemble -- the same run legitimately produced two different
+    numbers, e.g. step 0.7836 here vs 0.8022 in training, and MCP samples-F1
+    0.6649 vs 0.7287.
+
+    The training script also writes `kfold_members` into the checkpoint: the
+    paths of all 5 fold checkpoints. When present, every member is loaded and
+    the caller runs the SAME logit-averaged ensemble training reports, so the
+    two numbers now match. Falls back to the single model when the field is
+    absent (legacy checkpoints, or STAGE1_ENSEMBLE=0).
     """
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     step_logit_bias = None
@@ -114,7 +130,35 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
     model = Stage1Classifier().to(device)
     model.load_state_dict(state_dict)
     model.eval()
-    return model, mcp_thresholds, step_logit_bias
+    models = [model]
+
+    use_ensemble = os.environ.get("STAGE1_ENSEMBLE", "1") not in ("0", "false", "False")
+    members = ckpt.get("kfold_members") if isinstance(ckpt, dict) else None
+    if use_ensemble and members:
+        loaded, missing = [], []
+        for mp in members:
+            if not os.path.exists(mp):
+                missing.append(mp); continue
+            m_ckpt = torch.load(mp, map_location=device, weights_only=False)
+            m_sd = m_ckpt["model_state_dict"] if isinstance(m_ckpt, dict) and "model_state_dict" in m_ckpt else m_ckpt
+            m = Stage1Classifier().to(device)
+            m.load_state_dict(m_sd)
+            m.eval()
+            loaded.append(m)
+        if loaded:
+            models = loaded
+            print(f"[eval] K-FOLD ENSEMBLE: {len(loaded)}/{len(members)} fold "
+                  f"checkpoints loaded — matching the training script's primary metric.")
+            if missing:
+                print(f"[eval] ⚠ {len(missing)} member(s) missing; ensembling over the rest.")
+        else:
+            print("[eval] ⚠ kfold_members listed but none found on disk — "
+                  "falling back to the single stored model "
+                  "(this will NOT match the training log's ensemble numbers).")
+    elif members and not use_ensemble:
+        print("[eval] STAGE1_ENSEMBLE=0 — scoring the single stored fold, "
+              "not the ensemble.")
+    return models, mcp_thresholds, step_logit_bias
 
 
 # ---------------------------------------------------------------------------
@@ -211,7 +255,8 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
         print(f"[eval] Checkpoint not found at {STAGE1_CKPT}. Run stage1_gnn_train.py first.")
         return
 
-    model, ckpt_thresholds, step_logit_bias = load_stage1_checkpoint(STAGE1_CKPT, device)
+    models, ckpt_thresholds, step_logit_bias = load_stage1_checkpoint(STAGE1_CKPT, device)
+    model = models[0]   # single model still used for semantic-token precompute
     use_thresholds = (
         [float(threshold_override)] * len(MCP_LABELS)
         if threshold_override is not None
@@ -267,10 +312,20 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
             mask = mask.to(device)
 
             edge_attr = getattr(batch_graphs, 'edge_attr', None)
-            step_logits, mcp_logits, _ = model(
-                batch_graphs.x, batch_graphs.edge_index, batch_graphs.batch,
-                semantic_tokens=sem, semantic_mask=mask, edge_attr=edge_attr,
-            )
+            # Average step LOGITS and MCP PROBABILITIES across ensemble members
+            # -- byte-identical to training/stage1_gnn_train.py's evaluate().
+            sl_sum, mp_sum = None, None
+            for _m in models:
+                _sl, _ml, _ = _m(
+                    batch_graphs.x, batch_graphs.edge_index, batch_graphs.batch,
+                    semantic_tokens=sem, semantic_mask=mask, edge_attr=edge_attr,
+                )
+                _sl = _sl.detach().float()
+                _mp = torch.sigmoid(_ml.detach().float())
+                sl_sum = _sl if sl_sum is None else sl_sum + _sl
+                mp_sum = _mp if mp_sum is None else mp_sum + _mp
+            step_logits = sl_sum / len(models)
+            mcp_prob_t = mp_sum / len(models)
             sl_np = step_logits.detach().cpu().numpy()
             if step_logit_bias is not None:
                 step_preds.append(
@@ -278,7 +333,7 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
                 )
             else:
                 step_preds.append(sl_np.argmax(-1))
-            probs = torch.sigmoid(mcp_logits).cpu().numpy()
+            probs = mcp_prob_t.cpu().numpy()
             mcp_preds.append(predict_with_per_class_thresholds(probs, use_thresholds))
 
     step_preds = np.concatenate(step_preds)

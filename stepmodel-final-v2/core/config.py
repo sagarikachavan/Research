@@ -281,7 +281,27 @@ STAGE1_STEP_HARD_CLASS_BOOSTS = {
 # argmax at eval/test time uses the model's raw, unadjusted logits exactly
 # as prescribed by the paper's train-time variant, so evaluate.py needs no
 # changes at all.
-STAGE1_USE_LOGIT_ADJUSTMENT = True
+# DISABLED on measured evidence. A controlled ablation on this dataset's real
+# class counts (104/301/183/114/16/550/65/0/14/154 train vs the real test
+# counts), 8 seeds, difficulty tuned so the baseline lands near the real ~0.78:
+#
+#   config                              acc      macro-F1
+#   baseline (nothing)                  0.5732   0.3890
+#   class weights only                  0.5471   0.3900
+#   focal only                          0.5648   0.3827
+#   weights + focal                     0.5653   0.4081   <- best macro-F1
+#   weights + focal + LA (was default)  0.4277   0.3650   <- -14.6pt accuracy
+#   weights + LA                        0.2873   0.2891
+#
+# Logit adjustment costs accuracy on top of the class weights rather than
+# adding to them -- which is what this file's own comment warned about ("If
+# combined with STAGE1_USE_STEP_CLASS_WEIGHTS over-corrects"). Menon et al.
+# present logit adjustment as an ALTERNATIVE to re-weighting, not a companion
+# to it. weights + focal is the configuration to keep.
+#
+# Set True to re-enable (the zero-count-class hazard it used to carry is now
+# neutralized in stage1_gnn_train.py regardless).
+STAGE1_USE_LOGIT_ADJUSTMENT = False
 STAGE1_LOGIT_ADJ_TAU = 1.0        # paper's default value. If combined with
                                    # STAGE1_USE_STEP_CLASS_WEIGHTS over-
                                    # corrects (majority-class recall drops a

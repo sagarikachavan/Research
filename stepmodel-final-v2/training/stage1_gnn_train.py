@@ -446,7 +446,24 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     # step_counts (not the clipped step_w_np) since it needs the true prior,
     # not the already-bounded sampling weight.
     step_priors = np.clip(step_counts / max(step_counts.sum(), 1.0), 1e-6, 1.0)
-    step_log_priors = torch.tensor(np.log(step_priors), dtype=torch.float32, device=device)
+    _log_priors = np.log(step_priors)
+    # SAFETY: a class with ZERO training rows gets prior 1e-6 -> log = -13.8.
+    # Combined with label smoothing (which hands EVERY class, including that
+    # one, a small target probability on every example) the network is forced
+    # to inflate that class's raw logit by ~+13.8 to reach the smoothed
+    # target. Logit adjustment is removed at inference, so the inflated logit
+    # resurfaces and the class wins everywhere.
+    #
+    # Reproduced in isolation on this dataset's real class counts:
+    #   label_smoothing=0.05, no LA  -> class-7 logit  -2.17   fine
+    #   LA, no label_smoothing       -> class-7 logit  -7.73   fine
+    #   BOTH (this codebase's config)-> class-7 logit  +8.55, predicted on
+    #                                   1499/1501 rows -- total collapse.
+    # Class 7 "Ask for human assistant" has 0 rows in train AND test, so it is
+    # exactly the class this hits. Setting its adjustment to 0 removes the
+    # hazard without changing behavior for any class that has data.
+    _log_priors[step_counts <= 0] = 0.0
+    step_log_priors = torch.tensor(_log_priors, dtype=torch.float32, device=device)
 
     print(f"{tag} STEP weights:")
     for i, lab in enumerate(STEP_LABELS):
@@ -852,6 +869,7 @@ def main():
 
     models, fold_scores = [], []
     oof_step_logits, oof_step_gold = [], []
+    per_fold_mcp_score = []
     oof_mcp_probs, oof_mcp_gold = [], []
     mcp_counts_ref = None
 
@@ -885,6 +903,10 @@ def main():
         oof_step_logits.append(s_logits); oof_step_gold.append(s_gold)
         oof_mcp_probs.append(p_probs);    oof_mcp_gold.append(p_gold)
 
+        # Per-fold MCP val score -- used to pick which single encoder Stage 2
+        # inherits (see best_k below).
+        per_fold_mcp_score.append(float(val_metrics["mcp_micro_f1"]))
+
     oof_step_logits = np.concatenate(oof_step_logits, axis=0)
     oof_step_gold   = np.concatenate(oof_step_gold, axis=0)
     oof_mcp_probs   = np.concatenate(oof_mcp_probs, axis=0)
@@ -906,12 +928,24 @@ def main():
     # and the threshold search carry never-regress guards fit on this same OOF
     # pool. The ensemble-vs-single comparison printed below is the check.
     rare = [i for i, c in enumerate(mcp_counts_ref) if c < 15]
+
     thresholds = search_per_class_thresholds(oof_mcp_probs, oof_mcp_gold,
                                              rare_class_indices=rare, verbose=True)
     step_bias = search_step_logit_bias(oof_step_logits, oof_step_gold, verbose=True)
 
-    # ── Test: single best fold vs the ensemble ────────────────────────────────
-    best_k = int(np.argmax(fold_scores))
+    # Stage-2 encoder is chosen by MCP val score, not the combined score.
+    # WHY: the graph prefix is what Stage 2 consumes, and the per-head gates
+    # show the graph feeding MCP (gate_mcp ~0.49) while the step head shuts it
+    # off (gate_step ~0.038). A fold that wins on combined score can still be
+    # the worst MCP encoder -- exactly what happened last run: fold 0 had the
+    # top combined val score (0.7769) but the WORST test MCP micro-F1 (0.6555
+    # vs the ensemble's 0.7231), and that is the encoder Stage 2 inherited.
+    best_k = int(np.argmax(per_fold_mcp_score))
+    best_k_combined = int(np.argmax(fold_scores))
+    if best_k != best_k_combined:
+        print(f"[Stage 1] Stage-2 fold: {best_k} (best MCP val "
+              f"{per_fold_mcp_score[best_k]:.4f}); combined-score winner was "
+              f"fold {best_k_combined} ({fold_scores[best_k_combined]:.4f}).")
 
     # PRIMARY Stage-1 result = the K-fold ensemble. It writes output/stage1.csv,
     # so the saved predictions match the headline numbers.
