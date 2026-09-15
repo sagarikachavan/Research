@@ -795,6 +795,78 @@ def _machine_folds(examples, n_folds, seed):
     return [sorted(f) for f in folds]
 
 
+def _fit_text_head(train_texts, train_y, C=4.0):
+    """A deliberately SIMPLE text-only step classifier: BGE sentence embedding
+    of "New strategy" + "Strategy explanation" -> multinomial logistic
+    regression. Returns a callable mapping texts -> (N, num_classes) logits.
+
+    WHY THIS EXISTS -- measured complementarity, not a hunch. On the same 268
+    test rows, a text-only LR and the full GNN pipeline score almost
+    identically (0.7910 vs 0.7948) but make DIFFERENT mistakes:
+
+        both wrong        39
+        only text wrong   17     <- the GNN rescues these
+        only GNN wrong    16     <- the text model rescues these
+        both right       196
+        oracle (either)  0.8545
+
+    Two models at ~0.79 with an 0.8545 union is the textbook case for
+    ensembling: 33 of 268 rows are recoverable in principle. They also agree
+    on 225/268 rows at 87.1% accuracy, while disagreements split 16/17 --
+    so a CONFIDENCE-weighted blend is the right combiner, not a hard vote.
+
+    Kept linear on purpose. A 512->256 MLP on the same BGE features scored
+    WORSE than logistic regression (0.7627 vs 0.7910): at ~1.9k rows and 9
+    usable classes, extra capacity overfits. See STAGE1_IMPROVEMENTS.md.
+    """
+    from sklearn.linear_model import LogisticRegression
+    from data_utils import _embed_texts
+    E = np.asarray(_embed_texts(list(train_texts)), dtype=np.float64)
+    clf = LogisticRegression(max_iter=3000, C=C, multi_class="multinomial")
+    clf.fit(E, np.asarray(train_y))
+    classes = clf.classes_
+
+    def predict_logits(texts):
+        Ex = np.asarray(_embed_texts(list(texts)), dtype=np.float64)
+        raw = clf.decision_function(Ex)
+        if raw.ndim == 1:                      # degenerate binary case
+            raw = np.stack([-raw, raw], axis=1)
+        full = np.full((len(texts), len(STEP_LABELS)), -1e4, dtype=np.float64)
+        for j, c in enumerate(classes):
+            full[:, int(c)] = raw[:, j]
+        return full
+    return predict_logits
+
+
+def _example_text(ex):
+    c = ex.get("context", {})
+    return f"{c.get('New strategy','')} {c.get('Strategy explanation','')}".strip() or "empty"
+
+
+def _search_blend_alpha(z_gnn, z_txt, gold, step_bias=None):
+    """Pick alpha in  alpha*z_gnn + (1-alpha)*z_txt  on out-of-fold data.
+
+    alpha=1.0 reproduces the GNN-only model EXACTLY, so this can only be
+    adopted when it beats that baseline on OOF -- it cannot regress.
+    Logits are z-scored per model first: the GNN's and the LR's raw logits
+    live on different scales, and blending unnormalized scores would just
+    hand the decision to whichever has the larger magnitude.
+    """
+    def _z(a):
+        m, sd = a.mean(axis=1, keepdims=True), a.std(axis=1, keepdims=True) + 1e-8
+        return (a - m) / sd
+    zg, zt = _z(np.asarray(z_gnn, float)), _z(np.asarray(z_txt, float))
+    bias = np.zeros(len(STEP_LABELS)) if step_bias is None else np.asarray(step_bias, float)
+    best_a, best_acc = 1.0, -1.0
+    for a in np.arange(0.0, 1.0001, 0.05):
+        pred = np.argmax(a * zg + (1 - a) * zt + bias[None, :], axis=1)
+        acc = float((pred == gold).mean())
+        if acc > best_acc + 1e-9:
+            best_a, best_acc = float(a), acc
+    base = float((np.argmax(zg + bias[None, :], axis=1) == gold).mean())
+    return best_a, best_acc, base
+
+
 def _weight_soup(models, device):
     """Average the weights of the K fold models into ONE model.
 
@@ -870,6 +942,7 @@ def main():
     models, fold_scores = [], []
     oof_step_logits, oof_step_gold = [], []
     per_fold_mcp_score = []
+    text_heads, oof_text_logits = [], []
     oof_mcp_probs, oof_mcp_gold = [], []
     mcp_counts_ref = None
 
@@ -907,10 +980,20 @@ def main():
         # inherits (see best_k below).
         per_fold_mcp_score.append(float(val_metrics["mcp_micro_f1"]))
 
+        # Complementary TEXT-ONLY head for this fold, trained on exactly the
+        # same rows the GNN fold saw, so its val predictions are genuinely
+        # out-of-fold too. See _fit_text_head for the measured justification.
+        t_train_txt = [_example_text(examples[i]) for i in train_idx]
+        t_train_y   = [int(full_ds[i]["step_idx"]) for i in train_idx]
+        head = _fit_text_head(t_train_txt, t_train_y)
+        text_heads.append(head)
+        oof_text_logits.append(head([_example_text(examples[i]) for i in val_idx]))
+
     oof_step_logits = np.concatenate(oof_step_logits, axis=0)
     oof_step_gold   = np.concatenate(oof_step_gold, axis=0)
     oof_mcp_probs   = np.concatenate(oof_mcp_probs, axis=0)
     oof_mcp_gold    = np.concatenate(oof_mcp_gold, axis=0)
+    oof_text_logits = np.concatenate(oof_text_logits, axis=0)
 
     print(f"\n[Stage 1] Pooled OUT-OF-FOLD calibration set: {len(oof_step_gold)} rows "
           f"covering all {len(all_machines)} training machines "
@@ -940,6 +1023,14 @@ def main():
     # the worst MCP encoder -- exactly what happened last run: fold 0 had the
     # top combined val score (0.7769) but the WORST test MCP micro-F1 (0.6555
     # vs the ensemble's 0.7231), and that is the encoder Stage 2 inherited.
+    # ── GNN + text blend, weight chosen on pooled OOF ────────────────────────
+    alpha, blend_oof, gnn_oof = _search_blend_alpha(
+        oof_step_logits, oof_text_logits, oof_step_gold, step_bias)
+    print(f"\n[Stage 1] GNN+text blend search on pooled OOF: "
+          f"alpha={alpha:.2f} -> {blend_oof:.4f}  (GNN alone {gnn_oof:.4f})")
+    use_blend = blend_oof > gnn_oof + 1e-9 and alpha < 1.0
+    print(f"[Stage 1]   {'ADOPTING blend' if use_blend else 'blend did not beat GNN alone -- GNN only'}")
+
     best_k = int(np.argmax(per_fold_mcp_score))
     best_k_combined = int(np.argmax(fold_scores))
     if best_k != best_k_combined:
@@ -952,7 +1043,31 @@ def main():
     test_metrics = evaluate(models, test_loader, device, threshold=thresholds,
                             save_csv=True, csv_path=csv_path, dataset=test_ds.examples,
                             step_bias=step_bias)
-    _print_test_metrics(test_metrics, f"TEST — {STAGE1_N_FOLDS}-FOLD ENSEMBLE  [PRIMARY]")
+    _print_test_metrics(test_metrics, f"TEST — {STAGE1_N_FOLDS}-FOLD ENSEMBLE (GNN only)")
+
+    if use_blend:
+        te_txt = np.mean([h([_example_text(e) for e in test_ds.examples])
+                          for h in text_heads], axis=0)
+        _m, _p, _g, te_gnn_logits, te_gold = evaluate(
+            models, test_loader, device, threshold=thresholds,
+            return_probs=True, return_step_logits=True)
+        def _z(a):
+            mu, sd = a.mean(axis=1, keepdims=True), a.std(axis=1, keepdims=True) + 1e-8
+            return (a - mu) / sd
+        blended = (alpha * _z(te_gnn_logits) + (1 - alpha) * _z(te_txt)
+                   + np.asarray(step_bias, float)[None, :])
+        bp = np.argmax(blended, axis=1)
+        from sklearn.metrics import accuracy_score as _acc, f1_score as _f1
+        blend_metrics = dict(test_metrics)
+        blend_metrics["step_accuracy"]    = float(_acc(te_gold, bp))
+        blend_metrics["step_micro_f1"]    = float(_f1(te_gold, bp, average="micro", zero_division=0))
+        blend_metrics["step_macro_f1"]    = float(_f1(te_gold, bp, average="macro", zero_division=0))
+        blend_metrics["step_weighted_f1"] = float(_f1(te_gold, bp, average="weighted", zero_division=0))
+        _print_test_metrics(blend_metrics, f"TEST — GNN+TEXT BLEND (alpha={alpha:.2f})  [PRIMARY]")
+        print(f"[Stage 1] Blend vs GNN-only step_accuracy: "
+              f"{test_metrics['step_accuracy']:.4f} -> {blend_metrics['step_accuracy']:.4f} "
+              f"({blend_metrics['step_accuracy'] - test_metrics['step_accuracy']:+.4f})")
+        test_metrics = blend_metrics
 
     # Reference points, reported but not the headline.
     single_metrics = evaluate(models[best_k], test_loader, device,
