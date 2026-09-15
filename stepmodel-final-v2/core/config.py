@@ -101,6 +101,38 @@ GNN_HIDDEN = 384
 GNN_LAYERS = 4  # kept -- graph depth, not width, and PTT graphs are small
 GNN_OUT_DIM = 512  # contract dim consumed by Stage 2/3 -- do not change without retraining them
 FUSION_HIDDEN = 768
+
+# ---------------------------------------------------------------------------
+# Stage-1 graph convolution type: "gatv2" (default) or "gine".
+# ---------------------------------------------------------------------------
+# CONVERTED TO GATv2 (user-directed, backed by the `main` branch's measured
+# results). main/output/eval_metrics_stage1_gnn.json -- a real GATv2 Stage-1
+# run -- reports step_accuracy=0.8022, step_macro_f1=0.6765,
+# mcp_samples_f1=0.7657, mcp_micro_f1=0.7457. The GINE 5-fold ensemble on this
+# branch reports 0.7910 / 0.5984 / 0.7226 / 0.7096: GATv2 ahead on 4 of 5
+# metrics, with the largest margin on MCP (+4.3pt samples-F1).
+#
+# That comparison is NOT fully controlled -- main also ran GNN_HIDDEN=512 with
+# 8 heads on a single 85/15 split rather than this branch's 384-wide K-fold
+# setup. Both branches skip the corrupted-Machine rows, so training-set size
+# is comparable; width/heads/validation-scheme remain confounded.
+#
+# The stronger reason to expect the change to land on MCP specifically: the
+# per-head graph gates show the STEP head learning to shut the graph off
+# almost entirely (gate_step converges to ~0.04 from its 0.15 init, in all 5
+# folds), while gate_mcp holds near 0.50. With ~96% of the graph signal
+# suppressed into the step head, the choice of graph convolution can barely
+# move step accuracy -- it can only really affect MCP, which is exactly where
+# GATv2's measured margin is largest.
+#
+# Kept as a switch rather than a hard replacement so the controlled
+# single-variable comparison (same 384 width, same K-fold pipeline, only the
+# conv layer differs) can still be run with STAGE1_GNN_TYPE=gine.
+STAGE1_GNN_TYPE = os.environ.get("STAGE1_GNN_TYPE", "gatv2").lower()
+
+# Attention heads for the GATv2 blocks. Must divide GNN_HIDDEN evenly
+# (384 / 8 = 48). main used 8 heads at hidden=512; 8 is kept here at 384.
+GNN_HEADS = int(os.environ.get("GNN_HEADS", "8"))
 GNN_DROPOUT = 0.15  # increased for better regularization
 
 # Training-time-only graph augmentation (no-op at eval). Cheap regularizer
@@ -110,7 +142,7 @@ GNN_DROPOUT = 0.15  # increased for better regularization
 STAGE1_EDGE_DROPOUT = 0.15  # increased for stronger regularization
 STAGE1_NODE_FEAT_DROPOUT = 0.08  # increased for better generalization
 
-# One shallow global graph-token Transformer after local GINE message passing.
+# One shallow global graph-token Transformer after local message passing.
 GLOBAL_ATTN_LAYERS = 1
 GLOBAL_ATTN_HEADS = 6
 GLOBAL_ATTN_DROPOUT = 0.08
@@ -188,8 +220,10 @@ STAGE1_WEIGHT_DECAY = 1e-2  # increased from 8e-3 for stronger L2 regularization
 #      machines, so the step-bias / MCP-threshold search is fit on data that
 #      looks like the test distribution.
 #
-# Set STAGE1_USE_KFOLD=False to fall back to the original single-split path.
-STAGE1_USE_KFOLD = os.environ.get("STAGE1_USE_KFOLD", "1") not in ("0", "false", "False")
+# K-fold is now the ONLY Stage-1 training path -- the previous single
+# 15%-machine-split fallback has been removed. The best fold's weights (plus
+# the pooled out-of-fold calibration) are written to STAGE1_CKPT, which is
+# what eval/evaluate.py, stage2_sft_qwen.py and stage3_grpo_rl.py consume.
 STAGE1_N_FOLDS = int(os.environ.get("STAGE1_N_FOLDS", "5"))
 
 STAGE1_MAX_CLASS_WEIGHT = 2.5  # increased from 2.0 for better rare class handling
@@ -391,6 +425,35 @@ STAGE1_GRAPH_GATE_INIT = 0.25   # legacy single-gate init; kept as the
 STAGE1_USE_PER_HEAD_GRAPH_GATE = True
 STAGE1_GRAPH_GATE_INIT_STEP = 0.15   # Step: text-dominant, graph assists
 STAGE1_GRAPH_GATE_INIT_MCP = 0.60    # MCP: graph-dominant, text assists
+
+
+# ---------------------------------------------------------------------------
+# Should the graph gate also attenuate the GRAPH->TEXT cross-attention term?
+# ---------------------------------------------------------------------------
+# The gate currently scales FOUR fusion terms: graph_proj, sem2graph_out,
+# graph2sem_out and interaction. Three of those are genuinely graph-derived.
+# `graph2sem_out` is not, quite: it is
+#
+#     cross_attn(query=graph_proj, key=value=semantic_token_kv)
+#
+# i.e. a weighted sum of TEXT values. The graph only chooses the attention
+# WEIGHTS; the content that comes out is text. Attenuating it by the graph
+# gate therefore throws away graph-*selected* text -- arguably the single most
+# useful product of the fusion -- rather than throwing away graph content.
+#
+# Why this matters now: across all 5 folds the STEP gate converges to ~0.04
+# from its 0.15 init. At that value four of the five concatenated blocks enter
+# the fusion MLP at 4% of their natural scale, so the step head is reading
+# essentially `semantic_proj` alone -- the entire cross-attention apparatus is
+# switched off for step, including the text-side half of it. That is a
+# plausible reason step accuracy is pinned near 0.79 regardless of graph
+# encoder (it is also why swapping GINE->GATv2 is not expected to move step).
+#
+# Set to False to leave graph2sem_out UNGATED, so the step head keeps its
+# graph-selected text signal even when the gate closes on graph content.
+# Default True preserves today's measured behavior -- this is a one-variable
+# experiment to run, not a change to make blind.
+STAGE1_GATE_GRAPH2SEM = os.environ.get("STAGE1_GATE_GRAPH2SEM", "1") not in ("0", "false", "False")
 # ROUND 6 (see STAGE1_IMPROVEMENTS.md): the first real run with the gate
 # showed it moving only 0.250 -> 0.232 (~7% relative) over the 44 epochs
 # before early stopping -- far too slow to have reached wherever its actual

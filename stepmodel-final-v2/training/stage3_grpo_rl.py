@@ -318,7 +318,7 @@ def build_prefix_embeds(ex, stage1, adapter, device, dtype):
 
     Contract:
       PTT graph -> frozen Stage-1 GINE -> 512-d graph embedding
-      -> frozen Stage-2 GraphPrefixAdapter -> 8 Qwen soft tokens.
+      -> frozen Stage-2 GraphPrefixAdapter -> GRAPH_PREFIX_TOKENS (16) Qwen soft tokens.
 
     The Stage-1 checkpoint itself is never passed to the adapter, and no
     Stage-1 classifier/fusion logits are used as a shortcut.

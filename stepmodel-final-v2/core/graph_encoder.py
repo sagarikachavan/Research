@@ -1,7 +1,8 @@
 """Stage-1 hybrid graph + semantic CNN classifier.
 
 Design:
-- typed GINE graph encoder with GraphNorm and residual blocks;
+- typed graph encoder (GATv2 by default, GINE selectable via
+  STAGE1_GNN_TYPE) with GraphNorm and gated residual blocks;
 - frozen-GPT-2-token-features + multi-kernel CNN is inspired by the
   Pen-Strategist paper's (arXiv:2605.04499) Step Model, which does the same
   frozen-GPT-2-plus-CNN feature extraction -- but the paper has no graph
@@ -16,7 +17,7 @@ Design:
   the fusion, and the resulting shared-semantic-representation design are
   this project's own extension beyond the paper, not a reproduction of it;
 - semantic/graph fusion is private to Stage 1 and feeds independent Step/MCP heads;
-- the raw GINE graph representation is exactly 512-d and is the sole graph input to Stage 2/3;
+- the raw graph representation is exactly 512-d and is the sole graph input to Stage 2/3;
 - Step gets a stronger private tower while MCP keeps an independent tower.
 
 --------------------------------------------------------------------------
@@ -51,7 +52,7 @@ from __future__ import annotations
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch_geometric.nn import GINEConv, GraphNorm, global_mean_pool, global_max_pool
+from torch_geometric.nn import GATv2Conv, GINEConv, GraphNorm, global_mean_pool, global_max_pool
 from torch_geometric.utils import softmax as pyg_softmax
 
 import math
@@ -64,6 +65,7 @@ from config import (
     STAGE1_USE_GRAPH_GATE, STAGE1_GRAPH_GATE_INIT,
     STAGE1_USE_PER_HEAD_GRAPH_GATE,
     STAGE1_GRAPH_GATE_INIT_STEP, STAGE1_GRAPH_GATE_INIT_MCP,
+    STAGE1_GNN_TYPE, GNN_HEADS, STAGE1_GATE_GRAPH2SEM,
 )
 
 
@@ -190,6 +192,70 @@ class GINEBlock(nn.Module):
         return h + gate * y
 
 
+class GATv2Block(nn.Module):
+    """Attention-based graph block; the Stage-1 default (STAGE1_GNN_TYPE).
+
+    Interface is IDENTICAL to GINEBlock -- forward(h, edge_index, batch,
+    edge_attr) -> h of the same shape -- so everything else in GraphEncoder
+    (input_proj, the global attention pass, mean/max/attention pooling,
+    out_proj, hidden width, dropout, edge dropout) is shared between the two
+    and the switch changes exactly one thing: how a node aggregates its
+    neighbours.
+
+    GATv2 (Brody et al., "How Attentive are Graph Attention Networks?",
+    ICLR 2022) computes a *dynamic* attention weight per edge -- unlike the
+    original GAT, whose attention ranking is static with respect to the query
+    node. The edge feature enters through `edge_dim`, meaning the PTT relation
+    type (StateTransition / ActionUpdate / FindingUpdate / Prediction /
+    self-loop) modulates HOW MUCH a neighbour is attended to.
+
+    This differs from GINEBlock, where the encoded edge feature is added into
+    the message CONTENT before aggregation. Neither is strictly better a
+    priori; the choice is settled empirically here -- see config.py's
+    STAGE1_GNN_TYPE comment for the measured numbers behind defaulting to
+    this block.
+
+    The edge encoder, GraphNorm, gated residual and dropout are kept
+    byte-identical to GINEBlock so the comparison stays single-variable.
+    """
+
+    def __init__(self, hidden: int, edge_dim: int, dropout: float,
+                 heads: int = GNN_HEADS):
+        super().__init__()
+        if hidden % heads != 0:
+            raise ValueError(
+                f"GNN_HIDDEN={hidden} must be divisible by GNN_HEADS={heads}"
+            )
+        self.edge_encoder = nn.Sequential(
+            nn.Linear(edge_dim, hidden),
+            nn.LayerNorm(hidden),
+            nn.GELU(),
+            nn.Linear(hidden, hidden),
+        )
+        # concat=True with out_channels = hidden // heads keeps the block's
+        # output width exactly `hidden`, matching GINEBlock.
+        self.conv = GATv2Conv(
+            hidden, hidden // heads, heads=heads, concat=True,
+            dropout=dropout, edge_dim=hidden, add_self_loops=True,
+        )
+        self.norm = GraphNorm(hidden)
+        self.dropout = nn.Dropout(dropout)
+        self.gate = nn.Sequential(
+            nn.Linear(hidden * 2, 1),
+            nn.Sigmoid()
+        )
+
+    def forward(self, h, edge_index, batch, edge_attr):
+        e = self.edge_encoder(edge_attr)
+        y = self.conv(h, edge_index, edge_attr=e)
+        y = self.norm(y, batch)
+        y = F.gelu(y)
+        # Gated residual connection for better gradient flow
+        gate = self.gate(torch.cat([h, y], dim=-1))
+        y = self.dropout(y)
+        return h + gate * y
+
+
 class GraphEncoder(nn.Module):
     """Encode a PTT graph to a 512-d representation."""
 
@@ -197,7 +263,8 @@ class GraphEncoder(nn.Module):
                  out_dim=GNN_OUT_DIM, num_layers=GNN_LAYERS,
                  dropout=GNN_DROPOUT, edge_dim=EDGE_ATTR_DIM,
                  edge_dropout=STAGE1_EDGE_DROPOUT,
-                 node_feat_dropout=STAGE1_NODE_FEAT_DROPOUT):
+                 node_feat_dropout=STAGE1_NODE_FEAT_DROPOUT,
+                 gnn_type=STAGE1_GNN_TYPE):
         super().__init__()
         # Training-only graph augmentation (both are no-ops in eval mode via
         # self.training / nn.Dropout). Cheap regularizer for a small dataset:
@@ -212,8 +279,18 @@ class GraphEncoder(nn.Module):
             nn.GELU(),
             nn.Dropout(dropout),
         )
+        gnn_type = str(gnn_type).lower()
+        if gnn_type == "gatv2":
+            block_cls = GATv2Block
+        elif gnn_type == "gine":
+            block_cls = GINEBlock
+        else:
+            raise ValueError(
+                f"Unknown STAGE1_GNN_TYPE={gnn_type!r}; expected 'gatv2' or 'gine'"
+            )
+        self.gnn_type = gnn_type
         self.blocks = nn.ModuleList([
-            GINEBlock(hidden, edge_dim, dropout) for _ in range(num_layers)
+            block_cls(hidden, edge_dim, dropout) for _ in range(num_layers)
         ])
         self.node_norm = nn.LayerNorm(hidden)
         # Multi-head attention pooling for better graph-level representation
@@ -626,11 +703,16 @@ class Stage1Classifier(nn.Module):
                     dim=-1,
                 ))
             g = torch.sigmoid(gate_raw)
+            # graph2sem_out is a weighted sum of TEXT values (the graph only
+            # picks the attention weights), so gating it by the GRAPH gate
+            # discards graph-selected TEXT rather than graph content. See
+            # config.py's STAGE1_GATE_GRAPH2SEM comment.
+            g2s = g * graph2sem_out if STAGE1_GATE_GRAPH2SEM else graph2sem_out
             return self.fusion(torch.cat(
                 [semantic_proj,
                  g * graph_proj,
                  g * sem2graph_out,
-                 g * graph2sem_out,
+                 g2s,
                  g * interaction],
                 dim=-1,
             ))

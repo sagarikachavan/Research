@@ -4,9 +4,10 @@ Input:  machine graph + New strategy + Strategy explanation
 Outputs: next Step (single label) + MCP tools (multi-label).
 
 Final Stage-1 contract: New strategy + strategy explanation are encoded by a
-frozen GPT-2 semantic CNN; the PTT graph is encoded by typed GINE to a raw
+frozen GPT-2 semantic CNN; the PTT graph is encoded by a typed graph encoder
+(GATv2 by default, GINE via STAGE1_GNN_TYPE) to a raw
 512-d graph representation; the two representations are fused privately for
-independent Step and MCP supervised heads. The raw 512-d GINE vector is the
+independent Step and MCP supervised heads. The raw 512-d graph vector is the
 only graph representation exposed to Stage 2/3.
 """
 from __future__ import annotations
@@ -43,7 +44,8 @@ from config import (
     STAGE1_SUPCON_TEMPERATURE, STAGE1_USE_DECOUPLED_RETRAIN,
     STAGE1_DECOUPLED_EPOCHS, STAGE1_DECOUPLED_LR,
     STAGE1_GRAPH_GATE_LR_MULT,
-    STAGE1_USE_KFOLD, STAGE1_N_FOLDS,
+    STAGE1_N_FOLDS,
+    STAGE1_GNN_TYPE, GNN_HEADS,
 )
 from data_utils import load_from_input_json, precompute_semantic_tokens
 from graph_encoder import Stage1Classifier
@@ -468,7 +470,25 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     sampler = WeightedRandomSampler(torch.as_tensor(sample_weights, dtype=torch.double), num_samples=len(train_idx), replacement=True)
     train_loader = DataLoader(train_ds, batch_size=STAGE1_BATCH_SIZE, sampler=sampler, collate_fn=collate, drop_last=False)
 
+    # IDENTICAL INIT ACROSS FOLDS. The module-level torch.manual_seed only runs
+    # once at import, so every fold used to draw a DIFFERENT random init --
+    # which put the folds in different loss basins and made averaging their
+    # weights meaningless (independently-initialized networks differ by
+    # arbitrary neuron permutations / rotations). Re-seeding here means all
+    # folds start from the SAME weights and then train on 80%-overlapping
+    # data, so they stay in one basin and a weight average ("model soup",
+    # Wortsman et al., ICML 2022) is well-defined. That is what lets Stage 2
+    # consume the ensemble's learning as a SINGLE encoder -- see _weight_soup
+    # in main(). The training stochasticity (sampling, dropout, augmentation)
+    # is re-randomized per fold immediately after, so the folds still differ.
+    torch.manual_seed(RANDOM_SEED)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(RANDOM_SEED)
     model = Stage1Classifier().to(device)
+    _fold_entropy = abs(hash(tag)) % 100000
+    torch.manual_seed(RANDOM_SEED + 1000 + _fold_entropy)
+    if torch.cuda.is_available():
+        torch.cuda.manual_seed_all(RANDOM_SEED + 1000 + _fold_entropy)
     print(f"{tag} Trainable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
 
     # ROUND 6 (see config.py's STAGE1_GRAPH_GATE_LR_MULT comment): the graph
@@ -644,7 +664,7 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
             torch.save({
                 "model_state_dict": model.state_dict(), "best_epoch": best_epoch,
                 "best_score": best_score, "train_losses": train_losses, "val_scores": val_scores,
-                "architecture": "paper_semantic_cnn_plus_typed_gine_fusion_v2",
+                "architecture": f"paper_semantic_cnn_plus_typed_{STAGE1_GNN_TYPE}_fusion_v2",
             }, ckpt_path)
             print(f"{tag}   -> saved best checkpoint to {ckpt_path}")
         else:
@@ -679,7 +699,7 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
             ckpt = {
                 "model_state_dict": model.state_dict(), "best_epoch": best_epoch,
                 "best_score": best_score, "train_losses": train_losses, "val_scores": val_scores,
-                "architecture": "paper_semantic_cnn_plus_typed_gine_fusion_v2_swa",
+                "architecture": f"paper_semantic_cnn_plus_typed_{STAGE1_GNN_TYPE}_fusion_v2_swa",
                 "swa_k": len(top_k_ckpts),
             }
             torch.save(ckpt, ckpt_path)
@@ -701,7 +721,7 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
         torch.save({
             "model_state_dict": model.state_dict(), "best_epoch": best_epoch,
             "best_score": best_score, "train_losses": train_losses, "val_scores": val_scores,
-            "architecture": "paper_semantic_cnn_plus_typed_gine_fusion_v2_decoupled",
+            "architecture": f"paper_semantic_cnn_plus_typed_{STAGE1_GNN_TYPE}_fusion_v2_decoupled",
         }, ckpt_path)
 
     val_metrics, val_probs, val_gold, val_step_logits, val_step_gold = evaluate(
@@ -758,6 +778,38 @@ def _machine_folds(examples, n_folds, seed):
     return [sorted(f) for f in folds]
 
 
+def _weight_soup(models, device):
+    """Average the weights of the K fold models into ONE model.
+
+    Valid here only because every fold starts from the SAME initialization
+    (see train_one_split) and trains on 80%-overlapping data, so the folds
+    remain in a single loss basin -- the "model soup" condition (Wortsman et
+    al., ICML 2022). Averaging independently-initialized networks would be
+    meaningless: their hidden units differ by arbitrary permutations.
+
+    WHY THIS MATTERS: Stage 2/3 can consume only ONE graph encoder, so a
+    logit-averaged ensemble cannot propagate. A soup collapses the ensemble
+    back into a single set of weights that Stage 2 CAN load, with no change to
+    the 512-d contract and no extra forward cost at Stage 2/3 time.
+
+    Non-floating buffers (if any) are taken from the first model rather than
+    averaged, since averaging integer counters is not meaningful.
+    """
+    ref = models[0].state_dict()
+    soup_state = {}
+    for k in ref:
+        if ref[k].is_floating_point():
+            soup_state[k] = torch.stack(
+                [m.state_dict()[k].float() for m in models], dim=0
+            ).mean(dim=0).to(ref[k].dtype)
+        else:
+            soup_state[k] = ref[k].clone()
+    soup = Stage1Classifier().to(device)
+    soup.load_state_dict(soup_state)
+    soup.eval()
+    return soup
+
+
 def _print_test_metrics(test_metrics, header):
     print(f"\n[Stage 1] ===== {header} =====")
     for k in ("step_accuracy", "step_micro_f1", "step_macro_f1", "step_weighted_f1",
@@ -773,7 +825,8 @@ def main():
     print(f"[Stage 1] Training input : {INPUT_TRAIN_JSON}")
     print(f"[Stage 1] Test input     : {INPUT_TEST_JSON}")
     print(f"[Stage 1] Device         : {device}")
-    print(f"[Stage 1] Architecture   : paper-inspired semantic CNN + typed GINE graph fusion")
+    print(f"[Stage 1] Architecture   : paper-inspired semantic CNN + typed {STAGE1_GNN_TYPE.upper()} graph fusion"
+          + (f" ({GNN_HEADS} heads)" if STAGE1_GNN_TYPE == "gatv2" else ""))
     print(f"[Stage 1] Epochs         : {STAGE1_EPOCHS} (warmup {STAGE1_WARMUP_EPOCHS})")
 
     full_ds = Stage1Dataset(INPUT_TRAIN_JSON, split="train")
@@ -789,11 +842,7 @@ def main():
     test_loader = DataLoader(test_ds, batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
     csv_path = os.path.join(ROOT, "output", "stage1.csv")
 
-    if not STAGE1_USE_KFOLD:
-        _main_single_split(full_ds, examples, all_machines, device, test_ds, test_loader, csv_path)
-        return
-
-    # ── K-fold, machine-grouped ───────────────────────────────────────────────
+    # ── K-fold, machine-grouped (the only Stage-1 training path) ─────────────
     folds = _machine_folds(examples, STAGE1_N_FOLDS, RANDOM_SEED + 1)
     print(f"[Stage 1] K-fold ensembling: {STAGE1_N_FOLDS} machine-grouped folds "
           f"over {len(all_machines)} machines / {len(examples)} rows")
@@ -863,15 +912,25 @@ def main():
 
     # ── Test: single best fold vs the ensemble ────────────────────────────────
     best_k = int(np.argmax(fold_scores))
-    print(f"\n[Stage 1] Best single fold by val score: fold {best_k} ({fold_scores[best_k]:.4f})")
-    single_metrics = evaluate(models[best_k], test_loader, device,
-                              threshold=thresholds, step_bias=step_bias)
-    _print_test_metrics(single_metrics, f"TEST — SINGLE BEST FOLD ({best_k})")
 
+    # PRIMARY Stage-1 result = the K-fold ensemble. It writes output/stage1.csv,
+    # so the saved predictions match the headline numbers.
     test_metrics = evaluate(models, test_loader, device, threshold=thresholds,
                             save_csv=True, csv_path=csv_path, dataset=test_ds.examples,
                             step_bias=step_bias)
-    _print_test_metrics(test_metrics, f"TEST — {STAGE1_N_FOLDS}-FOLD ENSEMBLE")
+    _print_test_metrics(test_metrics, f"TEST — {STAGE1_N_FOLDS}-FOLD ENSEMBLE  [PRIMARY]")
+
+    # Reference points, reported but not the headline.
+    single_metrics = evaluate(models[best_k], test_loader, device,
+                              threshold=thresholds, step_bias=step_bias)
+    _print_test_metrics(single_metrics, f"TEST — single best fold ({best_k}), reference")
+
+    # The soup: the ensemble collapsed into ONE model, which is what Stage 2/3
+    # can actually load. Evaluated on test for reporting and on the pooled OOF
+    # rows for the adoption decision below.
+    soup = _weight_soup(models, device)
+    soup_metrics = evaluate(soup, test_loader, device, threshold=thresholds, step_bias=step_bias)
+    _print_test_metrics(soup_metrics, "TEST — weight soup (single model), reference")
     print(f"\n[Stage 1] Ensemble vs single-best  step_accuracy: "
           f"{single_metrics['step_accuracy']:.4f} -> {test_metrics['step_accuracy']:.4f} "
           f"({test_metrics['step_accuracy'] - single_metrics['step_accuracy']:+.4f})")
@@ -884,8 +943,37 @@ def main():
     # stage3_grpo_rl.py and eval/evaluate.py all load it as one
     # `model_state_dict`. Write the best fold's weights there, carrying the
     # pooled-OOF thresholds/bias, so those stages are unchanged by K-fold.
+    # Which single model goes to Stage 2/3? The soup carries all 5 folds'
+    # learning; the best fold carries one. Adopt the soup only if it does not
+    # regress against the best fold on the pooled OOF rows.
+    #
+    # CAVEAT, stated plainly: this comparison is not a clean held-out test. The
+    # best fold has seen 80% of the pooled OOF rows in training and the soup's
+    # members have collectively seen 100% of them, so the soup is the more
+    # optimistically-scored of the two here. It is a regression smoke test, not
+    # a validation. The honest arbiter is the Stage-1 TEST block printed above.
+    oof_loader = DataLoader(
+        torch.utils.data.Subset(full_ds, [i for f in folds for i in f]),
+        batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
+    soup_oof = evaluate(soup, oof_loader, device, threshold=thresholds, step_bias=step_bias)
+    bestf_oof = evaluate(models[best_k], oof_loader, device, threshold=thresholds, step_bias=step_bias)
+    soup_s = 0.5 * soup_oof["step_accuracy"] + 0.5 * soup_oof["mcp_micro_f1"]
+    bestf_s = 0.5 * bestf_oof["step_accuracy"] + 0.5 * bestf_oof["mcp_micro_f1"]
+    print(f"\n[Stage 1] Stage-2 encoder selection on pooled OOF: "
+          f"soup {soup_s:.4f} vs best fold {bestf_s:.4f}")
+
+    if soup_s >= bestf_s:
+        print(f"[Stage 1] -> adopting the WEIGHT SOUP as the Stage-2/3 encoder "
+              f"(carries all {STAGE1_N_FOLDS} folds).")
+        export_model, export_tag, export_metrics = soup, "kfold_weight_soup", soup_metrics
+    else:
+        print(f"[Stage 1] -> soup regressed; adopting the BEST FOLD ({best_k}) instead.")
+        export_model, export_tag, export_metrics = models[best_k], f"kfold_best_fold_{best_k}", single_metrics
+
     best_ckpt = torch.load(os.path.join(ROOT, "checkpoints", f"stage1_fold{best_k}.pt"),
                            map_location=device, weights_only=False)
+    best_ckpt["model_state_dict"] = export_model.state_dict()
+    best_ckpt["stage2_encoder"] = export_tag
     best_ckpt["mcp_thresholds"]   = [float(x) for x in thresholds]
     best_ckpt["step_logit_bias"]  = [float(x) for x in step_bias]
     best_ckpt["kfold_n"]          = STAGE1_N_FOLDS
@@ -895,37 +983,12 @@ def main():
     best_ckpt["kfold_val_scores"] = [float(v) for v in fold_scores]
     best_ckpt["test_metrics_single"]   = {k: float(v) for k, v in single_metrics.items()}
     best_ckpt["test_metrics_ensemble"] = {k: float(v) for k, v in test_metrics.items()}
+    best_ckpt["test_metrics_soup"]     = {k: float(v) for k, v in soup_metrics.items()}
+    best_ckpt["test_metrics_exported"] = {k: float(v) for k, v in export_metrics.items()}
     torch.save(best_ckpt, STAGE1_CKPT)
-    print(f"\n[Stage 1] Saved single-model checkpoint (fold {best_k} + pooled-OOF calibration) "
+    print(f"\n[Stage 1] Saved Stage-2/3 encoder ({export_tag} + pooled-OOF calibration) "
           f"to {STAGE1_CKPT}")
     print(f"[Stage 1] Ensemble members: {STAGE1_N_FOLDS} files at checkpoints/stage1_fold*.pt")
-
-
-def _main_single_split(full_ds, examples, all_machines, device, test_ds, test_loader, csv_path):
-    """Original single 15%-machine-split path (STAGE1_USE_KFOLD=False)."""
-    all_machines = sorted(all_machines)
-    rng = np.random.default_rng(RANDOM_SEED + 1)
-    perm = rng.permutation(len(all_machines))
-    n_val = max(1, int(len(all_machines) * (STAGE2_VAL_SPLIT if STAGE2_VAL_SPLIT else 0.15)))
-    val_machines = set(all_machines[i] for i in perm[:n_val])
-    train_machines = set(all_machines) - val_machines
-    train_idx = [i for i, e in enumerate(examples) if e["machine"] in train_machines]
-    val_idx = [i for i, e in enumerate(examples) if e["machine"] in val_machines]
-    print(f"[Stage 1] Train machines  : {len(train_machines)}")
-    print(f"[Stage 1] Val machines    : {len(val_machines)}")
-    print(f"[Stage 1] Train examples  : {len(train_idx)}")
-    print(f"[Stage 1] Val examples    : {len(val_idx)}")
-
-    model, _mcp_w, _mcp_c, _vp, _vg, _vm, thresholds, step_bias = train_one_split(
-        full_ds, train_idx, val_idx, device, STAGE1_CKPT, tag="[Stage 1]"
-    )
-    val_selected = os.path.join(ROOT, "checkpoints", "stage1_gnn_classifier_val_selected.pt")
-    torch.save(torch.load(STAGE1_CKPT, map_location=device, weights_only=False), val_selected)
-    print(f"[Stage 1] Saved validation-selected checkpoint to {val_selected}")
-
-    test_metrics = evaluate(model, test_loader, device, threshold=thresholds, save_csv=True,
-                            csv_path=csv_path, dataset=test_ds.examples, step_bias=step_bias)
-    _print_test_metrics(test_metrics, "TEST SET RESULTS")
 
 
 if __name__ == "__main__":
