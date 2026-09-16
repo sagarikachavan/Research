@@ -64,6 +64,7 @@ The fix: treat `gen_out` itself as the completion batch, and simply trim the
 per-row trailing pad tokens (rows are padded to a common length because
 `num_return_sequences=G` generates a batch of sequences together).
 """
+import gc
 import json
 import os
 import random
@@ -96,8 +97,7 @@ from config import (
     STAGE3_ADAPTER_DIR,
     STAGE3_GROUP_SIZE,
     STAGE3_W_FMT, STAGE3_W_STEP, STAGE3_W_MCP, STAGE3_W_EXP,
-    STAGE3_USE_NLI_REWARD, STAGE3_NLI_MODEL, STAGE3_NLI_WEIGHT,
-    STAGE3_LR,
+       STAGE3_LR,
     STAGE3_STEPS,
     STAGE3_KL_COEF,
     STAGE3_PPO_CLIP,
@@ -225,52 +225,6 @@ def _mcp_label_weights() -> dict:
     return _MCP_WEIGHT_CACHE
 
 
-_NLI_PIPE = None
-_NLI_FAILED = False
-
-
-def _nli_entailment_score(explanation: str, step_label: str) -> float | None:
-    """P(explanation entails "The next step is <step_label>"), or None.
-
-    WHY: the deterministic proxy's largest term is BGE cosine against the
-    reference explanation -- but any two on-topic pentest explanations score
-    high on that, so it separates "fluent and correct" from "fluent and wrong"
-    only weakly. GRPO therefore spends most of its explanation signal on
-    something close to noise. Entailment asks the sharper question the LLM
-    judge's `relevance` / `technical_accuracy` dimensions actually ask: does
-    this text SUPPORT the step that was chosen?
-
-    Deliberately a DIFFERENT model from the test-time judge, so the judge
-    stays an independent measure and is never optimized against. Returns None
-    on any failure so the caller falls back to the existing proxy -- this must
-    never take the RL loop down.
-    """
-    global _NLI_PIPE, _NLI_FAILED
-    if _NLI_FAILED or not STAGE3_USE_NLI_REWARD:
-        return None
-    if not explanation.strip() or not step_label.strip():
-        return None
-    if _NLI_PIPE is None:
-        try:
-            from sentence_transformers import CrossEncoder
-            _NLI_PIPE = CrossEncoder(STAGE3_NLI_MODEL)
-        except Exception as e:
-            print(f"[Stage 3] NLI reward unavailable ({e}); using the deterministic proxy alone.")
-            _NLI_FAILED = True
-            return None
-    try:
-        import numpy as _np
-        scores = _NLI_PIPE.predict([(explanation, f"The next step is to {step_label}")])
-        arr = _np.asarray(scores, dtype=_np.float64).reshape(-1)
-        if arr.size >= 3:                      # [contradiction, entailment, neutral]
-            e = _np.exp(arr - arr.max())
-            return float(e[1] / e.sum())
-        return float(1.0 / (1.0 + _np.exp(-arr[0])))
-    except Exception:
-        _NLI_FAILED = True
-        return None
-
-
 def _deterministic_explanation_score(pred_expl: str, gold_expl: str,
                                       pred_step: str = "", gold_step: str = "",
                                       pred_mcp: set[str] | None = None,
@@ -288,8 +242,9 @@ def _deterministic_explanation_score(pred_expl: str, gold_expl: str,
         return 0.0
     # lexical fallback is always available
     lexical = SequenceMatcher(None, pred.lower(), gold.lower()).ratio()
-    # Reuse the project's BGE encoder if available; this is frozen and cheap
-    # relative to Qwen.
+    # Reuse the project's frozen Qwen3-Embedding encoder -- the same one
+    # Stage 1 uses, so the reward measures similarity in the same space the
+    # classifier was trained in, and cheap relative to a Qwen3-14B forward.
     semantic = lexical
     try:
         emb = _embed_texts([pred, gold])
@@ -308,12 +263,10 @@ def _deterministic_explanation_score(pred_expl: str, gold_expl: str,
     gold_mcp = gold_mcp or set()
     tool_support = (len(pred_mcp & gold_mcp) / len(gold_mcp)) if gold_mcp else (1.0 if not pred_mcp else 0.5)
     # Semantic similarity is primary; technical support is a bounded modifier.
+    # REMOVED: a cross-encoder/nli-deberta-v3-small entailment term. It was a
+    # fourth unrelated pretrained text model in a Qwen pipeline; the project
+    # now runs on the Qwen3 family alone.
     base = 0.60 * semantic + 0.20 * lexical + 0.10 * step_support + 0.10 * tool_support
-    # B3: blend in entailment when available. Weight comes off the proxy, so
-    # the term stays in [0,1] and the reward scale is unchanged.
-    nli = _nli_entailment_score(pred, pred_step or gold_step)
-    if nli is not None:
-        base = (1.0 - STAGE3_NLI_WEIGHT) * base + STAGE3_NLI_WEIGHT * nli
     return float(max(0.0, min(1.0, base)))
 
 
@@ -1210,8 +1163,22 @@ def main():
     # Stage-3 test score after a safe fallback.
     if canonical_is_stage2:
         print("[Stage 3] Reloading Stage-2 canonical policy for final test evaluation")
-        del policy
-        torch.cuda.empty_cache() if device == "cuda" else None
+        # `del policy` alone frees NOTHING: policy is a PeftModel WRAPPER around
+        # `base`, and `base` is still a live local, as are the frozen reference
+        # model (a second full 14B copy) and the AdamW state.  Loading a third
+        # copy on top of that is what OOM'd.  Drop every strong reference to the
+        # training-time models before the eval model is constructed.
+        optimizer.zero_grad(set_to_none=True)
+        del policy, base, ref_model, ref_base, ref_embed_layer
+        del optimizer, scheduler
+        gc.collect()
+        if device == "cuda":
+            torch.cuda.empty_cache()
+            torch.cuda.synchronize()
+            _free, _total = torch.cuda.mem_get_info()
+            print(f"[Stage 3] Freed training models — "
+                  f"{_free/2**30:.1f} GiB free of {_total/2**30:.1f} GiB "
+                  f"before loading the eval copy.")
         base_eval = AutoModelForCausalLM.from_pretrained(
             QWEN_MODEL_NAME, torch_dtype=dtype, device_map=None
         ).to(device)

@@ -61,27 +61,19 @@ for _p in (_ROOT, _os.path.join(_ROOT, "core"), _os.path.join(_ROOT, "data_prep"
 from config import (
     INPUT_TEST_JSON, STAGE1_CKPT, STEP_LABELS, MCP_LABELS, MCP_DECISION_THRESHOLD,
     QWEN_MODEL_NAME, ROOT, LLM_JUDGE_MODEL_NAME,
-    SEMANTIC_LM_NAME, SEMANTIC_MAX_TOKENS,
 )
 from data_utils import (
     load_from_input_json, mcp_multihot, StepLabelNormalizer, extract_mcp_labels,
-    precompute_semantic_tokens,
 )
 from graph_encoder import Stage1Classifier
 from mcp_threshold_search import predict_with_per_class_thresholds
 from llm_judge import batch_evaluate_explanations, print_llm_judge_results
-
-
-# ---------------------------------------------------------------------------
-# Checkpoint loading
-# ---------------------------------------------------------------------------
-
 def load_stage1_checkpoint(ckpt_path: str, device: str):
     """
     Handles both checkpoint formats:
       - New (Improvement 2): dict with 'model_state_dict' + 'mcp_thresholds'
       - Legacy: plain state dict
-    Returns (models, mcp_thresholds, step_logit_bias) where `models` is a LIST.
+    Returns (models, mcp_thresholds, step_logit_bias); `models` is a LIST.
 
     ---------------------------------------------------------------------
     FIX — eval used to disagree with training on the same run.
@@ -212,40 +204,11 @@ def compute_explanation_metrics_with_llm_judge(
 
 
 
-def compute_reference_explanation_metrics(pred_explanations, gold_explanations):
-    """Reference-based explanation metrics.
-
-    BERTScore and BLEURT are preferred automatic metrics for semantic
-    explanation similarity; both are optional dependencies so evaluation
-    remains runnable in minimal environments. Scores are reported separately
-    from the LLM judge because embedding metrics can reward lexical/semantic
-    similarity without proving factual correctness.
-    """
-    result = {"bertscore_f1": None, "bleurt": None}
-    try:
-        from bert_score import score as bert_score
-        P, R, F = bert_score(pred_explanations, gold_explanations,
-                              lang="en", rescale_with_baseline=True,
-                              verbose=False)
-        result["bertscore_f1"] = float(F.mean().item())
-    except Exception as e:
-        result["bertscore_error"] = str(e)
-    try:
-        from bleurt import score as bleurt_score
-        checkpoint = os.environ.get("BLEURT_CHECKPOINT", "BLEURT-20")
-        scorer = bleurt_score.BleurtScorer(checkpoint)
-        vals = scorer.score(references=gold_explanations,
-                            candidates=pred_explanations)
-        result["bleurt"] = float(np.mean(vals))
-    except Exception as e:
-        result["bleurt_error"] = str(e)
-    return result
-
-
-# ---------------------------------------------------------------------------
-# GNN evaluation  (classification only — no text generation)
-# ---------------------------------------------------------------------------
-
+# REMOVED: BERTScore / BLEURT reference metrics. Both load their own
+# pretrained encoders (RoBERTa and BLEURT's BERT checkpoint), which is exactly
+# the multi-encoder sprawl this project moved away from. Explanation quality is
+# measured by the Qwen LLM judge (core/llm_judge.py); embedding overlap with a
+# single reference was never the metric being reported anyway.
 def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"[eval] Test input: {INPUT_TEST_JSON}")
@@ -256,30 +219,22 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
         return
 
     models, ckpt_thresholds, step_logit_bias = load_stage1_checkpoint(STAGE1_CKPT, device)
-    model = models[0]   # single model still used for semantic-token precompute
     use_thresholds = (
         [float(threshold_override)] * len(MCP_LABELS)
         if threshold_override is not None
         else ckpt_thresholds
     )
 
-    # BUG FIX: this used to build a `field_embs` tensor (a BGE embedding of
-    # CONTEXT_COLUMNS) and pass it as the model's 4th positional arg. That
-    # parameter is accepted by Stage1Classifier.forward() for backward
-    # compatibility but never actually used inside encode_and_predict() --
-    # what the model actually requires (and raises ValueError without) is
-    # `semantic_tokens`/`semantic_mask`: frozen-GPT-2 token embeddings of
-    # "New strategy" + "Strategy explanation", built by
-    # precompute_semantic_tokens() exactly the way
-    # training/stage1_gnn_train.py's Stage1Dataset builds them. This whole
-    # code path had apparently never been run end-to-end before -- the bug
-    # surfaced as an immediate crash, not a silent wrong answer.
-    for ex in examples:
-        texts = [ex["context"].get("New strategy", "") or "empty",
-                 ex["context"].get("Strategy explanation", "") or "empty"]
-        ex["semantic_text"] = f"{texts[0]} {texts[1]}"
-    precompute_semantic_tokens(examples, model_name=SEMANTIC_LM_NAME,
-                                max_tokens=SEMANTIC_MAX_TOKENS, device=device)
+    # Stage-1 text input: one frozen Qwen3-Embedding vector per example of
+    # "New strategy" + "Strategy explanation". Built with the SAME helper the
+    # training Dataset uses (data_utils._embed_texts), so eval and training
+    # see byte-identical inputs.
+    _texts = [(f"{(ex['context'].get('New strategy','') or '').strip()} "
+               f"{(ex['context'].get('Strategy explanation','') or '').strip()}").strip() or "empty"
+              for ex in examples]
+    _embs = np.asarray(_embed_texts(_texts), dtype=np.float32)
+    for ex, e in zip(examples, _embs):
+        ex["text_emb"] = torch.from_numpy(e)
 
     graphs, step_gold, mcp_gold = [], [], []
     for ex in examples:
@@ -289,6 +244,7 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
         mcp_gold.append(ex["mcp_vec"])
 
     step_preds, mcp_preds = [], []
+
     bs = 16
     with torch.no_grad():
         for i in range(0, len(graphs), bs):
@@ -296,20 +252,7 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
             batch_examples = examples[i : i + bs]
             batch_graphs = PyGBatch.from_data_list(graphs[i : i + bs]).to(device)
 
-            # Pad this batch's variable-length semantic token sequences into
-            # one (B, max_len, D) tensor + a validity mask -- same padding
-            # logic as training/stage1_gnn_train.py's collate().
-            tokens = [ex["semantic_tokens"] for ex in batch_examples]
-            max_len = max(t.shape[0] for t in tokens)
-            d = tokens[0].shape[1]
-            sem = torch.zeros(len(tokens), max_len, d, dtype=torch.float32)
-            mask = torch.zeros(len(tokens), max_len, dtype=torch.bool)
-            for j, t in enumerate(tokens):
-                L = t.shape[0]
-                sem[j, :L] = t
-                mask[j, :L] = True
-            sem = sem.to(device)
-            mask = mask.to(device)
+            text_emb = torch.stack([ex["text_emb"] for ex in batch_examples]).to(device)
 
             edge_attr = getattr(batch_graphs, 'edge_attr', None)
             # Average step LOGITS and MCP PROBABILITIES across ensemble members
@@ -318,7 +261,7 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
             for _m in models:
                 _sl, _ml, _ = _m(
                     batch_graphs.x, batch_graphs.edge_index, batch_graphs.batch,
-                    semantic_tokens=sem, semantic_mask=mask, edge_attr=edge_attr,
+                    text_emb=text_emb, edge_attr=edge_attr,
                 )
                 _sl = _sl.detach().float()
                 _mp = torch.sigmoid(_ml.detach().float())
@@ -428,7 +371,7 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     if threshold_override is not None:
         use_thresholds = [float(threshold_override)] * len(MCP_LABELS)
     elif os.path.exists(STAGE1_CKPT):
-        _, use_thresholds, _ = load_stage1_checkpoint(STAGE1_CKPT, "cpu")
+        _, use_thresholds, _, _ = load_stage1_checkpoint(STAGE1_CKPT, "cpu")
         print("[eval] MCP thresholds loaded from Stage-1 checkpoint (for reference).")
     else:
         use_thresholds = [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)
@@ -778,16 +721,6 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     print("STEP EXPLANATION QUALITY - LLM JUDGE")
     print("=" * 60)
     if use_llm_judge:
-        print("Computing reference-based explanation metrics (BERTScore/BLEURT when installed)...")
-        ref_metrics = compute_reference_explanation_metrics(pred_explanations, gold_explanations)
-        print(f"  BERTScore F1 : {ref_metrics.get('bertscore_f1')}  "
-              f"(secondary signal -- semantic similarity only, not factual "
-              f"correctness; see the LLM judge below for that)")
-        print(f"  BLEURT       : {ref_metrics.get('bleurt')}")
-        # Persist alongside the step/MCP summary so BERTScore/BLEURT are
-        # comparable across runs without re-parsing console output, same as
-        # every other metric in this file.
-        metrics_summary["explanation_reference_metrics"] = ref_metrics
         out_path = os.path.join(ROOT, "output", f"eval_metrics_{llm_model_tag}.json")
         with open(out_path, "w", encoding="utf-8") as f:
             json.dump(metrics_summary, f, indent=2)

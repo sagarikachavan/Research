@@ -110,7 +110,20 @@ STAGE3_ADAPTER_DIR = os.environ.get(
 # ----------------------------------------------------------------------------
 # Model / training hyperparameters
 # ----------------------------------------------------------------------------
-TEXT_ENCODER_NAME = "BAAI/bge-base-en-v1.5"   # upgraded for better semantic understanding
+# ── The project's ONE text encoder ──────────────────────────────────────────
+# Everything that turns text into vectors uses the Qwen3 family, so Stage 1's
+# representation space shares a tokenizer and pretraining lineage with the
+# Qwen3-14B that Stages 2 and 3 generate from. This replaces three unrelated
+# pretrained text models that used to coexist in one pipeline:
+#   BAAI/bge-base-en-v1.5             -> sentence embeddings
+#   gpt2                              -> the semantic CNN's token tower
+#   cross-encoder/nli-deberta-v3-small -> the Stage-3 NLI reward
+#
+# Qwen3-Embedding is Matryoshka-trained: natively 1024-d, but truncated
+# prefixes remain valid embeddings. 768 is requested so node features stay at
+# 768 + NODE_AUX_DIM(15) = 783-d, the contract data_utils and graph_encoder
+# already share.
+TEXT_ENCODER_NAME = os.environ.get("TEXT_ENCODER_NAME", "Qwen/Qwen3-Embedding-0.6B")
 TEXT_EMB_DIM = 768
 
 # Stage-1 graph encoder capacity.
@@ -180,15 +193,13 @@ GLOBAL_ATTN_DROPOUT = 0.08
 # leaf flag, root flag, branch-count ratio.
 NODE_AUX_DIM = 3 + 4 + 8
 
-# Paper-inspired semantic CNN branch: frozen GPT-2 token embeddings +
-# multiple temporal convolution kernels + global max pooling.
-SEMANTIC_LM_NAME = "gpt2"
-SEMANTIC_LM_DIM = 768
-SEMANTIC_MAX_TOKENS = 512  # increased from 384 for more context
-SEMANTIC_PROTOTYPE_TOKENS = 64
-SEMANTIC_CNN_DIM = 192  # increased from 128 for richer semantic features
-SEMANTIC_CNN_KERNELS = (2, 3, 4, 5, 7)  # added larger kernel for wider context
-SEMANTIC_CNN_DROPOUT = 0.12  # increased for better regularization
+# REMOVED: the frozen-GPT-2 semantic CNN branch (SEMANTIC_LM_NAME,
+# SEMANTIC_CNN_*, SEMANTIC_PROTOTYPE_TOKENS). Stage 1's text tower is now one
+# Qwen3-Embedding vector per example, per the architecture diagram -- no
+# second pretrained LM, no multi-kernel temporal convolution, no token-level
+# cross-attention branch. The vector is projected to this width before fusion.
+STAGE1_TEXT_PROJ_DIM = int(os.environ.get("STAGE1_TEXT_PROJ_DIM", "384"))
+STAGE1_TEXT_DROPOUT = float(os.environ.get("STAGE1_TEXT_DROPOUT", "0.12"))
 
 # 5-dim edge attr: one-hot over the 4 semantic PTT edge types
 # (StateTransition, ActionUpdate, FindingUpdate, Prediction) + a self-loop
@@ -302,12 +313,6 @@ STAGE1_ABLATE_MIXUP = os.environ.get("STAGE1_ABLATE_MIXUP", "0") in ("1", "true"
 # to degrade under strong imbalance rather than fix it.
 STAGE1_ABLATE_SUPCON = os.environ.get("STAGE1_ABLATE_SUPCON", "0") in ("1", "true", "True")
 
-# Replace the bidirectional cross-attention + Hadamard fusion with the much
-# simpler [text, graph, text*graph, |text-graph|] concatenation. The
-# cross-attention block has many interaction parameters to learn from ~1.9k
-# rows; simpler fusion is easier to optimize and is the honest baseline the
-# complex version should have to beat.
-STAGE1_SIMPLE_FUSION = os.environ.get("STAGE1_SIMPLE_FUSION", "0") in ("1", "true", "True")
 
 # Kang et al. (ICLR 2020) and LDAM-DRW both argue: learn the REPRESENTATION
 # under natural sampling, rebalance the CLASSIFIER afterwards. This codebase
@@ -325,16 +330,6 @@ STAGE1_NATURAL_SAMPLING = os.environ.get("STAGE1_NATURAL_SAMPLING", "0") in ("1"
 STAGE1_ABLATE_GRAPH = os.environ.get("STAGE1_ABLATE_GRAPH", "0") in ("1", "true", "True")
 STAGE1_ABLATE_TEXT = os.environ.get("STAGE1_ABLATE_TEXT", "0") in ("1", "true", "True")
 
-# ---------------------------------------------------------------------------
-# Label prototypes in the DECISION function (not just the loss)
-# ---------------------------------------------------------------------------
-# The step labels are natural-language descriptions, not arbitrary IDs. We
-# already use their pairwise similarity for structured smoothing; this uses
-# the context-to-LABEL similarity directly as an additive logit. It is
-# especially attractive for the tail: "Enumerate the domain" (24 rows) and
-# "Explore the source code" (21 rows) have almost no training signal, but
-# their label TEXT is fully informative and needs no training data at all.
-STAGE1_USE_LABEL_PROTOTYPES = os.environ.get("STAGE1_USE_PROTOTYPES", "1") not in ("0", "false", "False")
 
 # ---------------------------------------------------------------------------
 # Step-conditioned MCP head
@@ -419,8 +414,6 @@ STAGE1_TRAIN_FINAL_ON_ALL = os.environ.get("STAGE1_FINAL_ON_ALL", "0") in ("1", 
 # classifier, which is what it always should have been.
 STAGE1_DROP_DEAD_CLASSES = os.environ.get("STAGE1_DROP_DEAD_CLASSES", "0") in ("1", "true", "True")
 
-STAGE1_USE_STACKING = os.environ.get("STAGE1_USE_STACKING", "1") not in ("0", "false", "False")
-STAGE1_STACK_C = float(os.environ.get("STAGE1_STACK_C", "1.0"))
 
 # ---------------------------------------------------------------------------
 # Composite model-selection score
@@ -460,13 +453,8 @@ TOOL_EVIDENCE_KEYWORDS = {
     "Web page interaction": ["web", "http", "page", "browser", "form", "login"],
 }
 
-STAGE1_SEPARATE_SEMANTIC_TOWERS = os.environ.get(
-    "STAGE1_SEPARATE_TOWERS", "0") in ("1", "true", "True")
 
-STAGE1_STEP_CONDITIONED_MCP = os.environ.get("STAGE1_STEP_COND_MCP", "1") not in ("0", "false", "False")
 
-STAGE1_USE_KNN_MEMBER = os.environ.get("STAGE1_USE_KNN", "1") not in ("0", "false", "False")
-STAGE1_KNN_K = int(os.environ.get("STAGE1_KNN_K", "15"))
 
 
 MCP_DECISION_THRESHOLD = 0.5
@@ -824,32 +812,6 @@ STAGE2_GRAD_ACCUM = 16
 # validation still uses the plain loss for its own comparability).
 STAGE2_STEP_TOKEN_LOSS_WEIGHT = 5.0
 
-# ---------------------------------------------------------------------------
-# B1 — feed Stage-1's prediction into the Stage-2 prompt
-# ---------------------------------------------------------------------------
-# Stage 2 currently RE-SOLVES classification from scratch: build_prompt gives
-# it machine + strategy + graph prefix, and build_target asks for step +
-# explanation + MCP. It never sees what Stage 1 already decided. That is the
-# same problem solved twice, and it is why STAGE2_STEP_TOKEN_LOSS_WEIGHT has
-# to be 5.0 -- the explanation tokens otherwise drown the label.
-#
-# With Stage 1 now at ~0.80 step / ~0.73 MCP samples-F1, its prediction is a
-# strong prior worth conditioning on, letting Stage 2 specialize on the thing
-# it is uniquely good at: the free-text explanation.
-#
-# ERROR PROPAGATION is the obvious risk -- a confidently wrong Stage-1 step
-# would get an eloquent justification. Mitigated by SCHEDULED SAMPLING (Bengio
-# et al., NeurIPS 2015): during training the prompt carries the GOLD step with
-# probability STAGE2_GOLD_HINT_PROB and Stage 1's actual PREDICTION otherwise,
-# so the model sees realistic wrong hints during training and learns it may
-# override them. At inference only the prediction is available.
-#
-# NOTE: an earlier version of this repo had exactly this idea as a `mask_hint`
-# parameter with a `stage1_hint` field -- but it was DEAD CODE (the function
-# that produced the hint was never called anywhere, so every prompt was
-# identical). The idea was right; it simply never ran.
-STAGE2_USE_STAGE1_HINT = os.environ.get("STAGE2_USE_STAGE1_HINT", "1") not in ("0", "false", "False")
-STAGE2_GOLD_HINT_PROB = float(os.environ.get("STAGE2_GOLD_HINT_PROB", "0.5"))
 
 # ---------------------------------------------------------------------------
 # B2 — Stage-3 reward rebalanced toward explanation
@@ -866,24 +828,6 @@ STAGE3_W_STEP = float(os.environ.get("STAGE3_W_STEP", "0.15"))
 STAGE3_W_MCP = float(os.environ.get("STAGE3_W_MCP", "0.15"))
 STAGE3_W_EXP = float(os.environ.get("STAGE3_W_EXP", "0.69"))
 
-# ---------------------------------------------------------------------------
-# B3 — entailment-based explanation reward
-# ---------------------------------------------------------------------------
-# The current explanation reward is 0.60*BGE-cosine + 0.20*lexical +
-# 0.10*step-support + 0.10*tool-support. BGE cosine between any two on-topic
-# pentest explanations is high, so it barely separates good reasoning from
-# fluent-but-wrong reasoning -- GRPO is optimizing something close to noise on
-# its largest-weighted term.
-#
-# An NLI model asks a sharper question: does the explanation ENTAIL the step
-# that was chosen? That is much closer to what the LLM judge's "relevance" and
-# "technical accuracy" dimensions actually measure, while staying cheap enough
-# for the RL sampling loop and remaining a DIFFERENT model from the judge (so
-# the judge stays an independent test-time measure and is not optimized
-# against). Falls back to the existing proxy if the model cannot be loaded.
-STAGE3_USE_NLI_REWARD = os.environ.get("STAGE3_USE_NLI_REWARD", "1") not in ("0", "false", "False")
-STAGE3_NLI_MODEL = os.environ.get("STAGE3_NLI_MODEL", "cross-encoder/nli-deberta-v3-small")
-STAGE3_NLI_WEIGHT = float(os.environ.get("STAGE3_NLI_WEIGHT", "0.45"))
 
 STAGE2_VAL_SPLIT = 0.15          # 15% held-out for validation
 STAGE2_EARLY_STOP_PATIENCE = 3   # Stop quickly once validation stops improving
@@ -1032,10 +976,10 @@ _SUMMARY_GROUPS = {
     "MODEL": [
         "TEXT_ENCODER_NAME", "TEXT_EMB_DIM", "GNN_TYPE_ACTIVE", "GNN_HIDDEN",
         "GNN_LAYERS", "GNN_OUT_DIM", "GNN_HEADS", "FUSION_HIDDEN",
-        "SEMANTIC_LM_NAME", "SEMANTIC_CNN_DIM", "SEMANTIC_CNN_KERNELS",
+        
         "NODE_AUX_DIM", "EDGE_ATTR_DIM",
-        "STAGE1_SEPARATE_SEMANTIC_TOWERS", "STAGE1_SIMPLE_FUSION",
-        "STAGE1_USE_LABEL_PROTOTYPES", "STAGE1_STEP_CONDITIONED_MCP",
+        
+        
         "N_STEP_PHASES",
     ],
     "LOSS / IMBALANCE": [
@@ -1049,8 +993,8 @@ _SUMMARY_GROUPS = {
     ],
     "TRAINING / ENSEMBLE": [
         "STAGE1_LR", "STAGE1_EPOCHS", "STAGE1_BATCH_SIZE", "RANDOM_SEED",
-        "STAGE1_N_FOLDS", "STAGE1_N_SEEDS", "STAGE1_USE_KNN_MEMBER",
-        "STAGE1_USE_STACKING", "STAGE1_TRAIN_FINAL_ON_ALL",
+        "STAGE1_N_FOLDS", "STAGE1_N_SEEDS", 
+        "STAGE1_TRAIN_FINAL_ON_ALL",
         "STAGE1_MASK_UNSUPPORTED_CLASSES", "STAGE1_DROP_DEAD_CLASSES",
         "STAGE1_SEL_W_STEP_ACC", "STAGE1_SEL_W_MCP_F1", "STAGE1_SEL_W_STEP_MACRO",
     ],
@@ -1062,12 +1006,12 @@ _SUMMARY_GROUPS = {
     "STAGE 2": [
         "QWEN_MODEL_NAME", "LORA_R", "LORA_ALPHA", "STAGE2_LR",
         "STAGE2_ADAPTER_LR_MULT", "STAGE2_EPOCHS", "GRAPH_PREFIX_TOKENS",
-        "STAGE2_USE_STAGE1_HINT", "STAGE2_GOLD_HINT_PROB",
+        
     ],
     "STAGE 3": [
         "STAGE3_STEPS", "STAGE3_GROUP_SIZE", "STAGE3_LR",
         "STAGE3_W_FMT", "STAGE3_W_STEP", "STAGE3_W_MCP", "STAGE3_W_EXP",
-        "STAGE3_USE_NLI_REWARD", "STAGE3_NLI_WEIGHT",
+        
     ],
     "EVALUATION": ["LLM_JUDGE_MODEL_NAME", "MCP_DECISION_THRESHOLD"],
 }

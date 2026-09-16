@@ -60,16 +60,11 @@ import math
 from config import (
     GNN_HIDDEN, GNN_LAYERS, GNN_OUT_DIM, FUSION_HIDDEN,
     TEXT_EMB_DIM, STEP_LABELS, MCP_LABELS, GNN_DROPOUT,
-    EDGE_ATTR_DIM, NODE_AUX_DIM, SEMANTIC_CNN_DIM, SEMANTIC_CNN_KERNELS,
-    SEMANTIC_CNN_DROPOUT, STAGE1_EDGE_DROPOUT, STAGE1_NODE_FEAT_DROPOUT,
-    STAGE1_USE_GRAPH_GATE, STAGE1_GRAPH_GATE_INIT,
-    STAGE1_USE_PER_HEAD_GRAPH_GATE,
-    STAGE1_GRAPH_GATE_INIT_STEP, STAGE1_GRAPH_GATE_INIT_MCP,
-    STAGE1_GNN_TYPE, GNN_HEADS, STAGE1_GATE_GRAPH2SEM,
-    N_STEP_PHASES, STAGE1_PHASE_LOSS_WEIGHT,
-    STAGE1_SIMPLE_FUSION, STAGE1_ABLATE_GRAPH, STAGE1_ABLATE_TEXT,
-    STAGE1_USE_LABEL_PROTOTYPES, STAGE1_STEP_CONDITIONED_MCP,
-    STAGE1_SEPARATE_SEMANTIC_TOWERS, SEMANTIC_LM_DIM,
+    EDGE_ATTR_DIM, NODE_AUX_DIM,
+    STAGE1_TEXT_PROJ_DIM, STAGE1_TEXT_DROPOUT,
+    STAGE1_EDGE_DROPOUT, STAGE1_NODE_FEAT_DROPOUT,
+    STAGE1_GNN_TYPE, GNN_HEADS,
+    N_STEP_PHASES,
 )
 
 
@@ -437,482 +432,144 @@ class GraphEncoder(nn.Module):
         return pooled
 
 
-class SemanticCNNEncoder(nn.Module):
-    """Temporal CNN over frozen LM token embeddings, inspired by (but not a
-    reproduction of) the Pen-Strategist paper's (arXiv:2605.04499) Step
-    Model.
-
-    The paper uses frozen GPT-2 token-level embeddings followed by multiple
-    convolution kernels and global max pooling -- that part we reuse. But
-    the paper feeds those embeddings into TWO SEPARATE convolutional
-    encoders, one per head, and has no graph representation at all. This
-    project uses ONE SHARED semantic encoder for both heads, because the
-    shared representation is fused with the GINE graph encoder's output
-    (see Stage1Classifier below) before the Step/MCP heads split -- that
-    fusion step is this project's own extension, and it needs a single
-    semantic vector to fuse against, which is why the CNN encoder is shared
-    rather than duplicated per head as in the paper. Enhanced with residual
-    connections and better normalization.
-    """
-
-    def __init__(self, input_dim: int, out_dim: int = SEMANTIC_CNN_DIM,
-                 kernels=SEMANTIC_CNN_KERNELS, dropout=SEMANTIC_CNN_DROPOUT):
-        super().__init__()
-        self.kernels = kernels  # Store kernel sizes for forward method
-        self.convs = nn.ModuleList([
-            nn.Sequential(
-                nn.Conv1d(input_dim, out_dim, kernel_size=k, padding=0),
-                nn.BatchNorm1d(out_dim),
-                nn.GELU(),
-                nn.Dropout(dropout)
-            )
-            for k in kernels
-        ])
-        self.norm = nn.LayerNorm(out_dim * len(kernels))
-        self.proj = nn.Sequential(
-            nn.Linear(out_dim * len(kernels), out_dim * 2),
-            nn.LayerNorm(out_dim * 2),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(out_dim * 2, out_dim),
-            nn.LayerNorm(out_dim),
-        )
-
-    def forward(self, token_embs: torch.Tensor, mask: torch.Tensor) -> torch.Tensor:
-        # token_embs: (B,L,D), mask: (B,L)
-        x = token_embs.transpose(1, 2)  # (B,D,L)
-        mask_f = mask.to(dtype=x.dtype).unsqueeze(1)
-        pooled = []
-        for conv, k in zip(self.convs, self.kernels):
-            # Pad short sequences so every configured kernel is valid.
-            if x.shape[-1] < k:
-                x_conv = F.pad(x, (0, k - x.shape[-1]))
-                m_conv = F.pad(mask_f, (0, k - mask_f.shape[-1]))
-            else:
-                x_conv, m_conv = x, mask_f
-            y = conv(x_conv)  # Conv1d is now inside Sequential with BatchNorm, GELU, Dropout
-            # A window is valid only when all of its source tokens are real.
-            valid = F.conv1d(m_conv, x.new_ones(1, 1, k), stride=1).squeeze(1) >= float(k) - 1e-6
-            y = y.masked_fill(~valid.unsqueeze(1), torch.finfo(y.dtype).min)
-            pooled_k = y.max(dim=-1).values
-            # BUG FIX: when a sample has fewer valid tokens than this
-            # kernel's width (e.g. a row whose "New strategy"/"Strategy
-            # explanation" are both empty -> the "empty empty" placeholder
-            # text, ~2-3 GPT-2 tokens, shorter than kernel=5 or kernel=7),
-            # EVERY window for that sample is invalid, so max() above
-            # returns the raw finfo.min fill value itself for every
-            # channel. That huge-magnitude constant then blows up the
-            # LayerNorm variance computation a few lines down into inf/NaN,
-            # which poisons the whole batch's loss and gradient (verified
-            # with a repro: a single such row makes step_logits/mcp_logits
-            # NaN for the entire batch). Zero those channels instead --
-            # equivalent to "this kernel contributes nothing for this
-            # sample" rather than "this kernel is catastrophically
-            # confident about a value that doesn't exist".
-            no_valid_window = ~valid.any(dim=-1, keepdim=True)  # (B,1)
-            pooled_k = pooled_k.masked_fill(no_valid_window, 0.0)
-            pooled.append(pooled_k)
-        z = torch.cat(pooled, dim=-1)
-        z = self.norm(z)
-        return self.proj(z)
-
-
-class ContextTextProjector(nn.Module):
-    """Project the two BGE field embeddings into the graph fusion space."""
-
-    def __init__(self, n_fields=None, field_dim=TEXT_EMB_DIM, out_dim=GNN_OUT_DIM):
-        super().__init__()
-        self.proj = nn.Sequential(
-            nn.Linear((len(CONTEXT_COLUMNS) if n_fields is None else n_fields) * field_dim, out_dim),
-            nn.LayerNorm(out_dim),
-            nn.GELU(),
-            nn.Dropout(0.08),
-        )
-
-    def forward(self, field_embs):
-        return self.proj(field_embs.reshape(field_embs.shape[0], -1))
-
-
 class Stage1Classifier(nn.Module):
-    """Stage-1 semantic-CNN + GINE fusion classifier.
+    """Stage-1 step + MCP classifier: a GATv2 graph tower and a Qwen text tower.
 
-    Contract:
-      New strategy + strategy explanation -> frozen GPT-2 token embeddings
-      -> shared multi-kernel semantic CNN -> semantic representation.
+    ARCHITECTURE
+    ------------
+        Graph ─┬─ node feat 783-d ─┐
+               └─ edge feat   5-d ─┴─> GATv2 ──> 512-d graph emb ─┐
+                                                                   ├─> Fusion ─┬─> Step
+        New strategy + explanation ─> Qwen3-Embedding ─> text emb ─┘           └─> MCP
 
-      PTT graph -> typed GINE -> raw 512-d graph representation.
+    Node features are 768-d Qwen3-Embedding of the node title plus
+    NODE_AUX_DIM(15) structural/type/status channels = 783-d. Edge features are
+    the 5-d typed PTT edge encoding. The graph tower's 512-d output is the
+    contract Stage 2/3 consume through the graph-prefix adapter -- do not
+    change GNN_OUT_DIM without retraining them.
 
-      The semantic and graph representations are fused only inside Stage 1
-      and feed independent Step and MCP supervised heads.  The fused vector
-      is private to Stage 1: Stage 2/3 receive *only* the raw 512-d GINE
-      representation through GraphPrefixAdapter.
+    WHAT WAS REMOVED, AND WHY
+    -------------------------
+    This class used to carry a second pretrained text model and four optional
+    architectures layered on top of each other:
+
+      * SemanticCNNEncoder -- a frozen-GPT-2 token tower feeding five parallel
+        temporal convolutions (k=2,3,4,5,7) plus a token-level cross-attention
+        branch. Gone: the text tower is ONE Qwen3-Embedding vector, so the
+        project runs on a single encoder family rather than BGE + GPT-2.
+      * Separate Step/MCP semantic towers, label prototypes, step-conditioned
+        MCP, and a `simple_fusion` alternative path -- four mutually exclusive
+        architectures selected by env var, none of which the diagram contains.
+
+    WHAT WAS KEPT
+    -------------
+      * Per-head graph gates. These are not decoration: across all five folds
+        the step gate converges to ~0.04 while the MCP gate holds near ~0.50,
+        i.e. the step head learns to ignore the graph while the MCP head
+        relies on it. That asymmetry is a measured result worth preserving and
+        reporting, and it costs two scalars.
+      * The auxiliary coarse-phase head (an auxiliary LOSS on the fused step
+        representation, see loss()), and every training-time term: focal /
+        asymmetric loss, class weights, structured label smoothing, logit
+        adjustment, SupCon and manifold mixup driven from the train script.
+
+    FUSION. With two VECTORS rather than two sequences, cross-attention is
+    degenerate (a length-1 query against a length-1 key), so the fusion is the
+    standard vector pair interaction [t, g, t*g, |t-g|] -> MLP. That gives the
+    heads both the raw modalities and their multiplicative and differential
+    interactions, which is what the old cross-attention block was actually
+    approximating once its sequence dimension collapsed to one.
     """
 
-    def __init__(self, edge_dim: int = EDGE_ATTR_DIM, semantic_input_dim: int = 768):
+    def __init__(self, edge_dim: int = EDGE_ATTR_DIM, text_input_dim: int = TEXT_EMB_DIM):
         super().__init__()
         self.graph_encoder = GraphEncoder(edge_dim=edge_dim)
-        self.semantic_cnn = SemanticCNNEncoder(semantic_input_dim)
-        # Pen-Strategist sec 4.2.2 uses TWO independent convolutional encoders,
-        # one per head. When enabled, the MCP head gets its own CNN + its own
-        # fusion projections; only the frozen GPT-2 features and the graph
-        # encoder stay shared. See config.STAGE1_SEPARATE_SEMANTIC_TOWERS.
-        self.separate_towers = STAGE1_SEPARATE_SEMANTIC_TOWERS
-        if self.separate_towers:
-            self.semantic_cnn_mcp = SemanticCNNEncoder(semantic_input_dim)
-
-        # One shared semantic representation is deliberately used for both
-        # prediction heads, so there is a single semantic vector for the
-        # graph-fusion step below to fuse against. NOTE: this is NOT what
-        # the Pen-Strategist paper does -- its Step Model has no graph and
-        # uses two separate CNN encoders, one per head (see SemanticCNNEncoder
-        # docstring above). The graph encoder and the shared-then-fused
-        # design are this project's own extension.
-        self.semantic_dim = SEMANTIC_CNN_DIM
         self.graph_dim = GNN_OUT_DIM
+        self.text_dim = STAGE1_TEXT_PROJ_DIM
         self.fused_dim = FUSION_HIDDEN
-        fusion_half = FUSION_HIDDEN // 2
 
-        # --- Real cross-modal fusion -----------------------------------
-        # Two token-level projections so each modality has an actual
-        # multi-token sequence to be queried against (not just its own
-        # pooled vector -- see the module docstring for why the previous
-        # version's "cross-attention" never fused anything).
-        #   * graph_node_proj: projects GraphEncoder's per-node hidden
-        #     states (GNN_HIDDEN-d) into fusion space -- one real token
-        #     per PTT graph node.
-        #   * semantic_token_proj: projects the per-token frozen GPT-2
-        #     embeddings (already computed upstream for the CNN branch)
-        #     into fusion space -- one real token per strategy/explanation
-        #     word-piece.
-        self.graph_node_proj = nn.Sequential(
-            nn.Linear(GNN_HIDDEN, fusion_half),
-            nn.LayerNorm(fusion_half),
+        # ── Text tower: Qwen3-Embedding vector -> projection ────────────────
+        self.text_proj = nn.Sequential(
+            nn.Linear(text_input_dim, self.text_dim),
+            nn.LayerNorm(self.text_dim),
             nn.GELU(),
+            nn.Dropout(STAGE1_TEXT_DROPOUT),
         )
-        self.semantic_token_proj = nn.Sequential(
-            nn.Linear(semantic_input_dim, fusion_half),
-            nn.LayerNorm(fusion_half),
-            nn.GELU(),
-        )
-
-        # Bidirectional cross-attention: each modality's pooled vector
-        # queries the OTHER modality's real token sequence, so the output
-        # actually depends on both the query's content (which key/value
-        # pairs get high softmax weight) and the key/value content -- the
-        # property the old length-1/length-1 attention provably lacked.
-        self.cross_attn_sem2graph = nn.MultiheadAttention(
-            embed_dim=fusion_half, num_heads=8, dropout=0.10, batch_first=True
-        )
-        self.cross_attn_graph2sem = nn.MultiheadAttention(
-            embed_dim=fusion_half, num_heads=8, dropout=0.10, batch_first=True
-        )
-
-        # Cheap explicit multiplicative interaction term (Hadamard/low-rank
-        # bilinear pooling -- Kim et al., ICLR 2017): captures "this graph
-        # state AND this strategy phrasing together" interactions that a
-        # purely additive/concatenative fusion can under-represent.
-        self.interaction_proj = nn.Sequential(
-            nn.Linear(fusion_half, fusion_half),
-            nn.LayerNorm(fusion_half),
-            nn.GELU(),
-            nn.Dropout(0.10),
-        )
-
-        # ROUND 4 (see config.py's STAGE1_USE_GRAPH_GATE comment): learnable
-        # gate on every graph-DERIVED fusion term (graph_proj, sem2graph_out,
-        # graph2sem_out, interaction) -- semantic_proj always enters fusion
-        # at full strength, unscaled. Motivated by a real run where this
-        # graph-augmented model scored BELOW the paper's own text-only (no
-        # graph) Step Model on step accuracy (76.49% vs 82.87%), while MCP
-        # already comfortably beat the paper -- suggesting the graph branch
-        # may be adding noise specifically to step prediction. Stored as a
-        # raw logit and passed through sigmoid so it's always in (0,1);
-        # initialized so sigmoid(graph_gate_raw) == STAGE1_GRAPH_GATE_INIT
-        # (graph starts as a genuine minority contributor) but remains a
-        # trainable nn.Parameter, so gradient descent -- not a hand-picked
-        # constant -- decides whether to grow it back up.
-        self.use_graph_gate = STAGE1_USE_GRAPH_GATE
-        # ROUND 7: per-head gates (see config.py's
-        # STAGE1_USE_PER_HEAD_GRAPH_GATE comment). `graph_gate_raw` stays as
-        # the single shared gate for the legacy/disabled path so an A/B
-        # against the old behavior is still one flag away.
-        self.use_per_head_gate = STAGE1_USE_PER_HEAD_GRAPH_GATE
-        self.graph_gate_raw = nn.Parameter(
-            torch.tensor(_inv_sigmoid(STAGE1_GRAPH_GATE_INIT))
-        )
-        self.graph_gate_step_raw = nn.Parameter(
-            torch.tensor(_inv_sigmoid(STAGE1_GRAPH_GATE_INIT_STEP))
-        )
-        self.graph_gate_mcp_raw = nn.Parameter(
-            torch.tensor(_inv_sigmoid(STAGE1_GRAPH_GATE_INIT_MCP))
-        )
-
-        # Enhanced fusion with residual connections
-        self.semantic_proj = nn.Sequential(
-            nn.Linear(self.semantic_dim, fusion_half),
-            nn.LayerNorm(fusion_half),
-            nn.GELU(),
-            nn.Dropout(0.10),
-        )
-
-        if STAGE1_SEPARATE_SEMANTIC_TOWERS:
-            # MCP-private copies of every projection that touches the semantic
-            # representation, so the two towers never share a bottleneck.
-            self.semantic_proj_mcp = nn.Sequential(
-                nn.Linear(self.semantic_dim, FUSION_HIDDEN // 2),
-                nn.LayerNorm(FUSION_HIDDEN // 2),
-                nn.GELU(),
-                nn.Dropout(0.10),
-            )
-            self.semantic_token_proj_mcp = nn.Sequential(
-                nn.Linear(SEMANTIC_LM_DIM, FUSION_HIDDEN // 2),
-                nn.LayerNorm(FUSION_HIDDEN // 2),
-            )
-            self.interaction_proj_mcp = nn.Sequential(
-                nn.Linear(FUSION_HIDDEN // 2, FUSION_HIDDEN // 2),
-                nn.LayerNorm(FUSION_HIDDEN // 2),
-                nn.GELU(),
-            )
-            self.cross_attn_sem2graph_mcp = nn.MultiheadAttention(
-                FUSION_HIDDEN // 2, num_heads=4, dropout=0.10, batch_first=True)
-            self.cross_attn_graph2sem_mcp = nn.MultiheadAttention(
-                FUSION_HIDDEN // 2, num_heads=4, dropout=0.10, batch_first=True)
+        # ── Graph tower projection, to the same width as the text tower ─────
         self.graph_proj = nn.Sequential(
-            nn.Linear(self.graph_dim, fusion_half),
-            nn.LayerNorm(fusion_half),
+            nn.Linear(self.graph_dim, self.text_dim),
+            nn.LayerNorm(self.text_dim),
             nn.GELU(),
-            nn.Dropout(0.10),
+            nn.Dropout(STAGE1_TEXT_DROPOUT),
         )
 
-        # Fusion input: semantic_proj + graph_proj + sem2graph cross-attn
-        # output + graph2sem cross-attn output + Hadamard interaction,
-        # each fusion_half-wide -> 5 * D/2.
-        fusion_input_dim = 5 * fusion_half
+        # Per-head graph gates, initialised to ~0.15 so the graph starts as a
+        # minority contributor and each head learns how much it actually wants.
+        self.graph_gate_raw = nn.Parameter(torch.tensor(_inv_sigmoid(0.15)))
+        self.graph_gate_step_raw = nn.Parameter(torch.tensor(_inv_sigmoid(0.15)))
+        self.graph_gate_mcp_raw = nn.Parameter(torch.tensor(_inv_sigmoid(0.15)))
+
+        # [t, g, t*g, |t-g|] -> fused representation
         self.fusion = nn.Sequential(
-            nn.Linear(fusion_input_dim, FUSION_HIDDEN),
+            nn.Linear(4 * self.text_dim, FUSION_HIDDEN),
             nn.LayerNorm(FUSION_HIDDEN),
             nn.GELU(),
-            nn.Dropout(0.10),
-            nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN),
-            nn.LayerNorm(FUSION_HIDDEN),
-            nn.GELU(),
-            nn.Dropout(0.08),
+            nn.Dropout(STAGE1_TEXT_DROPOUT),
         )
 
         self.step_head = nn.Sequential(
-            nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN),
-            nn.LayerNorm(FUSION_HIDDEN),
-            nn.GELU(),
-            nn.Dropout(0.10),
-            nn.Linear(FUSION_HIDDEN, len(STEP_LABELS)),
-        )
-        # A3: auxiliary coarse-phase head. Shares the step head's fused
-        # representation, so it regularizes the same trunk the step head uses.
-        # Costs ~0.4% extra parameters. See config.py's STEP_PHASE_OF.
-        # Simple-fusion path: [text, graph, text*graph, |text-graph|] -> D.
-        # 4 blocks of D/2 instead of the cross-attention stack's 5.
-        fh = FUSION_HIDDEN // 2
-        self.simple_fusion = nn.Sequential(
-            nn.Linear(4 * fh, FUSION_HIDDEN),
-            nn.LayerNorm(FUSION_HIDDEN),
-            nn.GELU(),
-            nn.Dropout(0.10),
-        )
-        # Learned temperature on the label-prototype logits, so the model can
-        # decide how much to trust label-text similarity vs the trained head.
-        self.proto_scale = nn.Parameter(torch.tensor(1.0))
-        # Step-conditioned MCP: the MCP head additionally consumes the
-        # (detached) step probability vector.
-        self.mcp_step_proj = nn.Linear(len(STEP_LABELS), FUSION_HIDDEN // 4)
-        self.phase_head = nn.Sequential(
             nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN // 2),
-            nn.LayerNorm(FUSION_HIDDEN // 2),
             nn.GELU(),
-            nn.Dropout(0.10),
-            nn.Linear(FUSION_HIDDEN // 2, N_STEP_PHASES),
+            nn.Dropout(STAGE1_TEXT_DROPOUT),
+            nn.Linear(FUSION_HIDDEN // 2, len(STEP_LABELS)),
         )
-        mcp_in = FUSION_HIDDEN + (FUSION_HIDDEN // 4 if STAGE1_STEP_CONDITIONED_MCP else 0)
         self.mcp_head = nn.Sequential(
-            nn.Linear(mcp_in, FUSION_HIDDEN // 2),
-            nn.LayerNorm(FUSION_HIDDEN // 2),
+            nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN // 2),
             nn.GELU(),
-            nn.Dropout(0.08),
+            nn.Dropout(STAGE1_TEXT_DROPOUT),
             nn.Linear(FUSION_HIDDEN // 2, len(MCP_LABELS)),
         )
+        # Auxiliary coarse-phase head (recon / enumerate / exploit / report ...).
+        self.phase_head = nn.Sequential(
+            nn.Linear(FUSION_HIDDEN, FUSION_HIDDEN // 4),
+            nn.GELU(),
+            nn.Linear(FUSION_HIDDEN // 4, N_STEP_PHASES),
+        )
+        self._last_phase_logits = None
 
-    def encode_and_predict(self, x, edge_index, batch, field_embs=None,
-                           semantic_tokens=None, semantic_mask=None, edge_attr=None):
-        if semantic_tokens is None or semantic_mask is None:
+    def _fuse(self, text_h, graph_h, gate_raw):
+        g = torch.sigmoid(gate_raw) * graph_h
+        return self.fusion(torch.cat(
+            [text_h, g, text_h * g, torch.abs(text_h - g)], dim=-1))
+
+    def encode_and_predict(self, x, edge_index, batch, text_emb=None,
+                           edge_attr=None):
+        """Returns ((fused_step, fused_mcp), step_logits, mcp_logits).
+
+        `text_emb` is the (B, TEXT_EMB_DIM) Qwen3-Embedding of
+        "New strategy" + "Strategy explanation", precomputed by the caller
+        (see data_utils._embed_texts) because the encoder is frozen.
+        """
+        if text_emb is None:
             raise ValueError(
-                "Stage 1 requires semantic_tokens and semantic_mask built from "
-                "New strategy + Strategy explanation."
+                "Stage 1 requires text_emb: the Qwen3-Embedding vector of the "
+                "strategy text. See data_utils._embed_texts."
             )
+        graph_h = self.graph_encoder(x, edge_index, batch, edge_attr=edge_attr)
+        text_h = self.text_proj(text_emb.to(graph_h.dtype))
+        graph_p = self.graph_proj(graph_h)
 
-        # Semantic path: strategy + explanation -> frozen GPT-2 features -> CNN.
-        semantic_h = self.semantic_cnn(semantic_tokens, semantic_mask)
+        fused_step = self._fuse(text_h, graph_p, self.graph_gate_step_raw)
+        fused_mcp = self._fuse(text_h, graph_p, self.graph_gate_mcp_raw)
 
-        # Graph path: PTT -> typed GINE -> exactly 512-d pooled vector, PLUS
-        # the per-node hidden states + mask (needed below for real
-        # cross-attention). The pooled `graph_h` remains the only graph
-        # representation exposed downstream to Stage 2/3 (via
-        # `self.graph_encoder(...)`'s plain forward(), called separately in
-        # stage2_sft_qwen.py / evaluate.py) -- forward_with_nodes()'s extra
-        # outputs never leave this function.
-        graph_h, graph_nodes, graph_node_mask = self.graph_encoder.forward_with_nodes(
-            x, edge_index, batch, edge_attr=edge_attr
-        )
-        if graph_h.shape[-1] != GNN_OUT_DIM:
-            raise RuntimeError(
-                f"Stage-1 GINE must produce {GNN_OUT_DIM} dims, got {graph_h.shape[-1]}"
-            )
-
-        # Project both modalities' POOLED vectors to fusion space.
-        semantic_proj = self.semantic_proj(semantic_h)   # (B, D/2)
-        graph_proj = self.graph_proj(graph_h)             # (B, D/2)
-
-        # Pen-Strategist-style second tower: an entirely separate CNN +
-        # projections whose representation feeds ONLY the MCP head.
-        if self.separate_towers:
-            semantic_h_mcp = self.semantic_cnn_mcp(semantic_tokens, semantic_mask)
-            semantic_proj_mcp = self.semantic_proj_mcp(semantic_h_mcp)
-        else:
-            semantic_proj_mcp = semantic_proj
-
-        # Project both modalities' TOKEN sequences to the same fusion
-        # space, so each can serve as a real (length > 1, in the typical
-        # case) key/value sequence for the other modality's pooled query.
-        graph_node_kv = self.graph_node_proj(graph_nodes)        # (B, N_nodes, D/2)
-        semantic_token_kv = self.semantic_token_proj(semantic_tokens)  # (B, L_tokens, D/2)
-
-        # Semantic vector asks "which graph nodes matter for this
-        # strategy?" -- key_padding_mask blocks attention to padded nodes.
-        sem2graph_out, _ = self.cross_attn_sem2graph(
-            semantic_proj.unsqueeze(1), graph_node_kv, graph_node_kv,
-            key_padding_mask=~graph_node_mask,
-        )
-        sem2graph_out = sem2graph_out.squeeze(1)  # (B, D/2)
-
-        # Graph vector asks "which words in the strategy/explanation
-        # matter for this graph state?" -- key_padding_mask blocks
-        # attention to padded token positions (semantic_mask: True=real).
-        graph2sem_out, _ = self.cross_attn_graph2sem(
-            graph_proj.unsqueeze(1), semantic_token_kv, semantic_token_kv,
-            key_padding_mask=~semantic_mask,
-        )
-        graph2sem_out = graph2sem_out.squeeze(1)  # (B, D/2)
-
-        # Cheap explicit multiplicative (Hadamard) interaction between the
-        # two pooled vectors, on top of the attention-based interaction
-        # above.
-        interaction = self.interaction_proj(semantic_proj * graph_proj)  # (B, D/2)
-
-        if self.separate_towers:
-            semantic_token_kv_mcp = self.semantic_token_proj_mcp(semantic_tokens)
-            sem2graph_out_mcp, _ = self.cross_attn_sem2graph_mcp(
-                semantic_proj_mcp.unsqueeze(1), graph_node_kv, graph_node_kv,
-                key_padding_mask=~graph_node_mask,
-            )
-            sem2graph_out_mcp = sem2graph_out_mcp.squeeze(1)
-            graph2sem_out_mcp, _ = self.cross_attn_graph2sem_mcp(
-                graph_proj.unsqueeze(1), semantic_token_kv_mcp, semantic_token_kv_mcp,
-                key_padding_mask=~semantic_mask,
-            )
-            graph2sem_out_mcp = graph2sem_out_mcp.squeeze(1)
-            interaction_mcp = self.interaction_proj_mcp(semantic_proj_mcp * graph_proj)
-        else:
-            sem2graph_out_mcp, graph2sem_out_mcp = sem2graph_out, graph2sem_out
-            interaction_mcp = interaction
-
-        # ROUND 4/7: scale every graph-derived term by a learnable gate before
-        # concatenation. semantic_proj is deliberately left unscaled -- it is
-        # the one term with no graph involvement at all.
-        #
-        # ROUND 7: the gate is now PER HEAD. Step and MCP demonstrably want
-        # different amounts of graph (see config.py's
-        # STAGE1_USE_PER_HEAD_GRAPH_GATE comment: moving the shared gate
-        # raised Step 0.7687->0.7836 while dropping MCP micro-F1
-        # 0.7036->0.6539), so each head gets its own gate and its own pass
-        # through the fusion MLP. The fusion MLP is small (5*D/2 -> D -> D)
-        # relative to the GINE stack and the semantic CNN, so running it
-        # twice is cheap; the graph/semantic encoders themselves still run
-        # exactly once and are shared, which is what keeps this a
-        # shared-bottom multi-task model rather than two separate models.
-        # Modality ablations: zero out one branch entirely so the
-        # text-only / graph-only / fusion comparison is a one-flag change.
-        if STAGE1_ABLATE_GRAPH:
-            graph_proj = torch.zeros_like(graph_proj)
-            sem2graph_out = torch.zeros_like(sem2graph_out)
-            graph2sem_out = torch.zeros_like(graph2sem_out)
-            interaction = torch.zeros_like(interaction)
-        if STAGE1_ABLATE_TEXT:
-            semantic_proj = torch.zeros_like(semantic_proj)
-            sem2graph_out = torch.zeros_like(sem2graph_out)
-            graph2sem_out = torch.zeros_like(graph2sem_out)
-            interaction = torch.zeros_like(interaction)
-
-        def _fuse(gate_raw, mcp_tower=False):
-            sp = semantic_proj_mcp if mcp_tower else semantic_proj
-            s2g = sem2graph_out_mcp if mcp_tower else sem2graph_out
-            g2s_raw = graph2sem_out_mcp if mcp_tower else graph2sem_out
-            inter = interaction_mcp if mcp_tower else interaction
-            if STAGE1_SIMPLE_FUSION:
-                # [text, graph, text*graph, |text-graph|] -- no cross-attention.
-                g = torch.sigmoid(gate_raw) if self.use_graph_gate else 1.0
-                gp = g * graph_proj
-                return self.simple_fusion(torch.cat(
-                    [sp, gp, sp * gp, (sp - gp).abs()], dim=-1))
-            if not self.use_graph_gate:
-                return self.fusion(torch.cat(
-                    [sp, graph_proj, s2g, g2s_raw, inter], dim=-1))
-            g = torch.sigmoid(gate_raw)
-            # graph2sem_out is a weighted sum of TEXT values (the graph only
-            # picks the attention weights), so gating it by the GRAPH gate
-            # discards graph-selected TEXT rather than graph content. See
-            # config.py's STAGE1_GATE_GRAPH2SEM comment.
-            g2s = g * g2s_raw if STAGE1_GATE_GRAPH2SEM else g2s_raw
-            return self.fusion(torch.cat(
-                [sp, g * graph_proj, g * s2g, g2s, g * inter], dim=-1))
-
-        if self.use_graph_gate and self.use_per_head_gate:
-            fused_step = _fuse(self.graph_gate_step_raw)
-            fused_mcp = _fuse(self.graph_gate_mcp_raw, mcp_tower=self.separate_towers)
-        else:
-            fused_step = _fuse(self.graph_gate_raw)
-            fused_mcp = fused_step
-
-        # Private Stage-1 fusion. Never pass these fused representations to
-        # the Stage-2/3 prefix adapter.
         step_logits = self.step_head(fused_step)
-
-        # Label prototypes: cosine(context, LABEL TEXT) added as a logit.
-        # Needs no training data for a class -- its label text is already
-        # fully informative -- which is exactly what the 21-24 row tail
-        # classes lack. `label_prototypes` is installed by the trainer.
-        proto = getattr(self, "label_prototypes", None)
-        if STAGE1_USE_LABEL_PROTOTYPES and proto is not None:
-            ctx = F.normalize(semantic_proj, dim=-1)
-            pr = F.normalize(proto.to(ctx.device, ctx.dtype), dim=-1)
-            step_logits = step_logits + self.proto_scale * (ctx @ pr.t())
-
-        phase_logits = self.phase_head(fused_step)
-
-        if STAGE1_STEP_CONDITIONED_MCP:
-            # DETACHED: tool choice may depend on the step, but MCP's gradient
-            # must not reshape the step head. One-directional conditioning.
-            step_p = torch.softmax(step_logits.detach(), dim=-1)
-            fused_mcp = torch.cat([fused_mcp, self.mcp_step_proj(step_p)], dim=-1)
         mcp_logits = self.mcp_head(fused_mcp)
-        self._last_phase_logits = phase_logits
+        self._last_phase_logits = self.phase_head(fused_step)
         return (fused_step, fused_mcp), step_logits, mcp_logits
 
-    def forward(self, x, edge_index, batch, field_embs=None,
-                semantic_tokens=None, semantic_mask=None, edge_attr=None):
+    def forward(self, x, edge_index, batch, text_emb=None, edge_attr=None):
         h, step_logits, mcp_logits = self.encode_and_predict(
-            x, edge_index, batch, field_embs,
-            semantic_tokens=semantic_tokens,
-            semantic_mask=semantic_mask,
-            edge_attr=edge_attr,
-        )
+            x, edge_index, batch, text_emb=text_emb, edge_attr=edge_attr)
         return step_logits, mcp_logits, h
 
     def predict_from_fused(self, fused_h, fused_mcp=None):

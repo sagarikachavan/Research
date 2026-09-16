@@ -47,7 +47,6 @@ from config import (
     STAGE2_LR, STAGE2_EPOCHS, STAGE2_BATCH_SIZE, STAGE2_GRAD_ACCUM,
     STAGE2_VAL_SPLIT, STAGE2_EARLY_STOP_PATIENCE, STAGE2_GRAD_CLIP, STAGE2_WARMUP_RATIO,
     STAGE2_WEIGHT_DECAY, STAGE2_STEP_TOKEN_LOSS_WEIGHT, STAGE2_ADAPTER_LR_MULT,
-    STAGE2_USE_STAGE1_HINT, STAGE2_GOLD_HINT_PROB,
     STAGE1_CKPT, STAGE2_ADAPTER_DIR,
     RANDOM_SEED, STEP_LABELS, MCP_LABELS, ROOT,
 )
@@ -81,76 +80,32 @@ SYSTEM_PROMPT = (
 )
 
 
-def build_prompt(ex: dict, hint: dict | None = None) -> str:
-    """
-    Enhanced prompt building based on research from GTA and ReFT papers.
-    Structured prompt with clear sections for better reasoning guidance.
+def build_prompt(ex: dict) -> str:
+    """Stage-2 user prompt: the strategy pair, and nothing else.
 
-    Input contract: machine + graph (fed separately via the graph-prefix
-    # adapter) + new_strategy + strategy_explanation ONLY. No previous-step
-    # fields -- see CONTEXT_COLUMNS / EXTRA_OUTPUT_KEYS in data_utils.py and
-    # build_input_json.py for why they were removed.
+    The graph reaches the model as 16 soft-prompt tokens produced by
+    GraphPrefixAdapter from Stage 1's 512-d graph embedding, NOT as text --
+    so the textual prompt carries only what the graph cannot: the new strategy
+    and its explanation.
 
-    CLEANUP (architecture re-audit): this previously took a `mask_hint`
-    parameter and referenced an optional `ex["stage1_hint"]` text field
-    (produced by a `precompute_stage1_hints()` function elsewhere in this
-    file). That mechanism was fully dead: `precompute_stage1_hints()` was
-    never called from anywhere in the repo (confirmed by grep), so
-    `ex["stage1_hint"]` never existed on any real example, and this
-    function's body never actually read `mask_hint` or the hint field
-    regardless -- every prompt was identical no matter what was passed.
-    Removed both the dead parameter and the now-inapplicable docstring/
-    comments describing it, and removed `format_stage1_hint()` /
-    `precompute_stage1_hints()` themselves.
+    REMOVED: the `Machine:` line (identity, not evidence -- it invited the
+    model to memorise per-machine answers rather than read the strategy), and
+    a `hint` parameter carrying Stage 1's prediction. That hint was dead code:
+    `make_stage1_hint()` was never called from anywhere in the repo and
+    `ex["stage1_pred"]` was never populated, so every prompt was identical no
+    matter what the STAGE2_USE_STAGE1_HINT config claimed. Both the parameter
+    and the config flag are gone rather than left to mislead an ablation table.
     """
     ctx = ex["context"]
-    lines = [
-        "# Context",
-        f"Machine: {ex['machine']}",
-        "",
+    return "\n".join([
         "# Strategy",
         f"New strategy: {ctx['New strategy']}",
         f"Strategy explanation: {ctx['Strategy explanation']}",
-    ]
-    # B1: condition on Stage 1's classification instead of re-deriving it.
-    # `hint` is {"step": <label>, "mcp": [tools]}. During training it is the
-    # GOLD answer with probability STAGE2_GOLD_HINT_PROB and Stage 1's actual
-    # PREDICTION otherwise (scheduled sampling), so the model sees realistic
-    # wrong hints and learns it may override them. At inference only the
-    # prediction exists. See config.py's STAGE2_USE_STAGE1_HINT.
-    if hint:
-        lines += [
-            "",
-            "# Classifier prediction (may be wrong — correct it if the strategy says otherwise)",
-            f"Predicted step: {hint.get('step','')}",
-            f"Predicted tools: {', '.join(hint.get('mcp', [])) or 'none'}",
-        ]
-    lines += [
         "",
         "# Task",
-        "Based on the machine and strategy above, determine the next step, the tools needed, and explain your reasoning.",
-    ]
-    return "\n".join(lines)
-
-
-def make_stage1_hint(ex: dict, training: bool, rng=None) -> dict | None:
-    """Scheduled-sampling hint selector for build_prompt.
-
-    Training: gold with prob STAGE2_GOLD_HINT_PROB, else the Stage-1
-    prediction stored on the example. Inference: always the prediction.
-    Returns None when hints are disabled or no prediction is available, in
-    which case build_prompt emits exactly the pre-B1 prompt.
-    """
-    if not STAGE2_USE_STAGE1_HINT:
-        return None
-    pred = ex.get("stage1_pred")
-    if training and rng is not None and rng.random() < STAGE2_GOLD_HINT_PROB:
-        gold_step = ex.get("gold_new_step") or ex.get("step_label")
-        if gold_step:
-            return {"step": gold_step, "mcp": list(ex.get("gold_mcp_raw") or ex.get("mcp_labels") or [])}
-    if pred:
-        return {"step": pred.get("step", ""), "mcp": list(pred.get("mcp", []))}
-    return None
+        "Based on the graph context and strategy above, determine the next "
+        "step, the tools needed, and explain your reasoning.",
+    ])
 
 
 def build_target(ex: dict) -> str:
@@ -1195,7 +1150,35 @@ def main():
     # ── Copy best checkpoint to the canonical STAGE2_ADAPTER_DIR ─────────────
     # Stage 3 and evaluate.py load from STAGE2_ADAPTER_DIR directly, so the
     # best checkpoint needs to be at the top-level directory too.
+    #
+    # BUG FIX: this used to copy2() the best-epoch files INTO
+    # STAGE2_ADAPTER_DIR without ever clearing whatever was already there.
+    # copy2 only overwrites a file of the SAME name -- it does nothing to a
+    # stale file left behind by an earlier run under a DIFFERENT name (e.g.
+    # an old adapter_model.bin coexisting with today's
+    # adapter_model.safetensors, or a stale index/shard file from a run that
+    # predates this checkpoint layout). PeftModel.from_pretrained() can then
+    # silently pick up the STALE file instead of the one just trained --
+    # exactly the failure signature observed: val_generated_step_acc=0.80 in
+    # memory during training, but the reloaded-from-disk test-set eval
+    # scoring near zero on BOTH step and MCP simultaneously (a collapse
+    # consistent with generating from an untrained/wrong adapter, not with
+    # a real generalization gap).
+    #
+    # Fix: wipe every TOP-LEVEL file in STAGE2_ADAPTER_DIR (never touching
+    # the "best/" subdirectory, which is what we are about to copy FROM)
+    # before copying today's checkpoint in, so no file from a previous run
+    # can ever coexist with -- or be mistaken for -- today's.
     import shutil
+    if os.path.isdir(STAGE2_ADAPTER_DIR):
+        stale = [f for f in os.listdir(STAGE2_ADAPTER_DIR)
+                if os.path.isfile(os.path.join(STAGE2_ADAPTER_DIR, f))]
+        for fname in stale:
+            os.remove(os.path.join(STAGE2_ADAPTER_DIR, fname))
+        if stale:
+            print(f"[Stage 2] Removed {len(stale)} stale top-level file(s) from "
+                  f"{STAGE2_ADAPTER_DIR} before installing today's checkpoint: {stale}")
+
     if os.path.isdir(best_ckpt_dir):
         for fname in os.listdir(best_ckpt_dir):
             src = os.path.join(best_ckpt_dir, fname)

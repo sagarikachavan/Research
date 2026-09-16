@@ -8,8 +8,9 @@ Data utilities:
   3. Primary loader: load_from_input_json() reads input/train.json or
      input/test.json (produced by build_input_json.py) and builds
      torch_geometric Data objects directly from the embedded Graph JSON.
-     Node features: 387-dim = 384-dim bge-small-en-v1.5 title embedding +
-     3-dim one-hot type (Agent=0, Search=1, Track=2).
+     Node features: 783-dim = 768-dim Qwen3-Embedding title embedding
+     (TEXT_EMB_DIM) + NODE_AUX_DIM(15) = one-hot type(3) + status(4) +
+     8 structural channels (degrees, depth, position, leaf/root, branching).
   4. Fallback loader for pre-built per-row graphs from processed_data/,
      with a PTT-text graph builder when no pre-built file exists.
   5. A GNN-stage PyTorch Dataset that returns (graph, context_text_fields,
@@ -89,8 +90,9 @@ class StepLabelNormalizer:
     def _lazy_encoder(self):
         if self._encoder is None:
             from sentence_transformers import SentenceTransformer
-            from config import TEXT_ENCODER_NAME
-            self._encoder = SentenceTransformer(TEXT_ENCODER_NAME)
+            from config import TEXT_ENCODER_NAME, TEXT_EMB_DIM
+            self._encoder = SentenceTransformer(TEXT_ENCODER_NAME,
+                                                truncate_dim=TEXT_EMB_DIM)
             self._canon_emb = self._encoder.encode(STEP_LABELS, normalize_embeddings=True)
         return self._encoder
 
@@ -689,14 +691,30 @@ def build_graph_from_ptt(ptt_text: str):
 
 @lru_cache(maxsize=1)
 def _get_embedder():
+    """The single text encoder for the whole project: Qwen3-Embedding.
+
+    ONE ENCODER FAMILY, DELIBERATELY. This used to be BAAI/bge-base-en-v1.5,
+    with a frozen GPT-2 alongside it for the semantic CNN and a DeBERTa NLI
+    cross-encoder in the Stage-3 reward -- three unrelated pretrained text
+    models feeding one pipeline whose generator is Qwen3-14B. Every embedding
+    in Stage 1 now comes from the Qwen3 family, so the text space Stage 1
+    reasons in and the space Stage 2/3 generate in share a tokenizer and
+    pretraining lineage.
+
+    TEXT_EMB_DIM uses Qwen3-Embedding's Matryoshka (MRL) support: the model is
+    natively 1024-d but is trained so that truncated prefixes remain valid
+    embeddings. Requesting 768 keeps node features at 768 + NODE_AUX_DIM(15) =
+    783-d, the contract data_utils and graph_encoder already share.
+    """
     from sentence_transformers import SentenceTransformer
-    from config import TEXT_ENCODER_NAME
-    return SentenceTransformer(TEXT_ENCODER_NAME)
+    from config import TEXT_ENCODER_NAME, TEXT_EMB_DIM
+    return SentenceTransformer(TEXT_ENCODER_NAME, truncate_dim=TEXT_EMB_DIM)
 
 
 def _embed_texts(texts):
     enc = _get_embedder()
-    return enc.encode(texts, normalize_embeddings=True, show_progress_bar=False)
+    return enc.encode(list(texts), normalize_embeddings=True,
+                      show_progress_bar=False)
 
 
 # ---------------------------------------------------------------------------
@@ -816,31 +834,12 @@ class GNNStageDataset:
         graph = load_graph(ex["machine"], ex["row_id"], ex["ptt"], self.split)
         return graph, ex
 # ---------------------------------------------------------------------------
-# Frozen token-level semantic features for the paper-inspired Stage-1 CNN.
-# Uses a frozen GPT-2 encoder exactly as the semantic reference architecture;
-# only token hidden states are cached, no labels are involved.
+# REMOVED: precompute_semantic_tokens() / the frozen-GPT-2 token tower.
+#
+# Stage 1 used to run a second pretrained text model (GPT-2) purely to feed a
+# multi-kernel temporal CNN and a token-level cross-attention branch. That is
+# gone: the Stage-1 text tower is now a single Qwen3-Embedding vector per
+# example (see _embed_texts above), which is what the architecture diagram
+# specifies and what keeps the project on ONE encoder family.
 # ---------------------------------------------------------------------------
-def precompute_semantic_tokens(examples, model_name="gpt2", max_tokens=384, device="cpu"):
-    import torch
-    from transformers import AutoTokenizer, AutoModel
-    tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModel.from_pretrained(model_name).to(device).eval()
-    if tokenizer.pad_token is None:
-        tokenizer.pad_token = tokenizer.eos_token
-    for p in model.parameters():
-        p.requires_grad_(False)
-    batch_size = 16 if device == "cuda" else 4
-    for start in range(0, len(examples), batch_size):
-        batch = examples[start:start+batch_size]
-        texts = [str(ex.get("semantic_text", "")) for ex in batch]
-        tok = tokenizer(texts, return_tensors="pt", padding=True, truncation=True,
-                        max_length=max_tokens)
-        tok = {k: v.to(device) for k, v in tok.items()}
-        with torch.no_grad():
-            out = model(**tok).last_hidden_state
-        for i, ex in enumerate(batch):
-            L = int(tok["attention_mask"][i].sum().item())
-            ex["semantic_tokens"] = out[i, :L].detach().cpu().float()
-    del model
-    if device == "cuda":
-        torch.cuda.empty_cache()
+

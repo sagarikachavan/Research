@@ -35,31 +35,25 @@ from config import (
     STAGE1_BATCH_SIZE, STEP_LOSS_WEIGHT, MCP_LOSS_WEIGHT, RANDOM_SEED,
     MCP_LABELS, STEP_LABELS, ROOT, STEP_LABEL_SMOOTHING, STAGE1_WARMUP_EPOCHS,
     STAGE1_GRAD_CLIP, STAGE1_WEIGHT_DECAY, STAGE1_MAX_CLASS_WEIGHT,
-    STAGE1_MAX_MCP_WEIGHT, STAGE1_HARD_NEGATIVE_WEIGHT,
-    STAGE1_SUPCON_WEIGHT, STAGE1_HARD_NEGATIVE_MARGIN, STAGE1_USE_STEP_CLASS_WEIGHTS, STAGE2_VAL_SPLIT,
-    SEMANTIC_LM_NAME, SEMANTIC_MAX_TOKENS, SEMANTIC_LM_DIM, SEMANTIC_PROTOTYPE_TOKENS,
-    STAGE1_USE_STEP_FOCAL, STAGE1_STEP_FOCAL_GAMMA, STAGE1_SWA_TOP_K,
-    STAGE1_USE_LOGIT_ADJUSTMENT, STAGE1_LOGIT_ADJ_TAU,
-    STAGE1_MCP_LOSS_TYPE, STAGE1_ASL_GAMMA_NEG, STAGE1_ASL_GAMMA_POS, STAGE1_ASL_CLIP,
-    STAGE1_USE_MANIFOLD_MIXUP, STAGE1_MIXUP_ALPHA, STAGE1_MIXUP_WEIGHT,
-    STAGE1_SUPCON_TEMPERATURE, STAGE1_USE_DECOUPLED_RETRAIN,
-    STAGE1_DECOUPLED_EPOCHS, STAGE1_DECOUPLED_LR,
-    STAGE1_GRAPH_GATE_LR_MULT,
-    STAGE1_N_FOLDS,
-    STAGE1_GNN_TYPE, GNN_HEADS,
-    STEP_PHASE_OF, STAGE1_PHASE_LOSS_WEIGHT,
+    STAGE1_MAX_MCP_WEIGHT, STAGE1_HARD_NEGATIVE_WEIGHT, STAGE1_SUPCON_WEIGHT,
+    STAGE1_HARD_NEGATIVE_MARGIN, STAGE1_USE_STEP_CLASS_WEIGHTS,
+    STAGE2_VAL_SPLIT, STAGE1_USE_STEP_FOCAL, STAGE1_STEP_FOCAL_GAMMA,
+    STAGE1_SWA_TOP_K, STAGE1_USE_LOGIT_ADJUSTMENT, STAGE1_LOGIT_ADJ_TAU,
+    STAGE1_MCP_LOSS_TYPE, STAGE1_ASL_GAMMA_NEG, STAGE1_ASL_GAMMA_POS,
+    STAGE1_ASL_CLIP, STAGE1_USE_MANIFOLD_MIXUP, STAGE1_MIXUP_ALPHA,
+    STAGE1_MIXUP_WEIGHT, STAGE1_SUPCON_TEMPERATURE,
+    STAGE1_USE_DECOUPLED_RETRAIN, STAGE1_DECOUPLED_EPOCHS,
+    STAGE1_DECOUPLED_LR, STAGE1_GRAPH_GATE_LR_MULT, STAGE1_N_FOLDS,
+    STAGE1_GNN_TYPE, GNN_HEADS, STEP_PHASE_OF, STAGE1_PHASE_LOSS_WEIGHT,
     STAGE1_USE_STRUCTURED_SMOOTHING, STAGE1_SMOOTH_TEMP,
-    STAGE1_MASK_UNSUPPORTED_CLASSES, STAGE1_N_SEEDS,
-    STAGE1_USE_KNN_MEMBER, STAGE1_KNN_K,
-    STAGE1_ABLATE_MIXUP, STAGE1_ABLATE_SUPCON, STAGE1_NATURAL_SAMPLING,
-    STAGE1_USE_LABEL_PROTOTYPES, FUSION_HIDDEN,
-    STAGE1_USE_STACKING, STAGE1_STACK_C,
+    STAGE1_MASK_UNSUPPORTED_CLASSES, STAGE1_N_SEEDS, STAGE1_ABLATE_MIXUP,
+    STAGE1_ABLATE_SUPCON, STAGE1_NATURAL_SAMPLING, FUSION_HIDDEN,
     STAGE1_SEL_W_STEP_ACC, STAGE1_SEL_W_MCP_F1, STAGE1_SEL_W_STEP_MACRO,
     STAGE1_USE_TOOL_CONSTRAINTS, STAGE1_TOOL_CONSTRAINT_PENALTY,
-    TOOL_EVIDENCE_KEYWORDS,
-    STAGE1_TRAIN_FINAL_ON_ALL, STAGE1_DROP_DEAD_CLASSES,
+    TOOL_EVIDENCE_KEYWORDS, STAGE1_TRAIN_FINAL_ON_ALL,
+    STAGE1_DROP_DEAD_CLASSES,
 )
-from data_utils import load_from_input_json, precompute_semantic_tokens
+from data_utils import load_from_input_json, _embed_texts
 from graph_encoder import (Stage1Classifier, build_structured_smoothing_targets,
                             mask_unsupported_logits)
 from mcp_threshold_search import search_per_class_thresholds, search_step_logit_bias
@@ -71,15 +65,28 @@ if torch.cuda.is_available():
     torch.cuda.manual_seed_all(RANDOM_SEED)
 
 
+def _stage1_text(ex) -> str:
+    """Stage-1 text input: exactly the two allowed context fields.
+
+    No previous-step fields -- see CONTEXT_COLUMNS in data_utils.py for why
+    they were removed from the input contract.
+    """
+    strat = (ex["context"].get("New strategy", "") or "").strip()
+    expl = (ex["context"].get("Strategy explanation", "") or "").strip()
+    return f"{strat} {expl}".strip() or "empty"
+
+
 class Stage1Dataset(Dataset):
     def __init__(self, json_path, split="train"):
         self.examples = load_from_input_json(json_path, split)
-        for ex in self.examples:
-            # Stage 1 semantic input is exactly the two allowed context fields.
-            texts = [ex["context"].get("New strategy", "") or "empty",
-                     ex["context"].get("Strategy explanation", "") or "empty"]
-            ex["semantic_text"] = f"{texts[0]} {texts[1]}"
-        precompute_semantic_tokens(self.examples, model_name=SEMANTIC_LM_NAME, max_tokens=SEMANTIC_MAX_TOKENS, device="cuda" if torch.cuda.is_available() else "cpu")
+        # ONE frozen Qwen3-Embedding pass over the split, cached on the
+        # examples. The encoder is frozen, so per-epoch re-encoding would be
+        # pure waste; this also replaces the old per-example GPT-2 token
+        # tensors, which were the memory hot spot in this dataset.
+        texts = [_stage1_text(ex) for ex in self.examples]
+        embs = np.asarray(_embed_texts(texts), dtype=np.float32)
+        for ex, e in zip(self.examples, embs):
+            ex["text_emb"] = torch.from_numpy(e)
 
     def __len__(self):
         return len(self.examples)
@@ -90,25 +97,15 @@ class Stage1Dataset(Dataset):
             "graph": ex["graph"],
             "step_idx": torch.tensor(ex["step_idx"], dtype=torch.long),
             "mcp_vec": torch.tensor(ex["mcp_vec"], dtype=torch.float32),
-            "semantic_tokens": ex["semantic_tokens"],
+            "text_emb": ex["text_emb"],
         }
 
 
 def collate(items):
-    graphs = Batch.from_data_list([b["graph"] for b in items])
-    tokens = [b["semantic_tokens"] for b in items]
-    max_len = max(t.shape[0] for t in tokens)
-    d = tokens[0].shape[1]
-    sem = torch.zeros(len(tokens), max_len, d, dtype=torch.float32)
-    mask = torch.zeros(len(tokens), max_len, dtype=torch.bool)
-    for i, t in enumerate(tokens):
-        L = t.shape[0]
-        sem[i, :L] = t
-        mask[i, :L] = True
-    return (graphs,
+    return (Batch.from_data_list([b["graph"] for b in items]),
             torch.stack([b["step_idx"] for b in items]),
             torch.stack([b["mcp_vec"] for b in items]),
-            sem, mask)
+            torch.stack([b["text_emb"] for b in items]))
 
 
 def _selection_score(metrics):
@@ -146,18 +143,17 @@ def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=
     csv_rows = []
     global_idx = 0
     with torch.no_grad():
-        for graphs, step_idx, mcp_vec, sem_tokens, sem_mask in loader:
+        for graphs, step_idx, mcp_vec, text_emb in loader:
             graphs = graphs.to(device)
             step_idx = step_idx.to(device)
             mcp_vec = mcp_vec.to(device)
-            sem_tokens = sem_tokens.to(device)
-            sem_mask = sem_mask.to(device)
+            text_emb = text_emb.to(device)
             edge_attr = getattr(graphs, "edge_attr", None)
             sl_sum, mp_sum = None, None
             for _m in models:
                 step_logits, mcp_logits, _ = _m(
                     graphs.x, graphs.edge_index, graphs.batch,
-                    semantic_tokens=sem_tokens, semantic_mask=sem_mask, edge_attr=edge_attr
+                    text_emb=text_emb, edge_attr=edge_attr
                 )
                 sl = step_logits.detach().float()
                 mprob = torch.sigmoid(mcp_logits.detach().float())
@@ -376,17 +372,16 @@ def retrain_classifier_heads(model, full_ds, train_idx, device, val_loader,
     best_score = base_val_score
 
     for epoch in range(epochs):
-        for graphs, step_idx, mcp_vec, sem_tokens, sem_mask in loader:
+        for graphs, step_idx, mcp_vec, text_emb in loader:
             graphs = graphs.to(device)
             step_idx = step_idx.to(device)
             mcp_vec = mcp_vec.to(device)
-            sem_tokens = sem_tokens.to(device)
-            sem_mask = sem_mask.to(device)
+            text_emb = text_emb.to(device)
             edge_attr = getattr(graphs, "edge_attr", None)
             with torch.no_grad():
                 _, _, (fused_step, fused_mcp) = model(
                     graphs.x, graphs.edge_index, graphs.batch,
-                    semantic_tokens=sem_tokens, semantic_mask=sem_mask, edge_attr=edge_attr,
+                    text_emb=text_emb, edge_attr=edge_attr,
                 )
             step_logits, mcp_logits = model.predict_from_fused(fused_step, fused_mcp)
             step_loss = F.cross_entropy(step_logits, step_idx, label_smoothing=0.05)
@@ -591,17 +586,6 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(_seed)
     model = Stage1Classifier().to(device)
-    if STAGE1_USE_LABEL_PROTOTYPES:
-        # BGE embedding of each STEP LABEL's own text, projected to the
-        # fusion half-width so it lives in the same space as semantic_proj.
-        from data_utils import _embed_texts
-        _pe = np.asarray(_embed_texts(list(STEP_LABELS)), dtype=np.float32)
-        half = FUSION_HIDDEN // 2
-        if _pe.shape[1] >= half:
-            _pe = _pe[:, :half]
-        else:
-            _pe = np.pad(_pe, ((0, 0), (0, half - _pe.shape[1])))
-        model.label_prototypes = torch.tensor(_pe, device=device)
     # Deterministic per-fold entropy. Python's builtin hash() is SALTED per
     # process (PYTHONHASHSEED), so hash(tag) gave a DIFFERENT value on every
     # run -- meaning identical RANDOM_SEED + identical code + identical data
@@ -694,16 +678,15 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
         model.train()
         total_loss = step_run = mcp_run = con_run = hn_run = 0.0
         n_batches = 0
-        for graphs, step_idx, mcp_vec, sem_tokens, sem_mask in train_loader:
+        for graphs, step_idx, mcp_vec, text_emb in train_loader:
             graphs = graphs.to(device)
             step_idx = step_idx.to(device)
             mcp_vec = mcp_vec.to(device)
-            sem_tokens = sem_tokens.to(device)
-            sem_mask = sem_mask.to(device)
+            text_emb = text_emb.to(device)
             edge_attr = getattr(graphs, "edge_attr", None)
             step_logits, mcp_logits, (fused_step, fused_mcp) = model(
                 graphs.x, graphs.edge_index, graphs.batch,
-                semantic_tokens=sem_tokens, semantic_mask=sem_mask, edge_attr=edge_attr
+                text_emb=text_emb, edge_attr=edge_attr
             )
             if STAGE1_DROP_DEAD_CLASSES and eval_support is not None:
                 step_logits = mask_unsupported_logits(step_logits, eval_support)
@@ -883,151 +866,6 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
           f"thresholds={[round(float(x), 2) for x in thresholds]}")
 
     return model, mcp_w_np, mcp_counts, val_probs, val_gold, val_metrics, thresholds, step_bias
-
-
-def _machine_folds(examples, n_folds, seed):
-    """Partition MACHINES (never rows) into n_folds groups.
-
-    Machine-grouped so no machine's rows ever straddle a fold boundary -- the
-    same contract the train/test split already enforces, and the reason the
-    val/test comparison is honest. Machines are shuffled, then dealt
-    round-robin into folds ordered by current row count, which keeps folds
-    close in size even though machines contribute very different row counts.
-    """
-    by_machine = {}
-    for i, e in enumerate(examples):
-        by_machine.setdefault(e["machine"], []).append(i)
-    machines = sorted(by_machine)
-    rng = np.random.default_rng(seed)
-    rng.shuffle(machines)
-    folds = [[] for _ in range(n_folds)]
-    for m in machines:
-        smallest = min(range(n_folds), key=lambda k: len(folds[k]))
-        folds[smallest].extend(by_machine[m])
-    return [sorted(f) for f in folds]
-
-
-def _fit_knn_head(train_texts, train_y, k=15):
-    """k-NN over BGE strategy embeddings -> class score distribution.
-
-    A third ensemble voice with a different inductive bias from both the GNN
-    (graph message passing) and the linear text head (global decision
-    boundaries): k-NN is purely local, so it can be right exactly where a
-    linear boundary is wrong. kNN-LM (Khandelwal et al., ICLR 2020) is the
-    precedent for pairing a parametric model with a non-parametric retrieval
-    member. Reuses the same BGE embeddings the text head already computes, so
-    the extra cost is one matrix multiply.
-
-    Returns log-scores so the output composes with the other members' logits.
-    """
-    from data_utils import _embed_texts
-    E = np.asarray(_embed_texts(list(train_texts)), dtype=np.float32)
-    E = E / (np.linalg.norm(E, axis=1, keepdims=True) + 1e-8)
-    Y = np.asarray(train_y, dtype=int)
-    kk = int(min(k, len(Y)))
-
-    def predict_logits(texts):
-        Q = np.asarray(_embed_texts(list(texts)), dtype=np.float32)
-        Q = Q / (np.linalg.norm(Q, axis=1, keepdims=True) + 1e-8)
-        sims = Q @ E.T
-        idx = np.argpartition(-sims, kk - 1, axis=1)[:, :kk]
-        out = np.zeros((len(texts), len(STEP_LABELS)), dtype=np.float64)
-        for r in range(len(texts)):
-            nb = idx[r]
-            w = np.exp((sims[r, nb] - sims[r, nb].max()) / 0.05)
-            for j, lbl in zip(w, Y[nb]):
-                out[r, lbl] += float(j)
-        out = out / np.maximum(out.sum(axis=1, keepdims=True), 1e-9)
-        return np.log(np.maximum(out, 1e-9))
-    return predict_logits
-
-
-def _fit_text_head(train_texts, train_y, C=4.0):
-    """A deliberately SIMPLE text-only step classifier: BGE sentence embedding
-    of "New strategy" + "Strategy explanation" -> multinomial logistic
-    regression. Returns a callable mapping texts -> (N, num_classes) logits.
-
-    WHY THIS EXISTS -- measured complementarity, not a hunch. On the same 268
-    test rows, a text-only LR and the full GNN pipeline score almost
-    identically (0.7910 vs 0.7948) but make DIFFERENT mistakes:
-
-        both wrong        39
-        only text wrong   17     <- the GNN rescues these
-        only GNN wrong    16     <- the text model rescues these
-        both right       196
-        oracle (either)  0.8545
-
-    Two models at ~0.79 with an 0.8545 union is the textbook case for
-    ensembling: 33 of 268 rows are recoverable in principle. They also agree
-    on 225/268 rows at 87.1% accuracy, while disagreements split 16/17 --
-    so a CONFIDENCE-weighted blend is the right combiner, not a hard vote.
-
-    Kept linear on purpose. A 512->256 MLP on the same BGE features scored
-    WORSE than logistic regression (0.7627 vs 0.7910): at ~1.9k rows and 9
-    usable classes, extra capacity overfits. See STAGE1_IMPROVEMENTS.md.
-    """
-    from sklearn.linear_model import LogisticRegression
-    from data_utils import _embed_texts
-    E = np.asarray(_embed_texts(list(train_texts)), dtype=np.float64)
-    clf = LogisticRegression(max_iter=3000, C=C, multi_class="multinomial")
-    clf.fit(E, np.asarray(train_y))
-    classes = clf.classes_
-
-    def predict_logits(texts):
-        Ex = np.asarray(_embed_texts(list(texts)), dtype=np.float64)
-        raw = clf.decision_function(Ex)
-        if raw.ndim == 1:                      # degenerate binary case
-            raw = np.stack([-raw, raw], axis=1)
-        full = np.full((len(texts), len(STEP_LABELS)), -1e4, dtype=np.float64)
-        for j, c in enumerate(classes):
-            full[:, int(c)] = raw[:, j]
-        return full
-    return predict_logits
-
-
-def _example_text(ex):
-    c = ex.get("context", {})
-    return f"{c.get('New strategy','')} {c.get('Strategy explanation','')}".strip() or "empty"
-
-
-def _zscore_logits(a):
-    a = np.asarray(a, dtype=np.float64)
-    mu, sd = a.mean(axis=1, keepdims=True), a.std(axis=1, keepdims=True) + 1e-8
-    return (a - mu) / sd
-
-
-def _fit_stacker(member_logits_oof, gold, C=1.0):
-    """Train a meta-classifier on members' OUT-OF-FOLD logits (Wolpert 1992).
-
-    A grid-searched blend applies ONE global weight per member. A stacker
-    learns per-CLASS trust -- e.g. lean on the k-NN for the 21-row tail
-    classes while leaning on the GNN for Exploit. That per-class structure is
-    what the measured error overlap implies exists, and what a scalar weight
-    per member is structurally unable to express.
-
-    Inputs are the row-wise z-scored member logits concatenated; the meta
-    learner is multinomial logistic regression, kept linear because an MLP on
-    ~1.9k rows already measured worse than LR on this data.
-    """
-    from sklearn.linear_model import LogisticRegression
-    X = np.concatenate([_zscore_logits(m) for m in member_logits_oof], axis=1)
-    y = np.asarray(gold)
-    clf = LogisticRegression(max_iter=3000, C=C, multi_class="multinomial")
-    clf.fit(X, y)
-    classes = clf.classes_
-
-    def predict_logits(member_logits):
-        Xt = np.concatenate([_zscore_logits(m) for m in member_logits], axis=1)
-        raw = clf.decision_function(Xt)
-        if raw.ndim == 1:
-            raw = np.stack([-raw, raw], axis=1)
-        full = np.full((Xt.shape[0], len(STEP_LABELS)), -1e4, dtype=np.float64)
-        for j, c in enumerate(classes):
-            full[:, int(c)] = raw[:, j]
-        return full
-    return predict_logits
-
-
 def _tool_evidence_penalty(examples):
     """(N, n_tools) additive logit penalty for tools with no supporting
     evidence in the PTT text available at decision time.
@@ -1048,45 +886,6 @@ def _tool_evidence_penalty(examples):
             if kws and not any(k in blob for k in kws):
                 pen[i, j] = -STAGE1_TOOL_CONSTRAINT_PENALTY
     return pen
-
-
-def _search_blend_weights(member_logits, gold, step_bias=None, grid=0.05):
-    """Search convex weights over ensemble members on OUT-OF-FOLD data.
-
-    member_logits[0] MUST be the GNN. The all-weight-on-GNN corner is always
-    in the search space, so the result can never be worse than GNN-alone on
-    the OOF set -- adoption is additionally gated on that in main().
-
-    Members are z-scored per row first: the GNN's logits, the LR's decision
-    function and the k-NN's log-probabilities live on completely different
-    scales, and blending raw scores would just hand the decision to whichever
-    has the largest magnitude rather than whichever is most informative.
-    """
-    Z = [_zscore_logits(m) for m in member_logits]
-    gold = np.asarray(gold)
-    bias = np.zeros(len(STEP_LABELS)) if step_bias is None else np.asarray(step_bias, float)
-    n = len(Z)
-
-    def acc(wts):
-        agg = sum(w * z for w, z in zip(wts, Z)) + bias[None, :]
-        return float((np.argmax(agg, axis=1) == gold).mean())
-
-    base = acc([1.0] + [0.0] * (n - 1))
-    best_w, best = [1.0] + [0.0] * (n - 1), base
-    steps = int(round(1.0 / grid))
-    if n == 2:
-        cand = [[a / steps, 1 - a / steps] for a in range(steps + 1)]
-    elif n == 3:
-        cand = [[a / steps, b / steps, 1 - a / steps - b / steps]
-                for a in range(steps + 1) for b in range(steps + 1 - a)]
-    else:
-        cand = [[1.0] + [0.0] * (n - 1)]
-    for w in cand:
-        v = acc(w)
-        if v > best + 1e-9:
-            best, best_w = v, w
-    return best_w, best, base
-
 
 def _print_test_metrics(test_metrics, header):
     print(f"\n[Stage 1] ===== {header} =====")
@@ -1132,8 +931,6 @@ def main():
     oof_step_logits, oof_step_gold = [], []
     per_fold_mcp_score = []
     per_fold_best_epoch = []
-    text_heads, oof_text_logits = [], []
-    knn_heads, oof_knn_logits = [], []
     oof_mcp_probs, oof_mcp_gold = [], []
     mcp_counts_ref = None
 
@@ -1189,26 +986,10 @@ def main():
         except Exception:
             per_fold_best_epoch.append(STAGE1_EPOCHS)
 
-        # Complementary TEXT-ONLY head for this fold, trained on exactly the
-        # same rows the GNN fold saw, so its val predictions are genuinely
-        # out-of-fold too. See _fit_text_head for the measured justification.
-        t_train_txt = [_example_text(examples[i]) for i in train_idx]
-        t_train_y   = [int(full_ds[i]["step_idx"]) for i in train_idx]
-        val_txt = [_example_text(examples[i]) for i in val_idx]
-        head = _fit_text_head(t_train_txt, t_train_y)
-        text_heads.append(head)
-        oof_text_logits.append(head(val_txt))
-        if STAGE1_USE_KNN_MEMBER:
-            kh = _fit_knn_head(t_train_txt, t_train_y, k=STAGE1_KNN_K)
-            knn_heads.append(kh)
-            oof_knn_logits.append(kh(val_txt))
-
     oof_step_logits = np.concatenate(oof_step_logits, axis=0)
     oof_step_gold   = np.concatenate(oof_step_gold, axis=0)
     oof_mcp_probs   = np.concatenate(oof_mcp_probs, axis=0)
     oof_mcp_gold    = np.concatenate(oof_mcp_gold, axis=0)
-    oof_text_logits = np.concatenate(oof_text_logits, axis=0)
-    oof_knn_logits = np.concatenate(oof_knn_logits, axis=0) if knn_heads else None
 
     print(f"\n[Stage 1] Pooled OUT-OF-FOLD calibration set: {len(oof_step_gold)} rows "
           f"covering all {len(all_machines)} training machines "
@@ -1239,44 +1020,6 @@ def main():
     # top combined val score (0.7769) but the WORST test MCP micro-F1 (0.6555
     # vs the ensemble's 0.7231), and that is the encoder Stage 2 inherited.
     # ── GNN + text blend, weight chosen on pooled OOF ────────────────────────
-    members_oof = [oof_step_logits, oof_text_logits]
-    member_names = ["GNN", "text-LR"]
-    if oof_knn_logits is not None:
-        members_oof.append(oof_knn_logits); member_names.append("kNN")
-    blend_w, blend_oof, gnn_oof = _search_blend_weights(
-        members_oof, oof_step_gold, step_bias)
-    print(f"\n[Stage 1] Blend search on pooled OOF over {len(members_oof)} members: "
-          + ", ".join(f"{n}={w:.2f}" for n, w in zip(member_names, blend_w)))
-    print(f"[Stage 1]   OOF accuracy {gnn_oof:.4f} (GNN alone) -> {blend_oof:.4f} (blended)")
-    use_blend = blend_oof > gnn_oof + 1e-9 and blend_w[0] < 1.0
-    print(f"[Stage 1]   {'grid blend beats GNN alone' if use_blend else 'grid blend did not beat GNN alone'}")
-
-    # Stacking meta-learner, judged on the SAME OOF pool as the grid blend.
-    stacker = None
-    if STAGE1_USE_STACKING and len(members_oof) > 1:
-        try:
-            stacker = _fit_stacker(members_oof, oof_step_gold, C=STAGE1_STACK_C)
-            st_pred = np.argmax(stacker(members_oof)
-                                + np.asarray(step_bias, float)[None, :], axis=1)
-            stack_oof = float((st_pred == oof_step_gold).mean())
-            best_prev = blend_oof if use_blend else gnn_oof
-            print(f"[Stage 1] Stacking meta-learner on pooled OOF: {stack_oof:.4f} "
-                  f"(grid blend {blend_oof:.4f}, GNN alone {gnn_oof:.4f})")
-            # NOTE: the stacker is FIT on this same OOF pool, so its score here
-            # is optimistic relative to the grid blend's. Require a clear
-            # margin rather than a hair, and let the test block be the arbiter.
-            if stack_oof > best_prev + 0.005:
-                print("[Stage 1]   ADOPTING stacker (beats grid blend by >0.5pt on OOF)")
-                use_blend = True
-            else:
-                print("[Stage 1]   stacker did not clear the margin -- keeping grid blend")
-                stacker = None
-        except Exception as e:
-            print(f"[Stage 1]   stacking failed ({e}) -- keeping grid blend")
-            stacker = None
-    if use_blend and stacker is None:
-        print("[Stage 1]   ADOPTING grid blend")
-
     best_k = int(np.argmax(per_fold_mcp_score))
     best_k_combined = int(np.argmax(fold_scores))
     if best_k != best_k_combined:
@@ -1290,34 +1033,6 @@ def main():
                             save_csv=True, csv_path=csv_path, dataset=test_ds.examples,
                             step_bias=step_bias)
     _print_test_metrics(test_metrics, f"TEST — {STAGE1_N_FOLDS}-FOLD ENSEMBLE (GNN only)")
-
-    if use_blend:
-        te_texts = [_example_text(e) for e in test_ds.examples]
-        _m, _p, _g, te_gnn_logits, te_gold = evaluate(
-            models, test_loader, device, threshold=thresholds,
-            return_probs=True, return_step_logits=True)
-        members_te = [te_gnn_logits,
-                      np.mean([h(te_texts) for h in text_heads], axis=0)]
-        if knn_heads:
-            members_te.append(np.mean([h(te_texts) for h in knn_heads], axis=0))
-        if stacker is not None:
-            blended = stacker(members_te) + np.asarray(step_bias, float)[None, :]
-        else:
-            blended = (sum(w * _zscore_logits(m) for w, m in zip(blend_w, members_te))
-                       + np.asarray(step_bias, float)[None, :])
-        bp = np.argmax(blended, axis=1)
-        from sklearn.metrics import accuracy_score as _acc, f1_score as _f1
-        blend_metrics = dict(test_metrics)
-        blend_metrics["step_accuracy"]    = float(_acc(te_gold, bp))
-        blend_metrics["step_micro_f1"]    = float(_f1(te_gold, bp, average="micro", zero_division=0))
-        blend_metrics["step_macro_f1"]    = float(_f1(te_gold, bp, average="macro", zero_division=0))
-        blend_metrics["step_weighted_f1"] = float(_f1(te_gold, bp, average="weighted", zero_division=0))
-        _print_test_metrics(blend_metrics, "TEST — BLENDED ENSEMBLE ("
-            + ", ".join(f"{n} {w:.2f}" for n, w in zip(member_names, blend_w)) + ")  [PRIMARY]")
-        print(f"[Stage 1] Blend vs GNN-only step_accuracy: "
-              f"{test_metrics['step_accuracy']:.4f} -> {blend_metrics['step_accuracy']:.4f} "
-              f"({blend_metrics['step_accuracy'] - test_metrics['step_accuracy']:+.4f})")
-        test_metrics = blend_metrics
 
     # Reference points, reported but not the headline.
     single_metrics = evaluate(models[best_k], test_loader, device,
@@ -1396,6 +1111,9 @@ def main():
     best_ckpt["test_metrics_single"]   = {k: float(v) for k, v in single_metrics.items()}
     best_ckpt["test_metrics_ensemble"] = {k: float(v) for k, v in test_metrics.items()}
     best_ckpt["test_metrics_exported"] = {k: float(v) for k, v in export_metrics.items()}
+    # NOTE: no side-car blend file any more. Stage 1's step prediction is the
+    # model itself (graph tower + Qwen text tower + fusion), so the checkpoint
+    # IS the whole model and eval cannot silently score something different.
     torch.save(best_ckpt, STAGE1_CKPT)
     print(f"\n[Stage 1] Saved Stage-2/3 encoder ({export_tag} + pooled-OOF calibration) "
           f"to {STAGE1_CKPT}")
