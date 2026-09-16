@@ -63,7 +63,7 @@ from config import (
     QWEN_MODEL_NAME, ROOT, LLM_JUDGE_MODEL_NAME,
 )
 from data_utils import (
-    load_from_input_json, mcp_multihot, StepLabelNormalizer, extract_mcp_labels,
+    load_from_input_json, mcp_multihot, StepLabelNormalizer, extract_mcp_labels, _embed_texts,
 )
 from graph_encoder import Stage1Classifier
 from mcp_threshold_search import predict_with_per_class_thresholds
