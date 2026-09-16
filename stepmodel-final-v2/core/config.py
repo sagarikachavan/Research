@@ -275,14 +275,6 @@ STAGE1_SMOOTH_TEMP = 0.10        # softmax temperature over label-text similarit
 STAGE1_MASK_UNSUPPORTED_CLASSES = os.environ.get(
     "STAGE1_MASK_UNSUPPORTED", "1") not in ("0", "false", "False")
 
-# ---------------------------------------------------------------------------
-# A2 — seed x fold ensembling
-# ---------------------------------------------------------------------------
-# Per-machine accuracy std is 0.115 across the 29 test machines: variance, not
-# bias, is the dominant error source. Deep ensembles (Lakshminarayanan et al.,
-# NeurIPS 2017) are the standard remedy. STAGE1_N_SEEDS=1 reproduces today's
-# behavior exactly; 3 gives 5 folds x 3 seeds = 15 members at 3x wall-clock.
-STAGE1_N_SEEDS = int(os.environ.get("STAGE1_N_SEEDS", "1"))
 
 # ---------------------------------------------------------------------------
 # A6 — k-NN retrieval member for the step blend
@@ -331,71 +323,6 @@ STAGE1_ABLATE_GRAPH = os.environ.get("STAGE1_ABLATE_GRAPH", "0") in ("1", "true"
 STAGE1_ABLATE_TEXT = os.environ.get("STAGE1_ABLATE_TEXT", "0") in ("1", "true", "True")
 
 
-# ---------------------------------------------------------------------------
-# Step-conditioned MCP head
-# ---------------------------------------------------------------------------
-# Tool choice depends heavily on WHICH ACTION is being taken: "enumerate the
-# website" implies Dirbuster/web interaction, "exploit" implies Metasploit.
-# Feeding the soft step distribution into the MCP head makes that dependency
-# explicit instead of hoping the shared trunk encodes it:
-#     context -> step ;  context + graph + step -> tools
-# Uses the DETACHED step probabilities so MCP's gradient cannot corrupt the
-# step head (one-directional conditioning, not joint optimization).
-# ---------------------------------------------------------------------------
-# Separate Step / MCP semantic towers  (Pen-Strategist section 4.2.2)
-# ---------------------------------------------------------------------------
-# The paper uses TWO INDEPENDENT convolutional encoders over the same frozen
-# GPT-2 features -- one whose representation feeds step classification, one
-# whose representation feeds MCP prediction. Its own words: "we apply two
-# separate convolutional encoders... One representation is used for step
-# classification, and the other for MCP server prediction."
-#
-# This codebase deliberately diverged, using ONE SHARED CNN, because the
-# semantic vector then had to be fused with the graph representation before
-# the heads split -- a single shared vector is what the fusion block needs.
-# That was a defensible design decision, but it was never A/B tested, and it
-# forces both tasks through one bottleneck. The measured per-head graph gates
-# say the two heads want very different things from the representation
-# (gate_step converges to ~0.04, gate_mcp holds ~0.49), which is evidence of
-# exactly the negative transfer a shared tower invites.
-#
-# With this ON, each head gets its own SemanticCNNEncoder and its own set of
-# fusion projections, sharing only the frozen GPT-2 features and the graph
-# encoder. Cost is one extra CNN (~1.2M params).
-#
-# Default OFF so the current architecture is unchanged until the A/B is run.
-# ---------------------------------------------------------------------------
-# OOF stacking meta-learner (replaces the grid-searched blend weights)
-# ---------------------------------------------------------------------------
-# The blend currently picks ONE scalar weight per member by grid search over a
-# simplex. That is a crude combiner: it can only apply a single global weight
-# per model, so it cannot express "trust the k-NN on rare classes but the GNN
-# on Exploit" -- which is exactly the structure the measured error overlap
-# shows (GNN and text disagree on 43/268 rows, splitting 16/17).
-#
-# Stacking (Wolpert 1992) instead TRAINS a meta-classifier on the members'
-# out-of-fold predictions, so it learns per-class trust. Inputs per row are
-# the concatenated member logits; the meta-learner is a multinomial logistic
-# regression (kept linear for the same reason the text head is: ~1.9k rows).
-#
-# The grid blend is retained as a fallback and the stacker is adopted only if
-# it beats it on the same OOF pool.
-# ---------------------------------------------------------------------------
-# Final full-data encoder for Stage 2/3
-# ---------------------------------------------------------------------------
-# PROBLEM THIS FIXES: the Stage-1 headline result is a blended K-fold
-# ensemble, but Stage 2 can load only ONE encoder -- so the model producing
-# the headline number was never the model passed downstream. Worse, the fold
-# handed over had trained on only 80% of the machines.
-#
-# With this ON, after the folds finish and the architecture is fixed, ONE more
-# model is trained on ALL training machines and that is what Stage 2/3
-# receive. The fold ensemble still produces the reported Stage-1 metrics.
-#
-# The final model has no held-out split of its own, so its checkpoint is taken
-# at the MEDIAN best-epoch across folds rather than by early stopping -- using
-# any validation data to stop it would contradict training on everything.
-STAGE1_TRAIN_FINAL_ON_ALL = os.environ.get("STAGE1_FINAL_ON_ALL", "0") in ("1", "true", "True")
 
 # ---------------------------------------------------------------------------
 # Drop zero-support classes from the softmax entirely
@@ -499,6 +426,10 @@ STAGE1_WEIGHT_DECAY = 1e-2  # increased from 8e-3 for stronger L2 regularization
 # 15%-machine-split fallback has been removed. The best fold's weights (plus
 # the pooled out-of-fold calibration) are written to STAGE1_CKPT, which is
 # what eval/evaluate.py, stage2_sft_qwen.py and stage3_grpo_rl.py consume.
+# Validation split denominator for Stage 1's single machine-grouped split:
+# fold 0 is held out, the rest train. 5 -> ~20% of MACHINES held out. This no
+# longer means "number of models" -- K-fold ensembling was removed and Stage 1
+# trains exactly one model.
 STAGE1_N_FOLDS = int(os.environ.get("STAGE1_N_FOLDS", "5"))
 
 STAGE1_MAX_CLASS_WEIGHT = 2.5  # increased from 2.0 for better rare class handling
@@ -993,8 +924,8 @@ _SUMMARY_GROUPS = {
     ],
     "TRAINING / ENSEMBLE": [
         "STAGE1_LR", "STAGE1_EPOCHS", "STAGE1_BATCH_SIZE", "RANDOM_SEED",
-        "STAGE1_N_FOLDS", "STAGE1_N_SEEDS", 
-        "STAGE1_TRAIN_FINAL_ON_ALL",
+        "STAGE1_N_FOLDS", 
+        
         "STAGE1_MASK_UNSUPPORTED_CLASSES", "STAGE1_DROP_DEAD_CLASSES",
         "STAGE1_SEL_W_STEP_ACC", "STAGE1_SEL_W_MCP_F1", "STAGE1_SEL_W_STEP_MACRO",
     ],

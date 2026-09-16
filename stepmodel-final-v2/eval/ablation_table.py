@@ -101,10 +101,6 @@ CONFIGS: dict[str, tuple[str, dict[str, str]]] = {
         "GINE instead of GATv2",
         {"STAGE1_GNN_TYPE": "gine"},
     ),
-    "seeds3": (
-        "3 seeds per fold (15 ensemble members)",
-        {"STAGE1_N_SEEDS": "3"},
-    ),
 }
 
 METRICS = [

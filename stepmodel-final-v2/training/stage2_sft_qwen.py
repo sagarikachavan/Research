@@ -56,7 +56,7 @@ from config import (
 # never used by the prefix adapter.
 GRAPH_PREFIX_SRC_DIM = GNN_OUT_DIM
 from data_utils import load_from_input_json, StepLabelNormalizer, extract_mcp_labels
-from graph_encoder import Stage1Classifier
+from graph_encoder import load_graph_encoder
 
 random.seed(RANDOM_SEED)
 np.random.seed(RANDOM_SEED)
@@ -514,7 +514,7 @@ def collate_fn(batch: list, pad_id: int) -> tuple:
 # ---------------------------------------------------------------------------
 
 def forward_batch(input_ids, attn, labels, graphs,
-                  model, stage1, adapter, embed_layer, device, dtype, return_logits=False,
+                  model, graph_encoder, adapter, embed_layer, device, dtype, return_logits=False,
                   step_spans=None, step_token_weight=1.0):
     """
     Prepend graph prefix tokens to the token embeddings, run the model,
@@ -552,7 +552,7 @@ def forward_batch(input_ids, attn, labels, graphs,
         # to PER-NODE graph states, not just the single pooled vector (see
         # GraphPrefixAdapter's docstring). Still purely the GINE encoder --
         # no fusion/classifier output crosses this boundary.
-        graph_emb, node_states, node_mask = stage1.graph_encoder.forward_with_nodes(
+        graph_emb, node_states, node_mask = graph_encoder.forward_with_nodes(
             graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
         )  # (B, 512), (B, N, GNN_HIDDEN), (B, N)
 
@@ -653,7 +653,7 @@ def forward_batch(input_ids, attn, labels, graphs,
 # the post-training test-set loop below), but it isolates the signal that
 # actually matters for checkpoint selection instead of drowning it in
 # explanation-text loss.
-def run_validation(val_loader, model, stage1, adapter, embed_layer, device, dtype,
+def run_validation(val_loader, model, graph_encoder, adapter, embed_layer, device, dtype,
                    tokenizer=None, val_examples=None, max_new_tokens=64):
     """Validate Stage 2 using leakage-free greedy generation.
 
@@ -681,7 +681,7 @@ def run_validation(val_loader, model, stage1, adapter, embed_layer, device, dtyp
             # 1) Normal validation loss on the complete prompt+target sequence.
             loss = forward_batch(
                 input_ids, attn, labels, graphs,
-                model, stage1, adapter, embed_layer, device, dtype, return_logits=False,
+                model, graph_encoder, adapter, embed_layer, device, dtype, return_logits=False,
             )
             total_loss += loss.item()
             n_batches += 1
@@ -707,7 +707,7 @@ def run_validation(val_loader, model, stage1, adapter, embed_layer, device, dtyp
                     prompt_ids[b, plen:] = tokenizer.pad_token_id
 
             edge_attr = getattr(graphs, 'edge_attr', None)
-            graph_emb, node_states, node_mask = stage1.graph_encoder.forward_with_nodes(
+            graph_emb, node_states, node_mask = graph_encoder.forward_with_nodes(
                 graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
             )
             prefix_embeds = adapter(graph_emb.float(), node_states.float(), node_mask).to(dtype)
@@ -805,20 +805,15 @@ def main():
 
     model.print_trainable_parameters()
 
-    # ── Frozen Stage-1 checkpoint ─────────────────────────────────────────────
-    # The full checkpoint is loaded for a consistent artifact, but Stage 2
-    # intentionally calls only stage1.graph_encoder. The Stage-1 semantic CNN,
-    # fusion, and classifier heads remain private to Stage 1.
-    stage1 = Stage1Classifier()
-    ckpt = torch.load(STAGE1_CKPT, map_location=device, weights_only=False)
-    if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
-        stage1.load_state_dict(ckpt["model_state_dict"])
-    else:
-        stage1.load_state_dict(ckpt)
-    stage1 = stage1.to(device).eval()
-    for p in stage1.parameters():
-        p.requires_grad_(False)
-    print("[Stage 2] ✓ Frozen Stage-1 checkpoint loaded; raw GINE encoder is the graph-prefix source")
+    # ── Frozen graph encoder (ONLY the graph encoder) ────────────────────────
+    # Stage 2 receives the 512-d graph embedding and nothing else from Stage 1.
+    # load_graph_encoder extracts the `graph_encoder.*` sub-tree and refuses to
+    # load the rest, so the fusion MLP, step head, MCP head, phase head, text
+    # tower and graph gates are never even resident here. Stage 1's step/MCP
+    # PREDICTIONS do not influence Stage 2 in any form.
+    graph_encoder = load_graph_encoder(STAGE1_CKPT, device)
+    print("[Stage 2] ✓ Graph encoder loaded (frozen); 512-d graph embedding is "
+          "the only thing crossing the Stage-1 boundary")
 
     # ── GraphPrefixAdapter (trainable) ────────────────────────────────────────
     # Prefix input is the raw 512-d GINE graph representation. Stage-1
@@ -1017,7 +1012,7 @@ def main():
             try:
                 loss = forward_batch(
                     input_ids, attn, labels, graphs,
-                    model, stage1, adapter, embed_layer,
+                    model, graph_encoder, adapter, embed_layer,
                     device, dtype,
                     step_spans=step_spans,
                     step_token_weight=STAGE2_STEP_TOKEN_LOSS_WEIGHT,
@@ -1113,7 +1108,7 @@ def main():
         # full 500-token budget (which also has to cover the free-text
         # explanation and MCP dict that this step-only check doesn't need).
         val_loss, step_field_acc = run_validation(
-            val_loader, model, stage1, adapter, embed_layer, device, dtype,
+            val_loader, model, graph_encoder, adapter, embed_layer, device, dtype,
             tokenizer=tokenizer, val_examples=val_examples, max_new_tokens=64
         )
 
@@ -1247,11 +1242,11 @@ def main():
             # forward_batch / encode_and_predict). Was an ad hoc
             # parameter-free graph/context blend that did NOT match what
             # forward_batch used during training; both now call the same
-            # stage1.encode_and_predict(...) so train and eval-time
+            # graph_encoder.forward_with_nodes(...) so train and eval-time
             # generation see the identical distribution.
             edge_attr = getattr(graphs, 'edge_attr', None)
             with torch.no_grad():
-                graph_emb, node_states, node_mask = stage1.graph_encoder.forward_with_nodes(
+                graph_emb, node_states, node_mask = graph_encoder.forward_with_nodes(
                     graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
                 )  # (B, 512), (B, N, GNN_HIDDEN), (B, N)
 

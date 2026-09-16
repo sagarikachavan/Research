@@ -672,3 +672,52 @@ class Stage1Classifier(nn.Module):
         total = step_w * step_loss + mcp_w * mcp_loss
         return total, step_loss.detach(), mcp_loss.detach()
 
+
+
+def load_graph_encoder(ckpt_path: str, device: str = "cpu") -> GraphEncoder:
+    """Load ONLY the GATv2 graph encoder from a Stage-1 checkpoint.
+
+    STAGE BOUNDARY, ENFORCED IN CODE. Stage 1 is:
+
+        graph ──> GATv2 ──> 512-d graph emb ─┐
+                                              ├─> Fusion ─┬─> Step
+        text  ──> Qwen3-Embedding ──────────┘             └─> MCP
+
+    Only the part LEFT of the fusion crosses into Stage 2/3, as the 512-d
+    vector the GraphPrefixAdapter turns into 16 soft-prompt tokens. Everything
+    from the fusion rightward -- fusion MLP, step head, MCP head, phase head,
+    the text tower and the graph gates -- is Stage 1's own classifier and must
+    NOT reach the generator.
+
+    Stage 2 used to build a full `Stage1Classifier` and `load_state_dict` the
+    entire checkpoint, then call only `.graph_encoder`. The heads were frozen
+    and never invoked, so no Stage-1 PREDICTION ever reached the LLM -- but the
+    weights were resident, and nothing structurally prevented a later edit from
+    reading them. Extracting the `graph_encoder.*` sub-tree makes the boundary
+    explicit: the classifier weights are not loaded at all, and a checkpoint
+    that somehow lacked a graph encoder fails loudly here rather than silently
+    conditioning the LLM on random projections.
+    """
+    import torch as _torch
+    ckpt = _torch.load(ckpt_path, map_location=device, weights_only=False)
+    state = ckpt["model_state_dict"] if isinstance(ckpt, dict) and "model_state_dict" in ckpt else ckpt
+
+    prefix = "graph_encoder."
+    sub = {k[len(prefix):]: v for k, v in state.items() if k.startswith(prefix)}
+    if not sub:
+        raise KeyError(
+            f"No 'graph_encoder.*' weights in {ckpt_path}. Stage 2/3 load only "
+            f"the graph encoder; found top-level keys: "
+            f"{sorted({k.split('.')[0] for k in state})}"
+        )
+    enc = GraphEncoder(edge_dim=EDGE_ATTR_DIM)
+    missing, unexpected = enc.load_state_dict(sub, strict=True), None
+    enc = enc.to(device).eval()
+    for p in enc.parameters():
+        p.requires_grad_(False)
+
+    dropped = sorted({k.split(".")[0] for k in state if not k.startswith(prefix)})
+    print(f"[graph] Loaded graph encoder only ({len(sub)} tensors) from {ckpt_path}")
+    if dropped:
+        print(f"[graph] Stage-1 classifier weights deliberately NOT loaded: {dropped}")
+    return enc

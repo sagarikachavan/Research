@@ -76,20 +76,15 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
     Returns (models, mcp_thresholds, step_logit_bias); `models` is a LIST.
 
     ---------------------------------------------------------------------
-    FIX — eval used to disagree with training on the same run.
-    Stage 1 trains 5 machine-grouped folds and reports the 5-FOLD ENSEMBLE as
-    its primary result, but STAGE1_CKPT can only hold ONE model's weights (it
-    is what Stage 2/3 load). This function loaded that single fold, so
-    `evaluate.py --model gnn` scored the single fold while the training log
-    scored the ensemble -- the same run legitimately produced two different
-    numbers, e.g. step 0.7836 here vs 0.8022 in training, and MCP samples-F1
-    0.6649 vs 0.7287.
+    Stage 1 is ONE model. This used to reload `kfold_members` -- the paths of
+    5 fold checkpoints -- and average them, because the training script's
+    headline was a 5-fold ensemble while STAGE1_CKPT held only one fold, so
+    eval and training reported different numbers for the same run.
 
-    The training script also writes `kfold_members` into the checkpoint: the
-    paths of all 5 fold checkpoints. When present, every member is loaded and
-    the caller runs the SAME logit-averaged ensemble training reports, so the
-    two numbers now match. Falls back to the single model when the field is
-    absent (legacy checkpoints, or STAGE1_ENSEMBLE=0).
+    K-fold ensembling is gone, and with it that whole class of mismatch: the
+    checkpoint IS the model that produced the headline metric, and it is also
+    the model Stage 2/3 load. Nothing is reconstructed here beyond the weights
+    and the two calibration vectors saved next to them.
     """
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     step_logit_bias = None
@@ -123,33 +118,6 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
     model.load_state_dict(state_dict)
     model.eval()
     models = [model]
-
-    use_ensemble = os.environ.get("STAGE1_ENSEMBLE", "1") not in ("0", "false", "False")
-    members = ckpt.get("kfold_members") if isinstance(ckpt, dict) else None
-    if use_ensemble and members:
-        loaded, missing = [], []
-        for mp in members:
-            if not os.path.exists(mp):
-                missing.append(mp); continue
-            m_ckpt = torch.load(mp, map_location=device, weights_only=False)
-            m_sd = m_ckpt["model_state_dict"] if isinstance(m_ckpt, dict) and "model_state_dict" in m_ckpt else m_ckpt
-            m = Stage1Classifier().to(device)
-            m.load_state_dict(m_sd)
-            m.eval()
-            loaded.append(m)
-        if loaded:
-            models = loaded
-            print(f"[eval] K-FOLD ENSEMBLE: {len(loaded)}/{len(members)} fold "
-                  f"checkpoints loaded — matching the training script's primary metric.")
-            if missing:
-                print(f"[eval] ⚠ {len(missing)} member(s) missing; ensembling over the rest.")
-        else:
-            print("[eval] ⚠ kfold_members listed but none found on disk — "
-                  "falling back to the single stored model "
-                  "(this will NOT match the training log's ensemble numbers).")
-    elif members and not use_ensemble:
-        print("[eval] STAGE1_ENSEMBLE=0 — scoring the single stored fold, "
-              "not the ensemble.")
     return models, mcp_thresholds, step_logit_bias
 
 

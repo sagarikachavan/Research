@@ -117,7 +117,7 @@ from config import (
     STAGE2_VAL_SPLIT,
 )
 from data_utils import load_from_input_json, _embed_texts, StepLabelNormalizer, extract_mcp_labels
-from graph_encoder import Stage1Classifier
+from graph_encoder import load_graph_encoder
 from stage2_sft_qwen import GraphPrefixAdapter, build_prompt, SYSTEM_PROMPT, build_obj_parser, GRAPH_PREFIX_SRC_DIM
 
 random.seed(RANDOM_SEED)
@@ -320,7 +320,7 @@ def compute_reward_curriculum(completion: str, gold: dict, step_num: int,
 # Embedding helpers
 # ---------------------------------------------------------------------------
 
-def build_prefix_embeds(ex, stage1, adapter, device, dtype):
+def build_prefix_embeds(ex, graph_encoder, adapter, device, dtype):
     """Build exactly the Stage-2 graph-prefix input from the frozen GINE.
 
     Contract:
@@ -336,7 +336,7 @@ def build_prefix_embeds(ex, stage1, adapter, device, dtype):
         edge_attr = getattr(graph, "edge_attr", None)
         # forward_with_nodes so the adapter's resampler sees per-node graph
         # states, matching Stage-2 training exactly (see GraphPrefixAdapter).
-        graph_emb, node_states, node_mask = stage1.graph_encoder.forward_with_nodes(
+        graph_emb, node_states, node_mask = graph_encoder.forward_with_nodes(
             graph.x, graph.edge_index, graph.batch, edge_attr=edge_attr
         )
     if graph_emb.shape[-1] != GNN_OUT_DIM:
@@ -483,7 +483,7 @@ def gold_target_text(ex: dict) -> str:
 # Main training loop
 # ---------------------------------------------------------------------------
 
-def evaluate_policy_on_val(policy, adapter, stage1, embed_layer, tokenizer,
+def evaluate_policy_on_val(policy, adapter, graph_encoder, embed_layer, tokenizer,
                             val_examples, device, dtype, max_examples: int = 96) -> dict:
     """
     Greedy-decode the current policy on a capped sample of the held-out
@@ -541,7 +541,7 @@ def evaluate_policy_on_val(policy, adapter, stage1, embed_layer, tokenizer,
                 "gold_step_explanation": ex["gold_step_explanation"],
             }
             prefix_embeds = build_prefix_embeds(
-                ex, stage1, adapter, device, dtype
+                ex, graph_encoder, adapter, device, dtype
             )
             prompt_text = (
                 f"<|system|>\n{SYSTEM_PROMPT}\n"
@@ -736,21 +736,13 @@ def main():
     for p in ref_model.parameters():
         p.requires_grad_(False)
 
-    # ------------------------- Frozen Stage-1 ----------------------------
-    print(f"[Stage 3] Loading Stage-1 GNN checkpoint: {STAGE1_CKPT}")
-    stage1 = Stage1Classifier()
-    ckpt = torch.load(STAGE1_CKPT, map_location=device, weights_only=False)
-    if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
-        stage1.load_state_dict(ckpt["model_state_dict"])
-        be = ckpt.get("best_epoch", "?")
-        bs = ckpt.get("best_score", "?")
-        print(f"[Stage 3]   loaded (epoch={be}, score={bs:.4f})" if isinstance(bs, (float, int)) else
-              f"[Stage 3]   loaded (epoch={be}, score={bs})")
-    else:
-        stage1.load_state_dict(ckpt)
-    stage1 = stage1.to(device).eval()
-    for p in stage1.parameters():
-        p.requires_grad_(False)
+    # ------------------- Frozen graph encoder (ONLY) ----------------------
+    # Same boundary as Stage 2: the 512-d graph embedding is the only thing
+    # that crosses from Stage 1. The fusion, step head, MCP head, phase head
+    # and text tower are not loaded, so Stage 1's step/MCP predictions cannot
+    # reach the policy. Everything else Stage 3 starts from is Stage 2's own
+    # checkpoint (the LoRA policy and the trained prefix adapter).
+    graph_encoder = load_graph_encoder(STAGE1_CKPT, device)
 
     # ------------------------- Prefix adapter ---------------------------
     llm_hidden = policy.config.hidden_size
@@ -812,7 +804,7 @@ def main():
     # ------------------------ Validation baseline ----------------------
     print(f"\n[Stage 3] Scoring Stage-2 starting checkpoint on FULL held-out val set ({min(VAL_MAX, len(val_examples))} examples)")
     baseline = evaluate_policy_on_val(
-        policy, adapter, stage1, embed_layer, tokenizer,
+        policy, adapter, graph_encoder, embed_layer, tokenizer,
         val_examples, device, dtype, max_examples=VAL_MAX
     )
     baseline_step = float(baseline["step_exact"])
@@ -862,7 +854,7 @@ def main():
             "gold_step_explanation": ex.get("gold_step_explanation", ""),
         }
 
-        prefix_embeds = build_prefix_embeds(ex, stage1, adapter, device, dtype)
+        prefix_embeds = build_prefix_embeds(ex, graph_encoder, adapter, device, dtype)
         prompt_text = (
             f"<|system|>\n{SYSTEM_PROMPT}\n"
             f"<|user|>\n{build_prompt(ex)}\n"
@@ -1065,7 +1057,7 @@ def main():
             ckpt_path = os.path.join(STAGE3_ADAPTER_DIR, f"step_{step}")
             _save_policy_snapshot(policy, adapter, nn.Identity(), tokenizer, ckpt_path)
             val = evaluate_policy_on_val(
-                policy, adapter, stage1, embed_layer, tokenizer,
+                policy, adapter, graph_encoder, embed_layer, tokenizer,
                 val_examples, device, dtype, max_examples=VAL_MAX
             )
             val_step = float(val["step_exact"])
@@ -1199,7 +1191,7 @@ def main():
 
     with torch.no_grad():
         for ex in test_examples:
-            prefix = build_prefix_embeds(ex, stage1, adapter, device, dtype)
+            prefix = build_prefix_embeds(ex, graph_encoder, adapter, device, dtype)
             user_prompt = build_prompt(ex)
             full_prompt = f"<|system|>\n{SYSTEM_PROMPT}\n<|user|>\n{user_prompt}\n<|assistant|>\n"
             p_emb, p_len = build_prompt_embeds(full_prompt, tokenizer, embed_layer, prefix, device, dtype)

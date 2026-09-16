@@ -43,7 +43,7 @@ from config import (
     STAGE3_ADAPTER_DIR, ROOT, RANDOM_SEED,
 )
 from data_utils import load_from_input_json, StepLabelNormalizer, extract_mcp_labels, _embed_texts
-from graph_encoder import Stage1Classifier
+from graph_encoder import load_graph_encoder
 from stage2_sft_qwen import GraphPrefixAdapter, build_prompt, SYSTEM_PROMPT, GRAPH_PREFIX_SRC_DIM
 from stage3_grpo_rl import (
     build_prefix_embeds, build_prompt_embeds, trim_generated_row, _parse_completion,
@@ -94,13 +94,9 @@ def main():
     policy.eval()
     embed_layer = policy.get_input_embeddings()
 
-    print(f"[ablation] Loading Stage-1 GNN checkpoint: {STAGE1_CKPT}")
-    stage1 = Stage1Classifier()
-    ckpt = torch.load(STAGE1_CKPT, map_location=device, weights_only=False)
-    stage1.load_state_dict(ckpt["model_state_dict"] if isinstance(ckpt, dict) and "model_state_dict" in ckpt else ckpt)
-    stage1 = stage1.to(device).eval()
-    for p in stage1.parameters():
-        p.requires_grad_(False)
+    # Graph encoder ONLY -- this tool measures how much the LLM uses the graph
+    # prefix, so it must build that prefix exactly the way Stage 2/3 do.
+    graph_encoder = load_graph_encoder(STAGE1_CKPT, device)
 
     # fp32 adapter, output-only cast -- matches training's forward_batch and
     # the fixed eval/evaluate.py eval_llm() dtype path (see
@@ -123,7 +119,7 @@ def main():
     normalizer = StepLabelNormalizer()
 
     def generate(ex_for_graph: dict, ex_for_text: dict):
-        prefix = build_prefix_embeds(ex_for_graph, stage1, adapter, device, dtype)
+        prefix = build_prefix_embeds(ex_for_graph, graph_encoder, adapter, device, dtype)
         prompt = build_prompt(ex_for_text)
         full_prompt = f"<|system|>\n{SYSTEM_PROMPT}\n<|user|>\n{prompt}\n<|assistant|>\n"
         p_emb, p_len = build_prompt_embeds(full_prompt, tokenizer, embed_layer, prefix, device, dtype)

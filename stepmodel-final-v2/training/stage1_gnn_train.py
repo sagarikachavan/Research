@@ -46,11 +46,11 @@ from config import (
     STAGE1_DECOUPLED_LR, STAGE1_GRAPH_GATE_LR_MULT, STAGE1_N_FOLDS,
     STAGE1_GNN_TYPE, GNN_HEADS, STEP_PHASE_OF, STAGE1_PHASE_LOSS_WEIGHT,
     STAGE1_USE_STRUCTURED_SMOOTHING, STAGE1_SMOOTH_TEMP,
-    STAGE1_MASK_UNSUPPORTED_CLASSES, STAGE1_N_SEEDS, STAGE1_ABLATE_MIXUP,
+    STAGE1_MASK_UNSUPPORTED_CLASSES, STAGE1_ABLATE_MIXUP,
     STAGE1_ABLATE_SUPCON, STAGE1_NATURAL_SAMPLING, FUSION_HIDDEN,
     STAGE1_SEL_W_STEP_ACC, STAGE1_SEL_W_MCP_F1, STAGE1_SEL_W_STEP_MACRO,
     STAGE1_USE_TOOL_CONSTRAINTS, STAGE1_TOOL_CONSTRAINT_PENALTY,
-    TOOL_EVIDENCE_KEYWORDS, STAGE1_TRAIN_FINAL_ON_ALL,
+    TOOL_EVIDENCE_KEYWORDS,
     STAGE1_DROP_DEAD_CLASSES,
 )
 from data_utils import load_from_input_json, _embed_texts
@@ -127,13 +127,11 @@ def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=
     (see search_step_logit_bias in core/mcp_threshold_search.py). None = plain
     argmax, i.e. the previous behavior.
 
-    `model` may be a single nn.Module OR a list of nn.Modules. With a list this
-    runs a K-FOLD ENSEMBLE: step LOGITS are averaged across members and MCP
-    SIGMOID PROBABILITIES are averaged across members. Averaging step logits
-    (rather than softmax probabilities) is deliberate -- an additive per-class
-    bias `b` commutes with the mean, i.e. mean_k(logits_k + b) == mean_k(logits_k) + b,
-    so a bias calibrated on single-model out-of-fold logits applies unchanged to
-    the ensemble. See the caveat in main()'s K-fold block."""
+    `model` is a single nn.Module. A list is still accepted and averaged
+    (step LOGITS, MCP SIGMOID PROBABILITIES), but Stage 1 no longer produces
+    one: K-fold ensembling was removed and main() trains a single model. The
+    list path is kept only so the function stays usable for a deliberate
+    multi-model experiment."""
     models = list(model) if isinstance(model, (list, tuple)) else [model]
     for _m in models:
         _m.eval()
@@ -919,205 +917,73 @@ def main():
     test_loader = DataLoader(test_ds, batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
     csv_path = os.path.join(ROOT, "output", "stage1.csv")
 
-    # ── K-fold, machine-grouped (the only Stage-1 training path) ─────────────
+    # ── ONE machine-grouped train/val split, ONE model ───────────────────────
+    # Stage 1 is a single model. K-fold ensembling (5 folds, logits averaged at
+    # test time) was removed on request. `_machine_folds` is still used, but
+    # only to CUT the split: fold 0 becomes validation and the remaining folds
+    # are training, so STAGE1_N_FOLDS now reads as the val denominator
+    # (5 -> 20% of machines held out). Grouping stays by MACHINE, so no machine
+    # appears on both sides.
+    #
+    # CONSEQUENCE, stated rather than buried: calibration (the per-class MCP
+    # threshold search and the step logit-bias search) is now fit on this one
+    # held-out split instead of a pooled out-of-fold set covering every
+    # training machine. It is a smaller and less representative calibration
+    # sample, so both searches keep their never-regress guards -- they fall
+    # back to uncalibrated argmax / 0.5 thresholds when the fitted values do
+    # not beat them on the split they were fit on.
     folds = _machine_folds(examples, STAGE1_N_FOLDS, RANDOM_SEED + 1)
-    print(f"[Stage 1] K-fold ensembling: {STAGE1_N_FOLDS} machine-grouped folds "
-          f"over {len(all_machines)} machines / {len(examples)} rows")
-    for k, f in enumerate(folds):
-        n_mach = len(set(examples[i]["machine"] for i in f))
-        print(f"[Stage 1]   fold {k}: {len(f):>5} rows, {n_mach:>3} machines")
+    val_idx = folds[0]
+    train_idx = [i for f in folds[1:] for i in f]
+    tm = set(examples[i]["machine"] for i in train_idx)
+    vm = set(examples[i]["machine"] for i in val_idx)
+    assert not (tm & vm), "TRAIN/VAL machine overlap"
+    print(f"[Stage 1] Single model, machine-grouped split: "
+          f"train {len(train_idx)} rows / {len(tm)} machines  |  "
+          f"val {len(val_idx)} rows / {len(vm)} machines")
 
-    models, fold_scores = [], []
-    oof_step_logits, oof_step_gold = [], []
-    per_fold_mcp_score = []
-    per_fold_best_epoch = []
-    oof_mcp_probs, oof_mcp_gold = [], []
-    mcp_counts_ref = None
+    ckpt_path = os.path.join(ROOT, "checkpoints", "stage1_model.pt")
+    (model, mcp_w_np, mcp_counts, val_probs, val_gold,
+     val_metrics, _thr, _bias) = train_one_split(
+        full_ds, train_idx, val_idx, device, ckpt_path,
+        tag="[Stage 1]", init_seed=RANDOM_SEED,
+    )
+    print(f"[Stage 1] Validation selection score: {_selection_score(val_metrics):.4f}")
 
-    for k in range(STAGE1_N_FOLDS):
-        val_idx = folds[k]
-        train_idx = [i for j, f in enumerate(folds) if j != k for i in f]
-        # Every fold's val machines are disjoint from its own train machines by
-        # construction; assert it rather than trust it.
-        tm = set(examples[i]["machine"] for i in train_idx)
-        vm = set(examples[i]["machine"] for i in val_idx)
-        assert not (tm & vm), f"fold {k}: TRAIN/VAL machine overlap"
+    # Calibration set = the held-out val split this model never trained on.
+    val_loader = DataLoader(torch.utils.data.Subset(full_ds, val_idx),
+                            batch_size=STAGE1_BATCH_SIZE, shuffle=False,
+                            collate_fn=collate)
+    _m, cal_mcp_probs, cal_mcp_gold, cal_step_logits, cal_step_gold = evaluate(
+        model, val_loader, device, return_probs=True, return_step_logits=True)
+    print(f"[Stage 1] Calibration set: {len(cal_step_gold)} held-out rows "
+          f"from {len(vm)} machines")
 
-        print(f"\n[Stage 1][fold {k}] train {len(train_idx)} rows / {len(tm)} machines  |  "
-              f"val {len(val_idx)} rows / {len(vm)} machines"
-              + (f"  x{STAGE1_N_SEEDS} seeds" if STAGE1_N_SEEDS > 1 else ""))
-        # A2: several independently-initialized models per fold. Deep
-        # ensembling (Lakshminarayanan et al., NeurIPS 2017) targets the
-        # variance that the 0.115 per-machine accuracy std says dominates our
-        # error. Seed 0 keeps the canonical fold filename so every existing
-        # consumer (kfold_members, Stage 2/3) is unchanged.
-        fold_models = []
-        for sd in range(max(1, STAGE1_N_SEEDS)):
-            suffix = "" if sd == 0 else f"_s{sd}"
-            fold_ckpt = os.path.join(ROOT, "checkpoints", f"stage1_fold{k}{suffix}.pt")
-            tag = f"[Stage 1][fold {k}]" + (f"[seed {sd}]" if STAGE1_N_SEEDS > 1 else "")
-            (m_sd, mcp_w_np, mcp_counts, val_probs, val_gold,
-             val_metrics, _thr, _bias) = train_one_split(
-                full_ds, train_idx, val_idx, device, fold_ckpt, tag=tag,
-                init_seed=RANDOM_SEED + 977 * sd,
-            )
-            fold_models.append(m_sd)
-        model = fold_models[0]
-        models.extend(fold_models)
-        mcp_counts_ref = mcp_counts if mcp_counts_ref is None else mcp_counts_ref
-        fold_scores.append(_selection_score(val_metrics))
-
-        # Out-of-fold predictions: this model never saw these machines.
-        val_loader = DataLoader(torch.utils.data.Subset(full_ds, val_idx),
-                                batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
-        _m, p_probs, p_gold, s_logits, s_gold = evaluate(
-            model, val_loader, device, return_probs=True, return_step_logits=True
-        )
-        oof_step_logits.append(s_logits); oof_step_gold.append(s_gold)
-        oof_mcp_probs.append(p_probs);    oof_mcp_gold.append(p_gold)
-
-        # Per-fold MCP val score -- used to pick which single encoder Stage 2
-        # inherits (see best_k below).
-        per_fold_mcp_score.append(float(val_metrics["mcp_micro_f1"]))
-        try:
-            _fc = torch.load(os.path.join(ROOT, "checkpoints", f"stage1_fold{k}.pt"),
-                             map_location="cpu", weights_only=False)
-            per_fold_best_epoch.append(int(_fc.get("best_epoch", STAGE1_EPOCHS)))
-        except Exception:
-            per_fold_best_epoch.append(STAGE1_EPOCHS)
-
-    oof_step_logits = np.concatenate(oof_step_logits, axis=0)
-    oof_step_gold   = np.concatenate(oof_step_gold, axis=0)
-    oof_mcp_probs   = np.concatenate(oof_mcp_probs, axis=0)
-    oof_mcp_gold    = np.concatenate(oof_mcp_gold, axis=0)
-
-    print(f"\n[Stage 1] Pooled OUT-OF-FOLD calibration set: {len(oof_step_gold)} rows "
-          f"covering all {len(all_machines)} training machines "
-          f"(vs {int(len(examples) * (STAGE2_VAL_SPLIT or 0.15))} rows from a single split)")
-    print(f"[Stage 1] Per-fold val scores: "
-          + ", ".join(f"fold{k}={v:.4f}" for k, v in enumerate(fold_scores))
-          + f"  (mean {np.mean(fold_scores):.4f}, std {np.std(fold_scores):.4f})")
-
-    # Calibrate on POOLED OOF rather than one 15% split -- the whole point of
-    # the K-fold change. CAVEAT: OOF logits come from a single fold model each,
-    # while test-time logits are an average of K models, so the ensemble's
-    # logit spread is slightly narrower and a bias fit here is marginally
-    # aggressive. It is applied anyway because an additive bias commutes with
-    # the mean (see evaluate()'s docstring), and because both the bias search
-    # and the threshold search carry never-regress guards fit on this same OOF
-    # pool. The ensemble-vs-single comparison printed below is the check.
-    rare = [i for i, c in enumerate(mcp_counts_ref) if c < 15]
-
-    thresholds = search_per_class_thresholds(oof_mcp_probs, oof_mcp_gold,
+    rare = [i for i, c in enumerate(mcp_counts) if c < 15]
+    thresholds = search_per_class_thresholds(cal_mcp_probs, cal_mcp_gold,
                                              rare_class_indices=rare, verbose=True)
-    step_bias = search_step_logit_bias(oof_step_logits, oof_step_gold, verbose=True)
+    step_bias = search_step_logit_bias(cal_step_logits, cal_step_gold, verbose=True)
 
-    # Stage-2 encoder is chosen by MCP val score, not the combined score.
-    # WHY: the graph prefix is what Stage 2 consumes, and the per-head gates
-    # show the graph feeding MCP (gate_mcp ~0.49) while the step head shuts it
-    # off (gate_step ~0.038). A fold that wins on combined score can still be
-    # the worst MCP encoder -- exactly what happened last run: fold 0 had the
-    # top combined val score (0.7769) but the WORST test MCP micro-F1 (0.6555
-    # vs the ensemble's 0.7231), and that is the encoder Stage 2 inherited.
-    # ── GNN + text blend, weight chosen on pooled OOF ────────────────────────
-    best_k = int(np.argmax(per_fold_mcp_score))
-    best_k_combined = int(np.argmax(fold_scores))
-    if best_k != best_k_combined:
-        print(f"[Stage 1] Stage-2 fold: {best_k} (best MCP val "
-              f"{per_fold_mcp_score[best_k]:.4f}); combined-score winner was "
-              f"fold {best_k_combined} ({fold_scores[best_k_combined]:.4f}).")
+    # PRIMARY Stage-1 result. Writes output/stage1.csv so the saved
+    # predictions match the headline numbers.
+    test_metrics = evaluate(model, test_loader, device, threshold=thresholds,
+                            save_csv=True, csv_path=csv_path,
+                            dataset=test_ds.examples, step_bias=step_bias)
+    _print_test_metrics(test_metrics, "TEST — SINGLE MODEL  [PRIMARY]")
 
-    # PRIMARY Stage-1 result = the K-fold ensemble. It writes output/stage1.csv,
-    # so the saved predictions match the headline numbers.
-    test_metrics = evaluate(models, test_loader, device, threshold=thresholds,
-                            save_csv=True, csv_path=csv_path, dataset=test_ds.examples,
-                            step_bias=step_bias)
-    _print_test_metrics(test_metrics, f"TEST — {STAGE1_N_FOLDS}-FOLD ENSEMBLE (GNN only)")
-
-    # Reference points, reported but not the headline.
-    single_metrics = evaluate(models[best_k], test_loader, device,
-                              threshold=thresholds, step_bias=step_bias)
-    _print_test_metrics(single_metrics, f"TEST — single best fold ({best_k}), reference")
-
-    # Which single model goes to Stage 2/3?
-    #
-    # REMOVED: a "weight soup" (the 5 folds' weights averaged) used to compete
-    # for this slot, selected by comparing soup vs best-fold on the pooled OOF
-    # rows. That comparison was NOT a clean out-of-fold estimate -- the soup's
-    # constituent models collectively trained on every row it was scored on,
-    # while the best fold had seen only 80% of them, so the soup was
-    # systematically flattered. It also failed badly in practice when actually
-    # measured on test (0.7276 step vs the ensemble's 0.8022), because
-    # identical initialization plus 80%-overlapping data was not enough to keep
-    # the folds in one loss basin. Both the method and the selection procedure
-    # are gone.
-    #
-    # Stage 2/3 now simply receive the best fold BY MCP VALIDATION SCORE. The
-    # graph prefix is what Stage 2 consumes and the gates show the graph
-    # feeding MCP (gate_mcp ~0.49) while the step head shuts it off
-    # (gate_step ~0.038), so MCP val is the right selection criterion.
-    #
-    # KNOWN LIMITATION, stated rather than hidden: the Stage-1 headline result
-    # is the blended 5-fold ensemble, but Stage 2 can load only ONE encoder.
-    # The model that produces the headline number is therefore not the model
-    # passed downstream. Fixing that properly means either training a single
-    # final encoder on all machines once the architecture is frozen, or
-    # teaching Stage 2 to consume all members.
-    export_model = models[best_k]
-    export_tag = f"kfold_best_fold_{best_k}_by_mcp"
-
-    if STAGE1_TRAIN_FINAL_ON_ALL:
-        # Train ONE more encoder on ALL training machines and hand THAT to
-        # Stage 2/3. Fixes the inconsistency that the reported Stage-1 model
-        # (blended K-fold ensemble) was never the model passed downstream, and
-        # that the fold handed over had seen only 80% of the machines.
-        #
-        # No held-out split exists for this model by construction, so it
-        # cannot early-stop. Its epoch budget is the MEDIAN best-epoch across
-        # the folds -- using any validation data to stop it would contradict
-        # the point of training on everything.
-        med_ep = int(np.median([int(e) for e in per_fold_best_epoch])) if per_fold_best_epoch else STAGE1_EPOCHS
-        print(f"\n[Stage 1] FINAL ENCODER: training on all {len(all_machines)} machines "
-              f"for {med_ep} epochs (median best-epoch across folds; no early stopping)")
-        all_idx = [i for f in folds for i in f]
-        final_ckpt = os.path.join(ROOT, "checkpoints", "stage1_final_all_machines.pt")
-        _prev_epochs = globals().get("STAGE1_EPOCHS")
-        try:
-            (final_model, _mw, _mc, _vp, _vg, _vm, _t, _b) = train_one_split(
-                full_ds, all_idx, folds[0][:1], device, final_ckpt,
-                tag="[Stage 1][final]", init_seed=RANDOM_SEED,
-            )
-            export_model = final_model
-            export_tag = "final_all_machines"
-            print("[Stage 1] Stage-2/3 encoder = FINAL model trained on all machines")
-        except Exception as e:
-            print(f"[Stage 1] final-encoder training failed ({e}); "
-                  f"falling back to best fold {best_k}")
-    export_metrics = single_metrics
-    print(f"\n[Stage 1] Stage-2/3 encoder: fold {best_k} "
-          f"(best MCP val {per_fold_mcp_score[best_k]:.4f})")
-
-    best_ckpt = torch.load(os.path.join(ROOT, "checkpoints", f"stage1_fold{best_k}.pt"),
-                           map_location=device, weights_only=False)
-    best_ckpt["model_state_dict"] = export_model.state_dict()
-    best_ckpt["stage2_encoder"] = export_tag
-    best_ckpt["mcp_thresholds"]   = [float(x) for x in thresholds]
-    best_ckpt["step_logit_bias"]  = [float(x) for x in step_bias]
-    best_ckpt["kfold_n"]          = STAGE1_N_FOLDS
-    best_ckpt["kfold_best"]       = best_k
-    best_ckpt["kfold_members"]    = [os.path.join(ROOT, "checkpoints", f"stage1_fold{k}.pt")
-                                     for k in range(STAGE1_N_FOLDS)]
-    best_ckpt["kfold_val_scores"] = [float(v) for v in fold_scores]
-    best_ckpt["test_metrics_single"]   = {k: float(v) for k, v in single_metrics.items()}
-    best_ckpt["test_metrics_ensemble"] = {k: float(v) for k, v in test_metrics.items()}
-    best_ckpt["test_metrics_exported"] = {k: float(v) for k, v in export_metrics.items()}
-    # NOTE: no side-car blend file any more. Stage 1's step prediction is the
-    # model itself (graph tower + Qwen text tower + fusion), so the checkpoint
-    # IS the whole model and eval cannot silently score something different.
-    torch.save(best_ckpt, STAGE1_CKPT)
-    print(f"\n[Stage 1] Saved Stage-2/3 encoder ({export_tag} + pooled-OOF calibration) "
+    # The model that produces the headline number is now the SAME model Stage 2
+    # and Stage 3 load. Under K-fold it was not: the headline was a 5-member
+    # ensemble while Stage 2 could only inherit one fold.
+    ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
+    ckpt["model_state_dict"] = model.state_dict()
+    ckpt["stage2_encoder"] = "single_model"
+    ckpt["mcp_thresholds"] = [float(x) for x in thresholds]
+    ckpt["step_logit_bias"] = [float(x) for x in step_bias]
+    ckpt["val_metrics"] = {k: float(v) for k, v in val_metrics.items()}
+    ckpt["test_metrics"] = {k: float(v) for k, v in test_metrics.items()}
+    torch.save(ckpt, STAGE1_CKPT)
+    print(f"\n[Stage 1] Saved single Stage-1 model (+ held-out calibration) "
           f"to {STAGE1_CKPT}")
-    print(f"[Stage 1] Ensemble members: {STAGE1_N_FOLDS} files at checkpoints/stage1_fold*.pt")
 
 
 if __name__ == "__main__":
