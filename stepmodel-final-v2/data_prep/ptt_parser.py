@@ -72,12 +72,6 @@ import re
 # Machine-name validity check
 # ----------------------------------------------------------------------
 # A handful of rows in the source CSVs have their columns shifted -- the
-# PTT tree text leaks into the "Machine" column (e.g. an unescaped
-# character upstream threw off the CSV parser), so "Machine" ends up
-# holding something like "1. Reconnaissance {completed}\n1.1 Port
-# scanning ..." instead of an actual machine name. These rows have no
-# usable machine name and their other fields are misaligned too, so they
-# should be excluded rather than turned into garbage output folders.
 MACHINE_FRAGMENT_RE = re.compile(
     r"^\s*\d+[\.\)]|\(to-?do\)|\[to-?do\]|\(completed\)|\[completed\]|"
     r"\(in[- ]progress\)|\[in[- ]progress\]|\{(to-?do|completed|in[- ]progress|"
@@ -170,23 +164,7 @@ ACTION_STEM_RE = re.compile("|".join(ACTION_STEMS), re.IGNORECASE)
 
 # Short informational field labels that happen to contain an action-stem
 # substring (e.g. "Scan Duration" contains "scan") but are really just a
-# data field, the same as "Target IP" or "Host Status" -- not something the
-# pentester "did". Matched as a whole title (ignoring a trailing
-# parenthetical like "(Port 443)") so it doesn't over-match real actions.
 # ----------------------------------------------------------------------
-# IDENTITY / LOCATION fields -- the ONLY class of titles that stay a State
-# node even when they carry a Findings payload. These describe *what the
-# target is* (its address, name, OS, domain), not something the pentester
-# did to produce a result. Everything else with a payload is an Action
-# whose payload is its Finding -- see classify() below and the worked
-# "SMB Enumeration" example in the module docstring / prompt history,
-# where leaf items like "Connection Details", "User Credentials", "Shares
-# Enumerated" are all Actions despite having no verb in their title.
-# Kept intentionally narrow: it is much cheaper to under-collapse (an
-# occasional identity-ish item becomes its own Action+Finding pair, which
-# is harmless) than to over-collapse (a real finding gets swallowed into a
-# State node and silently disappears from the Action/Finding layer that
-# the model is trained to reason over).
 NON_ACTION_LABEL_RE = re.compile(
     r"^(target\s*ip|ip\s*address(es)?|ip|mac\s*address(es)?|host\s*name|"
     r"hostname|machine\s*name|machine|target|fqdn|domain(\s*name)?|"
@@ -198,11 +176,6 @@ NON_ACTION_LABEL_RE = re.compile(
 
 # A label like "Target IP" / "IP Address" / "IP" followed directly by an
 # actual dotted-quad address (e.g. "Target IP: 10.129.229.26 - (updated)",
-# "IP 10.129.237.18") is unambiguously identity data even though the full
-# title doesn't exactly equal the bare label -- unlike NON_ACTION_LABEL_RE
-# above, this is prefix-anchored, not whole-title, but the required
-# trailing IP literal keeps it from ever matching an unrelated action
-# title (e.g. "OS Identification" has no digits, so it's untouched).
 IP_LABEL_WITH_VALUE_RE = re.compile(
     r"^(target\s*ip|ip\s*address(es)?|ip)\s*[:\-]?\s*\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}",
     re.IGNORECASE,
@@ -212,36 +185,6 @@ IP_LABEL_WITH_VALUE_RE = re.compile(
 # classify() v3 -- corrected against the idurar walkthrough
 # ----------------------------------------------------------------------
 # The previous version (default: ACTION unless the whole title matched a
-# narrow identity whitelist) over-classified passively-observed recon
-# facts as Action -- e.g. idurar row 0's "1.5 Host Status", "1.6 SSH
-# Hostkey", "1.7 HTTP Server Headers", "1.8 HTTP Titles", "1.9 SSL
-# Certificate (Port 443)", "1.10 OS", "1.11 Scan Duration" all carry a
-# Findings payload but describe *what the target is/has*, exactly like
-# "Target IP" already correctly handled -- not something the pentester
-# separately "did". None of them start with a verb.
-#
-# So classify() now flips the default for payload-bearing items: STATE
-# unless the title clearly opens with an action verb (a real command the
-# pentester issued -- "Perform a port scan", "Determine the services...",
-# "Enumerate HTTP service", "Explore the directories", "Exploit the PHP
-# files", "Check user privileges", "Obtain reverse shell...", "Update
-# test.py file..."). This matches every worked bashed-machine example in
-# the spec (all of them lead with a verb) while no longer promoting
-# passive report fields to Action just because they happen to carry data.
-#
-# Two more signals feed the decision, each checked in a fixed order so
-# the result is deterministic and auditable:
-#   - LEAD_VERB_RE: title (after stripping a leading article) opens with
-#     one of ~60 pentest action-verb stems -> Action.
-#   - INFO_SUFFIX_RE: title ends in a reporting/data-field noun (Status,
-#     Hostkey, Headers, Titles, Certificate, Duration, Banner, Version,
-#     Fingerprint, Protocol, Info...) -> State, even if a verb stem
-#     happens to appear elsewhere in the title (e.g. "Scan Duration"
-#     contains "Scan" but is a field, not a command).
-# Items that hit neither signal (no verb lead, no denylist suffix) default
-# to State (the conservative choice -- see module docstring) and are
-# flagged `ambiguous=True` so the hybrid/LLM pass (llm_ptt_parser.py) can
-# adjudicate them specifically, instead of guessing silently.
 ACTION_LEAD_VERBS = [
     "perform", "determine", "enumerate", "explore", "exploit", "check",
     "obtain", "identify", "escalate", "update", "crack", "brute",
@@ -267,11 +210,6 @@ LEAD_VERB_RE = re.compile(
 
 # Second action signal: gerund/noun-form activity phrases that name an
 # action but in "<object> <activity-noun>" word order instead of leading
-# with an imperative verb -- "Network scanning", "Port Scanning", "SQL
-# Injection", "Service enumeration", "Subdomain discovery". Audited across
-# both CSVs: titles ending in one of these nouns are, with the phase-name
-# exceptions carved out below, actions the pentester performed, not
-# passively-reported facts.
 ACTION_NOUN_HEADS = [
     "scanning", "enumeration", "discovery", "injection", "authentication",
     "extraction", "decryption", "cracking", "mapping", "spidering",
@@ -287,11 +225,6 @@ ACTION_NOUN_HEAD_RE = re.compile(
 
 # Canonical pentest phase / MITRE-tactic-style labels: these stay State
 # even when logged as a payload-bearing sub-item (e.g. "2.1 Privilege
-# Escalation - {Findings: shell as www-data}") because the title itself
-# names the CURRENT PHASE, not a discrete action -- matches the worked
-# bashed-machine spec, which has "Privilege Escalation" as a state node.
-# Exact/near-exact match only (not a substring), so "Credential Discovery"
-# or "Network Discovery" (real actions) aren't caught by this.
 PHASE_NAME_RE = re.compile(
     r"^(reconnaissance|passive\s+information\s+gathering|"
     r"active\s+information\s+gathering|initial\s+access|"
@@ -499,13 +432,6 @@ def classify(item):
     if action_signal and info_suffix:
         # Both signals fire -- e.g. "Scan Duration" (leads with the verb
         # stem "scan" but is really the field "Duration") vs. "Enumerate
-        # Zabbix version" (leads with "Enumerate" and IS a real action
-        # that happens to end in "version"). Empirically (audited across
-        # both CSVs) the false-positive verb match only ever happens on
-        # bare two-word "<Word> <Field>" titles with no article/object/
-        # connective -- every longer title where both match is a genuine
-        # action. So: short title -> the field-noun wins (state); longer
-        # title -> the leading verb wins (action).
         return "state" if len(title.split()) <= 2 else "action"
     if action_signal:
         return "action"

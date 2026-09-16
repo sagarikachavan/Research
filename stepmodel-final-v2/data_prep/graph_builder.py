@@ -176,13 +176,6 @@ def build_graph_from_items(machine, row_index, items, extra_meta=None):
 # ------------------------------------------------------------------------
 # Validation -- automated correctness checks, run on every row, every
 # pipeline (rule-only, LLM, hybrid). This is what makes "don't ship a
-# graph the user has to manually catch problems in" an enforced guarantee
-# rather than a hope: any row that fails a check below is collected into
-# a report instead of silently passing through. It does not replace the
-# classification quality itself (that's the parser/LLM/hybrid's job) --
-# it catches assembly/consistency bugs and the one classification error
-# the dataset owner called out as a hard rule (identity fields must never
-# become Action).
 # ------------------------------------------------------------------------
 def validate_row_graph(items, graph, machine, row_index):
     """Check structural + hard-rule invariants for one row's graph.

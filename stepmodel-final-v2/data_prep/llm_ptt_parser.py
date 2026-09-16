@@ -58,47 +58,6 @@ import ptt_parser  # deterministic fallback + is_valid_machine_name
 # HYBRID MODE (parser structure + LLM classification, reconciled)
 # ========================================================================
 # Why hybrid, instead of picking one:
-#   - Structure (splitting the PTT cell into numbered items; extracting
-#     each item's title / status / payload) is NOT ambiguous in this
-#     dataset -- ptt_parser._split_raw_items / _parse_item_block handle it
-#     with a brace-balance scan, and it has been validated to never drop,
-#     merge, or reorder an item. Letting an LLM redo that from scratch on
-#     every row reintroduces exactly the failure modes a free-text
-#     re-parse has: a skipped item, a merged item, a renumbered item, or a
-#     title that quietly drifts from the source text. There's no upside
-#     to paying for that risk when a deterministic pass already gets it
-#     right for free.
-#   - Classifying a payload-bearing item as State (contextual/identity
-#     data) vs Action (something the pentester did) IS genuinely
-#     ambiguous for titles the fixed regex/whitelist can't anticipate
-#     (pentest terminology is huge and keeps growing). That's exactly the
-#     kind of judgment call an LLM is good at, and exactly where it's
-#     worth spending a call.
-# So hybrid mode: run the deterministic parser for structure, then ask the
-# LLM to classify ONLY the items that are actually ambiguous (has a
-# payload, depth > 0) -- as a fixed-shape "here are the exact items,
-# return State/Action for each `number`" call, not a free re-parse. The
-# LLM cannot add, drop, merge, renumber, or reword an item because it
-# never sees raw PTT text and its schema doesn't have room to -- see
-# _validate_classification below, which requires the returned number set
-# to equal the sent number set exactly.
-#
-# Reconciliation:
-#   - Unambiguous items (no payload, or depth 0) are never sent to the
-#     LLM at all -- they're always State, by both rule sets, so there's
-#     nothing to adjudicate and no reason to spend a call.
-#   - The identity/location whitelist (ptt_parser.NON_ACTION_LABEL_RE:
-#     target IP, hostname, machine name, OS, domain, ...) is a HARD
-#     override to State regardless of what the LLM returns. This is the
-#     one class of error (turning "Target IP" into an Action) that the
-#     dataset owner has said is unambiguously wrong, so it's enforced in
-#     code rather than left to LLM judgment on a given call.
-#   - Everywhere else, if the deterministic default and the LLM agree,
-#     use it (no ambiguity). Where they disagree, the LLM's classification
-#     wins (it has the semantic judgment the regex doesn't) -- but every
-#     disagreement is logged to the hybrid run's diagnostics so the net
-#     effect of the LLM pass is auditable in aggregate, instead of
-#     requiring a per-row manual check.
 # ========================================================================
 
 CLASSIFY_SYSTEM_PROMPT = """You are a penetration-testing analyst reviewing items already extracted from a
@@ -257,10 +216,6 @@ def parse_ptt_items_hybrid(machine, ptt_text, client, model=None,
         if ptt_parser.is_ambiguous(it):
             # Neither the identity whitelist, the leading-verb rule, nor
             # the reporting-field denylist could decide -- worth an LLM
-            # call. Everything else (identity fields, clear verb-led
-            # actions, clear report-field nouns, no-payload/top-level
-            # items) is resolved deterministically with high confidence
-            # and never sent to the LLM.
             ambiguous.append(it)
         else:
             resolved[it["number"]] = "State" if det == "state" else "Action"

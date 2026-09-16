@@ -130,15 +130,6 @@ def build_target(ex: dict) -> str:
 
 # NOTE: this file previously carried its own copy of the MCP tool regex
 # patterns (_MCP_PATTERNS_STG) and its own free-text extraction helper
-# (_extract_mcp_from_text_stg), duplicated from data_utils.py and allowed
-# to drift out of sync with the (fixed) canonical version there. Removed --
-# use extract_mcp_labels (imported from data_utils above) everywhere a
-# free-text MCP_tasks-like string needs to be turned into canonical
-# MCP_LABELS. It applies the same key-only extraction (dict keys, or the
-# text before each ';'-separated segment's first ':') that fixed the
-# ~24.5% spurious-label rate the old whole-cell regex scan had on
-# "Interactive CLI" / "Web page interaction" (e.g. matching "ssh"/"curl"
-# inside an unrelated tool's own description text).
 def _extract_mcp_from_text_stg(text: str):
     if not text:
         return []
@@ -329,21 +320,6 @@ class GraphPrefixAdapter(nn.Module):
         )
         # SCALE-MATCH THE SOFT TOKENS TO REAL TOKEN EMBEDDINGS.
         # A plain LayerNorm forces unit per-element RMS, i.e. per-token L2 norm
-        # == sqrt(llm_hidden) == ~71.6 at Qwen3-14B's hidden size of 5120.
-        # Real Qwen embed_tokens rows have L2 norm ~1.0 (measured: mean 1.023,
-        # median 1.015 on Qwen2.5-1.5B-Instruct), so the soft tokens entered
-        # the residual stream ~70x oversized. Qwen is a PRE-NORM transformer:
-        # every block reads RMSNorm(h) but writes an O(1) update back into h.
-        # Against a norm-71 residual that update is ~70x too weak to move the
-        # token, so the graph prefix passed through all 40 layers essentially
-        # UNCHANGED -- never contextualized, and never integrated with the
-        # text. Initializing the final LayerNorm's gain to 1/sqrt(llm_hidden)
-        # puts the output at per-token L2 norm ~1.0, matching the embedding
-        # table the LLM was actually trained on. It stays learnable (and
-        # per-channel), so training can still adjust it; this only fixes the
-        # starting scale. Done via the existing LayerNorm weight rather than a
-        # new parameter so the state_dict keys are unchanged and previously
-        # saved graph_adapter.pt files still load.
         with torch.no_grad():
             self.out_proj[-1].weight.fill_(1.0 / math.sqrt(llm_hidden))
 
@@ -424,12 +400,6 @@ class SFTDataset(Dataset):
 
         # IMPORTANT NUMERICAL FIX: if the prompt itself is >= max_len, the
         # old code truncated away the entire target, leaving labels == -100
-        # for every position. Hugging Face causal-LM loss then has no valid
-        # targets and returns NaN. This was the direct cause of intermittent
-        # `train_loss nan` on long strategy/explanation rows.
-        # Always reserve room for at least a meaningful target prefix and EOS.
-        # Keep the END of the prompt (strategy/task instructions) rather than
-        # the beginning if truncation is necessary.
         min_target_tokens = min(len(target_ids), max(32, min(256, len(target_ids))))
         max_prompt_len = max(1, self.max_len - min_target_tokens)
         if len(prompt_ids) > max_prompt_len:
@@ -447,21 +417,6 @@ class SFTDataset(Dataset):
 
         # ── Step-value token span (for checkpoint-selection metric) ────────
         # Locate the "New step" value's character range inside target_text
-        # (build_target's json.dumps puts it right after `{"New step": "`),
-        # then map that to a token range using the offset_mapping the
-        # tokenizer itself returns for target_text's actual tokenization.
-        #
-        # NOTE: an earlier version of this computed the span by re-tokenizing
-        # target_text[:char_start] and target_text[:char_start+len(step_val)]
-        # independently and diffing token counts. That's unsound: a BPE/word
-        # boundary token can merge characters across the cut point (e.g. a
-        # trailing `"` before the value gets fused with the value's first
-        # word when tokenized as part of the full string, but becomes its
-        # own separate token when the prefix is tokenized in isolation),
-        # silently shifting the recovered span by a token and corrupting the
-        # very metric this is meant to fix. offset_mapping reports each
-        # token's real character span from the SAME tokenize call used to
-        # build target_ids, so it can't disagree with itself this way.
         step_val = ex["step_label"]
         char_start = target_text.find(step_val)
         step_tok_start, step_tok_end = 0, 0  # default: span not found -> excluded from metric
@@ -545,13 +500,6 @@ def forward_batch(input_ids, attn, labels, graphs,
         edge_attr = getattr(graphs, 'edge_attr', None)
         # Stage 2 graph-prefix contract: ONLY the frozen Stage-1 GINE
         # representation enters the prefix adapter. The Stage-1 checkpoint is
-        # a set of weights, not an input tensor; classifier/fusion outputs are
-        # deliberately not exposed to Qwen.
-        #
-        # Now uses forward_with_nodes() so the adapter's resampler can attend
-        # to PER-NODE graph states, not just the single pooled vector (see
-        # GraphPrefixAdapter's docstring). Still purely the GINE encoder --
-        # no fusion/classifier output crosses this boundary.
         graph_emb, node_states, node_mask = graph_encoder.forward_with_nodes(
             graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
         )  # (B, 512), (B, N, GNN_HIDDEN), (B, N)
@@ -593,13 +541,6 @@ def forward_batch(input_ids, attn, labels, graphs,
     if want_weighted:
         # Manual next-token cross-entropy with a higher weight on the "New
         # step" value span (see STAGE2_STEP_TOKEN_LOSS_WEIGHT in config.py).
-        # Coordinate frames: `labels` is un-prefixed (prompt+target);
-        # labels_full = [prefix(-100) | labels], so un-prefixed index j sits
-        # at full index n_prefix+j. Next-token loss predicts label at full
-        # index k from position k-1, so the token at un-prefixed index j is
-        # scored at shift index (n_prefix + j - 1). step_spans[b] = [s, e)
-        # in un-prefixed coords therefore maps to shift indices
-        # [n_prefix+s-1, n_prefix+e-1).
         logits = out.logits.float()
         shift_logits = logits[:, :-1, :]
         shift_labels = labels_full[:, 1:]
@@ -633,26 +574,6 @@ def forward_batch(input_ids, attn, labels, graphs,
 # Validation loop — returns (avg_loss, step_field_accuracy) over the val set
 # ---------------------------------------------------------------------------
 #
-# FIX: previously this returned only avg_loss (cross-entropy averaged over
-# EVERY target token: the "New step" value, the free-text explanation, and
-# every MCP_tasks JSON key/value/punctuation token combined). Checkpoint
-# selection and early stopping picked whichever epoch minimized that blended
-# average -- which is dominated by the much-longer explanation text, and is
-# not the same thing evaluate.py measures ("Step Exact Match" / step
-# accuracy). An epoch can lower the blended loss (e.g. by getting more
-# confident/fluent on explanation text or the majority classes) while
-# getting WORSE at a specific, less-frequent step class -- exactly the
-# failure mode a class going from strong recall to 0/22 correct looks like.
-#
-# step_field_accuracy is a teacher-forced argmax-vs-gold accuracy computed
-# ONLY over the token span the "New step" value occupies (see SFTDataset's
-# step_span computation) -- i.e. "if the model had to predict each of these
-# specific tokens one at a time with the correct history so far, how often
-# does it pick the right one". It's not identical to greedy-decode exact
-# match (that needs actual generation, done separately in evaluate.py /
-# the post-training test-set loop below), but it isolates the signal that
-# actually matters for checkpoint selection instead of drowning it in
-# explanation-text loss.
 def run_validation(val_loader, model, graph_encoder, adapter, embed_layer, device, dtype,
                    tokenizer=None, val_examples=None, max_new_tokens=64):
     """Validate Stage 2 using leakage-free greedy generation.
@@ -807,10 +728,6 @@ def main():
 
     # ── Frozen graph encoder (ONLY the graph encoder) ────────────────────────
     # Stage 2 receives the 512-d graph embedding and nothing else from Stage 1.
-    # load_graph_encoder extracts the `graph_encoder.*` sub-tree and refuses to
-    # load the rest, so the fusion MLP, step head, MCP head, phase head, text
-    # tower and graph gates are never even resident here. Stage 1's step/MCP
-    # PREDICTIONS do not influence Stage 2 in any form.
     graph_encoder = load_graph_encoder(STAGE1_CKPT, device)
     print("[Stage 2] ✓ Graph encoder loaded (frozen); 512-d graph embedding is "
           "the only thing crossing the Stage-1 boundary")
@@ -878,28 +795,6 @@ def main():
 
     # ── Class-balanced sampling for training ──────────────────────────────
     # step_label support is heavily skewed (e.g. "Exploit the selected
-    # exploitations" ~92 vs "Analyze the outcomes..." ~3 in the eval split;
-    # training data is similarly skewed). Plain shuffle=True lets the model
-    # minimize token-level loss mostly by getting good at the majority
-    # class, which is consistent with the low recall on rare classes (e.g.
-    # "Do a google search for more information" recall 0.05). Stage 1's GNN
-    # avoids this via focal loss + explicit class weights (see
-    # graph_encoder.Stage1Classifier.loss); Stage 2/3 are next-token SFT so
-    # the equivalent lever is a weighted *sampler* — inverse-frequency
-    # per-example weights so every step class is seen roughly equally often
-    # per epoch, without discarding any majority-class examples.
-    # NOTE: a plain 1/count inverse-frequency weight is TOO aggressive here —
-    # with e.g. "Exploit the selected exploitations" at ~90+ examples vs
-    # "Analyze the outcomes..." at ~3, raw inverse frequency gives the rare
-    # class ~30x the sampling weight of the majority class per epoch. That
-    # overshoots: the model starts over-predicting the formerly-rare classes
-    # (e.g. "Do a google search" recall going to 100% but precision crashing
-    # to ~34%) while the majority class's own recall collapses (85% -> 38%).
-    # sqrt(1/count) is the standard, much gentler correction (used e.g. in
-    # class-balanced loss / effective-number weighting): it upweights rare
-    # classes without inverting the imbalance. Additionally clip the
-    # weight ratio to a max of 4x the smallest per-class weight so no single
-    # class can dominate or vanish from a batch.
     train_step_idxs = [e["step_idx"] for e in train_examples]
     step_counts = np.bincount(train_step_idxs, minlength=len(STEP_LABELS)).astype(np.float64)
     step_counts[step_counts == 0] = 1.0  # guard against unseen classes in this split
@@ -931,28 +826,10 @@ def main():
     trainable_params = lora_params + adapter_params
     # A conservative LR is intentional: Stage 2 only trains LoRA + the
     # graph-to-prefix projector while the 14B base is frozen.  The previous
-    # 1e-5 setting was capable of producing a non-finite update in this
-    # manual bf16 training loop.
-    # CLEANUP (architecture re-audit): config.py's STAGE2_LR/STAGE2_WEIGHT_DECAY
-    # were imported (or, for STAGE2_LR, imported but silently ignored) in
-    # favor of these two independently hardcoded literal defaults -- editing
-    # config.py had zero effect on the actual LR/weight-decay used. config.py
-    # has been updated to the values actually proven in practice (2e-6 /
-    # 1e-4, matching what was hardcoded here), and both env vars now fall
-    # back to it, restoring config.py as the real source of truth with no
-    # change to today's behavior.
     stage2_lr = float(os.environ.get("STAGE2_SAFE_LR", str(STAGE2_LR)))
     stage2_wd = float(os.environ.get("STAGE2_SAFE_WEIGHT_DECAY", str(STAGE2_WEIGHT_DECAY)))
     # SEPARATE LR GROUP FOR THE GRAPH PREFIX ADAPTER.
     # WHY: `lora_params` are low-rank deltas on an already-pretrained 14B model
-    # and genuinely want a tiny LR; `adapter_params` are a ~14.6M-parameter
-    # cross-attention resampler being trained FROM RANDOM INIT. AdamW moves a
-    # parameter by ~lr per step, so at 2e-6 over ~744 steps the adapter's
-    # learned queries travel ~1.5e-3 against a randn*0.02 init -- i.e. they
-    # stay random, attend near-uniformly, and emit GRAPH_PREFIX_TOKENS nearly
-    # identical soft tokens. That regressed Stage 2 to 0.6151 val_step_acc /
-    # 66.42% test Step Exact Match. Same bug class (and same fix) as Stage 1's
-    # graph-gate param group at STAGE1_GRAPH_GATE_LR_MULT.
     adapter_lr_mult = float(os.environ.get("STAGE2_SAFE_ADAPTER_LR_MULT",
                                           str(STAGE2_ADAPTER_LR_MULT)))
     adapter_lr = stage2_lr * adapter_lr_mult
@@ -984,13 +861,6 @@ def main():
 
     # ── Training loop with val + early stopping ────────────────────────────────
     # FIX: selection metric changed from raw val_loss to step_field_acc (see
-    # run_validation docstring) -- picking "lowest blended token loss" was
-    # optimizing a different thing than step-classification correctness,
-    # which is very plausibly why an early checkpoint with a collapsed class
-    # (0/22 correct on one step type) could still look like the "best"
-    # checkpoint by loss. val_loss is still tracked and used as a tiebreaker
-    # when step_field_acc ties, so this doesn't ignore explanation/MCP
-    # quality entirely -- it just stops letting them outvote step accuracy.
     best_val_loss     = float("inf")
     best_step_acc      = -1.0
     best_epoch         = -1
@@ -1093,20 +963,6 @@ def main():
         avg_train_loss = epoch_loss / max(finite_batches, 1)
         # BUG FIX: this was max_new_tokens=32 -- 15.6x smaller than the final
         # test-time evaluation's max_new_tokens=500. Measured against
-        # STEP_LABELS: the single longest label alone needs 23 GPT-2 tokens
-        # just to close the `"New step": "..."` field (before any JSON
-        # syntax overhead or preamble the model might emit before starting
-        # the JSON), leaving almost no margin in a 32-token budget. A
-        # generation cut off mid-label produces an unparseable/incomplete
-        # "New step" value, scoring as wrong even when the model predicted
-        # correctly -- this systematically underestimates val accuracy
-        # (observed: val plateaued at 0.74 while the SAME checkpoint scored
-        # 0.88 at final test time with the larger budget) and, worse, feeds
-        # a biased signal into checkpoint selection and early stopping.
-        # 64 tokens comfortably covers the longest label plus JSON overhead
-        # and a real margin for preamble, while staying far cheaper than the
-        # full 500-token budget (which also has to cover the free-text
-        # explanation and MCP dict that this step-only check doesn't need).
         val_loss, step_field_acc = run_validation(
             val_loader, model, graph_encoder, adapter, embed_layer, device, dtype,
             tokenizer=tokenizer, val_examples=val_examples, max_new_tokens=64
@@ -1144,26 +1000,6 @@ def main():
 
     # ── Copy best checkpoint to the canonical STAGE2_ADAPTER_DIR ─────────────
     # Stage 3 and evaluate.py load from STAGE2_ADAPTER_DIR directly, so the
-    # best checkpoint needs to be at the top-level directory too.
-    #
-    # BUG FIX: this used to copy2() the best-epoch files INTO
-    # STAGE2_ADAPTER_DIR without ever clearing whatever was already there.
-    # copy2 only overwrites a file of the SAME name -- it does nothing to a
-    # stale file left behind by an earlier run under a DIFFERENT name (e.g.
-    # an old adapter_model.bin coexisting with today's
-    # adapter_model.safetensors, or a stale index/shard file from a run that
-    # predates this checkpoint layout). PeftModel.from_pretrained() can then
-    # silently pick up the STALE file instead of the one just trained --
-    # exactly the failure signature observed: val_generated_step_acc=0.80 in
-    # memory during training, but the reloaded-from-disk test-set eval
-    # scoring near zero on BOTH step and MCP simultaneously (a collapse
-    # consistent with generating from an untrained/wrong adapter, not with
-    # a real generalization gap).
-    #
-    # Fix: wipe every TOP-LEVEL file in STAGE2_ADAPTER_DIR (never touching
-    # the "best/" subdirectory, which is what we are about to copy FROM)
-    # before copying today's checkpoint in, so no file from a previous run
-    # can ever coexist with -- or be mistaken for -- today's.
     import shutil
     if os.path.isdir(STAGE2_ADAPTER_DIR):
         stale = [f for f in os.listdir(STAGE2_ADAPTER_DIR)
@@ -1205,16 +1041,6 @@ def main():
     
     # Load best model
     # ── FIX: load the saved adapter onto a FRESH base model, not `base_model` ──
-    # `base_model` above was already wrapped in-place by get_peft_model() and
-    # trained all the way to the early-stopping epoch (epoch 6 in the observed
-    # run), not the best epoch (epoch 3) that was actually saved to disk.
-    # Calling PeftModel.from_pretrained(base_model, ...) on that already-
-    # wrapped, already-trained object is what produced the
-    # "Already found a peft_config attribute in the model... multiple
-    # adapters" warning -- it stacks a second adapter on top of the
-    # in-memory (overfit, wrong-epoch) weights instead of cleanly giving you
-    # just the best-epoch checkpoint. Reloading a clean base model guarantees
-    # eval actually reflects the saved best checkpoint and nothing else.
     del model
     del base_model
     if device == "cuda" or (hasattr(device, "type") and device.type == "cuda"):
@@ -1240,10 +1066,6 @@ def main():
 
             # Fused Stage-1 representation (matching training -- see
             # forward_batch / encode_and_predict). Was an ad hoc
-            # parameter-free graph/context blend that did NOT match what
-            # forward_batch used during training; both now call the same
-            # graph_encoder.forward_with_nodes(...) so train and eval-time
-            # generation see the identical distribution.
             edge_attr = getattr(graphs, 'edge_attr', None)
             with torch.no_grad():
                 graph_emb, node_states, node_mask = graph_encoder.forward_with_nodes(
@@ -1269,15 +1091,6 @@ def main():
             
             # ── FIX: outputs already contains ONLY the newly generated tokens ──
             # When model.generate() is called with ONLY inputs_embeds (no
-            # input_ids), HF has no token-ID representation of the prompt/prefix
-            # to prepend to the returned sequence, so `outputs` IS the
-            # completion -- there is nothing to slice off. The previous
-            # `outputs[:, n_prefix:]` chopped off the first n_prefix (16)
-            # tokens of the actual generated response (where the opening
-            # `{"New step": ...` JSON almost always lives), which is why the
-            # eval below was calling nearly every row "UNPARSEABLE". This is
-            # the same bug already identified and fixed in stage3_grpo_rl.py
-            # (see the header comment there) -- ported the fix here.
             generated_texts = tokenizer.batch_decode(outputs, skip_special_tokens=True)
 
             obj_parser = build_obj_parser()

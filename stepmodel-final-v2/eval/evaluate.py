@@ -402,15 +402,6 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     llm_hidden = llm_model.config.hidden_size
     # FIX (architecture re-audit): this used to build the adapter directly in
     # bf16 (`.to(dtype)`) before loading its checkpoint. Training deliberately
-    # keeps the adapter itself in fp32 throughout and only casts its OUTPUT to
-    # bf16 right before concatenation (see stage2_sft_qwen.py's forward_batch
-    # -- an explicit comment there documents this as the fix for
-    # "intermittent NaNs" seen when the adapter was trained directly in
-    # bf16). Loading fp32-trained weights into a module whose parameters are
-    # already bf16 silently downcasts them in place, so evaluation was
-    # running the adapter's LayerNorms/GELUs/matmuls in a precision it was
-    # deliberately trained to avoid. Keep the adapter in fp32 and only cast
-    # its output below, exactly matching training's forward_batch.
     adapter = GraphPrefixAdapter(GRAPH_PREFIX_SRC_DIM, llm_hidden).to(device)
     adapter_ckpt = os.path.join(adapter_dir, "graph_adapter.pt")
     if os.path.exists(adapter_ckpt):
@@ -449,18 +440,6 @@ def eval_llm(adapter_dir: str, threshold_override=None,
             edge_attr = getattr(pyg_batch, 'edge_attr', None)
             # Stage 2/3 graph conditioning uses ONLY the raw 512-d GINE
             # representation (see stage2_sft_qwen.py's forward_batch comment
-            # and module docstring) -- the private Stage-1 fusion/classifier
-            # vector is never exposed to the LLM. Reproduce that exact
-            # interface at evaluation time.
-            #
-            # CLEANUP (architecture re-audit): removed a `context_texts`
-            # variable and a comment claiming Stage 2/3 were trained from a
-            # "classification-calibrated fused Stage-1 representation" --
-            # both were dead/stale. context_texts was computed and never
-            # used, and the code beneath it has always called
-            # stage1.graph_encoder(...) (the raw GINE output), matching
-            # training exactly; the comment described a different, earlier
-            # design that isn't what this code (or training) actually does.
             graph_h, node_states, node_mask = stage1.graph_encoder.forward_with_nodes(
                 pyg_batch.x, pyg_batch.edge_index, pyg_batch.batch,
                 edge_attr=edge_attr
@@ -478,15 +457,6 @@ def eval_llm(adapter_dir: str, threshold_override=None,
             prefix_embeds = adapter(graph_h.float(), node_states.float(), node_mask).to(dtype)
             # BUG FIX (train/eval mismatch): this used
             # `truncation=True, max_length=900`, which keeps the FIRST 900
-            # tokens and discards the tail -- but the tail is where the
-            # actual "# Strategy" text and "# Task" instruction live
-            # (build_prompt puts Machine first, Strategy/Task last). Stage 2
-            # TRAINING truncates the other way (`prompt_ids[-max_prompt_len:]`
-            # in SFTDataset, keeping the end), so any prompt over 900 tokens
-            # was evaluated with its most important content deleted -- a
-            # deletion that never happens during training. Now matches
-            # training: keep the END, and use the same 1536 budget
-            # SFTDataset uses.
             ids = tokenizer(
                 full_prompt,
                 return_tensors="pt",
@@ -501,15 +471,6 @@ def eval_llm(adapter_dir: str, threshold_override=None,
 
             # BUG FIX (train/eval mismatch): `repetition_penalty=1.1` was
             # applied here but NOWHERE in training or in stage2_sft_qwen.py's
-            # own test loop. It is actively harmful for this task: the model
-            # must reproduce a long canonical STEP_LABELS string verbatim,
-            # and those labels repeat vocabulary that already appears in the
-            # prompt/taxonomy ("Enumerate", "the", "further", ...), so a
-            # repetition penalty systematically pushes the decoder AWAY from
-            # the exact label text that exact-match scoring requires. Dropped
-            # (along with `temperature=1.0`, which is meaningless and emits a
-            # warning under `do_sample=False`) so evaluation decodes exactly
-            # the way training/Stage-2's own evaluation does.
             out = llm_model.generate(
                 inputs_embeds=inputs_embeds,
                 attention_mask=attn,

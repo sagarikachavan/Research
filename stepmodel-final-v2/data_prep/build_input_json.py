@@ -86,13 +86,6 @@ CSV_TO_OUTPUT = {
 
 # INPUT CONTRACT: each record's model input is machine + graph +
 # new_strategy + strategy_explanation ONLY. No other fields are carried
-# into the model input. (A previous version of this file also carried
-# forward "previous_strategy"/"previous_step"/"previous_step_result" from
-# the same machine's prior row -- removed: it wasn't part of the requested
-# input schema, and "previous_step" duplicated the gold "New step" label
-# text of the prior row, letting the model partly solve step classification
-# by copying step-to-step transition frequency instead of reasoning over
-# the graph + strategy.)
 EXTRA_OUTPUT_KEYS = []
 
 
@@ -106,39 +99,6 @@ def safe_str(value):
 # Repair for upstream column misalignment
 # ---------------------------------------------------------------------------
 # 166 of 1894 training rows (8.8%) arrive with the PTT tree sitting in the
-# `Machine` column and every other value shifted out of place. They used to be
-# dropped outright. Two facts make them recoverable rather than garbage:
-#
-#   1. The CSV itself is WELL FORMED -- every row parses to exactly 10 fields.
-#      This is not a quoting/parsing bug; the values were written into the
-#      wrong columns upstream. So no re-parse of the raw file is needed.
-#   2. The shift amount VARIES row to row, because 3 of the 10 canonical step
-#      labels contain a comma ("...software versions, hidden directories and
-#      file.", "Explore the suspicious files, commands and...", "Further
-#      Enumerate the website. - hidden directories, links and software"). When
-#      one of those landed in a field it was split across two columns, adding a
-#      second, opposing shift. That is why no single fixed offset repairs them.
-#
-# Rather than reverse-engineer the shift, this locates the row's gold step by
-# SCANNING right-to-left for a canonical STEP_LABELS value -- trying a
-# two-column rejoin first (to undo a comma split) and then a single column.
-# Once the step's position is known, every other field is read at a fixed
-# offset from it. Verified against hand-checked samples of all three observed
-# shift patterns; recovers 159/166 rows (95.8%).
-#
-# MACHINE IDENTITY. The real machine name is destroyed (its slot holds the
-# PTT), and machine-grouped CV needs SOME grouping key. Checked against the
-# rest of the data: not one of the 166 rows' PTTs matches any clean row's PTT,
-# by exact match or by 2-line prefix -- these rows belong to machines that
-# appear nowhere else. So they are grouped into synthetic machines keyed on a
-# hash of their PTT prefix (23 groups, median 7 rows each). Over-merging two
-# real machines into one group is safe -- it only keeps rows together in a
-# fold; the dangerous direction is splitting one machine across folds, which
-# prefix-grouping does not do.
-#
-# TEST LEAKAGE. Explicitly checked, both ways: zero of the 166 share a PTT
-# prefix with any test row, and zero share a distinctive PTT line with any
-# test row. These rows cannot leak the test set.
 _REPAIR_ENABLED = _os.environ.get("REPAIR_MISALIGNED_ROWS", "1") not in ("0", "false", "False")
 
 _CANON_STEPS = None

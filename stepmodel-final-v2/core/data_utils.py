@@ -35,13 +35,6 @@ from config import (
 
 # INPUT CONTRACT: the model input is machine + graph + new_strategy +
 # strategy_explanation ONLY. No "previous step" fields -- those used to be
-# carried forward from the same machine's prior CSV row and fed into every
-# stage, which (a) is not part of the requested input schema, and (b) is a
-# soft label leak: "previous_step" is literally the gold "New step" label
-# text of the immediately preceding row for that machine, drawn from the
-# same STEP_LABELS taxonomy as the thing being predicted, so a model can
-# partly solve step classification by pattern-matching step-to-step
-# transition frequency instead of reasoning over the graph + strategy.
 CONTEXT_COLUMNS = [
     "New strategy",
     "Strategy explanation",
@@ -379,17 +372,6 @@ def build_graph_from_input_json_graph(graph_dict: dict):
 
     # Build edge_attr: one-hot over the actual semantic edge type emitted by
     # graph_builder.py, not a fixed placeholder.
-    #
-    # PREVIOUS BEHAVIOR (bug): every non-self-loop edge was assigned the
-    # identical [0.5, 0.5, 0] vector regardless of its real "type" field, so
-    # the GNN could never distinguish e.g. "we advanced to a new pentest
-    # state" from "this action's finding fed back into the state" — the
-    # exact structural signal that encodes the pentest strategy. The edge
-    # dicts already carry this via `e["type"]` (see graph_builder.py's
-    # add_edge calls: StateTransition / ActionUpdate / FindingUpdate /
-    # Prediction) — it just wasn't being read.
-    #
-    # dims: [StateTransition, ActionUpdate, FindingUpdate, Prediction, SelfLoop]
     EDGE_TYPE_TO_DIM = {
         "StateTransition": 0,
         "ActionUpdate": 1,
@@ -662,11 +644,6 @@ def build_graph_from_ptt(ptt_text: str):
 
     # Edge features, widened to EDGE_ATTR_DIM (5) to stay shape-compatible
     # with the primary loader's semantic edge-type encoding (see
-    # build_graph_from_input_json_graph). This fallback has no access to the
-    # real StateTransition/ActionUpdate/FindingUpdate/Prediction types (it's
-    # built straight from PTT text, not the graph_builder.py output), so
-    # parent-child/sibling/self-loop are mapped onto 3 of the 5 slots and the
-    # other 2 are left at zero.
     from config import EDGE_ATTR_DIM
     edge_attr = np.zeros((edge_index.shape[1], EDGE_ATTR_DIM), dtype=np.float32)
     sibling_set = set()
@@ -720,16 +697,6 @@ def _embed_texts(texts):
 # ---------------------------------------------------------------------------
 # Title embedding cache — process-level, persists across all dataset loads.
 #
-# Without this, build_graph_from_input_json_graph calls _embed_texts() once
-# per graph (~17 nodes × 1,894 records = ~32,000 encoder calls at Stage 1
-# init alone, repeated identically at Stage 2 and Stage 3). Many node titles
-# are shared across records of the same machine (e.g. the START node title
-# appears in every row for that machine), so the same string gets re-embedded
-# thousands of times.
-#
-# The cache maps title_string → np.ndarray(384, float32).
-# build_graph_from_input_json_graph batches all cache-miss titles into a
-# single encoder call, then stores results before building the Data object.
 # ---------------------------------------------------------------------------
 _TITLE_EMB_CACHE: dict[str, np.ndarray] = {}
 
@@ -836,10 +803,5 @@ class GNNStageDataset:
 # ---------------------------------------------------------------------------
 # REMOVED: precompute_semantic_tokens() / the frozen-GPT-2 token tower.
 #
-# Stage 1 used to run a second pretrained text model (GPT-2) purely to feed a
-# multi-kernel temporal CNN and a token-level cross-attention branch. That is
-# gone: the Stage-1 text tower is now a single Qwen3-Embedding vector per
-# example (see _embed_texts above), which is what the architecture diagram
-# specifies and what keeps the project on ONE encoder family.
 # ---------------------------------------------------------------------------
 

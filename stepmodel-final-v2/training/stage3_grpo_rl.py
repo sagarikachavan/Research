@@ -1,71 +1,101 @@
 """
-Stage 3: Custom GRPO (Group Relative Policy Optimization) with full graph
-conditioning — the same GraphPrefixAdapter soft-prompt tokens used in Stage 2
+Stage 3: custom GRPO (Group Relative Policy Optimization) with full graph
+conditioning -- the same GraphPrefixAdapter soft-prompt tokens used in Stage 2
 are injected during every RL rollout, keeping the input distribution identical
 to how the policy was trained in Stage 2.
 
 WHY A CUSTOM LOOP INSTEAD OF trl.GRPOTrainer
----------------------------------------------
-trl.GRPOTrainer drives generation through plain text token IDs.  It has no
-hook to prepend arbitrary embedding tensors before the token sequence, so
-using it forces us to drop the graph soft-prompt during RL rollouts.  That
-shifts the input distribution relative to Stage 2 — the KL penalty (β=0.02)
-is far too small to compensate, meaning Stage 3 effectively fine-tunes a
-different model than what Stage 2 produced.
+--------------------------------------------
+trl.GRPOTrainer drives generation through plain text token IDs. It has no hook
+to prepend arbitrary embedding tensors before the token sequence, so using it
+forces us to drop the graph soft-prompt during RL rollouts. That shifts the
+input distribution relative to Stage 2, and the KL penalty is far too small to
+compensate -- Stage 3 would effectively fine-tune a different model than the
+one Stage 2 produced.
 
 The custom loop is not complicated:
-  1. For each example, build the graph-prefix embeddings (frozen GNN +
-     trainable GraphPrefixAdapter) and prepend them to the token embeddings.
+  1. For each example, build the graph-prefix embeddings (frozen graph encoder
+     + trainable GraphPrefixAdapter) and prepend them to the token embeddings.
   2. Call model.generate() with inputs_embeds instead of input_ids.
   3. Score each of the G completions with the reward function.
-  4. Compute group-relative advantages  A_i = (r_i - mean) / (std + ε).
-  5. Re-run a forward pass with inputs_embeds for the generated tokens,
-     compute per-token log-probs, apply the clipped policy-gradient loss,
+  4. Compute group-relative advantages  A_i = (r_i - mean) / (std + eps).
+  5. Re-run a forward pass with inputs_embeds over the generated tokens,
+     compute per-token log-probs, apply the clipped policy-gradient loss, and
      add a KL penalty against a frozen reference copy of Stage 2.
   6. Gradient update on LoRA weights + GraphPrefixAdapter weights.
 
-Reward composition (see compute_reward() below for the exact, current weights):
-  r = 0.01 × format_ok          — valid JSON with all 3 required keys
-    + 0.33 × step_r              — exact match on the normalized predicted step
-    + 0.33 × mcp_r                — Jaccard set-F1 between predicted and gold tools
-    + 0.33 × exp_r                — deterministic explanation-quality score:
-                                     0.60 * BGE cosine similarity
-                                   + 0.20 * lexical (difflib) ratio
-                                   + 0.10 * step-keyword support
-                                   + 0.10 * predicted/gold tool-set overlap
-                                   (see _deterministic_explanation_score() below).
+WHAT CROSSES THE STAGE BOUNDARY
+-------------------------------
+Only the 512-d graph embedding. `load_graph_encoder` pulls the
+`graph_encoder.*` sub-tree out of the Stage-1 checkpoint and nothing else, so
+Stage 1's fusion, step head and MCP head are not loaded here and its
+predictions cannot leak into the policy. Everything else Stage 3 starts from is
+Stage 2's own output: the LoRA policy, the frozen KL reference, and the trained
+prefix adapter.
 
-WHY A DETERMINISTIC SCORE FOR EXPLANATION, NOT THE TEST-TIME LLM JUDGE:
-  - The project's actual test-time explanation metric is core/llm_judge.py's
-    4-dimension rubric gate (a separate Qwen model, used only by eval/evaluate.py).
-    An earlier version of this file called that judge in-loop during RL (a GPT-4o
-    call was never implemented here; the removed code called a local Qwen judge).
-  - Using the same noisy, slow evaluator as both the RL reward AND the reported
-    test metric risks the policy learning to game the judge's specific quirks
-    rather than the underlying explanation quality (reward hacking against your
-    own eval). The current deterministic proxy is cheap (reuses the project's
-    frozen BGE encoder, no extra model forward pass) and reference-aware, and
-    is deliberately kept separate from the test-time judge -- see compute_reward
-    below and its docstring.
+ALGORITHM, PRECISELY
+--------------------
+GRPO is a member of the PPO family: it keeps PPO's clipped importance-ratio
+surrogate and replaces the learned value critic with a group-relative baseline.
+There is deliberately no ValueHead here -- the group IS the baseline, which is
+the entire point of GRPO.
 
------------------------------------------------------------------------------
-FIX (this revision): completion-slicing bug when generating with inputs_embeds
------------------------------------------------------------------------------
-When `model.generate()` is called with ONLY `inputs_embeds` (no `input_ids`),
-HF's `generate()` has no token-ID representation of the prompt to prepend to
-its output, so the returned tensor contains ONLY the newly generated tokens
-— it is NOT `[prompt_tokens | generated_tokens]` the way generation with
-`input_ids` would be. The previous version of this file assumed the latter
-and sliced `gen_out[:, L_prefix_plus_prompt:]`, which — since gen_out is
-already shorter than the prompt length — produced an empty tensor on nearly
-every step, causing "No valid completions" warnings almost every step.
+Two ratios are easy to confuse, and conflating them was a real bug in an
+earlier revision:
+  * PPO ratio denominator = the ROLLOUT policy's log-probs (`old_lp`), i.e. the
+    policy as it was a few gradient steps ago. Its job is the trust region.
+  * KL reference          = the frozen Stage-2 SFT policy, fixed for the whole
+    run. Its job is to stop RL drifting away from a model that already works.
+Computing the ratio against the frozen reference makes the clip meaningless and
+double-counts the KL term.
 
-The fix: treat `gen_out` itself as the completion batch, and simply trim the
-per-row trailing pad tokens (rows are padded to a common length because
-`num_return_sequences=G` generates a batch of sequences together).
+On top of the standard GRPO objective:
+  * Clip-Higher (DAPO, Yu et al. 2025) -- widen only the UPPER clip bound so a
+    completion whose probability should rise sharply is not capped early.
+  * Dual-clip (Ye et al. 2020, a PPO variant; NOT part of GRPO or DAPO) --
+    for advantage < 0, floor the objective so one exploding-ratio sample cannot
+    dominate the batch. Added after a real incident: pg_loss 127 -> 8255 with
+    val reward falling 0.454 -> 0.29.
+  * A KL hard cap that discards an individual micro-batch's gradient rather
+    than the whole accumulation window.
+  * Dynamic sampling: a group whose rewards have near-zero variance carries no
+    learning signal, so it is resampled at a higher temperature and then
+    skipped rather than contributing a fake gradient.
+Note that DAPO itself removes the KL penalty; we keep it, because this is a
+small-data run anchored to a strong SFT checkpoint.
+
+REWARD
+------
+  r = 0.01*format + 0.15*step + 0.15*mcp + 0.69*explanation
+Explanation quality dominates by design. Advantages are z-scored per objective
+inside each rollout group before being averaged, so a numerically noisy
+objective cannot dominate the other two regardless of raw scale.
+
+The explanation term is a deterministic proxy (frozen Qwen3-Embedding cosine +
+lexical + step/tool support), NOT the LLM judge. Calling a separate 7B judge
+thousands of times inside the sampling loop is far too slow, and optimizing
+directly against it would let the policy learn to game a noisy evaluator --
+destroying its value as an independent test-time measure. The judge scores the
+FINAL model only; it never trains it.
+
+MODEL SELECTION
+---------------
+RL is only shipped if it beats the Stage-2 baseline on the held-out validation
+set on BOTH step and MCP. Otherwise Stage 2 is copied forward unchanged, so a
+regression can never be promoted.
+
+GENERATION NOTE (completion slicing)
+------------------------------------
+When generate() is called with ONLY inputs_embeds (no input_ids), HF has no
+token-ID representation of the prompt to prepend, so the returned tensor holds
+ONLY the newly generated tokens -- it is NOT [prompt | generated]. Slicing off
+a prompt length here yields an empty tensor on nearly every step. Treat gen_out
+itself as the completion batch and trim per-row trailing pad tokens (rows are
+padded to a common length because num_return_sequences=G).
 """
 import gc
 import json
+import time
 import os
 import random
 import csv
@@ -129,18 +159,6 @@ if torch.cuda.is_available():
 # ---------------------------------------------------------------------------
 # Reward function
 #
-# CLEANUP (architecture re-audit): removed a dead `ValueHead` class (never
-# instantiated anywhere -- advantages here are GRPO's group-relative z-score,
-# not a learned value baseline) and a dead in-loop LLM-judge path
-# (`LLM_JUDGE_SYSTEM_PROMPT`, `_get_cache_key`, `set_llm_judge_model`,
-# `_explanation_llm_judge_cached`): `set_llm_judge_model` was never called
-# from anywhere in the repo, so `_llm_judge_model`/`_llm_judge_tokenizer` were
-# always None and every call would have silently fallen through to the
-# length-bucket heuristic branch, not an actual judge call -- confirmed dead,
-# not merely unused. The module docstring above previously described this
-# reward component as "GPT-4o" LLM-judge scoring, which was never true of any
-# code in this file; the actual, live explanation reward is
-# `_deterministic_explanation_score()` below.
 # ---------------------------------------------------------------------------
 
 # Shared normalizer instance so the RL reward's step-correctness check uses
@@ -150,25 +168,6 @@ _step_normalizer = StepLabelNormalizer()
 
 # BUG FIX: this used to be a single-shot `json.loads` between the first `{`
 # and the last `}` -- fragile against anything outside the exact happy path
-# (any stray brace elsewhere in the text, e.g. inside a generated
-# explanation, breaks the whole parse; no fallback if the JSON is slightly
-# malformed). Evidence this was a real, not theoretical, problem: the
-# training log's own `fmt` counter showed as few as 3/8 completions in a
-# group parsing successfully from a model that had JUST been SFT-trained
-# specifically to emit this exact format -- and this same weak parser fed
-# BOTH `compute_reward` (the actual RL reward signal) and
-# `evaluate_policy_on_val` (the Stage-2-baseline/periodic-validation score),
-# while `stage2_sft_qwen.py`'s own final test-set evaluation used the much
-# more robust `build_obj_parser()` (multi-layer regex fallbacks per field,
-# already imported into this file at the top but only ever wired into the
-# very last test-CSV loop). That parser mismatch is very plausibly why the
-# Stage-2-checkpoint "baseline" this file reports (step=0.6318 on val) reads
-# so much lower than the SAME checkpoint's own test-time number (0.8843) --
-# not a real val/test generalization gap, a parser-strictness gap. Now uses
-# the same hardened parser everywhere in this file, so the reward signal
-# GRPO actually trains against stops being artificially pessimistic, and
-# every printed/logged number in this file is comparable to Stage 2's own
-# reported numbers instead of measuring something stricter.
 _obj_parser = build_obj_parser()
 
 
@@ -655,13 +654,6 @@ def main():
 
     # These CAN be overridden per-run via env vars without editing config.py,
     # but the fallback default (when no env var is set) now comes from
-    # config.py's corresponding STAGE3_* constant instead of an independently
-    # hardcoded literal -- architecture re-audit found all ten STAGE3_*/GRPO
-    # constants in config.py were imported above but silently never read
-    # again, so tuning config.py had zero effect on a real run. This restores
-    # config.py as the actual source of truth with NO change to today's
-    # values (every default below matches what was already hardcoded here,
-    # except SAFE_GRAD_CLIP/SAFE_DUAL_CLIP/SAFE_KL_HARD_CAP -- see below).
     G = int(os.environ.get("STAGE3_SAFE_GROUP_SIZE", str(STAGE3_GROUP_SIZE)))
     SAFE_LR = float(os.environ.get("STAGE3_SAFE_LR", str(STAGE3_LR)))
     SAFE_STEPS = int(os.environ.get("STAGE3_SAFE_STEPS", str(STAGE3_STEPS)))
@@ -738,10 +730,6 @@ def main():
 
     # ------------------- Frozen graph encoder (ONLY) ----------------------
     # Same boundary as Stage 2: the 512-d graph embedding is the only thing
-    # that crosses from Stage 1. The fusion, step head, MCP head, phase head
-    # and text tower are not loaded, so Stage 1's step/MCP predictions cannot
-    # reach the policy. Everything else Stage 3 starts from is Stage 2's own
-    # checkpoint (the LoRA policy and the trained prefix adapter).
     graph_encoder = load_graph_encoder(STAGE1_CKPT, device)
 
     # ------------------------- Prefix adapter ---------------------------
@@ -845,6 +833,9 @@ def main():
     kl_skipped = 0
     applied = 0
     consecutive_zero_var = 0
+    t_start = time.time()
+    zero_var_skipped = 0
+    gen_calls = 0
 
     for step in range(1, SAFE_STEPS + 1):
         ex = random.choices(train_examples, weights=sample_weights.tolist(), k=1)[0]
@@ -902,6 +893,7 @@ def main():
 
         if rewards_np is None or float(rewards_np.std()) < 0.03:
             consecutive_zero_var += 1
+            zero_var_skipped += 1
             if step % 50 == 0:
                 print(f"[Stage 3] step {step:4d}: reward std={0.0 if rewards_np is None else rewards_np.std():.4f}; skipping low-information group")
             if consecutive_zero_var >= 100:
@@ -945,6 +937,7 @@ def main():
 
         loss_sum = torch.zeros((), device=device)
         kl_sum = 0.0
+        pg_sum = 0.0
         valid = 0
 
         for i, ids in enumerate(chosen_ids):
@@ -974,15 +967,6 @@ def main():
             clip_obj = torch.minimum(surr1, surr2)
             # Dual-clip PPO (Ye et al. 2020; see config.py's
             # STAGE3_DUAL_CLIP_COEF comment for the real pg_loss-explosion
-            # incident -- pg_loss 127->8255, val reward 0.454->0.29 -- this
-            # fixes). For a NEGATIVE-advantage sample whose ratio has drifted
-            # far above 1, single-clip's min(surr1, surr2) does not bound the
-            # objective from below -- only the "good news" direction is
-            # capped, so a single exploding-ratio, negative-advantage
-            # completion can dominate the whole batch loss. Floor the
-            # objective at SAFE_DUAL_CLIP * adv (adv < 0 here, SAFE_DUAL_CLIP
-            # > 1, so this floor is always looser than the raw unclipped
-            # surr1 could otherwise fall to as ratio -> exp(4) ~ 55).
             dual_clip_obj = torch.maximum(clip_obj, SAFE_DUAL_CLIP * adv)
             obj = torch.where(adv < 0, dual_clip_obj, clip_obj)
             pg = -obj
@@ -999,20 +983,17 @@ def main():
             kl = torch.clamp(torch.exp(delta_ref) - delta_ref - 1.0, min=0.0, max=4.0)
             kl_sum += float(kl.detach().item())
 
+            pg_sum += float(pg.detach().item())
             loss_sum = loss_sum + (pg + SAFE_KL * kl) / max(1, G)
 
         if valid == 0:
             continue
 
         mean_kl = kl_sum / valid
+        mean_pg = pg_sum / valid
         if mean_kl > SAFE_KL_HARD_CAP:
             # Per-micro-batch KL safety rail (config.py's STAGE3_KL_HARD_CAP:
             # this used to be hardcoded to 1.0 here regardless of config, which
-            # config.py's own comment documents as too tight -- it discarded
-            # ~28% of micro-batches, including good ones, for no real safety
-            # benefit once dual-clip PPO above already keeps pg_loss bounded
-            # even when an individual micro-batch's KL spikes to 5-6. Now
-            # reads the documented 4.0 default from config.py.
             kl_skipped += 1
             optimizer.zero_grad(set_to_none=True)
             if step % 50 == 0:
@@ -1036,7 +1017,7 @@ def main():
             optimizer.zero_grad(set_to_none=True)
             scheduler.step()
 
-        if step <= 3 or step % 50 == 0:
+        if step % 50 == 0:
             fmt = sum(_parse_completion(t) is not None for t in chosen_text)
             step_hit = np.mean([
                 1.0 if compute_reward(t, gold, w_fmt=0.0, w_step=1.0, w_mcp=0.0, w_exp=0.0) else 0.0
@@ -1046,10 +1027,19 @@ def main():
             for t in chosen_text:
                 c = compute_reward(t, gold, w_fmt=0.0, w_step=0.0, w_mcp=1.0, w_exp=0.0, return_components=True)
                 mcp_vals.append(c["mcp"])
+            exp_vals = [
+                compute_reward(t, gold, w_fmt=0.0, w_step=0.0, w_mcp=0.0, w_exp=1.0,
+                               return_components=True)["exp"]
+                for t in chosen_text
+            ]
             print(
-                f"step {step:4d}/{SAFE_STEPS} | lr {scheduler.get_last_lr()[0]:.2e} | "
-                f"avg_r {rewards.mean().item():.3f} | step {step_hit:.2f} mcp {np.mean(mcp_vals):.2f} | "
-                f"fmt {fmt}/{G} | reward_std {rewards.std(unbiased=False).item():.3f} | kl {mean_kl:.4f} | anchor {anchor_nll.item():.3f}"
+                f"step {step:4d}/{SAFE_STEPS} | "
+                f"lr {scheduler.get_last_lr()[0]:.2e} | "
+                f"avg_r {rewards.mean().item():.3f} | "
+                f"step {step_hit:.2f} mcp {np.mean(mcp_vals):.2f} exp {np.mean(exp_vals):.2f} | "
+                f"fmt {fmt}/{G} | "
+                f"kl {mean_kl:.3f} | "
+                f"pg_loss {mean_pg:.3f}"
             )
 
         # ---------------- checkpoint + full validation ----------------
@@ -1113,6 +1103,18 @@ def main():
     print(f"  Best RL full-val task : {best_score:.4f} (step={best_step_metric:.4f}, mcpJ={best_mcp_metric:.4f}, step={best_step})")
     print(f"  RL optimizer updates  : {applied}")
     print(f"  KL-skipped updates    : {kl_skipped}")
+    _el = time.time() - t_start
+    print(f"  Wall time             : {int(_el // 3600)}h{int(_el % 3600 // 60):02d}m  "
+          f"({gen_calls} rollouts = {gen_calls * G:,} generations)")
+    _done = max(1, step)
+    _waste = 100.0 * (zero_var_skipped + kl_skipped) / _done
+    print(f"  Rollouts that produced NO gradient: {zero_var_skipped} zero-variance "
+          f"+ {kl_skipped} high-KL = {_waste:.1f}% of compute")
+    if _waste > 30:
+        print("  NOTE: >30% wasted. A group whose 8 completions score almost identically")
+        print("        carries no learning signal. If this stays high the policy is already")
+        print("        saturated on these prompts and more steps will not help -- raise")
+        print("        sampling temperature or shorten the run instead.")
     print("=" * 72)
 
     # Always produce a canonical Stage-3 directory.  If RL did not beat the

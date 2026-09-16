@@ -480,28 +480,10 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
 
     # Logit adjustment (Menon et al., ICLR 2021): log of each Step class's
     # TRAIN-split prior, used to bias training-time logits toward leaving a
-    # margin proportional to class rarity (see config.py /
-    # STAGE1_IMPROVEMENTS.md). Unlike the capped inverse-frequency weights
-    # above, this never saturates for very rare classes. Computed from raw
-    # step_counts (not the clipped step_w_np) since it needs the true prior,
-    # not the already-bounded sampling weight.
     step_priors = np.clip(step_counts / max(step_counts.sum(), 1.0), 1e-6, 1.0)
     _log_priors = np.log(step_priors)
     # SAFETY: a class with ZERO training rows gets prior 1e-6 -> log = -13.8.
     # Combined with label smoothing (which hands EVERY class, including that
-    # one, a small target probability on every example) the network is forced
-    # to inflate that class's raw logit by ~+13.8 to reach the smoothed
-    # target. Logit adjustment is removed at inference, so the inflated logit
-    # resurfaces and the class wins everywhere.
-    #
-    # Reproduced in isolation on this dataset's real class counts:
-    #   label_smoothing=0.05, no LA  -> class-7 logit  -2.17   fine
-    #   LA, no label_smoothing       -> class-7 logit  -7.73   fine
-    #   BOTH (this codebase's config)-> class-7 logit  +8.55, predicted on
-    #                                   1499/1501 rows -- total collapse.
-    # Class 7 "Ask for human assistant" has 0 rows in train AND test, so it is
-    # exactly the class this hits. Setting its adjustment to 0 removes the
-    # hazard without changing behavior for any class that has data.
     _log_priors[step_counts <= 0] = 0.0
     step_log_priors = torch.tensor(_log_priors, dtype=torch.float32, device=device)
 
@@ -553,10 +535,6 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     if STAGE1_NATURAL_SAMPLING:
         # Kang et al. (ICLR 2020): learn the REPRESENTATION under the natural
         # distribution, rebalance the CLASSIFIER afterwards. Doing both at once
-        # (weighted sampler + class weights + focal during representation
-        # learning, THEN decoupled classifier retraining) partly defeats the
-        # purpose of the decoupled stage. This leaves the decoupled classifier
-        # stage as the only rebalancing mechanism.
         print(f"{tag} NATURAL SAMPLING: weighted sampler + step class weights disabled "
               f"for representation learning (decoupled classifier stage still rebalances)")
         train_loader = DataLoader(train_ds, batch_size=STAGE1_BATCH_SIZE, shuffle=True,
@@ -568,17 +546,6 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
 
     # IDENTICAL INIT ACROSS FOLDS. The module-level torch.manual_seed only runs
     # once at import, so every fold used to draw a DIFFERENT random init --
-    # which put the folds in different loss basins and made averaging their
-    # weights meaningless (independently-initialized networks differ by
-    # arbitrary neuron permutations / rotations). Re-seeding here means all
-    # folds start from the SAME weights and then train on 80%-overlapping
-    # data. This was originally motivated by weight averaging ("model soup"),
-    # which has since been REMOVED -- averaging the folds scored 0.7276 on test
-    # against the ensemble's 0.8022, so shared init plus 80% data overlap was
-    # not enough to keep them in one loss basin. The shared init is kept
-    # anyway: it reduces fold-to-fold variance in the logit-averaged ensemble.
-    # Training stochasticity (sampling, dropout, augmentation) is re-randomized
-    # per fold immediately after, so the folds still differ.
     _seed = RANDOM_SEED if init_seed is None else int(init_seed)
     torch.manual_seed(_seed)
     if torch.cuda.is_available():
@@ -597,12 +564,6 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
 
     # ROUND 6 (see config.py's STAGE1_GRAPH_GATE_LR_MULT comment): the graph
     # gate is a single scalar with a short gradient path -- give it its own
-    # optimizer param group at a much higher LR so it actually reaches
-    # equilibrium within the training budget instead of creeping (the first
-    # real run moved it only ~7% in 44 epochs). Both groups share the same
-    # `lr_lambda` warmup/cosine schedule below (LambdaLR applies one
-    # multiplicative schedule to every group's own base LR), so the ~12x
-    # ratio between them holds throughout training, not just at epoch 0.
     if getattr(model, "use_graph_gate", False):
         # ROUND 7: all gate scalars (shared + per-head) share the fast LR
         # group -- they are single scalars with a short gradient path and
@@ -642,24 +603,9 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
         (4, 1),   # domain <-> service enumeration
         # ADDED: explore-suspicious-files <-> exploit. This is the single
         # largest confusion pair in BOTH the predecessor codebase's own
-        # audit ("Both Stage 1 and Stage 2 (and 3) consistently confuse
-        # 'Explore the suspicious files...' with 'Exploit the selected
-        # exploitations'" -- CHANGES_AND_FINDINGS.md) and a fresh test-set
-        # error analysis on this codebase (12/268 rows, more than double
-        # any other single confusion pair: 8 Explore->Exploit + 4
-        # Exploit->Explore). It was flagged twice and never actually added
-        # to this list -- adding it now gives the margin loss a direct
-        # shot at the #1 error mode instead of only the smaller ones.
         (2, 5),   # explore <-> exploit
         # ADDED from the Round-7 test confusion matrix: class 2
         # ("Explore the suspicious files...") absorbed 26 of the 60 total
-        # step errors -- 43% of ALL errors were false-positive class 2, and
-        # its precision was only 0.40. The worst single donor was class 8
-        # ("Explore the source code for vulnerabilities."), which lost 4 of
-        # its 5 test examples to class 2 -- unsurprising given both labels
-        # literally start with "Explore the...". That exact pair was never
-        # in this list. Class 6 ("Analyze the outcomes...") was likewise
-        # predicted 7x for 3 gold examples, 0 correct.
         (2, 8),   # explore-suspicious-files <-> explore-source-code
         (0, 2),   # google search <-> explore-suspicious-files
     ]
@@ -716,10 +662,6 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
 
             # Optional Manifold Mixup auxiliary term (default OFF -- see
             # config.py STAGE1_USE_MANIFOLD_MIXUP). Purely additive: reuses
-            # the fused_h this batch already computed, only re-runs the two
-            # cheap linear heads on a convex combination of two examples'
-            # fused vectors + soft-mixed targets, so it cannot change the
-            # primary forward pass even when enabled.
             if STAGE1_USE_MANIFOLD_MIXUP and not STAGE1_ABLATE_MIXUP and fused_step.size(0) > 1:
                 mix_loss = manifold_mixup_loss(
                     model, fused_step, step_idx, mcp_vec,
@@ -919,19 +861,6 @@ def main():
 
     # ── ONE machine-grouped train/val split, ONE model ───────────────────────
     # Stage 1 is a single model. K-fold ensembling (5 folds, logits averaged at
-    # test time) was removed on request. `_machine_folds` is still used, but
-    # only to CUT the split: fold 0 becomes validation and the remaining folds
-    # are training, so STAGE1_N_FOLDS now reads as the val denominator
-    # (5 -> 20% of machines held out). Grouping stays by MACHINE, so no machine
-    # appears on both sides.
-    #
-    # CONSEQUENCE, stated rather than buried: calibration (the per-class MCP
-    # threshold search and the step logit-bias search) is now fit on this one
-    # held-out split instead of a pooled out-of-fold set covering every
-    # training machine. It is a smaller and less representative calibration
-    # sample, so both searches keep their never-regress guards -- they fall
-    # back to uncalibrated argmax / 0.5 thresholds when the fitted values do
-    # not beat them on the split they were fit on.
     folds = _machine_folds(examples, STAGE1_N_FOLDS, RANDOM_SEED + 1)
     val_idx = folds[0]
     train_idx = [i for f in folds[1:] for i in f]

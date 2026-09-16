@@ -227,39 +227,6 @@ def validate_thresholds_vs_baseline(
 # STEP per-class logit-bias calibration
 # ===========================================================================
 # WHY THIS EXISTS: the MCP head gets per-class decision calibration above and
-# it demonstrably helps (a real run: val micro-F1 0.7742 tuned vs 0.7557
-# uniform). The STEP head had no equivalent at all -- it was plain
-# argmax(logits) -- even though its confusion matrix shows exactly the kind
-# of systematic decision-boundary bias calibration exists to fix. From a real
-# 268-row test run:
-#
-#     class                gold  pred  correct
-#     2 explore-files        30    43       17    <- +13 over-predicted, P=0.40
-#     6 analyze               3     7        0    <- +4  over-predicted
-#     0 google               22    16       15    <- -6  under-predicted
-#     8 explore-source        5     1        1    <- -4  under-predicted
-#
-# 43% of ALL step errors were false-positive "explore-files" alone. That is a
-# threshold/prior problem, not purely a representation problem: the features
-# may separate the classes fine while the argmax boundary sits in the wrong
-# place.
-#
-# The multi-class analogue of a per-label threshold is a per-class ADDITIVE
-# LOGIT BIAS, chosen so argmax(logits + bias) maximizes validation accuracy.
-# This is standard post-hoc calibration / prior correction for long-tailed
-# classification and is the inference-time counterpart of the train-time
-# logit adjustment (Menon et al., ICLR 2021) already used in this codebase.
-#
-# It carries ALL THREE defenses the MCP search uses, because fitting 10 free
-# parameters to a 239-row validation split is exactly the overfitting trap
-# that made the original MCP threshold search collapse the test set:
-#   1. MIN-SUPPORT GATE  -- a class with too few validation examples keeps
-#      bias 0.0 and is never tuned.
-#   2. BOOTSTRAP-STABILIZED search -- coordinate ascent is repeated over
-#      resamples of the validation set and the per-class MEDIAN is taken,
-#      instead of trusting one point estimate. Bias values are bounded.
-#   3. NEVER-REGRESS CHECK -- if the tuned bias does not beat zero-bias
-#      argmax on the validation set it was fit on, it is discarded entirely.
 # ===========================================================================
 
 

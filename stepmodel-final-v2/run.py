@@ -16,6 +16,7 @@ Usage:
     python run.py                        # run all stages
     python run.py --start-from stage2   # resume from a specific stage
     python run.py --only generate_graphs build_input_json  # run specific stages
+    python run.py --only graph_ablation                  # diagnostics (opt-in only)
 
 Available stage names:
     generate_graphs, build_input_json, stage1, stage2, stage3, evaluate
@@ -40,16 +41,14 @@ STAGES = [
     ("baseline_zeroshot", "eval/baseline_llm_eval.py",     ["--num_shots", "0"]),
     ("baseline_3shot",    "eval/baseline_llm_eval.py",     ["--num_shots", "3"]),
     ("baseline_5shot",    "eval/baseline_llm_eval.py",     ["--num_shots", "5"]),
-#     # Reference "frozen GPT-2 + dual-head TextCNN" baseline from the
-#     # Pen-Strategist paper / GitHub repo (train_step_CNN.py / test_step_CNN.py),
-#     # trained on the same "New strategy\nStrategy explanation" input.
-#     # Cached after first run — pass --force-retrain to eval/baseline_paper_cnn.py
-#     # directly if you change the CNN baseline's hyperparameters.
+    # Reference "frozen GPT-2 + dual-head TextCNN" baseline from the
+    # Pen-Strategist paper. Cached after first run.
     ("baseline_paper_cnn", "eval/baseline_paper_cnn.py",   []),
     ("comparison",        "eval/comparison_report.py",     []),
 ]
 
-STAGE_NAMES = [s[0] for s in STAGES]
+ALL_STAGES = STAGES
+STAGE_NAMES = [s[0] for s in ALL_STAGES]
 
 BASE_DIR = Path(__file__).parent
 
@@ -119,10 +118,14 @@ def main():
 
     if args.only:
         only_set = set(args.only)
-        stages_to_run = [s for s in STAGES if s[0] in only_set]
+        stages_to_run = [s for s in ALL_STAGES if s[0] in only_set]
     elif args.start_from:
-        start_idx = STAGE_NAMES.index(args.start_from)
-        stages_to_run = STAGES[start_idx:]
+        # start_from walks the pipeline only; diagnostics never auto-run.
+        pipeline_names = [s[0] for s in STAGES]
+        if args.start_from not in pipeline_names:
+            sys.exit(f"'{args.start_from}' is a diagnostic, not a pipeline stage. "
+                     f"Run it with:  python run.py --only {args.start_from}")
+        stages_to_run = STAGES[pipeline_names.index(args.start_from):]
 
     if not stages_to_run:
         print("No stages selected. Exiting.")

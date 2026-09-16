@@ -193,13 +193,6 @@ def evaluate_model(csv_data, model_name):
 
         # --- additional metrics for evaluating a "which tools" multi-label task ---
         # samples_f1: precision/recall/F1 computed PER ROW then averaged across rows.
-        #   This is what the Pen-Strategist paper (and train_step_CNN.py /
-        #   test_step_CNN.py) report as "Micro F1" for the MCP head — it is NOT
-        #   the same number as sklearn's average='micro' (which pools all
-        #   TP/FP/FN across the whole matrix first). Report both; they can
-        #   diverge under label imbalance, and only samples_f1 is directly
-        #   comparable to the numbers in Table 3 of the paper / the two
-        #   reference scripts.
         mcp_metrics['samples_f1'] = f1_score(g, p, average='samples', zero_division=0)
         mcp_metrics['samples_precision'] = precision_score(g, p, average='samples', zero_division=0)
         mcp_metrics['samples_recall'] = recall_score(g, p, average='samples', zero_division=0)
