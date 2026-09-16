@@ -463,7 +463,7 @@ class Stage1Classifier(nn.Module):
 
     WHAT WAS KEPT
     -------------
-      * Per-head graph gates. These are not decoration: across all five folds
+      * Per-head graph gates. These are not decoration: in training runs
         the step gate converges to ~0.04 while the MCP gate holds near ~0.50,
         i.e. the step head learns to ignore the graph while the MCP head
         relies on it. That asymmetry is a measured result worth preserving and

@@ -76,15 +76,11 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
     Returns (models, mcp_thresholds, step_logit_bias); `models` is a LIST.
 
     ---------------------------------------------------------------------
-    Stage 1 is ONE model. This used to reload `kfold_members` -- the paths of
-    5 fold checkpoints -- and average them, because the training script's
-    headline was a 5-fold ensemble while STAGE1_CKPT held only one fold, so
-    eval and training reported different numbers for the same run.
-
-    K-fold ensembling is gone, and with it that whole class of mismatch: the
-    checkpoint IS the model that produced the headline metric, and it is also
-    the model Stage 2/3 load. Nothing is reconstructed here beyond the weights
-    and the two calibration vectors saved next to them.
+    Stage 1 is ONE model trained on a single machine-grouped split -- no
+    cross-validation, no ensembling. The checkpoint IS the model that produced
+    the headline metric, and it is also the model Stage 2/3 load. Nothing is
+    reconstructed here beyond the weights and the two calibration vectors
+    (MCP thresholds, step logit bias) saved next to them.
     """
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     step_logit_bias = None

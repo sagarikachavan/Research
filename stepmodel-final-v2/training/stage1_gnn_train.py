@@ -43,7 +43,7 @@ from config import (
     STAGE1_ASL_CLIP, STAGE1_USE_MANIFOLD_MIXUP, STAGE1_MIXUP_ALPHA,
     STAGE1_MIXUP_WEIGHT, STAGE1_SUPCON_TEMPERATURE,
     STAGE1_USE_DECOUPLED_RETRAIN, STAGE1_DECOUPLED_EPOCHS,
-    STAGE1_DECOUPLED_LR, STAGE1_GRAPH_GATE_LR_MULT, STAGE1_N_FOLDS,
+    STAGE1_DECOUPLED_LR, STAGE1_GRAPH_GATE_LR_MULT, STAGE1_VAL_SPLIT,
     STAGE1_GNN_TYPE, GNN_HEADS, STEP_PHASE_OF, STAGE1_PHASE_LOSS_WEIGHT,
     STAGE1_USE_STRUCTURED_SMOOTHING, STAGE1_SMOOTH_TEMP,
     STAGE1_MASK_UNSUPPORTED_CLASSES, STAGE1_ABLATE_MIXUP,
@@ -108,8 +108,29 @@ def collate(items):
             torch.stack([b["text_emb"] for b in items]))
 
 
+def _machine_split(examples, val_frac, seed):
+    """Split row indices into (train, val) by MACHINE, never by row.
+
+    Rows from one machine are near-duplicates of each other (same PTT graph,
+    adjacent steps), so a row-level split leaks. Whole machines go to one side
+    or the other. Returns (train_idx, val_idx).
+    """
+    by_machine = {}
+    for i, ex in enumerate(examples):
+        by_machine.setdefault(ex["machine"], []).append(i)
+    machines = sorted(by_machine)
+    rng = np.random.default_rng(seed)
+    order = rng.permutation(len(machines))
+    n_val = max(1, int(round(len(machines) * float(val_frac))))
+    val_machines = {machines[i] for i in order[:n_val]}
+    train_idx, val_idx = [], []
+    for m, idxs in by_machine.items():
+        (val_idx if m in val_machines else train_idx).extend(idxs)
+    return sorted(train_idx), sorted(val_idx)
+
+
 def _selection_score(metrics):
-    """Composite score used for checkpoint / fold selection only.
+    """Composite score used for checkpoint selection only.
 
     Step accuracy alone rewards collapsing onto the 34%-prevalence "Exploit"
     class; MCP alone ignores the headline metric. Reported numbers stay
@@ -129,7 +150,7 @@ def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=
 
     `model` is a single nn.Module. A list is still accepted and averaged
     (step LOGITS, MCP SIGMOID PROBABILITIES), but Stage 1 no longer produces
-    one: K-fold ensembling was removed and main() trains a single model. The
+    one: Stage 1 trains a single model, so main() never builds a list. The
     list path is kept only so the function stays usable for a deliberate
     multi-model experiment."""
     models = list(model) if isinstance(model, (list, tuple)) else [model]
@@ -487,7 +508,7 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     _log_priors[step_counts <= 0] = 0.0
     step_log_priors = torch.tensor(_log_priors, dtype=torch.float32, device=device)
 
-    # A5: which step classes actually have training support in THIS fold.
+    # A5: which step classes actually have training support in this split.
     support_mask = (step_counts > 0)
     if STAGE1_MASK_UNSUPPORTED_CLASSES and not support_mask.all():
         dead = [i for i, ok in enumerate(support_mask) if not ok]
@@ -544,22 +565,22 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
         sampler = WeightedRandomSampler(torch.as_tensor(sample_weights, dtype=torch.double), num_samples=len(train_idx), replacement=True)
         train_loader = DataLoader(train_ds, batch_size=STAGE1_BATCH_SIZE, sampler=sampler, collate_fn=collate, drop_last=False)
 
-    # IDENTICAL INIT ACROSS FOLDS. The module-level torch.manual_seed only runs
-    # once at import, so every fold used to draw a DIFFERENT random init --
+    # Reproducible init. The module-level torch.manual_seed only runs once at
+    # import, so a re-entrant call used to draw a DIFFERENT random init --
     _seed = RANDOM_SEED if init_seed is None else int(init_seed)
     torch.manual_seed(_seed)
     if torch.cuda.is_available():
         torch.cuda.manual_seed_all(_seed)
     model = Stage1Classifier().to(device)
-    # Deterministic per-fold entropy. Python's builtin hash() is SALTED per
+    # Deterministic per-run entropy. Python's builtin hash() is SALTED per
     # process (PYTHONHASHSEED), so hash(tag) gave a DIFFERENT value on every
     # run -- meaning identical RANDOM_SEED + identical code + identical data
     # still produced different training stochasticity. Unacceptable for a
     # research experiment; sha256 is stable across processes and machines.
-    _fold_entropy = int(hashlib.sha256(tag.encode()).hexdigest()[:8], 16) % 100000
-    torch.manual_seed(RANDOM_SEED + 1000 + _fold_entropy)
+    _split_entropy = int(hashlib.sha256(tag.encode()).hexdigest()[:8], 16) % 100000
+    torch.manual_seed(RANDOM_SEED + 1000 + _split_entropy)
     if torch.cuda.is_available():
-        torch.cuda.manual_seed_all(RANDOM_SEED + 1000 + _fold_entropy)
+        torch.cuda.manual_seed_all(RANDOM_SEED + 1000 + _split_entropy)
     print(f"{tag} Trainable parameters: {sum(p.numel() for p in model.parameters() if p.requires_grad):,}")
 
     # ROUND 6 (see config.py's STAGE1_GRAPH_GATE_LR_MULT comment): the graph
@@ -842,8 +863,10 @@ def main():
     print(f"[Stage 1] Training input : {INPUT_TRAIN_JSON}")
     print(f"[Stage 1] Test input     : {INPUT_TEST_JSON}")
     print(f"[Stage 1] Device         : {device}")
-    print(f"[Stage 1] Architecture   : paper-inspired semantic CNN + typed {STAGE1_GNN_TYPE.upper()} graph fusion"
-          + (f" ({GNN_HEADS} heads)" if STAGE1_GNN_TYPE == "gatv2" else ""))
+    print(f"[Stage 1] Architecture   : typed {STAGE1_GNN_TYPE.upper()} graph tower"
+          + (f" ({GNN_HEADS} heads)" if STAGE1_GNN_TYPE == "gatv2" else "")
+          + f" + Qwen3-Embedding text tower -> fusion -> Step/MCP heads")
+    print(f"[Stage 1] Text encoder   : {TEXT_ENCODER_NAME} ({TEXT_EMB_DIM}-d)")
     print(f"[Stage 1] Epochs         : {STAGE1_EPOCHS} (warmup {STAGE1_WARMUP_EPOCHS})")
 
     full_ds = Stage1Dataset(INPUT_TRAIN_JSON, split="train")
@@ -860,14 +883,11 @@ def main():
     csv_path = os.path.join(ROOT, "output", "stage1.csv")
 
     # ── ONE machine-grouped train/val split, ONE model ───────────────────────
-    # Stage 1 is a single model. K-fold ensembling (5 folds, logits averaged at
-    folds = _machine_folds(examples, STAGE1_N_FOLDS, RANDOM_SEED + 1)
-    val_idx = folds[0]
-    train_idx = [i for f in folds[1:] for i in f]
+    train_idx, val_idx = _machine_split(examples, STAGE1_VAL_SPLIT, RANDOM_SEED + 1)
     tm = set(examples[i]["machine"] for i in train_idx)
     vm = set(examples[i]["machine"] for i in val_idx)
     assert not (tm & vm), "TRAIN/VAL machine overlap"
-    print(f"[Stage 1] Single model, machine-grouped split: "
+    print(f"[Stage 1] Machine-grouped split: "
           f"train {len(train_idx)} rows / {len(tm)} machines  |  "
           f"val {len(val_idx)} rows / {len(vm)} machines")
 
@@ -901,8 +921,7 @@ def main():
     _print_test_metrics(test_metrics, "TEST — SINGLE MODEL  [PRIMARY]")
 
     # The model that produces the headline number is now the SAME model Stage 2
-    # and Stage 3 load. Under K-fold it was not: the headline was a 5-member
-    # ensemble while Stage 2 could only inherit one fold.
+    # and Stage 3 load.
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     ckpt["model_state_dict"] = model.state_dict()
     ckpt["stage2_encoder"] = "single_model"

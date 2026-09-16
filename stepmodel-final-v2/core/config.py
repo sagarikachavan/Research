@@ -20,7 +20,7 @@ Sections, in order:
     2. PATHS                 inputs, checkpoints, outputs
     3. MODEL                 encoder dims, GNN type, fusion, heads
     4. LOSS                  weights, imbalance handling, smoothing
-    5. TRAINING              lr / epochs / batch / K-fold / ensembling
+    5. TRAINING              lr / epochs / batch / validation split
     6. ABLATION SWITCHES     experiment flags; defaults preserve behavior
     7. STAGE 2               SFT, LoRA, graph prefix adapter
     8. STAGE 3               GRPO, reward weights
@@ -237,7 +237,7 @@ STAGE1_DROP_DEAD_CLASSES = os.environ.get("STAGE1_DROP_DEAD_CLASSES", "0") in ("
 # ---------------------------------------------------------------------------
 # Selecting on step accuracy alone rewards a model that collapses onto the
 # 34%-prevalence "Exploit" class; selecting on MCP alone ignores the headline
-# metric. This weighted combination is what checkpoint/fold selection
+# metric. This weighted combination is what checkpoint selection
 # optimizes. Reported metrics stay separate and unweighted.
 STAGE1_SEL_W_STEP_ACC = float(os.environ.get("STAGE1_SEL_W_STEP_ACC", "0.45"))
 STAGE1_SEL_W_MCP_F1 = float(os.environ.get("STAGE1_SEL_W_MCP_F1", "0.35"))
@@ -277,10 +277,14 @@ STAGE1_WARMUP_EPOCHS = 5  # increased from 4
 STAGE1_GRAD_CLIP = 1.0
 STAGE1_WEIGHT_DECAY = 1e-2  # increased from 8e-3 for stronger L2 regularization
 # ----------------------------------------------------------------------------
-# Stage-1 K-fold ensembling (machine-grouped)
+# Stage-1 validation split (machine-grouped)
 # ----------------------------------------------------------------------------
-# WHY (evidence from output/stage1.csv, 268 test rows / 29 machines, acc 0.7948):
-STAGE1_N_FOLDS = int(os.environ.get("STAGE1_N_FOLDS", "5"))
+# Fraction of MACHINES held out for validation and for calibrating the MCP
+# thresholds / step logit bias. Grouped by machine, never by row: rows from one
+# machine share a PTT graph and adjacent steps, so a row-level split leaks.
+# There is no cross-validation and no ensembling -- Stage 1 trains exactly one
+# model, and that one model is what eval and Stage 2/3 consume.
+STAGE1_VAL_SPLIT = float(os.environ.get("STAGE1_VAL_SPLIT", "0.2"))
 
 STAGE1_MAX_CLASS_WEIGHT = 2.5  # increased from 2.0 for better rare class handling
 STAGE1_MAX_MCP_WEIGHT = 5.0  # increased from 4.0
@@ -470,7 +474,7 @@ _SUMMARY_GROUPS = {
     ],
     "TRAINING / ENSEMBLE": [
         "STAGE1_LR", "STAGE1_EPOCHS", "STAGE1_BATCH_SIZE", "RANDOM_SEED",
-        "STAGE1_N_FOLDS", 
+        "STAGE1_VAL_SPLIT", 
         
         "STAGE1_MASK_UNSUPPORTED_CLASSES", "STAGE1_DROP_DEAD_CLASSES",
         "STAGE1_SEL_W_STEP_ACC", "STAGE1_SEL_W_MCP_F1", "STAGE1_SEL_W_STEP_MACRO",
