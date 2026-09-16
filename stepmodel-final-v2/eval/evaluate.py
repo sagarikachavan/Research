@@ -60,10 +60,11 @@ for _p in (_ROOT, _os.path.join(_ROOT, "core"), _os.path.join(_ROOT, "data_prep"
 
 from config import (
     INPUT_TEST_JSON, STAGE1_CKPT, STEP_LABELS, MCP_LABELS, MCP_DECISION_THRESHOLD,
-    QWEN_MODEL_NAME, ROOT, LLM_JUDGE_MODEL_NAME,
+    QWEN_MODEL_NAME, ROOT, LLM_JUDGE_MODEL_NAME, STAGE1_TEXT_MAX_TOKENS,
 )
 from data_utils import (
-    load_from_input_json, mcp_multihot, StepLabelNormalizer, extract_mcp_labels, _embed_texts,
+    load_from_input_json, mcp_multihot, StepLabelNormalizer, extract_mcp_labels,
+    precompute_text_tokens,
 )
 from graph_encoder import Stage1Classifier
 from mcp_threshold_search import predict_with_per_class_thresholds
@@ -193,12 +194,12 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
     # "New strategy" + "Strategy explanation". Built with the SAME helper the
     # training Dataset uses (data_utils._embed_texts), so eval and training
     # see byte-identical inputs.
-    _texts = [(f"{(ex['context'].get('New strategy','') or '').strip()} "
-               f"{(ex['context'].get('Strategy explanation','') or '').strip()}").strip() or "empty"
-              for ex in examples]
-    _embs = np.asarray(_embed_texts(_texts), dtype=np.float32)
-    for ex, e in zip(examples, _embs):
-        ex["text_emb"] = torch.from_numpy(e)
+    for ex in examples:
+        ex["text_input"] = (
+            f"{(ex['context'].get('New strategy','') or '').strip()} "
+            f"{(ex['context'].get('Strategy explanation','') or '').strip()}"
+        ).strip() or "empty"
+    precompute_text_tokens(examples, max_tokens=STAGE1_TEXT_MAX_TOKENS, device=device)
 
     graphs, step_gold, mcp_gold = [], [], []
     for ex in examples:
@@ -216,7 +217,16 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
             batch_examples = examples[i : i + bs]
             batch_graphs = PyGBatch.from_data_list(graphs[i : i + bs]).to(device)
 
-            text_emb = torch.stack([ex["text_emb"] for ex in batch_examples]).to(device)
+            _toks = [ex["text_tokens"] for ex in batch_examples]
+            _L = max(int(t.shape[0]) for t in _toks)
+            _D = int(_toks[0].shape[1])
+            text_tok = torch.zeros(len(_toks), _L, _D, dtype=torch.float32)
+            text_mask = torch.zeros(len(_toks), _L, dtype=torch.bool)
+            for _j, _t in enumerate(_toks):
+                _n = int(_t.shape[0])
+                text_tok[_j, :_n] = _t.float()
+                text_mask[_j, :_n] = True
+            text_tok = text_tok.to(device); text_mask = text_mask.to(device)
 
             edge_attr = getattr(batch_graphs, 'edge_attr', None)
             # Average step LOGITS and MCP PROBABILITIES across ensemble members
@@ -225,7 +235,7 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
             for _m in models:
                 _sl, _ml, _ = _m(
                     batch_graphs.x, batch_graphs.edge_index, batch_graphs.batch,
-                    text_emb=text_emb, edge_attr=edge_attr,
+                    text_tokens=text_tok, text_mask=text_mask, edge_attr=edge_attr,
                 )
                 _sl = _sl.detach().float()
                 _mp = torch.sigmoid(_ml.detach().float())

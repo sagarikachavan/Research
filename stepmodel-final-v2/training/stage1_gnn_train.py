@@ -44,6 +44,8 @@ from config import (
     STAGE1_MIXUP_WEIGHT, STAGE1_SUPCON_TEMPERATURE,
     STAGE1_USE_DECOUPLED_RETRAIN, STAGE1_DECOUPLED_EPOCHS,
     STAGE1_DECOUPLED_LR, STAGE1_GRAPH_GATE_LR_MULT, STAGE1_VAL_SPLIT,
+    STAGE1_STEP_BIAS_MIN_GAIN, STAGE1_STEP_BIAS_MAX_ABS,
+    STAGE1_TEXT_MAX_TOKENS, STAGE1_TEXT_TOKEN_DIM,
     TEXT_ENCODER_NAME, TEXT_EMB_DIM,
     STAGE1_GNN_TYPE, GNN_HEADS, STEP_PHASE_OF, STAGE1_PHASE_LOSS_WEIGHT,
     STAGE1_USE_STRUCTURED_SMOOTHING, STAGE1_SMOOTH_TEMP,
@@ -54,7 +56,7 @@ from config import (
     TOOL_EVIDENCE_KEYWORDS,
     STAGE1_DROP_DEAD_CLASSES,
 )
-from data_utils import load_from_input_json, _embed_texts
+from data_utils import load_from_input_json, precompute_text_tokens
 from graph_encoder import (Stage1Classifier, build_structured_smoothing_targets,
                             mask_unsupported_logits)
 from mcp_threshold_search import search_per_class_thresholds, search_step_logit_bias
@@ -84,10 +86,15 @@ class Stage1Dataset(Dataset):
         # examples. The encoder is frozen, so per-epoch re-encoding would be
         # pure waste; this also replaces the old per-example GPT-2 token
         # tensors, which were the memory hot spot in this dataset.
-        texts = [_stage1_text(ex) for ex in self.examples]
-        embs = np.asarray(_embed_texts(texts), dtype=np.float32)
-        for ex, e in zip(self.examples, embs):
-            ex["text_emb"] = torch.from_numpy(e)
+        for ex in self.examples:
+            ex["text_input"] = _stage1_text(ex)
+        dim = precompute_text_tokens(
+            self.examples, max_tokens=STAGE1_TEXT_MAX_TOKENS,
+            device="cuda" if torch.cuda.is_available() else "cpu")
+        if dim and dim != STAGE1_TEXT_TOKEN_DIM:
+            raise RuntimeError(
+                f"Text encoder hidden size is {dim}, but STAGE1_TEXT_TOKEN_DIM "
+                f"is {STAGE1_TEXT_TOKEN_DIM}. Set STAGE1_TEXT_TOKEN_DIM={dim}.")
 
     def __len__(self):
         return len(self.examples)
@@ -98,15 +105,24 @@ class Stage1Dataset(Dataset):
             "graph": ex["graph"],
             "step_idx": torch.tensor(ex["step_idx"], dtype=torch.long),
             "mcp_vec": torch.tensor(ex["mcp_vec"], dtype=torch.float32),
-            "text_emb": ex["text_emb"],
+            "text_tokens": ex["text_tokens"],
         }
 
 
 def collate(items):
+    toks = [b["text_tokens"] for b in items]
+    L = max(int(t.shape[0]) for t in toks)
+    D = int(toks[0].shape[1])
+    padded = torch.zeros(len(toks), L, D, dtype=torch.float32)
+    mask = torch.zeros(len(toks), L, dtype=torch.bool)
+    for i, t in enumerate(toks):
+        n = int(t.shape[0])
+        padded[i, :n] = t.float()
+        mask[i, :n] = True
     return (Batch.from_data_list([b["graph"] for b in items]),
             torch.stack([b["step_idx"] for b in items]),
             torch.stack([b["mcp_vec"] for b in items]),
-            torch.stack([b["text_emb"] for b in items]))
+            padded, mask)
 
 
 def _machine_split(examples, val_frac, seed):
@@ -163,17 +179,18 @@ def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=
     csv_rows = []
     global_idx = 0
     with torch.no_grad():
-        for graphs, step_idx, mcp_vec, text_emb in loader:
+        for graphs, step_idx, mcp_vec, text_tok, text_mask in loader:
             graphs = graphs.to(device)
             step_idx = step_idx.to(device)
             mcp_vec = mcp_vec.to(device)
-            text_emb = text_emb.to(device)
+            text_tok = text_tok.to(device)
+            text_mask = text_mask.to(device)
             edge_attr = getattr(graphs, "edge_attr", None)
             sl_sum, mp_sum = None, None
             for _m in models:
                 step_logits, mcp_logits, _ = _m(
                     graphs.x, graphs.edge_index, graphs.batch,
-                    text_emb=text_emb, edge_attr=edge_attr
+                    text_tokens=text_tok, text_mask=text_mask, edge_attr=edge_attr
                 )
                 sl = step_logits.detach().float()
                 mprob = torch.sigmoid(mcp_logits.detach().float())
@@ -392,16 +409,17 @@ def retrain_classifier_heads(model, full_ds, train_idx, device, val_loader,
     best_score = base_val_score
 
     for epoch in range(epochs):
-        for graphs, step_idx, mcp_vec, text_emb in loader:
+        for graphs, step_idx, mcp_vec, text_tok, text_mask in loader:
             graphs = graphs.to(device)
             step_idx = step_idx.to(device)
             mcp_vec = mcp_vec.to(device)
-            text_emb = text_emb.to(device)
+            text_tok = text_tok.to(device)
+            text_mask = text_mask.to(device)
             edge_attr = getattr(graphs, "edge_attr", None)
             with torch.no_grad():
                 _, _, (fused_step, fused_mcp) = model(
                     graphs.x, graphs.edge_index, graphs.batch,
-                    text_emb=text_emb, edge_attr=edge_attr,
+                    text_tokens=text_tok, text_mask=text_mask, edge_attr=edge_attr,
                 )
             step_logits, mcp_logits = model.predict_from_fused(fused_step, fused_mcp)
             step_loss = F.cross_entropy(step_logits, step_idx, label_smoothing=0.05)
@@ -644,15 +662,16 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
         model.train()
         total_loss = step_run = mcp_run = con_run = hn_run = 0.0
         n_batches = 0
-        for graphs, step_idx, mcp_vec, text_emb in train_loader:
+        for graphs, step_idx, mcp_vec, text_tok, text_mask in train_loader:
             graphs = graphs.to(device)
             step_idx = step_idx.to(device)
             mcp_vec = mcp_vec.to(device)
-            text_emb = text_emb.to(device)
+            text_tok = text_tok.to(device)
+            text_mask = text_mask.to(device)
             edge_attr = getattr(graphs, "edge_attr", None)
             step_logits, mcp_logits, (fused_step, fused_mcp) = model(
                 graphs.x, graphs.edge_index, graphs.batch,
-                text_emb=text_emb, edge_attr=edge_attr
+                text_tokens=text_tok, text_mask=text_mask, edge_attr=edge_attr
             )
             if STAGE1_DROP_DEAD_CLASSES and eval_support is not None:
                 step_logits = mask_unsupported_logits(step_logits, eval_support)
@@ -810,7 +829,9 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     # same held-out val split, with the same support gate / bootstrap
     # stabilization / never-regress guard. See search_step_logit_bias().
     step_bias = search_step_logit_bias(
-        val_step_logits, val_step_gold, verbose=(tag == "[Stage 1]")
+        val_step_logits, val_step_gold,
+        min_gain=STAGE1_STEP_BIAS_MIN_GAIN, max_abs_bias=STAGE1_STEP_BIAS_MAX_ABS,
+        verbose=(tag == "[Stage 1]")
     )
     if any(abs(b) > 1e-9 for b in step_bias):
         calibrated = evaluate(model, val_loader, device, step_bias=step_bias)
@@ -912,7 +933,10 @@ def main():
     rare = [i for i, c in enumerate(mcp_counts) if c < 15]
     thresholds = search_per_class_thresholds(cal_mcp_probs, cal_mcp_gold,
                                              rare_class_indices=rare, verbose=True)
-    step_bias = search_step_logit_bias(cal_step_logits, cal_step_gold, verbose=True)
+    step_bias = search_step_logit_bias(cal_step_logits, cal_step_gold,
+                                       min_gain=STAGE1_STEP_BIAS_MIN_GAIN,
+                                       max_abs_bias=STAGE1_STEP_BIAS_MAX_ABS,
+                                       verbose=True)
 
     # PRIMARY Stage-1 result. Writes output/stage1.csv so the saved
     # predictions match the headline numbers.

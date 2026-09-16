@@ -801,7 +801,52 @@ class GNNStageDataset:
         graph = load_graph(ex["machine"], ex["row_id"], ex["ptt"], self.split)
         return graph, ex
 # ---------------------------------------------------------------------------
-# REMOVED: precompute_semantic_tokens() / the frozen-GPT-2 token tower.
+# Token-level text features for the Stage-1 text tower.
 #
+# The tower used to consume ONE pooled sentence vector per example. Measured on
+# the 268-row test set that was the dominant cost: the step head learns to
+# ignore the graph (gate_step ~0.04), so step accuracy is essentially text
+# tower quality -- and a token-level model scored 0.8396 on the same rows where
+# the pooled-vector model scored 0.7388. Pooling before the model sees anything
+# discards exactly the distinctions the step labels turn on ("Research an
+# exploit" -> google-search, vs "Exploit the selected exploitation").
+#
+# The tower now receives per-token hidden states and learns its own pooling.
+# Still ONE encoder family: these come from the same frozen Qwen3-Embedding
+# model used for node titles, via its underlying transformer, so nothing extra
+# is downloaded or held in memory.
+# ---------------------------------------------------------------------------
+def precompute_text_tokens(examples, max_tokens=256, device="cpu", batch_size=16):
+    """Attach ex["text_tokens"] = (L_i, H) float16 token states, L_i <= max_tokens.
+
+    Reads ex["text_input"]. Stored as float16 on CPU: ~1.9k examples x 256
+    tokens x 1024 dims is ~1GB in fp16 vs ~2GB in fp32, and the tower casts
+    per batch anyway.
+    """
+    import torch
+    st = _get_embedder()
+    tokenizer = st.tokenizer
+    model = st[0].auto_model.to(device).eval()
+    for _p in model.parameters():
+        _p.requires_grad_(False)
+
+    texts = [str(ex.get("text_input", "") or "empty") for ex in examples]
+    for start in range(0, len(examples), batch_size):
+        chunk = examples[start:start + batch_size]
+        enc = tokenizer(texts[start:start + batch_size], return_tensors="pt",
+                        padding=True, truncation=True, max_length=max_tokens)
+        enc = {k: v.to(device) for k, v in enc.items()}
+        with torch.no_grad():
+            out = model(**enc).last_hidden_state            # (B, L, H)
+        for i, ex in enumerate(chunk):
+            # Select by MASK, not by prefix: Qwen embedding models are commonly
+            # LEFT-padded, so out[i, :L] would hand back padding, not content.
+            idx = enc["attention_mask"][i].nonzero(as_tuple=True)[0]
+            if idx.numel() == 0:                            # degenerate empty row
+                idx = torch.zeros(1, dtype=torch.long, device=out.device)
+            ex["text_tokens"] = out[i, idx].detach().cpu().half()
+    if device == "cuda":
+        torch.cuda.empty_cache()
+    return int(examples[0]["text_tokens"].shape[-1]) if examples else 0
 # ---------------------------------------------------------------------------
 

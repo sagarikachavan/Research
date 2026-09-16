@@ -271,6 +271,8 @@ def search_step_logit_bias(
     n_bootstrap: int = 25,
     bootstrap_seed: int = 42,
     auto_fallback: bool = True,
+    min_gain: float = 0.0,
+    max_abs_bias: float = 1.5,
     verbose: bool = True,
 ) -> list[float]:
     """
@@ -334,16 +336,34 @@ def search_step_logit_bias(
             print("[step_logit_bias]   non-zero bias: "
                   + ", ".join(f"class {c}: {v:+.2f}" for c, v in nz))
 
+    # Cap magnitude. A bias comparable to the logit scale itself does not
+    # "calibrate" a class, it forces it: +1.25 on `End task` bought +0.5pt on a
+    # 376-row val split and cost 8 false positives on the 268-row test set.
+    if max_abs_bias is not None:
+        clipped = np.clip(final, -abs(max_abs_bias), abs(max_abs_bias))
+        if verbose and not np.allclose(clipped, final):
+            over = [(c, final[c]) for c in range(num_classes)
+                    if abs(final[c]) > abs(max_abs_bias) + 1e-9]
+            print(f"[step_logit_bias]   clipped to +-{abs(max_abs_bias):.2f}: "
+                  + ", ".join(f"class {c}: {v:+.2f}" for c, v in over))
+        final = clipped
+
     if auto_fallback:
         base_acc = _step_acc(logits, labels, np.zeros(num_classes))
         tuned_acc = _step_acc(logits, labels, final)
-        if tuned_acc < base_acc + 1e-9:
+        gain = tuned_acc - base_acc
+        # REQUIRE A REAL MARGIN, not any improvement. This search fits one free
+        # parameter per class on the SAME split it is scored on, so a sub-noise
+        # gain is selection noise rather than calibration. At ~380 val rows the
+        # binomial SE is ~2pt, so anything under `min_gain` is discarded.
+        if gain < max(1e-9, min_gain):
             if verbose:
-                print(f"[step_logit_bias] ⚠ calibrated bias did not beat plain argmax "
-                      f"({tuned_acc:.4f} vs {base_acc:.4f}) -- discarding, using zero bias.")
+                print(f"[step_logit_bias] ⚠ gain {gain:+.4f} ({base_acc:.4f} -> "
+                      f"{tuned_acc:.4f}) below required margin {min_gain:.4f} "
+                      f"-- discarding, using zero bias.")
             return [0.0] * num_classes
         if verbose:
-            print(f"[step_logit_bias] ✓ calibrated bias beats plain argmax "
-                  f"({tuned_acc:.4f} vs {base_acc:.4f}) -- keeping.")
+            print(f"[step_logit_bias] ✓ gain {gain:+.4f} ({base_acc:.4f} -> "
+                  f"{tuned_acc:.4f}) clears margin {min_gain:.4f} -- keeping.")
 
     return [float(v) for v in final]

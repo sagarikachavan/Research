@@ -62,6 +62,7 @@ from config import (
     TEXT_EMB_DIM, STEP_LABELS, MCP_LABELS, GNN_DROPOUT,
     EDGE_ATTR_DIM, NODE_AUX_DIM,
     STAGE1_TEXT_PROJ_DIM, STAGE1_TEXT_DROPOUT,
+    STAGE1_TEXT_TOKEN_DIM, STAGE1_TEXT_ATTN_HEADS,
     STAGE1_EDGE_DROPOUT, STAGE1_NODE_FEAT_DROPOUT,
     STAGE1_GNN_TYPE, GNN_HEADS,
     N_STEP_PHASES,
@@ -481,16 +482,30 @@ class Stage1Classifier(nn.Module):
     approximating once its sequence dimension collapsed to one.
     """
 
-    def __init__(self, edge_dim: int = EDGE_ATTR_DIM, text_input_dim: int = TEXT_EMB_DIM):
+    def __init__(self, edge_dim: int = EDGE_ATTR_DIM,
+                 text_input_dim: int = STAGE1_TEXT_TOKEN_DIM):
         super().__init__()
         self.graph_encoder = GraphEncoder(edge_dim=edge_dim)
         self.graph_dim = GNN_OUT_DIM
         self.text_dim = STAGE1_TEXT_PROJ_DIM
         self.fused_dim = FUSION_HIDDEN
 
-        # ── Text tower: Qwen3-Embedding vector -> projection ────────────────
+        # ── Text tower: per-token Qwen3-Embedding states -> learned pooling ──
+        # A single pre-pooled sentence vector measured 0.7388 step accuracy on
+        # the 268-row test set; a token-level model on the same rows measured
+        # 0.8396. The step head barely uses the graph (gate_step ~0.04), so the
+        # text representation IS the step model -- pooling before the model
+        # sees anything was the single largest accuracy cost.
+        self.text_token_proj = nn.Linear(text_input_dim, self.text_dim)
+        self.text_token_norm = nn.LayerNorm(self.text_dim)
+        # One learned query attends over the token sequence, so the model picks
+        # which tokens matter ("Research", "Exploit") instead of averaging them
+        # into each other.
+        self.text_query = nn.Parameter(torch.randn(1, 1, self.text_dim) * 0.02)
+        self.text_attn = nn.MultiheadAttention(
+            self.text_dim, STAGE1_TEXT_ATTN_HEADS,
+            dropout=STAGE1_TEXT_DROPOUT, batch_first=True)
         self.text_proj = nn.Sequential(
-            nn.Linear(text_input_dim, self.text_dim),
             nn.LayerNorm(self.text_dim),
             nn.GELU(),
             nn.Dropout(STAGE1_TEXT_DROPOUT),
@@ -542,21 +557,36 @@ class Stage1Classifier(nn.Module):
         return self.fusion(torch.cat(
             [text_h, g, text_h * g, torch.abs(text_h - g)], dim=-1))
 
-    def encode_and_predict(self, x, edge_index, batch, text_emb=None,
-                           edge_attr=None):
+    def encode_text(self, text_tokens, text_mask):
+        """(B, L, H_enc) token states + (B, L) bool mask -> (B, text_dim)."""
+        h = self.text_token_norm(self.text_token_proj(text_tokens))
+        q = self.text_query.expand(h.shape[0], -1, -1).to(h.dtype)
+        # A row with zero valid tokens would make every key masked, which makes
+        # softmax produce NaN. Force at least the first position valid.
+        km = ~text_mask
+        all_masked = km.all(dim=1)
+        if bool(all_masked.any()):
+            km = km.clone()
+            km[all_masked, 0] = False
+        pooled, _ = self.text_attn(q, h, h, key_padding_mask=km, need_weights=False)
+        return self.text_proj(pooled.squeeze(1))
+
+    def encode_and_predict(self, x, edge_index, batch, text_tokens=None,
+                           text_mask=None, edge_attr=None):
         """Returns ((fused_step, fused_mcp), step_logits, mcp_logits).
 
-        `text_emb` is the (B, TEXT_EMB_DIM) Qwen3-Embedding of
-        "New strategy" + "Strategy explanation", precomputed by the caller
-        (see data_utils._embed_texts) because the encoder is frozen.
+        `text_tokens` is (B, L, H_enc) frozen Qwen3-Embedding token states for
+        "New strategy" + "Strategy explanation", with `text_mask` marking the
+        valid positions (see data_utils.precompute_text_tokens). The encoder is
+        frozen, so the caller precomputes these once per split.
         """
-        if text_emb is None:
+        if text_tokens is None or text_mask is None:
             raise ValueError(
-                "Stage 1 requires text_emb: the Qwen3-Embedding vector of the "
-                "strategy text. See data_utils._embed_texts."
+                "Stage 1 requires text_tokens and text_mask from "
+                "data_utils.precompute_text_tokens()."
             )
         graph_h = self.graph_encoder(x, edge_index, batch, edge_attr=edge_attr)
-        text_h = self.text_proj(text_emb.to(graph_h.dtype))
+        text_h = self.encode_text(text_tokens.to(graph_h.dtype), text_mask)
         graph_p = self.graph_proj(graph_h)
 
         fused_step = self._fuse(text_h, graph_p, self.graph_gate_step_raw)
@@ -567,9 +597,11 @@ class Stage1Classifier(nn.Module):
         self._last_phase_logits = self.phase_head(fused_step)
         return (fused_step, fused_mcp), step_logits, mcp_logits
 
-    def forward(self, x, edge_index, batch, text_emb=None, edge_attr=None):
+    def forward(self, x, edge_index, batch, text_tokens=None, text_mask=None,
+                edge_attr=None):
         h, step_logits, mcp_logits = self.encode_and_predict(
-            x, edge_index, batch, text_emb=text_emb, edge_attr=edge_attr)
+            x, edge_index, batch, text_tokens=text_tokens, text_mask=text_mask,
+            edge_attr=edge_attr)
         return step_logits, mcp_logits, h
 
     def predict_from_fused(self, fused_h, fused_mcp=None):

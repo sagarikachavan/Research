@@ -155,6 +155,13 @@ NODE_AUX_DIM = 3 + 4 + 8
 # second pretrained LM, no multi-kernel temporal convolution, no token-level
 # cross-attention branch. The vector is projected to this width before fusion.
 STAGE1_TEXT_PROJ_DIM = int(os.environ.get("STAGE1_TEXT_PROJ_DIM", "384"))
+# Token-level text tower. The tower reads per-token Qwen3-Embedding hidden
+# states and learns its own attention pooling, rather than being handed one
+# pre-pooled sentence vector. TOKEN_DIM is the encoder's hidden size (1024 for
+# Qwen3-Embedding-0.6B) and is asserted against the real data at load time.
+STAGE1_TEXT_MAX_TOKENS = int(os.environ.get("STAGE1_TEXT_MAX_TOKENS", "256"))
+STAGE1_TEXT_TOKEN_DIM = int(os.environ.get("STAGE1_TEXT_TOKEN_DIM", "1024"))
+STAGE1_TEXT_ATTN_HEADS = int(os.environ.get("STAGE1_TEXT_ATTN_HEADS", "4"))
 STAGE1_TEXT_DROPOUT = float(os.environ.get("STAGE1_TEXT_DROPOUT", "0.12"))
 
 # 5-dim edge attr: one-hot over the 4 semantic PTT edge types
@@ -285,6 +292,15 @@ STAGE1_WEIGHT_DECAY = 1e-2  # increased from 8e-3 for stronger L2 regularization
 # There is no cross-validation and no ensembling -- Stage 1 trains exactly one
 # model, and that one model is what eval and Stage 2/3 consume.
 STAGE1_VAL_SPLIT = float(os.environ.get("STAGE1_VAL_SPLIT", "0.2"))
+
+# Step logit-bias calibration guardrails. The search fits one free parameter
+# per class on the SAME ~380-row val split it is scored on, where the binomial
+# SE is ~2pt -- so "beat plain argmax by anything" selects noise. Measured: a
+# +1.25 bias on `End task` gained +0.5pt on val and cost 8 false positives on
+# test (precision 0.73). Require a real margin, and cap the magnitude so no
+# single class can be forced.
+STAGE1_STEP_BIAS_MIN_GAIN = float(os.environ.get("STAGE1_STEP_BIAS_MIN_GAIN", "0.02"))
+STAGE1_STEP_BIAS_MAX_ABS = float(os.environ.get("STAGE1_STEP_BIAS_MAX_ABS", "0.5"))
 
 STAGE1_MAX_CLASS_WEIGHT = 2.5  # increased from 2.0 for better rare class handling
 STAGE1_MAX_MCP_WEIGHT = 5.0  # increased from 4.0
