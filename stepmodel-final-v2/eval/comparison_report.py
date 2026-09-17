@@ -349,15 +349,22 @@ def create_visualizations(comparison_df, output_dir):
     """
     plt.style.use('seaborn-v0_8-darkgrid')
 
+    # One group per metric family, each covering every metric in
+    # REPORTED_METRICS that belongs to it -- so a change to that list (add /
+    # remove a reported metric) is reflected here without touching this
+    # function again.
     groups = [
         ('step_comparison.png', 'Step Classification',
-         [m for m in ('step_accuracy', 'step_macro_f1') if m in comparison_df.columns]),
+         [m for m in ('step_accuracy', 'step_micro_f1', 'step_macro_f1')
+          if m in REPORTED_METRICS and m in comparison_df.columns]),
         ('mcp_comparison.png', 'MCP Tool Classification',
-         [m for m in ('mcp_samples_f1', 'mcp_macro_f1',
-                      'mcp_missing_tool_rate', 'mcp_extra_tool_rate')
-          if m in comparison_df.columns]),
+         [m for m in ('mcp_samples_f1', 'mcp_micro_f1', 'mcp_macro_f1',
+                      'mcp_subset_accuracy', 'mcp_missing_tool_rate',
+                      'mcp_extra_tool_rate')
+          if m in REPORTED_METRICS and m in comparison_df.columns]),
         ('explanation_comparison.png', 'Step Explanation (LLM judge)',
-         [m for m in ('explanation_judge_accuracy',) if m in comparison_df.columns]),
+         [m for m in ('explanation_judge_accuracy',)
+          if m in REPORTED_METRICS and m in comparison_df.columns]),
     ]
 
     for fname, title, metrics in groups:
@@ -370,12 +377,22 @@ def create_visualizations(comparison_df, output_dir):
         for ax, metric in zip(axes, cols):
             sub = comparison_df[['Model', metric]].dropna(subset=[metric])
             colour = 'salmon' if metric in LOWER_IS_BETTER else 'skyblue'
-            ax.bar(sub['Model'], sub[metric], color=colour)
+            bars = ax.bar(sub['Model'], sub[metric], color=colour)
+            # Percentage label on every bar (all these metrics are already
+            # 0-1 fractions), placed just above the bar so it reads clearly
+            # against the grid rather than sitting inside the fill colour.
+            for bar, val in zip(bars, sub[metric]):
+                ax.annotate(
+                    f'{val * 100:.1f}%',
+                    xy=(bar.get_x() + bar.get_width() / 2, bar.get_height()),
+                    xytext=(0, 3), textcoords='offset points',
+                    ha='center', va='bottom', fontsize=9.5, fontweight='bold',
+                )
             label = metric.replace('step_', '').replace('mcp_', '').replace('_', ' ')
             suffix = '  (lower is better)' if metric in LOWER_IS_BETTER else ''
             ax.set_title(f'{label}{suffix}', fontsize=13, fontweight='bold')
             ax.set_ylabel('Score', fontsize=11)
-            ax.set_ylim(0, 1.05)
+            ax.set_ylim(0, 1.12)  # headroom so the % label never clips
             ax.grid(axis='y', alpha=0.3)
             for tick in ax.get_xticklabels():
                 tick.set_rotation(45)
