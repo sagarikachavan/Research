@@ -52,6 +52,7 @@ Thumbs.db
 # Scratch / intermediates that are regenerated, never results
 processed_data/
 processed_graph/
+stepmodel-final-v2/core/.llm_judge_cache
 *.tmp
 *.bak
 

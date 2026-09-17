@@ -51,9 +51,12 @@ from config import ROOT, STEP_LABELS, MCP_LABELS
 # ---------------------------------------------------------------------------
 REPORTED_METRICS = [
     "step_accuracy",
+    "step_micro_f1",
     "step_macro_f1",
     "mcp_samples_f1",
+    "mcp_micro_f1",
     "mcp_macro_f1",
+    "mcp_subset_accuracy",
     "mcp_missing_tool_rate",
     "mcp_extra_tool_rate",
     "explanation_judge_accuracy",
@@ -239,6 +242,13 @@ def evaluate_model(csv_data, model_name):
     step_metrics = {}
     if step_preds and step_gold:
         step_metrics['accuracy'] = accuracy_score(step_gold, step_preds)
+        # Single-label multiclass: micro-F1 == accuracy exactly (each row
+        # contributes one TP-or-FP-and-FN, so precision == recall ==
+        # accuracy). Reported as its own column anyway because the paper
+        # states it as a separate figure (step_micro_f1 = 0.80) -- keeping
+        # the name lets the comparison line up with their table directly.
+        step_metrics['micro_f1'] = f1_score(step_gold, step_preds, average='micro',
+                                            labels=labels_all, zero_division=0)
         step_metrics['macro_f1'] = f1_score(step_gold, step_preds, average='macro',
                                             labels=labels_all, zero_division=0)
         step_metrics['weighted_f1'] = f1_score(step_gold, step_preds, average='weighted',
