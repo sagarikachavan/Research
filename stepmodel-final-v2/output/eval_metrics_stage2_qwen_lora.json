@@ -1,0 +1,113 @@
+{
+  "model_tag": "stage2_qwen_lora",
+  "timestamp": "2026-09-17T08:25:21.956265+00:00",
+  "n_samples": 268,
+  "mcp_thresholds": [
+    0.55,
+    0.7,
+    0.65,
+    0.35,
+    0.2,
+    0.4,
+    0.15,
+    0.45,
+    0.5,
+    0.5,
+    0.45
+  ],
+  "step": {
+    "accuracy": 0.7761194029850746,
+    "macro_f1": 0.5520316356031774,
+    "weighted_f1": 0.7597293807730916,
+    "jaccard_exact_match": 0.7761194029850746
+  },
+  "mcp": {
+    "subset_accuracy": 0.4925373134328358,
+    "exact_match_rate": 0.4925373134328358,
+    "avg_missing_tools": 0.6268656716417911,
+    "avg_extra_tools": 0.2873134328358209,
+    "missing_tool_rate": 0.4032459425717853,
+    "extra_tool_rate": 0.26305220883534136,
+    "total_missing_tools": 168,
+    "total_extra_tools": 77,
+    "micro_f1": 0.6067415730337079,
+    "macro_f1": 0.4254953146759869,
+    "samples_f1": 0.6194029850746269,
+    "samples_precision": 0.6847014925373134,
+    "samples_recall": 0.5945273631840796,
+    "micro_precision": 0.7105263157894737,
+    "micro_recall": 0.5294117647058824,
+    "hamming_loss": 0.08310719131614654,
+    "jaccard_mean": 0.5851990049751244,
+    "jaccard_pass_rate_at_0.5": 0.6380597014925373,
+    "per_label": {
+      "Nmap": {
+        "precision": 0.625,
+        "recall": 0.8928571428571429,
+        "f1": 0.7352941176470589,
+        "support": 28
+      },
+      "Metasploit": {
+        "precision": 0.5555555555555556,
+        "recall": 0.29411764705882354,
+        "f1": 0.38461538461538464,
+        "support": 17
+      },
+      "Netcat": {
+        "precision": 0.42857142857142855,
+        "recall": 0.21428571428571427,
+        "f1": 0.2857142857142857,
+        "support": 14
+      },
+      "Dirbuster": {
+        "precision": 0.3333333333333333,
+        "recall": 0.043478260869565216,
+        "f1": 0.07692307692307693,
+        "support": 23
+      },
+      "SQLmap": {
+        "precision": 1.0,
+        "recall": 0.2857142857142857,
+        "f1": 0.4444444444444444,
+        "support": 7
+      },
+      "Smb client": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 17
+      },
+      "hydra": {
+        "precision": 0.2,
+        "recall": 0.3333333333333333,
+        "f1": 0.25,
+        "support": 3
+      },
+      "John-the-ripper": {
+        "precision": 0.8,
+        "recall": 0.3333333333333333,
+        "f1": 0.47058823529411764,
+        "support": 12
+      },
+      "Google search": {
+        "precision": 0.7619047619047619,
+        "recall": 0.5714285714285714,
+        "f1": 0.6530612244897959,
+        "support": 28
+      },
+      "Interactive CLI": {
+        "precision": 0.7388059701492538,
+        "recall": 0.6513157894736842,
+        "f1": 0.6923076923076923,
+        "support": 152
+      },
+      "Web page interaction": {
+        "precision": 0.825,
+        "recall": 0.5892857142857143,
+        "f1": 0.6875,
+        "support": 56
+      }
+    }
+  },
+  "combined_jaccard_step_mcp": 0.6806592039800996
+}

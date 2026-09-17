@@ -32,11 +32,11 @@
   "rank_pattern": {},
   "revision": null,
   "target_modules": [
-    "v_proj",
-    "up_proj",
     "q_proj",
     "gate_proj",
     "k_proj",
+    "up_proj",
+    "v_proj",
     "down_proj",
     "o_proj"
   ],

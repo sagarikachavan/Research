@@ -1,0 +1,1 @@
+{"scores": {"correctness_score": null, "is_correct": null, "rubric": null, "justification": "Judge output could not be parsed as valid rubric JSON after retry.", "judge_error": true}, "raw_response": " port 80, to ensure a thorough assessment of the service's security posture.\n---RETRY---\n port 80, to ensure a thorough assessment of the service's security posture."}

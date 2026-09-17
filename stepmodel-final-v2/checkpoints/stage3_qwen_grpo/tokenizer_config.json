@@ -20,7 +20,7 @@
     "<|image_pad|>",
     "<|video_pad|>"
   ],
-  "is_local": true,
+  "is_local": false,
   "local_files_only": false,
   "model_max_length": 131072,
   "pad_token": "<|endoftext|>",
