@@ -345,7 +345,7 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     if threshold_override is not None:
         use_thresholds = [float(threshold_override)] * len(MCP_LABELS)
     elif os.path.exists(STAGE1_CKPT):
-        _, use_thresholds, _, _ = load_stage1_checkpoint(STAGE1_CKPT, "cpu")
+        _, use_thresholds, _ = load_stage1_checkpoint(STAGE1_CKPT, "cpu")
         print("[eval] MCP thresholds loaded from Stage-1 checkpoint (for reference).")
     else:
         use_thresholds = [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)
