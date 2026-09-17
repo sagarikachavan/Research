@@ -41,9 +41,6 @@ STAGES = [
     ("baseline_zeroshot", "eval/baseline_llm_eval.py",     ["--num_shots", "0"]),
     ("baseline_3shot",    "eval/baseline_llm_eval.py",     ["--num_shots", "3"]),
     ("baseline_5shot",    "eval/baseline_llm_eval.py",     ["--num_shots", "5"]),
-    # Reference "frozen GPT-2 + dual-head TextCNN" baseline from the
-    # Pen-Strategist paper. Cached after first run.
-    ("baseline_paper_cnn", "eval/baseline_paper_cnn.py",   []),
     ("comparison",        "eval/comparison_report.py",     []),
 ]
 

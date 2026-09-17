@@ -265,7 +265,31 @@ def _deterministic_explanation_score(pred_expl: str, gold_expl: str,
     # REMOVED: a cross-encoder/nli-deberta-v3-small entailment term. It was a
     # fourth unrelated pretrained text model in a Qwen pipeline; the project
     # now runs on the Qwen3 family alone.
-    base = 0.60 * semantic + 0.20 * lexical + 0.10 * step_support + 0.10 * tool_support
+    # COMPLETENESS. Without this term the reward is maximised by a SHORT,
+    # on-topic summary: embedding cosine barely moves when detail is dropped,
+    # so RL learns to truncate. Measured on the 268-row test set: mean
+    # explanation length collapsed from gold 116 words / Stage-2 83 words to
+    # Stage-3 46 words, and the upper quartile from gold 226 / Stage-2 145 to
+    # just 44. The LLM judge's `completeness` and `technical_accuracy`
+    # dimensions punish exactly that, which is why the deterministic proxy
+    # ROSE (0.7500 -> 0.7649) while judge accuracy FELL (66.12% -> 55.60%).
+    # A tolerant band is used, not an exact match, because gold length itself
+    # varies enormously (median 27 words, p75 226).
+    n_pred = len(pred.split())
+    n_gold = len(gold.split())
+    if n_gold <= 0:
+        completeness = 1.0
+    else:
+        ratio = n_pred / float(n_gold)
+        if ratio < 0.6:
+            completeness = ratio / 0.6            # too short -> linear penalty
+        elif ratio > 1.6:
+            completeness = max(0.3, 1.6 / ratio)  # rambling -> mild penalty
+        else:
+            completeness = 1.0
+
+    base = (0.50 * semantic + 0.10 * lexical + 0.20 * completeness
+            + 0.10 * step_support + 0.10 * tool_support)
     return float(max(0.0, min(1.0, base)))
 
 
@@ -1100,7 +1124,8 @@ def main():
     print("\n" + "=" * 72)
     print("[Stage 3] FINAL MODEL SELECTION")
     print(f"  Stage-2 full-val task : {baseline_score:.4f} (step={baseline_step:.4f}, mcpJ={baseline_mcp:.4f}, exp={baseline_exp:.4f})")
-    print(f"  Best RL full-val task : {best_score:.4f} (step={best_step_metric:.4f}, mcpJ={best_mcp_metric:.4f}, step={best_step})")
+    print(f"  Best RL full-val task : {best_score:.4f} (step={best_step_metric:.4f}, "
+          f"mcpJ={best_mcp_metric:.4f}, exp={best_exp_metric:.4f}, @step {best_step})")
     print(f"  RL optimizer updates  : {applied}")
     print(f"  KL-skipped updates    : {kl_skipped}")
     _el = time.time() - t_start
@@ -1121,7 +1146,14 @@ def main():
     # complete Stage-2 validation baseline on BOTH objectives, Stage 3 is a
     # no-op by design and Stage 2 is copied forward.
     canonical_is_stage2 = False
-    if best_step > 0 and best_score > baseline_score and best_step_metric >= baseline_step + 0.002 and best_mcp_metric >= baseline_mcp - 0.002:
+    # Explanation is gated here too, not just inside the loop. Without this
+    # an RL checkpoint could ship having improved step/MCP while degrading
+    # explanation quality -- which is exactly what happened (judge 66.12% ->
+    # 55.60%). All three objectives must hold for RL to replace Stage 2.
+    if (best_step > 0 and best_score > baseline_score
+            and best_step_metric >= baseline_step + 0.002
+            and best_mcp_metric >= baseline_mcp - 0.002
+            and best_exp_metric >= baseline_exp - 0.002):
         for name in os.listdir(STAGE3_ADAPTER_DIR):
             if name == "best" or name.startswith("step_") or name == "last_step_raw":
                 continue

@@ -246,9 +246,14 @@ STAGE1_DROP_DEAD_CLASSES = os.environ.get("STAGE1_DROP_DEAD_CLASSES", "0") in ("
 # 34%-prevalence "Exploit" class; selecting on MCP alone ignores the headline
 # metric. This weighted combination is what checkpoint selection
 # optimizes. Reported metrics stay separate and unweighted.
-STAGE1_SEL_W_STEP_ACC = float(os.environ.get("STAGE1_SEL_W_STEP_ACC", "0.45"))
-STAGE1_SEL_W_MCP_F1 = float(os.environ.get("STAGE1_SEL_W_MCP_F1", "0.35"))
-STAGE1_SEL_W_STEP_MACRO = float(os.environ.get("STAGE1_SEL_W_STEP_MACRO", "0.20"))
+STAGE1_SEL_W_STEP_ACC = float(os.environ.get("STAGE1_SEL_W_STEP_ACC", "0.35"))
+STAGE1_SEL_W_MCP_F1 = float(os.environ.get("STAGE1_SEL_W_MCP_F1", "0.30"))
+# Checkpoint selection weights, aligned to the four reported Stage-1 metrics
+# (step accuracy, step macro-F1, MCP samples-F1, MCP macro-F1). They sum to
+# 1.0. MCP macro-F1 is included because it is a headline metric and a single
+# dead tool costs 1/11 = 9 points of it outright.
+STAGE1_SEL_W_STEP_MACRO = float(os.environ.get("STAGE1_SEL_W_STEP_MACRO", "0.15"))
+STAGE1_SEL_W_MCP_MACRO = float(os.environ.get("STAGE1_SEL_W_MCP_MACRO", "0.20"))
 
 # ---------------------------------------------------------------------------
 # Tool-availability constraints for MCP
@@ -407,6 +412,15 @@ STAGE2_GRAD_ACCUM = 16
 # Upweight the loss on the "New step" label tokens (and MCP tokens) relative
 # to the free-text explanation tokens. WHY: Stage 2's SFT loss is HuggingFace's
 STAGE2_STEP_TOKEN_LOSS_WEIGHT = 5.0
+# Field-weighted SFT loss. The target JSON is one token stream, so without
+# weighting the long "Step explanation" field and the short "New step" /
+# "MCP_tasks" fields contribute in proportion to their TOKEN COUNT, not their
+# importance. Step already gets 5.0. Explanation is the most prominent
+# research objective, so it is up-weighted too -- but per-token, and it is a
+# long field, so a smaller multiplier still gives it the largest total share.
+# MCP is weighted equal to step, matching Stage 3's equal step/MCP treatment.
+STAGE2_EXPL_TOKEN_LOSS_WEIGHT = float(os.environ.get("STAGE2_EXPL_TOKEN_LOSS_WEIGHT", "2.0"))
+STAGE2_MCP_TOKEN_LOSS_WEIGHT = float(os.environ.get("STAGE2_MCP_TOKEN_LOSS_WEIGHT", "5.0"))
 
 
 # ---------------------------------------------------------------------------
@@ -414,9 +428,13 @@ STAGE2_STEP_TOKEN_LOSS_WEIGHT = 5.0
 # ---------------------------------------------------------------------------
 # Was 0.01 / 0.33 / 0.33 / 0.33 (format / step / mcp / explanation), i.e. GRPO
 STAGE3_W_FMT = float(os.environ.get("STAGE3_W_FMT", "0.01"))
-STAGE3_W_STEP = float(os.environ.get("STAGE3_W_STEP", "0.15"))
-STAGE3_W_MCP = float(os.environ.get("STAGE3_W_MCP", "0.15"))
-STAGE3_W_EXP = float(os.environ.get("STAGE3_W_EXP", "0.69"))
+STAGE3_W_STEP = float(os.environ.get("STAGE3_W_STEP", "0.24"))
+STAGE3_W_MCP = float(os.environ.get("STAGE3_W_MCP", "0.24"))
+# Explanation stays the LARGEST single objective (0.51 > 0.24), but step and
+# MCP are now equal to each other and materially weighted rather than nearly
+# ignored. At 0.69 the RL over-optimised a misaligned explanation proxy and
+# regressed every objective; 0.01+0.24+0.24+0.51 = 1.00.
+STAGE3_W_EXP = float(os.environ.get("STAGE3_W_EXP", "0.51"))
 
 
 STAGE2_VAL_SPLIT = 0.15          # 15% held-out for validation

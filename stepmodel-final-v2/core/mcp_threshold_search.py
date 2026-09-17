@@ -84,7 +84,13 @@ def search_per_class_thresholds(
     targets: np.ndarray,
     candidates: list[float] | None = None,
     rare_class_indices: list[int] | None = None,
-    min_val_positives: int = 10,
+    # 10 left the rarest tools permanently at the 0.5 default: hydra had 5
+    # positives in validation and SQLmap 4, so neither was ever tuned, and
+    # hydra scored F1 0.000 on test -- a dead class costs 1/11 = 9 points of
+    # MCP macro-F1, which is a REPORTED metric. 4 lets them tune; the
+    # bootstrap median over 25 resamples plus the never-regress guard below
+    # are what keep a 4-positive fit from being noise.
+    min_val_positives: int = 4,
     candidate_floor: float = 0.15,
     candidate_ceil: float = 0.85,
     n_bootstrap: int = 25,

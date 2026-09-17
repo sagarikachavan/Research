@@ -13,6 +13,7 @@ Usage:
 """
 import os
 import csv
+import re
 import json
 import numpy as np
 import pandas as pd
@@ -31,6 +32,66 @@ for _p in (_ROOT, _os.path.join(_ROOT, "core"), _os.path.join(_ROOT, "data_prep"
         _sys.path.insert(0, _p)
 
 from config import ROOT, STEP_LABELS, MCP_LABELS
+
+
+# ---------------------------------------------------------------------------
+# Pen-Strategist (arXiv 2605.04499) Step Model -- the paper's OWN reported
+# numbers. Used verbatim as the baseline row; we do not re-train a replica.
+# NaN for metrics the paper does not report, so the comparison table never
+# fabricates a figure on their behalf.
+# ---------------------------------------------------------------------------
+# ---------------------------------------------------------------------------
+# THE REPORTED METRIC SET. Everything else evaluate_model computes is kept as
+# a diagnostic but is NOT put in the comparison table or the charts, so the
+# headline comparison stays readable and matches what the write-up claims.
+#   step: accuracy (headline, vs the paper's 82.87%) + macro-F1 (imbalance)
+#   mcp : samples-F1 (headline, vs the paper's 0.64) + macro-F1 per tool,
+#         plus the two error-direction rates (missing vs extra)
+#   expl: LLM-judge gate accuracy
+# ---------------------------------------------------------------------------
+REPORTED_METRICS = [
+    "step_accuracy",
+    "step_macro_f1",
+    "mcp_samples_f1",
+    "mcp_macro_f1",
+    "mcp_missing_tool_rate",
+    "mcp_extra_tool_rate",
+    "explanation_judge_accuracy",
+]
+
+# Lower is better for these two -- the charts label them so nobody reads a
+# tall bar as good.
+LOWER_IS_BETTER = {"mcp_missing_tool_rate", "mcp_extra_tool_rate"}
+
+
+def load_judge_accuracy(output_dir, model_name):
+    """Read 'Accuracy (gate-based): NN.NN%' from a model's LLM-judge report.
+
+    Returns None when the model has no judge report (Stage 1 is a classifier
+    and generates no explanation, and the baselines may not have been judged).
+    None keeps the cell empty rather than implying a measured zero.
+    """
+    import glob as _glob
+    tag = {"stage2": "stage2_qwen_lora", "stage3": "stage3_qwen_grpo"}.get(model_name, model_name)
+    hits = _glob.glob(os.path.join(output_dir, f"llm_judge_examples_{tag}*.md"))
+    if not hits:
+        return None
+    hits.sort(key=os.path.getmtime)
+    try:
+        txt = open(hits[-1], encoding="utf-8").read()
+    except OSError:
+        return None
+    m = re.search(r"Accuracy \(gate-based\):\s*([0-9.]+)%", txt)
+    return float(m.group(1)) / 100.0 if m else None
+
+
+PAPER_ROW_NAME = "pen_strategist_paper_reported"
+PAPER_REPORTED = {
+    "step_accuracy":      0.8287,   # 82.87%
+    "step_micro_f1":      0.80,
+    "mcp_subset_accuracy": 0.4888,  # 48.88% (their 'MCP accuracy')
+    "mcp_micro_f1":       0.64,
+}
 
 
 def load_csv_data(csv_path):
@@ -222,6 +283,23 @@ def evaluate_model(csv_data, model_name):
         mcp_metrics['micro_precision'] = precision_score(g, p, average='micro', zero_division=0)
         mcp_metrics['micro_recall'] = recall_score(g, p, average='micro', zero_division=0)
 
+        # Missing- and extra-tool rates, per the reported metric set.
+        # missing = of the tools that SHOULD have been named, what fraction
+        #           were forgotten:  mean(|gold - pred| / |gold|)
+        # extra   = of the tools that WERE named, what fraction should not
+        #           have been there: mean(|pred - gold| / |pred|)
+        # Rows with an empty denominator are skipped, not counted as 0.
+        miss_r, extra_r = [], []
+        for gi, pi in zip(g, p):
+            gold_set = {j for j, v in enumerate(gi) if v}
+            pred_set = {j for j, v in enumerate(pi) if v}
+            if gold_set:
+                miss_r.append(len(gold_set - pred_set) / len(gold_set))
+            if pred_set:
+                extra_r.append(len(pred_set - gold_set) / len(pred_set))
+        mcp_metrics['missing_tool_rate'] = float(np.mean(miss_r)) if miss_r else 0.0
+        mcp_metrics['extra_tool_rate'] = float(np.mean(extra_r)) if extra_r else 0.0
+
     metrics = {}
     metrics.update({f'step_{k}': v for k, v in step_metrics.items()})
     metrics.update({f'mcp_{k}': v for k, v in mcp_metrics.items()})
@@ -229,14 +307,13 @@ def evaluate_model(csv_data, model_name):
 
 
 def generate_comparison_table(model_metrics):
-    """Generate a comparison table of all models."""
+    """Comparison table over REPORTED_METRICS only, in declared order.
+
+    Everything else evaluate_model produces stays available as a
+    diagnostic but is deliberately kept out of the headline table.
+    """
     models = list(model_metrics.keys())
-    metrics_names = set()
-    for metrics in model_metrics.values():
-        if metrics:
-            metrics_names.update(metrics.keys())
-    
-    metrics_names = sorted(metrics_names)
+    metrics_names = list(REPORTED_METRICS)
     
     # Create comparison DataFrame
     comparison_data = []
@@ -244,7 +321,10 @@ def generate_comparison_table(model_metrics):
         row = {'Model': model}
         if model_metrics[model]:
             for metric in metrics_names:
-                row[metric] = model_metrics[model].get(metric, 0.0)
+                # float('nan'), not 0.0: Stage 1 generates no explanation
+                # and the paper does not report every metric. A 0.0 would
+                # read as 'measured and terrible' instead of 'not measured'.
+                row[metric] = model_metrics[model].get(metric, float('nan'))
         comparison_data.append(row)
     
     df = pd.DataFrame(comparison_data)
@@ -252,83 +332,48 @@ def generate_comparison_table(model_metrics):
 
 
 def create_visualizations(comparison_df, output_dir):
-    """Create visualization graphs for performance comparison."""
-    plt.style.use('seaborn-v0_8-darkgrid')
-    
-    # Step classification comparison
-    step_metrics = [col for col in comparison_df.columns if 'step_' in col]
-    if step_metrics:
-        fig, axes = plt.subplots(1, len(step_metrics), figsize=(6*len(step_metrics), 5))
-        if len(step_metrics) == 1:
-            axes = [axes]
-        
-        for i, metric in enumerate(step_metrics):
-            ax = axes[i]
-            comparison_df.plot(x='Model', y=metric, kind='bar', ax=ax, color='skyblue')
-            ax.set_title(f'Step Classification: {metric.replace("step_", "").upper()}', fontsize=14, fontweight='bold')
-            ax.set_ylabel('Score', fontsize=12)
-            ax.set_xlabel('Model', fontsize=12)
-            ax.set_ylim(0, 1.1)
-            ax.legend().remove()
-            ax.grid(axis='y', alpha=0.3)
-            plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha='right')
-        
-        plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, 'step_comparison.png'), dpi=300, bbox_inches='tight')
-        plt.close()
-    
-    # MCP classification comparison
-    mcp_metrics = [col for col in comparison_df.columns if 'mcp_' in col]
-    if mcp_metrics:
-        fig, axes = plt.subplots(1, len(mcp_metrics), figsize=(6*len(mcp_metrics), 5))
-        if len(mcp_metrics) == 1:
-            axes = [axes]
-        
-        for i, metric in enumerate(mcp_metrics):
-            ax = axes[i]
-            comparison_df.plot(x='Model', y=metric, kind='bar', ax=ax, color='lightcoral')
-            ax.set_title(f'MCP Classification: {metric.replace("mcp_", "").upper()}', fontsize=14, fontweight='bold')
-            ax.set_ylabel('Score', fontsize=12)
-            ax.set_xlabel('Model', fontsize=12)
-            ax.set_ylim(0, 1.1)
-            ax.legend().remove()
-            ax.grid(axis='y', alpha=0.3)
-            plt.setp(ax.xaxis.get_majorticklabels(), rotation=45, ha='right')
-        
-        plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, 'mcp_comparison.png'), dpi=300, bbox_inches='tight')
-        plt.close()
-    
-    # Combined radar chart
-    all_metrics = step_metrics + mcp_metrics
-    if all_metrics:
-        fig, ax = plt.subplots(figsize=(10, 8), subplot_kw=dict(projection='polar'))
-        
-        # Normalize metric names for display
-        display_names = [m.replace('step_', '').replace('mcp_', '').upper() for m in all_metrics]
-        
-        # Plot each model
-        colors = plt.cm.Set3(np.linspace(0, 1, len(comparison_df)))
-        for idx, (_, row) in enumerate(comparison_df.iterrows()):
-            values = [row[m] for m in all_metrics]
-            values += values[:1]  # Close the radar
-            angles = np.linspace(0, 2*np.pi, len(all_metrics), endpoint=False).tolist()
-            angles += angles[:1]
-            
-            ax.plot(angles, values, 'o-', linewidth=2, label=row['Model'], color=colors[idx])
-            ax.fill(angles, values, alpha=0.15, color=colors[idx])
-        
-        ax.set_xticks(angles[:-1])
-        ax.set_xticklabels(display_names, fontsize=11)
-        ax.set_ylim(0, 1)
-        ax.set_title('Overall Performance Comparison', fontsize=16, fontweight='bold', pad=20)
-        ax.legend(loc='upper right', bbox_to_anchor=(1.3, 1.0))
-        ax.grid(True)
-        
-        plt.tight_layout()
-        plt.savefig(os.path.join(output_dir, 'radar_comparison.png'), dpi=300, bbox_inches='tight')
-        plt.close()
+    """Charts for the REPORTED metric set only: step, MCP, explanation.
 
+    One figure per group so each stays readable, and the two error-rate bars
+    are labelled lower-is-better so a tall bar is never misread as good.
+    """
+    plt.style.use('seaborn-v0_8-darkgrid')
+
+    groups = [
+        ('step_comparison.png', 'Step Classification',
+         [m for m in ('step_accuracy', 'step_macro_f1') if m in comparison_df.columns]),
+        ('mcp_comparison.png', 'MCP Tool Classification',
+         [m for m in ('mcp_samples_f1', 'mcp_macro_f1',
+                      'mcp_missing_tool_rate', 'mcp_extra_tool_rate')
+          if m in comparison_df.columns]),
+        ('explanation_comparison.png', 'Step Explanation (LLM judge)',
+         [m for m in ('explanation_judge_accuracy',) if m in comparison_df.columns]),
+    ]
+
+    for fname, title, metrics in groups:
+        cols = [m for m in metrics if comparison_df[m].notna().any()]
+        if not cols:
+            continue
+        fig, axes = plt.subplots(1, len(cols), figsize=(6 * len(cols), 5))
+        if len(cols) == 1:
+            axes = [axes]
+        for ax, metric in zip(axes, cols):
+            sub = comparison_df[['Model', metric]].dropna(subset=[metric])
+            colour = 'salmon' if metric in LOWER_IS_BETTER else 'skyblue'
+            ax.bar(sub['Model'], sub[metric], color=colour)
+            label = metric.replace('step_', '').replace('mcp_', '').replace('_', ' ')
+            suffix = '  (lower is better)' if metric in LOWER_IS_BETTER else ''
+            ax.set_title(f'{label}{suffix}', fontsize=13, fontweight='bold')
+            ax.set_ylabel('Score', fontsize=11)
+            ax.set_ylim(0, 1.05)
+            ax.grid(axis='y', alpha=0.3)
+            for tick in ax.get_xticklabels():
+                tick.set_rotation(45)
+                tick.set_ha('right')
+        fig.suptitle(title, fontsize=15, fontweight='bold')
+        plt.tight_layout()
+        plt.savefig(os.path.join(output_dir, fname), dpi=300, bbox_inches='tight')
+        plt.close()
 
 def generate_consolidated_csv(model_data, output_dir):
     """Generate a consolidated CSV with all model predictions."""
@@ -414,9 +459,17 @@ def generate_summary_report(comparison_df, output_dir):
         
         for metric in comparison_df.columns:
             if metric != 'Model' and pd.notna(stage2_row[metric]) and pd.notna(baseline_row[metric]):
-                improvement = stage2_row[metric] - baseline_row[metric]
-                pct_improvement = (improvement / baseline_row[metric] * 100) if baseline_row[metric] > 0 else 0
-                report_lines.append(f"{metric:25s}: {stage2_row[metric]:.4f} vs {baseline_row[metric]:.4f} ({improvement:+.4f}, {pct_improvement:+.1f}%)")
+                delta = stage2_row[metric] - baseline_row[metric]
+                # For error rates a NEGATIVE delta is the improvement, so flip
+                # the sign before calling it one -- otherwise a rising
+                # missing-tool rate prints as '+27.0%' improvement.
+                gain = -delta if metric in LOWER_IS_BETTER else delta
+                denom = abs(baseline_row[metric])
+                pct = (gain / denom * 100) if denom > 0 else 0.0
+                verdict = 'better' if gain > 0 else ('worse' if gain < 0 else 'same')
+                report_lines.append(
+                    f"{metric:25s}: {stage2_row[metric]:.4f} vs {baseline_row[metric]:.4f} "
+                    f"({delta:+.4f}, {pct:+.1f}% {verdict})")
     
     report_lines.append("")
     
@@ -425,10 +478,21 @@ def generate_summary_report(comparison_df, output_dir):
     report_lines.append("-" * 80)
     
     for metric in comparison_df.columns:
-        if metric != 'Model':
-            best_model = comparison_df.loc[comparison_df[metric].idxmax(), 'Model']
-            best_score = comparison_df[metric].max()
-            report_lines.append(f"{metric:25s}: {best_model} ({best_score:.4f})")
+        if metric == 'Model':
+            continue
+        col = comparison_df[metric]
+        if not col.notna().any():
+            continue
+        # DIRECTION MATTERS. missing_tool_rate / extra_tool_rate are ERROR
+        # rates -- lower is better. Using idxmax() on them reported the
+        # WORST model as the best (e.g. extra_tool_rate 0.5457 for the
+        # zero-shot baseline was printed as the winner).
+        lower_better = metric in LOWER_IS_BETTER
+        idx = col.idxmin() if lower_better else col.idxmax()
+        best_model = comparison_df.loc[idx, 'Model']
+        best_score = col.min() if lower_better else col.max()
+        arrow = ' (lower is better)' if lower_better else ''
+        report_lines.append(f"{metric:25s}: {best_model} ({best_score:.4f}){arrow}")
     
     report_lines.append("")
     report_lines.append("=" * 80)
@@ -455,10 +519,6 @@ def main():
         'baseline_zeroshot': 'baseline_zeroshot.csv',
         'baseline_3shot': 'baseline_3shot.csv', 
         'baseline_5shot': 'baseline_5shot.csv',
-        # Reference implementation from the Pen-Strategist paper / GitHub repo
-        # (frozen-GPT2 + dual-head TextCNN, same "New strategy\nStrategy
-        # explanation" input). Produced by eval/baseline_paper_cnn.py.
-        'paper_stepcnn_gpt2': 'baseline_paper_cnn.csv',
         'stage1': 'stage1.csv',
         'stage2': 'stage2.csv',
         'stage3': 'stage3.csv',
@@ -480,6 +540,26 @@ def main():
         else:
             print(f"[Warning] Could not load {model_name}")
     
+    # Attach LLM-judge explanation accuracy (None where a model produces no
+    # explanation, e.g. the Stage-1 classifier).
+    for _m in list(model_metrics):
+        _acc = load_judge_accuracy(output_dir, _m)
+        if _acc is not None and model_metrics[_m]:
+            model_metrics[_m]['explanation_judge_accuracy'] = _acc
+
+    # ---- Pen-Strategist paper reference (reported, NOT re-trained) ----
+    # We no longer train a GPT-2 TextCNN replica: reproducing someone else's
+    # model introduces its own confounds (our split, our label normalisation,
+    # our tokenizer) and the replica's numbers were not comparable to the
+    # published ones anyway. The paper's OWN reported figures are used
+    # directly, which is the honest comparison. Source: arXiv 2605.04499.
+    # Only the four metrics the paper reports are filled in; everything else
+    # is left as NaN so the table never implies we measured something they
+    # did not publish.
+    model_metrics[PAPER_ROW_NAME] = dict(PAPER_REPORTED)
+    print(f"[Report] Added paper reference row '{PAPER_ROW_NAME}' "
+          f"(reported values from arXiv 2605.04499, not re-trained)")
+
     # Generate comparison table
     comparison_df = generate_comparison_table(model_metrics)
     

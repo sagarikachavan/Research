@@ -52,6 +52,7 @@ from config import (
     STAGE1_MASK_UNSUPPORTED_CLASSES, STAGE1_ABLATE_MIXUP,
     STAGE1_ABLATE_SUPCON, STAGE1_NATURAL_SAMPLING, FUSION_HIDDEN,
     STAGE1_SEL_W_STEP_ACC, STAGE1_SEL_W_MCP_F1, STAGE1_SEL_W_STEP_MACRO,
+    STAGE1_SEL_W_MCP_MACRO,
     STAGE1_USE_TOOL_CONSTRAINTS, STAGE1_TOOL_CONSTRAINT_PENALTY,
     TOOL_EVIDENCE_KEYWORDS,
     STAGE1_DROP_DEAD_CLASSES,
@@ -153,9 +154,16 @@ def _selection_score(metrics):
     class; MCP alone ignores the headline metric. Reported numbers stay
     separate and unweighted -- this only drives selection.
     """
+    # SELECT ON WHAT WE REPORT. This used to score mcp_MICRO_f1, which is not
+    # a reported metric -- the headline MCP number is samples-F1 (the
+    # paper-comparable one) and macro-F1 is the rare-tool check. Selecting on
+    # micro meant the chosen epoch was optimal for a number nobody reads, and
+    # micro is dominated by the 152-support "Interactive CLI" class, so it was
+    # nearly blind to the rare tools macro-F1 exists to police.
     return (STAGE1_SEL_W_STEP_ACC * float(metrics.get("step_accuracy", 0.0))
-            + STAGE1_SEL_W_MCP_F1 * float(metrics.get("mcp_micro_f1", 0.0))
-            + STAGE1_SEL_W_STEP_MACRO * float(metrics.get("step_macro_f1", 0.0)))
+            + STAGE1_SEL_W_STEP_MACRO * float(metrics.get("step_macro_f1", 0.0))
+            + STAGE1_SEL_W_MCP_F1 * float(metrics.get("mcp_samples_f1", 0.0))
+            + STAGE1_SEL_W_MCP_MACRO * float(metrics.get("mcp_macro_f1", 0.0)))
 
 
 def evaluate(model, loader, device, threshold=0.5, return_probs=False, save_csv=False,

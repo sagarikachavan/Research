@@ -1,0 +1,269 @@
+gold_new_step,predicted_new_step,gold_mcp_tasks,predicted_mcp_tasks
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Smb client,Smb client
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Interactive CLI,Interactive CLI
+Do a google search for more information,Exploit the selected exploitations,Google search,Metasploit|Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,Metasploit
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,Metasploit
+Exploit the selected exploitations,"Explore the suspicious files, commands and create a summary of the findings.",Smb client,Interactive CLI
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Dirbuster|Web page interaction,Dirbuster
+"Further Enumerate the website. - hidden directories, links and software","Explore the suspicious files, commands and create a summary of the findings.",Web page interaction,Interactive CLI|Web page interaction
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Google search|Interactive CLI,Interactive CLI|Web page interaction
+Do a google search for more information,Do a google search for more information,Google search,Google search
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,Metasploit
+Exploit the selected exploitations,Exploit the selected exploitations,Interactive CLI,Metasploit
+"Further Enumerate the website. - hidden directories, links and software","Explore the suspicious files, commands and create a summary of the findings.",Dirbuster|Web page interaction,
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit|Interactive CLI,Metasploit
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",SQLmap,Metasploit|Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit|hydra,Metasploit
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Interactive CLI,Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Interactive CLI,Metasploit|Interactive CLI
+Do a google search for more information,Do a google search for more information,Google search,Google search
+Exploit the selected exploitations,Do a google search for more information,Metasploit,
+End task and ask permission to generate the report,End task and ask permission to generate the report,Nmap,Nmap
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Dirbuster|Web page interaction,
+Do a google search for more information,Do a google search for more information,Google search,
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,Metasploit
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,Metasploit|Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,John-the-ripper,Metasploit
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Interactive CLI|Web page interaction,Metasploit
+Do a google search for more information,"Explore the suspicious files, commands and create a summary of the findings.",Google search,
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,Metasploit
+End task and ask permission to generate the report,End task and ask permission to generate the report,Nmap,Metasploit
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Smb client,Smb client
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Smb client,Smb client|Interactive CLI
+Exploit the selected exploitations,"Explore the suspicious files, commands and create a summary of the findings.",Metasploit,Web page interaction
+Exploit the selected exploitations,Exploit the selected exploitations,Smb client,Metasploit|John-the-ripper|Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Smb client,Interactive CLI
+Exploit the selected exploitations,"Explore the suspicious files, commands and create a summary of the findings.",John-the-ripper,Metasploit|Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Interactive CLI,Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,Smb client,Metasploit|Interactive CLI
+Enumerate the domain,"Explore the suspicious files, commands and create a summary of the findings.",Smb client,Interactive CLI
+Analyze the outcomes of the previous step and find an attack path,"Explore the suspicious files, commands and create a summary of the findings.",Interactive CLI,Google search|Interactive CLI
+Enumerate the domain,"Explore the suspicious files, commands and create a summary of the findings.",Smb client,Metasploit
+Do a google search for more information,"Explore the suspicious files, commands and create a summary of the findings.",Google search,Metasploit
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,Metasploit|Interactive CLI
+End task and ask permission to generate the report,End task and ask permission to generate the report,Nmap,Metasploit|Interactive CLI
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Dirbuster|Interactive CLI|Web page interaction,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Dirbuster|Interactive CLI|Web page interaction,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",Web page interaction,
+Exploit the selected exploitations,"Explore the suspicious files, commands and create a summary of the findings.",SQLmap,
+Exploit the selected exploitations,"Explore the suspicious files, commands and create a summary of the findings.",SQLmap,
+Exploit the selected exploitations,Exploit the selected exploitations,Netcat|SQLmap,Metasploit
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Google search|Interactive CLI,Metasploit
+"Explore the suspicious files, commands and create a summary of the findings.",Exploit the selected exploitations,Interactive CLI,Metasploit|Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit|Netcat,Metasploit|Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Google search|Interactive CLI,
+Do a google search for more information,Exploit the selected exploitations,Google search,Metasploit
+Exploit the selected exploitations,Exploit the selected exploitations,Interactive CLI,Metasploit|Interactive CLI
+End task and ask permission to generate the report,End task and ask permission to generate the report,SQLmap,Metasploit
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Dirbuster|Interactive CLI|Web page interaction,Interactive CLI
+"Further Enumerate the website. - hidden directories, links and software","Explore the suspicious files, commands and create a summary of the findings.",Web page interaction,Interactive CLI|Web page interaction
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",Web page interaction,
+Exploit the selected exploitations,Exploit the selected exploitations,SQLmap,Metasploit
+Exploit the selected exploitations,Exploit the selected exploitations,SQLmap,Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Interactive CLI,Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Interactive CLI,Interactive CLI
+Exploit the selected exploitations,"Explore the suspicious files, commands and create a summary of the findings.",Interactive CLI,Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,Interactive CLI,Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Interactive CLI,Interactive CLI
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Dirbuster|Web page interaction,Nmap|Dirbuster
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Interactive CLI|Web page interaction,Web page interaction
+Exploit the selected exploitations,Exploit the selected exploitations,John-the-ripper,Metasploit|Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.",Exploit the selected exploitations,Interactive CLI|Web page interaction,Interactive CLI
+Do a google search for more information,Do a google search for more information,Google search,Google search
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,Metasploit
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Google search|Interactive CLI,Metasploit|Interactive CLI
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Smb client,Smb client
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Smb client|Interactive CLI,Interactive CLI
+Do a google search for more information,Exploit the selected exploitations,Google search,Metasploit|Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,Metasploit|Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,John-the-ripper,Metasploit
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Dirbuster|Interactive CLI|Web page interaction,
+Do a google search for more information,Do a google search for more information,Google search,Google search
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,Metasploit
+Exploit the selected exploitations,Exploit the selected exploitations,John-the-ripper,Metasploit|Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Google search|Interactive CLI,Metasploit|Interactive CLI
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",Dirbuster|Interactive CLI|Web page interaction,
+Enumerate the domain,"Explore the suspicious files, commands and create a summary of the findings.",Smb client,Metasploit|Smb client
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Smb client|Interactive CLI,Interactive CLI
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Smb client|Interactive CLI,Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,John-the-ripper,Interactive CLI
+Exploit the selected exploitations,Exploit the selected exploitations,Web page interaction,Metasploit
+Exploit the selected exploitations,Exploit the selected exploitations,Netcat,
+Exploit the selected exploitations,Do a google search for more information,Netcat,
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",Google search|Interactive CLI,
+Exploit the selected exploitations,Exploit the selected exploitations,Metasploit,Metasploit
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Explore the source code for vulnerabilities.,"Further Enumerate the website. - hidden directories, links and software",,
+Enumerate the domain,Enumerate the domain,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,Exploit the selected exploitations,,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Explore the source code for vulnerabilities.,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Analyze the outcomes of the previous step and find an attack path,End task and ask permission to generate the report,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+"Explore the suspicious files, commands and create a summary of the findings.",Exploit the selected exploitations,,
+Explore the source code for vulnerabilities.,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+Explore the source code for vulnerabilities.,"Explore the suspicious files, commands and create a summary of the findings.",,
+Do a google search for more information,Do a google search for more information,,
+Analyze the outcomes of the previous step and find an attack path,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Exploit the selected exploitations,"Enumerate further on the X service to find software versions, hidden directories and file.",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+Explore the source code for vulnerabilities.,"Explore the suspicious files, commands and create a summary of the findings.",,
+Do a google search for more information,Analyze the outcomes of the previous step and find an attack path,,
+Exploit the selected exploitations,Analyze the outcomes of the previous step and find an attack path,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Do a google search for more information,Analyze the outcomes of the previous step and find an attack path,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Enumerate the domain,"Further Enumerate the website. - hidden directories, links and software",,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+"Explore the suspicious files, commands and create a summary of the findings.","Further Enumerate the website. - hidden directories, links and software",,
+Do a google search for more information,"Further Enumerate the website. - hidden directories, links and software",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Do a google search for more information,Analyze the outcomes of the previous step and find an attack path,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Do a google search for more information,"Enumerate further on the X service to find software versions, hidden directories and file.",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Enumerate the domain,"Further Enumerate the website. - hidden directories, links and software",,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+"Explore the suspicious files, commands and create a summary of the findings.","Further Enumerate the website. - hidden directories, links and software",,
+"Further Enumerate the website. - hidden directories, links and software","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+"Enumerate further on the X service to find software versions, hidden directories and file.",Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+"Enumerate further on the X service to find software versions, hidden directories and file.",Enumerate the domain,,
+"Explore the suspicious files, commands and create a summary of the findings.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Do a google search for more information,"Enumerate further on the X service to find software versions, hidden directories and file.",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Enumerate the domain,"Further Enumerate the website. - hidden directories, links and software",,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+Do a google search for more information,Do a google search for more information,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Do a google search for more information,Do a google search for more information,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Further Enumerate the website. - hidden directories, links and software","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Explore the source code for vulnerabilities.,"Further Enumerate the website. - hidden directories, links and software",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,"Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Exploit the selected exploitations,"Explore the suspicious files, commands and create a summary of the findings.",,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+Do a google search for more information,Do a google search for more information,,
+Exploit the selected exploitations,Do a google search for more information,,
+"Enumerate further on the X service to find software versions, hidden directories and file.",Exploit the selected exploitations,,
+Do a google search for more information,"Enumerate further on the X service to find software versions, hidden directories and file.",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+Exploit the selected exploitations,"Explore the suspicious files, commands and create a summary of the findings.",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+"Further Enumerate the website. - hidden directories, links and software","Explore the suspicious files, commands and create a summary of the findings.",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+"Explore the suspicious files, commands and create a summary of the findings.",Exploit the selected exploitations,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+Do a google search for more information,Do a google search for more information,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Explore the suspicious files, commands and create a summary of the findings.",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Further Enumerate the website. - hidden directories, links and software",Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+"Enumerate further on the X service to find software versions, hidden directories and file.",Analyze the outcomes of the previous step and find an attack path,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+"Explore the suspicious files, commands and create a summary of the findings.","Explore the suspicious files, commands and create a summary of the findings.",,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Explore the suspicious files, commands and create a summary of the findings.",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Enumerate further on the X service to find software versions, hidden directories and file.","Enumerate further on the X service to find software versions, hidden directories and file.",,
+"Further Enumerate the website. - hidden directories, links and software","Further Enumerate the website. - hidden directories, links and software",,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+Exploit the selected exploitations,Exploit the selected exploitations,,
+End task and ask permission to generate the report,End task and ask permission to generate the report,,

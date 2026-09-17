@@ -1,3 +1,18 @@
+# ---------------------------------------------------------------------------
+# stepmodel-final-v2 .gitignore
+#
+# POLICY: results and trained weights ARE tracked. Checkpoints (Stage 1/2/3),
+# every file under output/ (metrics JSON, prediction CSVs, LLM-judge reports,
+# comparison tables, plots) and run logs are all committed so a result can be
+# traced back to the exact weights that produced it.
+#
+# ⚠ GIT LFS IS REQUIRED. GitHub hard-rejects any single file >100MB, and the
+#   Stage-2/3 LoRA adapters are ~245MB each (128.5M params in bf16). Run once:
+#       git lfs install && git add .gitattributes
+#   .gitattributes already routes *.safetensors / *.pt / *.bin / *.pth to LFS.
+#   Without LFS the push WILL be rejected.
+# ---------------------------------------------------------------------------
+
 # Python
 __pycache__/
 *.py[cod]
@@ -7,11 +22,8 @@ __pycache__/
 build/
 develop-eggs/
 dist/
-downloads/
 eggs/
 .eggs/
-lib/
-lib64/
 parts/
 sdist/
 var/
@@ -25,34 +37,31 @@ venv/
 ENV/
 env/
 
-# IDE
+# IDE / OS
 .vscode/
 .idea/
 *.swp
 *.swo
 *~
+.DS_Store
+Thumbs.db
 
 # Jupyter
 .ipynb_checkpoints/
 
-# Data files (large CSVs, raw data)
-data/*.csv
+# Scratch / intermediates that are regenerated, never results
 processed_data/
-
-# Output files
-output/*.txt
-output/*.csv
-output/*.json
-
-# Temporary files
+processed_graph/
 *.tmp
 *.bak
-*.log
 
-# OS
-.DS_Store
-Thumbs.db
-
-# IMPORTANT: Checkpoints are explicitly NOT ignored
-# We want to track trained model weights in Git
-# checkpoints/
+# ---------------------------------------------------------------------------
+# EXPLICITLY TRACKED (negated so no parent rule can silently drop them)
+# ---------------------------------------------------------------------------
+!checkpoints/
+!checkpoints/**
+!output/
+!output/**
+!logs/
+!logs/**
+!*.log

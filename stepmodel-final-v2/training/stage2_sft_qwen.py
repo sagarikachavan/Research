@@ -47,6 +47,7 @@ from config import (
     STAGE2_LR, STAGE2_EPOCHS, STAGE2_BATCH_SIZE, STAGE2_GRAD_ACCUM,
     STAGE2_VAL_SPLIT, STAGE2_EARLY_STOP_PATIENCE, STAGE2_GRAD_CLIP, STAGE2_WARMUP_RATIO,
     STAGE2_WEIGHT_DECAY, STAGE2_STEP_TOKEN_LOSS_WEIGHT, STAGE2_ADAPTER_LR_MULT,
+    STAGE2_EXPL_TOKEN_LOSS_WEIGHT,
     STAGE1_CKPT, STAGE2_ADAPTER_DIR,
     RANDOM_SEED, STEP_LABELS, MCP_LABELS, ROOT,
 )
@@ -415,31 +416,43 @@ class SFTDataset(Dataset):
         # at least one non-masked target token for every example.
         labels = ([-100] * len(prompt_ids)) + target_ids
 
-        # ── Step-value token span (for checkpoint-selection metric) ────────
-        # Locate the "New step" value's character range inside target_text
-        step_val = ex["step_label"]
-        char_start = target_text.find(step_val)
-        step_tok_start, step_tok_end = 0, 0  # default: span not found -> excluded from metric
-        if char_start >= 0:
-            char_end = char_start + len(step_val)
-            offsets = target_enc["offset_mapping"]
-            found_start = None
-            found_end = None
+        # ── Field token spans (checkpoint metric + field-weighted loss) ────
+        # Map each field VALUE's character range in target_text onto token
+        # indices, so the loss can weight fields by importance rather than by
+        # token count. Without this the long explanation dominates by sheer
+        # length while the one-line step/MCP answers are nearly free to get
+        # wrong.
+        offsets = target_enc["offset_mapping"]
+
+        def _span(value: str):
+            """Token [start, end) of `value` inside the target, or (0, 0)."""
+            if not value:
+                return 0, 0
+            cs = target_text.find(value)
+            if cs < 0:
+                return 0, 0
+            ce = cs + len(value)
+            fs = fe = None
             for tok_i, (a, b) in enumerate(offsets):
-                if a < char_end and b > char_start:  # this token overlaps the value's char range
-                    if found_start is None:
-                        found_start = tok_i
-                    found_end = tok_i + 1
-            if found_start is not None:
-                step_tok_start = len(prompt_ids) + found_start
-                step_tok_end = min(len(prompt_ids) + found_end, self.max_len)
-                step_tok_start = min(step_tok_start, step_tok_end)
+                if a < ce and b > cs:
+                    if fs is None:
+                        fs = tok_i
+                    fe = tok_i + 1
+            if fs is None:
+                return 0, 0
+            ts = len(prompt_ids) + fs
+            te = min(len(prompt_ids) + fe, self.max_len)
+            return min(ts, te), te
+
+        step_tok_start, step_tok_end = _span(ex["step_label"])
+        expl_tok_start, expl_tok_end = _span(str(ex.get("gold_step_explanation", "") or ""))
 
         return {
             "input_ids":  torch.tensor(input_ids),
             "labels":     torch.tensor(labels),
             "graph":      ex["graph"],          # torch_geometric Data (pre-built)
             "step_span":  torch.tensor([step_tok_start, step_tok_end], dtype=torch.long),
+            "expl_span":  torch.tensor([expl_tok_start, expl_tok_end], dtype=torch.long),
         }
 
 
@@ -461,7 +474,8 @@ def collate_fn(batch: list, pad_id: int) -> tuple:
 
     graphs     = PyGBatch.from_data_list([b["graph"] for b in batch])
     step_spans = torch.stack([b["step_span"] for b in batch])  # (B, 2) = [start, end)
-    return input_ids, attn, labels, graphs, step_spans
+    expl_spans = torch.stack([b["expl_span"] for b in batch])  # (B, 2) = [start, end)
+    return input_ids, attn, labels, graphs, step_spans, expl_spans
 
 
 # ---------------------------------------------------------------------------
@@ -470,7 +484,8 @@ def collate_fn(batch: list, pad_id: int) -> tuple:
 
 def forward_batch(input_ids, attn, labels, graphs,
                   model, graph_encoder, adapter, embed_layer, device, dtype, return_logits=False,
-                  step_spans=None, step_token_weight=1.0):
+                  step_spans=None, step_token_weight=1.0,
+                  expl_spans=None, expl_token_weight=1.0):
     """
     Prepend graph prefix tokens to the token embeddings, run the model,
     and return the scalar loss (and, if return_logits=True, the raw logits
@@ -519,7 +534,9 @@ def forward_batch(input_ids, attn, labels, graphs,
     # When we're going to compute a step-weighted loss ourselves, don't ask
     # the model to also compute its uniform `out.loss` (we ignore it) -- but
     # we still need the logits either way.
-    want_weighted = (step_spans is not None) and (step_token_weight is not None) and (step_token_weight != 1.0)
+    _step_w_on = (step_spans is not None and step_token_weight not in (None, 1.0))
+    _expl_w_on = (expl_spans is not None and expl_token_weight not in (None, 1.0))
+    want_weighted = _step_w_on or _expl_w_on
     hf_labels = None if want_weighted else labels_full
 
     # Qwen forward in bf16 autocast.  The adapter itself is fp32; only its
@@ -551,13 +568,23 @@ def forward_batch(input_ids, attn, labels, graphs,
         ).reshape(B, Tm1)
         valid = (shift_labels != -100).float()
         weights = valid.clone()  # 1.0 on every real target token
-        for b in range(B):
-            s, e = int(step_spans[b][0].item()), int(step_spans[b][1].item())
-            if e > s:
-                lo = max(0, n_prefix + s - 1)
-                hi = min(Tm1, n_prefix + e - 1)
+
+        def _apply(spans, w):
+            if spans is None or w in (None, 1.0):
+                return
+            for b in range(B):
+                s_, e_ = int(spans[b][0].item()), int(spans[b][1].item())
+                if e_ <= s_:
+                    continue
+                lo = max(0, n_prefix + s_ - 1)
+                hi = min(Tm1, n_prefix + e_ - 1)
                 if hi > lo:
-                    weights[b, lo:hi] = valid[b, lo:hi] * step_token_weight
+                    weights[b, lo:hi] = valid[b, lo:hi] * w
+
+        # Explanation first, then step: if the spans ever overlap the step
+        # value wins, because it is the single token run the task is scored on.
+        _apply(expl_spans, expl_token_weight)
+        _apply(step_spans, step_token_weight)
         denom = weights.sum().clamp_min(1.0)
         loss = (ce * weights).sum() / denom
     else:
@@ -598,7 +625,7 @@ def run_validation(val_loader, model, graph_encoder, adapter, embed_layer, devic
     obj_parser = build_obj_parser()
 
     with torch.no_grad():
-        for batch_idx, (input_ids, attn, labels, graphs, _step_spans) in enumerate(val_loader):
+        for batch_idx, (input_ids, attn, labels, graphs, _step_spans, _expl_spans) in enumerate(val_loader):
             # 1) Normal validation loss on the complete prompt+target sequence.
             loss = forward_batch(
                 input_ids, attn, labels, graphs,
@@ -620,24 +647,34 @@ def run_validation(val_loader, model, graph_encoder, adapter, embed_layer, devic
                 prompt_lens.append(int(valid[0].item()) if valid.numel() else int(attn[b].sum().item()))
             max_prompt_len = max(prompt_lens)
 
-            prompt_ids = input_ids[:, :max_prompt_len].clone()
-            prompt_attn = torch.zeros((B, max_prompt_len), device=device, dtype=attn.dtype)
-            for b, plen in enumerate(prompt_lens):
-                prompt_attn[b, :plen] = 1
-                if plen < max_prompt_len:
-                    prompt_ids[b, plen:] = tokenizer.pad_token_id
-
             edge_attr = getattr(graphs, 'edge_attr', None)
             graph_emb, node_states, node_mask = graph_encoder.forward_with_nodes(
                 graphs.x, graphs.edge_index, graphs.batch, edge_attr=edge_attr
             )
             prefix_embeds = adapter(graph_emb.float(), node_states.float(), node_mask).to(dtype)
-            token_embeds = embed_layer(prompt_ids).to(dtype)
-            inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
-
             n_prefix = prefix_embeds.shape[1]
-            prefix_attn = torch.ones((B, n_prefix), device=device, dtype=prompt_attn.dtype)
-            attn_full = torch.cat([prefix_attn, prompt_attn], dim=1)
+
+            # LEFT-pad for generation. collate_fn right-pads (correct for the
+            # teacher-forced loss, where labels are -100 on pads), but batched
+            # generation MUST end each row on its last real prompt token --
+            # with right padding generate() continues from a PAD token for
+            # every row shorter than the batch max, producing garbage and
+            # corrupting this metric. This metric selects the best epoch, so
+            # the bug silently degraded checkpoint selection too.
+            # Layout per row: [pad ...][graph prefix][prompt tokens]
+            seq_len = n_prefix + max_prompt_len
+            pad_emb = embed_layer(
+                torch.tensor([tokenizer.pad_token_id], device=device)
+            ).to(dtype)[0]
+            inputs_embeds = pad_emb.view(1, 1, -1).expand(B, seq_len, -1).clone()
+            attn_full = torch.zeros((B, seq_len), device=device, dtype=attn.dtype)
+            for b, plen in enumerate(prompt_lens):
+                start = max_prompt_len - plen          # left-pad width
+                inputs_embeds[b, start:start + n_prefix] = prefix_embeds[b]
+                inputs_embeds[b, start + n_prefix:] = embed_layer(
+                    input_ids[b, :plen]
+                ).to(dtype)
+                attn_full[b, start:] = 1
 
             outputs = model.generate(
                 inputs_embeds=inputs_embeds,
@@ -878,13 +915,15 @@ def main():
         accum_count = 0
         opt.zero_grad(set_to_none=True)
 
-        for i, (input_ids, attn, labels, graphs, step_spans) in enumerate(train_loader):
+        for i, (input_ids, attn, labels, graphs, step_spans, expl_spans) in enumerate(train_loader):
             try:
                 loss = forward_batch(
                     input_ids, attn, labels, graphs,
                     model, graph_encoder, adapter, embed_layer,
                     device, dtype,
                     step_spans=step_spans,
+                    expl_spans=expl_spans,
+                    expl_token_weight=STAGE2_EXPL_TOKEN_LOSS_WEIGHT,
                     step_token_weight=STAGE2_STEP_TOKEN_LOSS_WEIGHT,
                 )
             except FloatingPointError:
@@ -1031,9 +1070,19 @@ def main():
     print("\n[Stage 2] Evaluating on test set...")
     test_examples = load_from_input_json(INPUT_TEST_JSON, "test")
     test_ds = SFTDataset(test_examples, tokenizer)
+    # BATCH SIZE 1 IS LOAD-BEARING, NOT A PERFORMANCE CHOICE.
+    # collate_fn RIGHT-pads (input_ids[i, :L] = ...), which is correct for
+    # teacher-forced training because labels are masked with -100. It is WRONG
+    # for generation: with right padding a short prompt is followed by PAD
+    # tokens, so generate() continues from a pad rather than from the last
+    # real prompt token, and the completion is garbage for every row shorter
+    # than the batch max. Measured cost of the bug: this block reported step
+    # 0.5373 while eval/evaluate.py -- which generates one row at a time --
+    # reported 0.8097 for the SAME checkpoint. Batch size 1 removes padding
+    # entirely, which is the minimal provably-correct fix.
     test_loader = DataLoader(
         test_ds,
-        batch_size=STAGE2_BATCH_SIZE,
+        batch_size=1,
         shuffle=False,
         collate_fn=lambda b: collate_fn(b, tokenizer.pad_token_id),
         drop_last=False,
@@ -1059,7 +1108,7 @@ def main():
     csv_rows = []
     
     with torch.no_grad():
-        for input_ids, attn, labels, graphs, _step_spans in test_loader:
+        for input_ids, attn, labels, graphs, _step_spans, _expl_spans in test_loader:
             input_ids = input_ids.to(device)
             attn = attn.to(device)
             graphs = graphs.to(device)
@@ -1137,8 +1186,8 @@ def main():
                     prompt = build_prompt(ex)
                     csv_rows.append({
                         "machine": ex.get("machine", ""),
-                        "new_strategy": ex.get("new strategy", ""),
-                        "strategy_explanation": ex.get("new strategy explanation", ""),
+                        "new_strategy": ex.get("context", {}).get("New strategy", ""),
+                        "strategy_explanation": ex.get("context", {}).get("Strategy explanation", ""),
                         "step_prediction": pred_step_label,
                         "gold_new_step": gold_step_label,
                         "mcp_tool_prediction": pred_mcp_tools,
