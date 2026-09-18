@@ -49,6 +49,10 @@ Thumbs.db
 # Jupyter
 .ipynb_checkpoints/
 
+# Checkpoints
+checkpoints/
+checkpoints/**
+
 # Scratch / intermediates that are regenerated, never results
 processed_data/
 processed_graph/
@@ -59,8 +63,6 @@ stepmodel-final-v2/core/.llm_judge_cache
 # ---------------------------------------------------------------------------
 # EXPLICITLY TRACKED (negated so no parent rule can silently drop them)
 # ---------------------------------------------------------------------------
-!checkpoints/
-!checkpoints/**
 !output/
 !output/**
 !logs/

@@ -583,9 +583,25 @@ def main():
     # Only the four metrics the paper reports are filled in; everything else
     # is left as NaN so the table never implies we measured something they
     # did not publish.
-    model_metrics[PAPER_ROW_NAME] = dict(PAPER_REPORTED)
-    print(f"[Report] Added paper reference row '{PAPER_ROW_NAME}' "
-          f"(reported values from arXiv 2605.04499, not re-trained)")
+    from config import STEP_TAXONOMY, STEP_LABELS
+    if STEP_TAXONOMY == "fine":
+        model_metrics[PAPER_ROW_NAME] = dict(PAPER_REPORTED)
+        print(f"[Report] Added paper reference row '{PAPER_ROW_NAME}' "
+              f"(reported values from arXiv 2605.04499, not re-trained)")
+    else:
+        # The paper's 82.87% / 0.80 are 10-CLASS step figures. Under a merged
+        # taxonomy our step numbers are computed over a smaller label space, so
+        # they are higher partly for mechanical reasons (fewer ways to be
+        # wrong). Putting the two in the same column would invite exactly the
+        # comparison that is not valid, so the STEP half of the paper row is
+        # withheld. MCP is unaffected -- that taxonomy did not change.
+        paper = {k: v for k, v in PAPER_REPORTED.items() if not k.startswith("step_")}
+        model_metrics[PAPER_ROW_NAME] = paper
+        print(f"[Report] STEP_TAXONOMY='{STEP_TAXONOMY}' ({len(STEP_LABELS)} classes): "
+              f"paper STEP metrics WITHHELD from the table.")
+        print(f"[Report]   The paper's 82.87% is a 10-class figure and is NOT "
+              f"comparable to a merged-taxonomy step score.")
+        print(f"[Report]   Re-run with STEP_TAXONOMY=fine for the paper-comparable number.")
 
     # Generate comparison table
     comparison_df = generate_comparison_table(model_metrics)

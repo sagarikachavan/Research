@@ -95,6 +95,7 @@ padded to a common length because num_return_sequences=G).
 """
 import gc
 import json
+import re
 import time
 import os
 import random
@@ -288,9 +289,60 @@ def _deterministic_explanation_score(pred_expl: str, gold_expl: str,
         else:
             completeness = 1.0
 
-    base = (0.50 * semantic + 0.10 * lexical + 0.20 * completeness
-            + 0.10 * step_support + 0.10 * tool_support)
+    # TECHNICAL GROUNDING: recall of the gold explanation's concrete technical
+    # content tokens (multi-letter nouns, numbers, CVE ids) inside the
+    # prediction. This is the term that targets the LLM judge's
+    # `technical_accuracy` dimension -- the one that decides 75% of gate
+    # failures. The judge fails explanations that are "somewhat relevant but
+    # not technically accurate"; i.e. on-topic but not citing the right facts.
+    # Semantic cosine cannot see this (it rewards vocabulary/topic overlap),
+    # which is exactly why the old 0.50-weight semantic term did NOT move judge
+    # accuracy. VALIDATED against the real judge scores: mean grounding recall
+    # 0.343 for tech>=2 vs 0.161 for tech<2 (2x separation), where the semantic
+    # term barely separated (0.099 vs 0.033).
+    grounding = _technical_token_recall(pred, gold)
+
+    # Reweighted around what the gate actually checks:
+    #   relevance         <- semantic (0.30) + step_support (0.10)
+    #   technical_accuracy<- grounding (0.25)   [was: nothing]
+    #   completeness      <- completeness (0.20)
+    # Semantic drops 0.50 -> 0.30 because it is a weak proxy for the gate;
+    # grounding takes the freed weight. Sums to 1.0.
+    base = (0.30 * semantic + 0.05 * lexical + 0.25 * grounding
+            + 0.20 * completeness + 0.10 * step_support + 0.10 * tool_support)
     return float(max(0.0, min(1.0, base)))
+
+
+# Stopwords + short-word filter so "grounding" keys on TECHNICAL content
+# (tool/service/technique nouns, ports, versions, CVE ids) rather than on
+# generic prose the judge does not care about.
+_EXPL_STOP = frozenset(
+    "the a an and or of to for in on at is are be as it its this that with by "
+    "from we our you your they their can will would should could may might have "
+    "has had do does not been being step explanation next penetration testing "
+    "system machine target information which what when where how why also then "
+    "such into out over more most some any all each other than these those".split()
+)
+
+
+def _technical_token_recall(pred: str, gold: str) -> float:
+    """Fraction of the gold explanation's technical tokens present in pred.
+
+    Technical tokens = lowercased alphabetic words of length >= 4 that are not
+    stopwords, plus bare integers and CVE identifiers. Recall (not F1) so a
+    thorough, correct explanation is not penalised for adding detail beyond the
+    reference; over-length is handled separately by the completeness term.
+    """
+    def toks(t: str) -> set:
+        t = (t or "").lower()
+        words = {w for w in re.findall(r"[a-z]{4,}", t) if w not in _EXPL_STOP}
+        nums = set(re.findall(r"\bcve-\d{4}-\d+\b|\b\d+\b", t))
+        return words | nums
+
+    g = toks(gold)
+    if not g:
+        return 1.0
+    return len(toks(pred) & g) / len(g)
 
 
 def compute_reward(completion: str, gold: dict,

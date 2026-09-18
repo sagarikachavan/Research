@@ -313,9 +313,14 @@ def hard_negative_margin(logits, labels, groups, margin=0.20):
             mask |= labels == c
         if not bool(mask.any()):
             continue
+        # Only process if all classes in the group actually appear in this batch
+        local_labels = labels[mask]
+        unique_labels = torch.unique(local_labels)
+        if len(unique_labels) < len(group):
+            # Skip groups where some classes are missing from this batch
+            continue
         idx = torch.tensor(group, device=logits.device, dtype=torch.long)
         group_logits = logits[mask][:, idx]
-        local_labels = labels[mask]
         pos_col = torch.tensor([group.index(int(y)) for y in local_labels.tolist()], device=logits.device, dtype=torch.long)
         pos = group_logits.gather(1, pos_col.unsqueeze(1)).squeeze(1)
         neg = group_logits.masked_fill(F.one_hot(pos_col, len(group)).bool(), -1e9).max(dim=1).values
@@ -521,7 +526,8 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     mcp_counts = np.zeros(len(MCP_LABELS), dtype=np.float64)
     for i in train_idx:
         mcp_counts += full_ds[i]["mcp_vec"].numpy()
-    step_w_np = _soft_class_weights(step_counts, STAGE1_MAX_CLASS_WEIGHT, rare_boost=1.20)
+    # Force uniform step weights to disable class imbalance
+    step_w_np = np.ones(len(STEP_LABELS), dtype=np.float64)
     mcp_w_np = _soft_class_weights(mcp_counts, STAGE1_MAX_MCP_WEIGHT, rare_boost=1.15)
     step_weights = torch.tensor(step_w_np, dtype=torch.float32, device=device)
     mcp_weights = torch.tensor(mcp_w_np, dtype=torch.float32, device=device)
@@ -644,14 +650,19 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
 
     hard_groups = [
         (0, 5),   # research/search <-> exploit
-        (2, 1),   # explore <-> service enumeration
-        (2, 3),   # explore <-> website enumeration
-        (6, 2),   # analyze <-> explore
-        (1, 3),   # service <-> website enumeration
-        (4, 1),   # domain <-> service enumeration
-        # ADDED: explore-suspicious-files <-> exploit. This is the single
-        # largest confusion pair in BOTH the predecessor codebase's own
-        (2, 5),   # explore <-> exploit
+        (2, 1),   # explore files <-> enumerate service
+        (2, 3),   # explore files <-> enumerate website
+        (2, 4),   # explore files <-> enumerate domain
+        (8, 1),   # explore source <-> enumerate service
+        (8, 3),   # explore source <-> enumerate website
+        (8, 4),   # explore source <-> enumerate domain
+        (6, 2),   # analyze <-> explore files
+        (6, 8),   # analyze <-> explore source
+        (1, 3),   # enumerate service <-> enumerate website
+        (1, 4),   # enumerate service <-> enumerate domain
+        (3, 4),   # enumerate website <-> enumerate domain
+        (2, 5),   # explore files <-> exploit
+        (8, 5),   # explore source <-> exploit
         # ADDED from the Round-7 test confusion matrix: class 2
         # ("Explore the suspicious files...") absorbed 26 of the 60 total
         (2, 8),   # explore-suspicious-files <-> explore-source-code

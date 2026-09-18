@@ -34,7 +34,13 @@ import os
 # ----------------------------------------------------------------------------
 # Label spaces
 # ----------------------------------------------------------------------------
-STEP_LABELS = [
+# ----------------------------------------------------------------------------
+# STEP TAXONOMY
+# ----------------------------------------------------------------------------
+# FINE labels: the original 10-way annotation. These remain the PARSING target
+# -- raw gold strings like "Enumerate the domain" are still matched at full
+# resolution -- even when the active label space is merged.
+STEP_LABELS_FINE = [
     "Do a google search for more information",
     "Enumerate further on the X service to find software versions, hidden directories and file.",
     "Explore the suspicious files, commands and create a summary of the findings.",
@@ -46,6 +52,77 @@ STEP_LABELS = [
     "Explore the source code for vulnerabilities.",
     "End task and ask permission to generate the report",
 ]
+
+# WHY A MERGED TAXONOMY EXISTS.
+# Measured on the 1.78k training rows: for each row, take the most textually
+# similar row from a DIFFERENT machine and ask whether it carries the same gold
+# label. Under the fine taxonomy that agreement is only 0.735 -- i.e. the same
+# described action is annotated differently across machines 26% of the time.
+# Per class it is far worse: "Enumerate the domain" 0.29, "Analyze the
+# outcomes" 0.31, "Explore the source code" 0.45. Those labels are not a
+# learnable function of the input; every model tried (TF-IDF LR, a 7.7M
+# GATv2+Qwen classifier, a 14B SFT LLM, a 14B RL LLM) lands in 0.76-0.80.
+#
+# The three "Enumerate ..." labels differ only by WHICH surface is enumerated
+# (service / website / domain) -- which is a property of the machine, not of
+# the decision the planner makes. Likewise "Explore suspicious files" and
+# "Explore the source code" are both "inspect artifacts you already have
+# access to". Collapsing those two groups is a taxonomy correction, not a
+# relabelling of anyone's judgement.
+#
+# MEASURED EFFECT (cross-machine label agreement / GroupKFold CV accuracy):
+#     fine, 9 live classes ............ 0.735 / 0.7972
+#     + merge enumerate ............... 0.756 / 0.8219
+#     + merge inspect ................. 0.759 / 0.8281   <- STEP_TAXONOMY=merged
+# Part of that gain is genuine (agreement rises) and part is mechanical (fewer
+# ways to be wrong), which is exactly why the number below is NOT comparable to
+# the paper's 82.87%: that figure is a 10-class result. Anything reported under
+# the merged taxonomy must be labelled as such.
+_MERGE_ENUMERATE = "Enumerate the target surface - service, website or domain"
+_MERGE_INSPECT = "Explore accessible files, commands or source and summarise findings"
+
+STEP_MERGE_MAP = {
+    "Do a google search for more information":
+        "Do a google search for more information",
+    "Enumerate further on the X service to find software versions, hidden directories and file.":
+        _MERGE_ENUMERATE,
+    "Further Enumerate the website. - hidden directories, links and software":
+        _MERGE_ENUMERATE,
+    "Enumerate the domain":
+        _MERGE_ENUMERATE,
+    "Explore the suspicious files, commands and create a summary of the findings.":
+        _MERGE_INSPECT,
+    "Explore the source code for vulnerabilities.":
+        _MERGE_INSPECT,
+    "Exploit the selected exploitations":
+        "Exploit the selected exploitations",
+    "Analyze the outcomes of the previous step and find an attack path":
+        "Analyze the outcomes of the previous step and find an attack path",
+    "Ask for human assistant":
+        "Ask for human assistant",
+    "End task and ask permission to generate the report":
+        "End task and ask permission to generate the report",
+}
+
+# Coarse label list, order-stable (first appearance in STEP_LABELS_FINE).
+STEP_LABELS_MERGED = list(dict.fromkeys(
+    STEP_MERGE_MAP[l] for l in STEP_LABELS_FINE))
+
+# "fine" reproduces the original 10-class setup exactly and is the ONLY mode
+# whose step accuracy is comparable to the paper's 82.87%.
+STEP_TAXONOMY = os.environ.get("STEP_TAXONOMY", "fine").strip().lower()
+if STEP_TAXONOMY not in ("fine", "merged"):
+    raise ValueError(f"STEP_TAXONOMY must be 'fine' or 'merged', got {STEP_TAXONOMY!r}")
+
+STEP_LABELS = STEP_LABELS_MERGED if STEP_TAXONOMY == "merged" else STEP_LABELS_FINE
+
+# Fine -> ACTIVE label. Identity in fine mode; the merge map in merged mode.
+# Everything that parses raw text produces a FINE label, so this is the single
+# place that collapses it.
+STEP_FINE_TO_ACTIVE = (
+    {l: STEP_MERGE_MAP[l] for l in STEP_LABELS_FINE}
+    if STEP_TAXONOMY == "merged" else {l: l for l in STEP_LABELS_FINE}
+)
 
 MCP_LABELS = [
     "Nmap",
@@ -61,8 +138,14 @@ MCP_LABELS = [
     "Web page interaction",
 ]
 
-STEP2IDX = {l: i for i, l in enumerate(STEP_LABELS)}
 IDX2STEP = {i: l for i, l in enumerate(STEP_LABELS)}
+
+# STEP2IDX accepts EITHER an active label or a fine label and returns the
+# ACTIVE index. Callers hand it whatever the normalizer produced, so both must
+# resolve; in fine mode the two key sets are identical and this is a no-op.
+STEP2IDX = {l: i for i, l in enumerate(STEP_LABELS)}
+for _fine, _active in STEP_FINE_TO_ACTIVE.items():
+    STEP2IDX.setdefault(_fine, STEP_LABELS.index(_active))
 MCP2IDX = {l: i for i, l in enumerate(MCP_LABELS)}
 IDX2MCP = {i: l for i, l in enumerate(MCP_LABELS)}
 
@@ -178,9 +261,32 @@ STEP_LOSS_WEIGHT = 1.50
 # ---------------------------------------------------------------------------
 # A3 — auxiliary coarse "phase" head (hierarchical supervision)
 # ---------------------------------------------------------------------------
-# The 10 step labels are not independent categories; they are positions in a
-STEP_PHASE_OF = [0, 1, 2, 1, 1, 3, 2, 5, 2, 4]
-N_STEP_PHASES = 6
+# The step labels are not independent categories; they are positions in a
+# coarse attack phase. The phase of each ACTIVE step class is derived from the
+# FINE mapping, so this stays correct under either taxonomy instead of being a
+# hard-coded length-10 array indexed by step_idx (which broke when the merged
+# taxonomy renumbered the classes: step_idx now ranges 0..6, so the old array
+# both read the wrong entries and could emit a phase index the head never had).
+#
+# Fine phase of each of the 10 original labels, in STEP_LABELS_FINE order:
+_STEP_PHASE_OF_FINE = [0, 1, 2, 1, 1, 3, 2, 5, 2, 4]
+# recon / enumerate / inspect / exploit / analyze / (ask-human) / report
+
+# Collapse to one phase per ACTIVE class: every fine label folded into an
+# active class contributes its phase; take the first (they agree for these
+# merges, both enumerate->1 and both inspect->2, by construction).
+_active_phase = {}
+for _fine_lbl, _fine_phase in zip(STEP_LABELS_FINE, _STEP_PHASE_OF_FINE):
+    _active = STEP_FINE_TO_ACTIVE[_fine_lbl]
+    _active_phase.setdefault(STEP_LABELS.index(_active), _fine_phase)
+STEP_PHASE_OF = [_active_phase[i] for i in range(len(STEP_LABELS))]
+# Renumber phases to a dense 0..K-1 range so the head is never asked for a
+# phase index with no examples (e.g. the 'ask-human' phase when that class is
+# absent), which is what the auxiliary cross-entropy indexes into.
+_uniq = sorted(set(STEP_PHASE_OF))
+_remap = {p: i for i, p in enumerate(_uniq)}
+STEP_PHASE_OF = [_remap[p] for p in STEP_PHASE_OF]
+N_STEP_PHASES = len(_uniq)
 STAGE1_PHASE_LOSS_WEIGHT = float(os.environ.get("STAGE1_PHASE_LOSS_WEIGHT", "0.30"))
 
 # ---------------------------------------------------------------------------
@@ -196,7 +302,7 @@ STAGE1_SMOOTH_TEMP = 0.10        # softmax temperature over label-text similarit
 # ---------------------------------------------------------------------------
 # Class 7 ("Ask for human assistant") has 0 rows in train AND test. It cannot
 STAGE1_MASK_UNSUPPORTED_CLASSES = os.environ.get(
-    "STAGE1_MASK_UNSUPPORTED", "1") not in ("0", "false", "False")
+    "STAGE1_MASK_UNSUPPORTED", "0") not in ("0", "false", "False")
 
 
 # ---------------------------------------------------------------------------
@@ -280,7 +386,7 @@ TOOL_EVIDENCE_KEYWORDS = {
 
 
 MCP_DECISION_THRESHOLD = 0.5
-STEP_LABEL_SMOOTHING = 0.05  # increased from 0.01 for better generalization
+STEP_LABEL_SMOOTHING = 0.0  # disabled to remove any class imbalance effects
 
 STAGE1_LR = 3.0e-4  # increased from 2.0e-4 for faster convergence
 STAGE1_EPOCHS = 80  # increased from 60 for longer training
@@ -317,8 +423,8 @@ STAGE1_SUPCON_TEMPERATURE = 0.10   # Khosla et al.'s recommended range (0.07-0.1
 STAGE1_HARD_NEGATIVE_MARGIN = 0.25  # increased from 0.20
 # Optional per-class boosts used by the Stage-1 hard-negative/class-aware loss.
 # Keep these modest so rare/confusable classes get extra emphasis without
-STAGE1_USE_STEP_CLASS_WEIGHTS = True
-STAGE1_USE_STEP_FOCAL = True
+STAGE1_USE_STEP_CLASS_WEIGHTS = False
+STAGE1_USE_STEP_FOCAL = False
 STAGE1_STEP_FOCAL_GAMMA = 1.5  # increased from 1.0 for better hard example focus
 STAGE1_STEP_HARD_CLASS_BOOSTS = {
     0: 1.15,  # increased from 1.10

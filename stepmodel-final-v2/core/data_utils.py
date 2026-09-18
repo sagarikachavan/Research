@@ -28,7 +28,7 @@ import numpy as np
 import pandas as pd
 
 from config import (
-    STEP_LABELS, STEP2IDX, MCP_LABELS, MCP2IDX,
+    STEP_LABELS, STEP_LABELS_FINE, STEP_FINE_TO_ACTIVE, STEP2IDX, MCP_LABELS, MCP2IDX,
     GRAPH_DIR_TRAIN, GRAPH_DIR_TEST,
     INPUT_TRAIN_JSON, INPUT_TEST_JSON,
 )
@@ -43,17 +43,20 @@ CONTEXT_COLUMNS = [
 # ----------------------------------------------------------------------------
 # 1. Step label normalization
 # ----------------------------------------------------------------------------
+# Parses at FULL 10-class resolution against STEP_LABELS_FINE. Positional
+# STEP_LABELS[i] would silently mis-resolve once the active label space is
+# merged (the list shrinks and index i means something else).
 _STEP_REGEX = [
-    (re.compile(r"google search", re.I), STEP_LABELS[0]),
-    (re.compile(r"enumerate further on the .*(service|http|ftp|smb|ssh)", re.I), STEP_LABELS[1]),
-    (re.compile(r"explore.*(suspicious|files|commands).*summary", re.I), STEP_LABELS[2]),
-    (re.compile(r"further enumerate the website", re.I), STEP_LABELS[3]),
-    (re.compile(r"enumerate the domain", re.I), STEP_LABELS[4]),
-    (re.compile(r"exploit the selected exploitation", re.I), STEP_LABELS[5]),
-    (re.compile(r"analy[sz]e the outcomes.*attack path", re.I), STEP_LABELS[6]),
-    (re.compile(r"ask for human", re.I), STEP_LABELS[7]),
-    (re.compile(r"explore the source code", re.I), STEP_LABELS[8]),
-    (re.compile(r"end task.*(permission|report)", re.I), STEP_LABELS[9]),
+    (re.compile(r"google search", re.I), STEP_LABELS_FINE[0]),
+    (re.compile(r"enumerate further on the .*(service|http|ftp|smb|ssh)", re.I), STEP_LABELS_FINE[1]),
+    (re.compile(r"explore.*(suspicious|files|commands).*summary", re.I), STEP_LABELS_FINE[2]),
+    (re.compile(r"further enumerate the website", re.I), STEP_LABELS_FINE[3]),
+    (re.compile(r"enumerate the domain", re.I), STEP_LABELS_FINE[4]),
+    (re.compile(r"exploit the selected exploitation", re.I), STEP_LABELS_FINE[5]),
+    (re.compile(r"analy[sz]e the outcomes.*attack path", re.I), STEP_LABELS_FINE[6]),
+    (re.compile(r"ask for human", re.I), STEP_LABELS_FINE[7]),
+    (re.compile(r"explore the source code", re.I), STEP_LABELS_FINE[8]),
+    (re.compile(r"end task.*(permission|report)", re.I), STEP_LABELS_FINE[9]),
 ]
 
 
@@ -76,7 +79,8 @@ class StepLabelNormalizer:
 
     def __init__(self, sim_threshold: float = 0.55):
         self.sim_threshold = sim_threshold
-        self._canon_norm = {_normalize_whitespace(l): l for l in STEP_LABELS}
+        # FINE labels: parsing keeps full resolution; normalize() collapses after.
+        self._canon_norm = {_normalize_whitespace(l): l for l in STEP_LABELS_FINE}
         self._encoder = None
         self._canon_emb = None
 
@@ -86,12 +90,23 @@ class StepLabelNormalizer:
             from config import TEXT_ENCODER_NAME, TEXT_EMB_DIM
             self._encoder = SentenceTransformer(TEXT_ENCODER_NAME,
                                                 truncate_dim=TEXT_EMB_DIM)
-            self._canon_emb = self._encoder.encode(STEP_LABELS, normalize_embeddings=True)
+            self._canon_emb = self._encoder.encode(STEP_LABELS_FINE, normalize_embeddings=True)
         return self._encoder
 
     def normalize(self, raw: str) -> str:
+        """Map a free-text step string onto the ACTIVE label space.
+
+        Matching happens at full 10-class resolution (STEP_LABELS_FINE) so the
+        regex/embedding rules keep their precision, then the result is
+        collapsed through STEP_FINE_TO_ACTIVE. Under STEP_TAXONOMY=fine that
+        collapse is the identity, so behaviour is unchanged.
+        """
         if raw is None or (isinstance(raw, float) and np.isnan(raw)):
             return None
+        fine = self._normalize_fine(raw)
+        return STEP_FINE_TO_ACTIVE.get(fine, fine) if fine is not None else None
+
+    def _normalize_fine(self, raw: str) -> str:
         norm = _normalize_whitespace(raw)
         if norm in self._canon_norm:
             return self._canon_norm[norm]
@@ -106,7 +121,7 @@ class StepLabelNormalizer:
         sims = self._canon_emb @ emb[0]
         best = int(np.argmax(sims))
         if sims[best] >= self.sim_threshold:
-            return STEP_LABELS[best]
+            return STEP_LABELS_FINE[best]
         return None  # unresolvable -> drop row / route to "Ask for human assistant" at caller's discretion
 
 
