@@ -61,12 +61,13 @@ for _p in (_ROOT, _os.path.join(_ROOT, "core"), _os.path.join(_ROOT, "data_prep"
 from config import (
     INPUT_TEST_JSON, STAGE1_CKPT, STEP_LABELS, MCP_LABELS, MCP_DECISION_THRESHOLD,
     QWEN_MODEL_NAME, ROOT, LLM_JUDGE_MODEL_NAME, STAGE1_TEXT_MAX_TOKENS,
+    TEXT_ENCODER_NAME, STAGE1_TEXT_TOKEN_DIM,
 )
 from data_utils import (
     load_from_input_json, mcp_multihot, StepLabelNormalizer, extract_mcp_labels,
     precompute_text_tokens,
 )
-from graph_encoder import Stage1Classifier
+from graph_encoder import Stage1Classifier, mask_unsupported_logits
 from mcp_threshold_search import predict_with_per_class_thresholds
 from llm_judge import batch_evaluate_explanations, print_llm_judge_results
 def load_stage1_checkpoint(ckpt_path: str, device: str):
@@ -74,17 +75,26 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
     Handles both checkpoint formats:
       - New (Improvement 2): dict with 'model_state_dict' + 'mcp_thresholds'
       - Legacy: plain state dict
-    Returns (models, mcp_thresholds, step_logit_bias); `models` is a LIST.
+    Returns (models, mcp_thresholds, step_logit_bias, step_support_mask);
+    `models` is a LIST.
 
     ---------------------------------------------------------------------
     Stage 1 is ONE model trained on a single machine-grouped split -- no
     cross-validation, no ensembling. The checkpoint IS the model that produced
     the headline metric, and it is also the model Stage 2/3 load. Nothing is
-    reconstructed here beyond the weights and the two calibration vectors
-    (MCP thresholds, step logit bias) saved next to them.
+    reconstructed here beyond the weights and the calibration vectors (MCP
+    thresholds, step logit bias, step support mask) saved next to them.
+
+    step_support_mask: bool per STEP_LABELS entry, True if that class had >=1
+    training row. A class with zero support (e.g. "Ask for human assistant")
+    is UNLEARNABLE, and this checkpoint's training run masked its logit to
+    -inf everywhere it evaluated -- so it must be masked here too, or this
+    separate process would silently let the model predict a class it was
+    never actually trained to recognise.
     """
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     step_logit_bias = None
+    step_support_mask = None
     if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
         state_dict = ckpt["model_state_dict"]
         mcp_thresholds = ckpt.get(
@@ -93,6 +103,7 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
         step_logit_bias = ckpt.get("step_logit_bias", None)
         if step_logit_bias is not None and not any(abs(b) > 1e-9 for b in step_logit_bias):
             step_logit_bias = None
+        step_support_mask = ckpt.get("step_support_mask", None)
         print(
             f"[eval] Loaded checkpoint "
             f"(epoch={ckpt.get('best_epoch','?')}, "
@@ -106,6 +117,30 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
         )
         if step_logit_bias is not None:
             print(f"[eval] Per-class STEP logit bias: {[round(b, 2) for b in step_logit_bias]}")
+        if step_support_mask is not None and not all(step_support_mask):
+            dead = [i for i, ok in enumerate(step_support_mask) if not ok]
+            print(f"[eval] Masking step classes with no training support "
+                  f"(0 weight, cannot be predicted): {dead}")
+
+        # Fail LOUD and EARLY on an encoder mismatch. `python run.py` inherits
+        # env vars into every stage subprocess, so a full pipeline run is
+        # always consistent -- but a standalone `python evaluate.py` in a
+        # fresh shell (no TEXT_ENCODER_NAME exported) silently falls back to
+        # the 0.6B default. Without this check that surfaces as a confusing
+        # PyTorch size-mismatch deep inside load_state_dict below; with it,
+        # the fix is stated directly.
+        ckpt_encoder = ckpt.get("text_encoder_name")
+        ckpt_dim = ckpt.get("text_token_dim")
+        if ckpt_encoder is not None and ckpt_encoder != TEXT_ENCODER_NAME:
+            raise RuntimeError(
+                f"Checkpoint was trained with TEXT_ENCODER_NAME={ckpt_encoder!r} "
+                f"(hidden dim {ckpt_dim}), but this process has "
+                f"TEXT_ENCODER_NAME={TEXT_ENCODER_NAME!r} "
+                f"(STAGE1_TEXT_TOKEN_DIM={STAGE1_TEXT_TOKEN_DIM}). "
+                f"Re-run with:\n"
+                f"  TEXT_ENCODER_NAME={ckpt_encoder} STAGE1_TEXT_TOKEN_DIM={ckpt_dim} "
+                f"python eval/evaluate.py --model gnn"
+            )
     else:
         state_dict = ckpt
         mcp_thresholds = [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)
@@ -115,7 +150,7 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
     model.load_state_dict(state_dict)
     model.eval()
     models = [model]
-    return models, mcp_thresholds, step_logit_bias
+    return models, mcp_thresholds, step_logit_bias, step_support_mask
 
 
 # ---------------------------------------------------------------------------
@@ -183,7 +218,7 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
         print(f"[eval] Checkpoint not found at {STAGE1_CKPT}. Run stage1_gnn_train.py first.")
         return
 
-    models, ckpt_thresholds, step_logit_bias = load_stage1_checkpoint(STAGE1_CKPT, device)
+    models, ckpt_thresholds, step_logit_bias, step_support_mask = load_stage1_checkpoint(STAGE1_CKPT, device)
     use_thresholds = (
         [float(threshold_override)] * len(MCP_LABELS)
         if threshold_override is not None
@@ -243,6 +278,8 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
                 mp_sum = _mp if mp_sum is None else mp_sum + _mp
             step_logits = sl_sum / len(models)
             mcp_prob_t = mp_sum / len(models)
+            if step_support_mask is not None:
+                step_logits = mask_unsupported_logits(step_logits, step_support_mask)
             sl_np = step_logits.detach().cpu().numpy()
             if step_logit_bias is not None:
                 step_preds.append(
@@ -345,7 +382,7 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     if threshold_override is not None:
         use_thresholds = [float(threshold_override)] * len(MCP_LABELS)
     elif os.path.exists(STAGE1_CKPT):
-        _, use_thresholds, _ = load_stage1_checkpoint(STAGE1_CKPT, "cpu")
+        _, use_thresholds, _, _ = load_stage1_checkpoint(STAGE1_CKPT, "cpu")
         print("[eval] MCP thresholds loaded from Stage-1 checkpoint (for reference).")
     else:
         use_thresholds = [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)
@@ -833,9 +870,20 @@ def report_classification(
     print(f"  Weighted F1   : {step_weighted_f1:.4f}")
     print(f"  [Jaccard] Step: {mean_step_jac:.4f}  (exact match ratio)")
 
-    labels_present = sorted(
-        set(step_gold.tolist()) | set(int(p) for p in step_preds if p >= 0)
+    # Always report EVERY class in STEP_LABELS, not just the ones that happen
+    # to appear in this split's gold/predictions. A class with zero support
+    # (e.g. "Ask for human assistant") used to be silently dropped from the
+    # table -- its logit is masked to -inf (see STAGE1_MASK_UNSUPPORTED_CLASSES)
+    # so it will show precision/recall/F1 = 0.00 with support = 0, rather than
+    # not appearing at all. Any genuinely out-of-range value (there should not
+    # be one from this classifier, but stay defensive) is still folded in as
+    # its own "UNPARSEABLE" row instead of being dropped.
+    all_labels = list(range(len(STEP_LABELS)))
+    stray = sorted(
+        (set(step_gold.tolist()) | set(int(p) for p in step_preds))
+        - set(all_labels)
     )
+    labels_present = all_labels + stray
     print("\n  Per-class report:")
     print(
         classification_report(

@@ -194,7 +194,7 @@ STAGE3_ADAPTER_DIR = os.environ.get(
 # Model / training hyperparameters
 # ----------------------------------------------------------------------------
 # ── The project's ONE text encoder ──────────────────────────────────────────
-TEXT_ENCODER_NAME = os.environ.get("TEXT_ENCODER_NAME", "Qwen/Qwen3-Embedding-0.6B")
+TEXT_ENCODER_NAME = os.environ.get("TEXT_ENCODER_NAME", "Qwen/Qwen3-Embedding-4B")
 TEXT_EMB_DIM = 768
 
 # Stage-1 graph encoder capacity.
@@ -243,7 +243,7 @@ STAGE1_TEXT_PROJ_DIM = int(os.environ.get("STAGE1_TEXT_PROJ_DIM", "384"))
 # pre-pooled sentence vector. TOKEN_DIM is the encoder's hidden size (1024 for
 # Qwen3-Embedding-0.6B) and is asserted against the real data at load time.
 STAGE1_TEXT_MAX_TOKENS = int(os.environ.get("STAGE1_TEXT_MAX_TOKENS", "256"))
-STAGE1_TEXT_TOKEN_DIM = int(os.environ.get("STAGE1_TEXT_TOKEN_DIM", "1024"))
+STAGE1_TEXT_TOKEN_DIM = int(os.environ.get("STAGE1_TEXT_TOKEN_DIM", "2560"))
 STAGE1_TEXT_ATTN_HEADS = int(os.environ.get("STAGE1_TEXT_ATTN_HEADS", "4"))
 STAGE1_TEXT_DROPOUT = float(os.environ.get("STAGE1_TEXT_DROPOUT", "0.12"))
 
@@ -301,8 +301,17 @@ STAGE1_SMOOTH_TEMP = 0.10        # softmax temperature over label-text similarit
 # A5 — mask step classes that have no training support
 # ---------------------------------------------------------------------------
 # Class 7 ("Ask for human assistant") has 0 rows in train AND test. It cannot
+# be learned -- there is nothing to learn it from -- so ON BY DEFAULT: its
+# logit is forced to -inf (see mask_unsupported_logits in graph_encoder.py)
+# both at training-time evaluation and at Stage-1 test/inference time, which
+# is the literal "give it 0 weight" behaviour: the model can never assign it
+# any probability mass, rather than merely being unlikely to predict it.
+# The class KEEPS its slot in STEP_LABELS (so the label indices and every
+# downstream contract are unchanged) and still appears as its own row, with
+# 0.00 metrics, in evaluate.py's per-class report -- it is masked, not
+# dropped. Set to "0" to allow the model to predict it anyway.
 STAGE1_MASK_UNSUPPORTED_CLASSES = os.environ.get(
-    "STAGE1_MASK_UNSUPPORTED", "0") not in ("0", "false", "False")
+    "STAGE1_MASK_UNSUPPORTED", "1") not in ("0", "false", "False")
 
 
 # ---------------------------------------------------------------------------

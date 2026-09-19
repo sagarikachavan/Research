@@ -86,10 +86,9 @@ class StepLabelNormalizer:
 
     def _lazy_encoder(self):
         if self._encoder is None:
-            from sentence_transformers import SentenceTransformer
             from config import TEXT_ENCODER_NAME, TEXT_EMB_DIM
-            self._encoder = SentenceTransformer(TEXT_ENCODER_NAME,
-                                                truncate_dim=TEXT_EMB_DIM)
+            self._encoder = _load_sentence_transformer(TEXT_ENCODER_NAME,
+                                                        truncate_dim=TEXT_EMB_DIM)
             self._canon_emb = self._encoder.encode(STEP_LABELS_FINE, normalize_embeddings=True)
         return self._encoder
 
@@ -681,6 +680,33 @@ def build_graph_from_ptt(ptt_text: str):
     return data
 
 
+def _load_sentence_transformer(model_name: str, **kwargs):
+    """Load a SentenceTransformer, preferring the local cache with no network.
+
+    Stage 1 downloads the encoder once; every later process in the SAME
+    pipeline run (Stage 2, Stage 3, a second `evaluate.py` invocation, ...)
+    constructs its own SentenceTransformer and, by default, still issues a HEAD
+    request to Hugging Face to check for updates before falling back to cache.
+    On a GPU cluster where compute nodes have no (or flaky) internet -- common
+    when the login node has it and the compute node does not -- that HEAD
+    request hangs through 5 retries with exponential backoff (~23s) EVERY time,
+    for a file that is already fully cached locally and does not need to
+    change mid-run. Observed directly: Stage 2 tried to fetch
+    'sentence_bert_config.json' over the network seconds after Stage 1 had
+    already downloaded and cached the exact same model.
+
+    `local_files_only=True` skips the network entirely and reads straight from
+    cache -- correct here because if Stage 1 just downloaded this model, it
+    IS cached. This only tries the network at all when the local attempt
+    fails, which covers the genuine first-ever download (no cache exists yet).
+    """
+    from sentence_transformers import SentenceTransformer
+    try:
+        return SentenceTransformer(model_name, local_files_only=True, **kwargs)
+    except Exception:
+        return SentenceTransformer(model_name, **kwargs)
+
+
 @lru_cache(maxsize=1)
 def _get_embedder():
     """The single text encoder for the whole project: Qwen3-Embedding.
@@ -698,9 +724,8 @@ def _get_embedder():
     embeddings. Requesting 768 keeps node features at 768 + NODE_AUX_DIM(15) =
     783-d, the contract data_utils and graph_encoder already share.
     """
-    from sentence_transformers import SentenceTransformer
     from config import TEXT_ENCODER_NAME, TEXT_EMB_DIM
-    return SentenceTransformer(TEXT_ENCODER_NAME, truncate_dim=TEXT_EMB_DIM)
+    return _load_sentence_transformer(TEXT_ENCODER_NAME, truncate_dim=TEXT_EMB_DIM)
 
 
 def _embed_texts(texts):

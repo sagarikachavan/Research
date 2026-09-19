@@ -867,7 +867,8 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     print(f"{tag} val_step_acc={val_metrics['step_accuracy']:.4f}  val_mcp_microF1={val_metrics['mcp_micro_f1']:.4f}  "
           f"thresholds={[round(float(x), 2) for x in thresholds]}")
 
-    return model, mcp_w_np, mcp_counts, val_probs, val_gold, val_metrics, thresholds, step_bias
+    return (model, mcp_w_np, mcp_counts, val_probs, val_gold, val_metrics, thresholds,
+            step_bias, eval_support)
 def _tool_evidence_penalty(examples):
     """(N, n_tools) additive logit penalty for tools with no supporting
     evidence in the PTT text available at decision time.
@@ -934,7 +935,7 @@ def main():
 
     ckpt_path = os.path.join(ROOT, "checkpoints", "stage1_model.pt")
     (model, mcp_w_np, mcp_counts, val_probs, val_gold,
-     val_metrics, _thr, _bias) = train_one_split(
+     val_metrics, _thr, _bias, eval_support) = train_one_split(
         full_ds, train_idx, val_idx, device, ckpt_path,
         tag="[Stage 1]", init_seed=RANDOM_SEED,
     )
@@ -945,7 +946,8 @@ def main():
                             batch_size=STAGE1_BATCH_SIZE, shuffle=False,
                             collate_fn=collate)
     _m, cal_mcp_probs, cal_mcp_gold, cal_step_logits, cal_step_gold = evaluate(
-        model, val_loader, device, return_probs=True, return_step_logits=True)
+        model, val_loader, device, return_probs=True, return_step_logits=True,
+        support_mask=eval_support)
     print(f"[Stage 1] Calibration set: {len(cal_step_gold)} held-out rows "
           f"from {len(vm)} machines")
 
@@ -958,10 +960,16 @@ def main():
                                        verbose=True)
 
     # PRIMARY Stage-1 result. Writes output/stage1.csv so the saved
-    # predictions match the headline numbers.
+    # predictions match the headline numbers. support_mask is threaded through
+    # here (it used to be local to train_one_split and never reached this,
+    # the actual headline evaluation) so a class with zero training support is
+    # masked -- given literally 0 prediction probability -- consistently at
+    # every evaluation site, not just inside train_one_split's own internal
+    # validation loop.
     test_metrics = evaluate(model, test_loader, device, threshold=thresholds,
                             save_csv=True, csv_path=csv_path,
-                            dataset=test_ds.examples, step_bias=step_bias)
+                            dataset=test_ds.examples, step_bias=step_bias,
+                            support_mask=eval_support)
     _print_test_metrics(test_metrics, "TEST — SINGLE MODEL  [PRIMARY]")
 
     # The model that produces the headline number is now the SAME model Stage 2
@@ -969,6 +977,24 @@ def main():
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     ckpt["model_state_dict"] = model.state_dict()
     ckpt["stage2_encoder"] = "single_model"
+    # Persisted so eval/evaluate.py -- a SEPARATE process that only ever reads
+    # the checkpoint -- applies the identical mask rather than silently
+    # allowing a zero-support class to be predicted again at eval time.
+    ckpt["step_support_mask"] = (
+        [bool(x) for x in eval_support] if eval_support is not None else None
+    )
+    # Persisted so a LATER, separate invocation (evaluate.py run from a fresh
+    # shell, days later, on a different node) can detect an encoder mismatch
+    # immediately with a clear message, instead of a cryptic PyTorch
+    # size-mismatch traceback deep inside load_state_dict. Concretely: this
+    # run used TEXT_ENCODER_NAME=Qwen/Qwen3-Embedding-4B (hidden 2560), and
+    # `python run.py` propagates that env var to every stage subprocess it
+    # launches -- but a manually-run `cd eval && python evaluate.py` in a
+    # fresh shell does NOT have it set, silently defaults back to the 0.6B
+    # encoder (hidden 1024), and the checkpoint's text_token_proj weights
+    # would then be the wrong shape for the model evaluate.py just built.
+    ckpt["text_encoder_name"] = TEXT_ENCODER_NAME
+    ckpt["text_token_dim"] = int(STAGE1_TEXT_TOKEN_DIM)
     ckpt["mcp_thresholds"] = [float(x) for x in thresholds]
     ckpt["step_logit_bias"] = [float(x) for x in step_bias]
     ckpt["val_metrics"] = {k: float(v) for k, v in val_metrics.items()}
