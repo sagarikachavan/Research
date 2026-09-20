@@ -1,0 +1,41 @@
+================================================================================
+COMPREHENSIVE MODEL COMPARISON REPORT
+================================================================================
+
+OVERALL PERFORMANCE METRICS
+--------------------------------------------------------------------------------
+                        Model  step_accuracy  step_micro_f1  step_macro_f1  mcp_samples_f1  mcp_micro_f1  mcp_macro_f1  mcp_subset_accuracy  mcp_missing_tool_rate  mcp_extra_tool_rate  explanation_judge_accuracy
+            baseline_zeroshot       0.455224       0.455224       0.352652        0.484224      0.404979      0.347294             0.186567               0.270911             0.545696                         NaN
+               baseline_3shot       0.548507       0.548507       0.409755        0.661704      0.579979      0.473962             0.361940               0.176030             0.366652                         NaN
+               baseline_5shot       0.611940       0.611940       0.466370        0.646137      0.583333      0.460389             0.320896               0.202247             0.366967                         NaN
+                       stage1       0.805970       0.805970       0.574638        0.751119      0.726736      0.658293             0.559701               0.241573             0.189480                         NaN
+                       stage2       0.750000       0.750000       0.524572        0.616542      0.613115      0.404253             0.481343               0.406991             0.241736                      0.6327
+                       stage3       0.738806       0.738806       0.508599        0.624876      0.626030      0.428447             0.492537               0.397628             0.222689                      0.6214
+pen_strategist_paper_reported       0.828700       0.800000            NaN             NaN      0.640000           NaN             0.488800                    NaN                  NaN                         NaN
+
+KEY IMPROVEMENTS (Stage 2 vs Zero-shot Baseline)
+--------------------------------------------------------------------------------
+step_accuracy            : 0.7500 vs 0.4552 (+0.2948, +64.8% better)
+step_micro_f1            : 0.7500 vs 0.4552 (+0.2948, +64.8% better)
+step_macro_f1            : 0.5246 vs 0.3527 (+0.1719, +48.8% better)
+mcp_samples_f1           : 0.6165 vs 0.4842 (+0.1323, +27.3% better)
+mcp_micro_f1             : 0.6131 vs 0.4050 (+0.2081, +51.4% better)
+mcp_macro_f1             : 0.4043 vs 0.3473 (+0.0570, +16.4% better)
+mcp_subset_accuracy      : 0.4813 vs 0.1866 (+0.2948, +158.0% better)
+mcp_missing_tool_rate    : 0.4070 vs 0.2709 (+0.1361, -50.2% worse)
+mcp_extra_tool_rate      : 0.2417 vs 0.5457 (-0.3040, +55.7% better)
+
+BEST MODEL PER METRIC
+--------------------------------------------------------------------------------
+step_accuracy            : pen_strategist_paper_reported (0.8287)
+step_micro_f1            : stage1 (0.8060)
+step_macro_f1            : stage1 (0.5746)
+mcp_samples_f1           : stage1 (0.7511)
+mcp_micro_f1             : stage1 (0.7267)
+mcp_macro_f1             : stage1 (0.6583)
+mcp_subset_accuracy      : stage1 (0.5597)
+mcp_missing_tool_rate    : baseline_3shot (0.1760) (lower is better)
+mcp_extra_tool_rate      : stage1 (0.1895) (lower is better)
+explanation_judge_accuracy: stage2 (0.6327)
+
+================================================================================
