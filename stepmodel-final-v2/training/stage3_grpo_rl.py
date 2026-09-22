@@ -745,7 +745,6 @@ def main():
     ).lower() in ("1", "true", "yes")
     SAFE_CLIP_HIGH = float(os.environ.get("STAGE3_SAFE_CLIP_HIGH", str(STAGE3_CLIP_HIGH)))
     SAFE_ACCUM = int(os.environ.get("STAGE3_SAFE_GRAD_ACCUM", str(STAGE3_GRAD_ACCUM)))
-    SAFE_PATIENCE = int(os.environ.get("STAGE3_SAFE_PATIENCE", str(STAGE3_EARLY_STOP_PATIENCE)))
     # Grad-norm clip: config.py had drifted to 1.0 while the training loop
     # below hardcoded 0.5 -- config.py's value is now corrected to 0.5 (the
     # value actually exercised by every real run so far), so this env-var
@@ -1151,6 +1150,10 @@ def main():
             else:
                 no_improve += 1
 
+            if no_improve > 0:
+                print(f"[Stage 3] step {step:4d} | no improvement for {no_improve} eval(s); "
+                      f"best={best_score:.4f} @ {best_step}; continuing to full STAGE3_STEPS.")
+
             print(
                 f"[Stage 3] step {step:4d} | val task={val_score:.4f} "
                 f"(step={val_step:.4f}, mcpJ={val_mcp:.4f}, exp={val_exp:.4f}) | "
@@ -1164,9 +1167,6 @@ def main():
                 f"avg_missing={val['avg_missing_mcp_tools']:.3f} | avg_extra={val['avg_extra_mcp_tools']:.3f}"
             )
 
-            if no_improve >= SAFE_PATIENCE:
-                print(f"[Stage 3] Early stop: {no_improve} consecutive validation checks without a strict improvement.")
-                break
 
     # Flush any partial accumulation only if useful gradients are present.
     # We intentionally do not force an extra optimizer step after an early stop

@@ -1,113 +1,113 @@
 {
   "model_tag": "stage2_qwen_lora",
-  "timestamp": "2026-09-19T12:53:55.657522+00:00",
+  "timestamp": "2026-09-22T04:53:00.807479+00:00",
   "n_samples": 268,
   "mcp_thresholds": [
+    0.85,
     0.5,
+    0.25,
+    0.15,
+    0.2,
     0.5,
-    0.5,
-    0.5,
-    0.5,
-    0.5,
-    0.5,
-    0.5,
-    0.5,
-    0.5,
-    0.5
+    0.09,
+    0.35,
+    0.6,
+    0.6,
+    0.6
   ],
   "step": {
-    "accuracy": 0.7201492537313433,
-    "macro_f1": 0.4853368182621945,
-    "weighted_f1": 0.7172567378735499,
-    "jaccard_exact_match": 0.7201492537313433
+    "accuracy": 0.8134328358208955,
+    "macro_f1": 0.5700960049200303,
+    "weighted_f1": 0.8094964720504942,
+    "jaccard_exact_match": 0.8134328358208955
   },
   "mcp": {
-    "subset_accuracy": 0.503731343283582,
-    "exact_match_rate": 0.503731343283582,
-    "avg_missing_tools": 0.5970149253731343,
-    "avg_extra_tools": 0.25,
-    "missing_tool_rate": 0.3863920099875156,
-    "extra_tool_rate": 0.250996015936255,
-    "total_missing_tools": 160,
-    "total_extra_tools": 67,
-    "micro_f1": 0.6344605475040258,
-    "macro_f1": 0.45533529039627596,
-    "samples_f1": 0.6383084577114426,
-    "samples_precision": 0.7014925373134329,
-    "samples_recall": 0.611318407960199,
-    "micro_precision": 0.7462121212121212,
-    "micro_recall": 0.5518207282913166,
-    "hamming_loss": 0.07700135685210312,
-    "jaccard_mean": 0.6041666666666667,
-    "jaccard_pass_rate_at_0.5": 0.6716417910447762,
+    "subset_accuracy": 0.5410447761194029,
+    "exact_match_rate": 0.5410447761194029,
+    "avg_missing_tools": 0.458955223880597,
+    "avg_extra_tools": 0.2537313432835821,
+    "missing_tool_rate": 0.2858926342072409,
+    "extra_tool_rate": 0.18968871595330739,
+    "total_missing_tools": 123,
+    "total_extra_tools": 68,
+    "micro_f1": 0.7101669195751138,
+    "macro_f1": 0.6361188642139484,
+    "samples_f1": 0.7223880597014924,
+    "samples_precision": 0.7770522388059702,
+    "samples_recall": 0.7114427860696517,
+    "micro_precision": 0.7748344370860927,
+    "micro_recall": 0.6554621848739496,
+    "hamming_loss": 0.06478968792401628,
+    "jaccard_mean": 0.6772388059701493,
+    "jaccard_pass_rate_at_0.5": 0.7686567164179104,
     "per_label": {
       "Nmap": {
-        "precision": 0.7419354838709677,
+        "precision": 0.7666666666666667,
         "recall": 0.8214285714285714,
-        "f1": 0.7796610169491526,
+        "f1": 0.7931034482758621,
         "support": 28
       },
       "Metasploit": {
-        "precision": 1.0,
-        "recall": 0.058823529411764705,
-        "f1": 0.1111111111111111,
+        "precision": 0.4583333333333333,
+        "recall": 0.6470588235294118,
+        "f1": 0.5365853658536586,
         "support": 17
       },
       "Netcat": {
-        "precision": 0.5,
-        "recall": 0.07142857142857142,
-        "f1": 0.125,
+        "precision": 0.42857142857142855,
+        "recall": 0.21428571428571427,
+        "f1": 0.2857142857142857,
         "support": 14
       },
       "Dirbuster": {
-        "precision": 0.8333333333333334,
-        "recall": 0.21739130434782608,
-        "f1": 0.3448275862068966,
+        "precision": 0.8235294117647058,
+        "recall": 0.6086956521739131,
+        "f1": 0.7,
         "support": 23
       },
       "SQLmap": {
         "precision": 1.0,
-        "recall": 0.2857142857142857,
-        "f1": 0.4444444444444444,
+        "recall": 0.7142857142857143,
+        "f1": 0.8333333333333334,
         "support": 7
       },
       "Smb client": {
         "precision": 1.0,
-        "recall": 0.23529411764705882,
-        "f1": 0.38095238095238093,
+        "recall": 0.35294117647058826,
+        "f1": 0.5217391304347826,
         "support": 17
       },
       "hydra": {
-        "precision": 0.5,
+        "precision": 0.3333333333333333,
         "recall": 0.3333333333333333,
-        "f1": 0.4,
+        "f1": 0.3333333333333333,
         "support": 3
       },
       "John-the-ripper": {
-        "precision": 1.0,
-        "recall": 0.25,
-        "f1": 0.4,
+        "precision": 0.8888888888888888,
+        "recall": 0.6666666666666666,
+        "f1": 0.7619047619047619,
         "support": 12
       },
       "Google search": {
-        "precision": 0.7083333333333334,
-        "recall": 0.6071428571428571,
-        "f1": 0.6538461538461539,
+        "precision": 0.8695652173913043,
+        "recall": 0.7142857142857143,
+        "f1": 0.7843137254901961,
         "support": 28
       },
       "Interactive CLI": {
-        "precision": 0.7236842105263158,
-        "recall": 0.7236842105263158,
-        "f1": 0.7236842105263158,
+        "precision": 0.8294573643410853,
+        "recall": 0.7039473684210527,
+        "f1": 0.7615658362989324,
         "support": 152
       },
       "Web page interaction": {
-        "precision": 0.8108108108108109,
-        "recall": 0.5357142857142857,
-        "f1": 0.6451612903225806,
+        "precision": 0.7346938775510204,
+        "recall": 0.6428571428571429,
+        "f1": 0.6857142857142857,
         "support": 56
       }
     }
   },
-  "combined_jaccard_step_mcp": 0.6621579601990051
+  "combined_jaccard_step_mcp": 0.7453358208955224
 }

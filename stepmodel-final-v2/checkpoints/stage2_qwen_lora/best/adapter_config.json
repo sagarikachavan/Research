@@ -33,11 +33,11 @@
   "revision": null,
   "target_modules": [
     "up_proj",
-    "down_proj",
-    "k_proj",
     "gate_proj",
     "q_proj",
     "o_proj",
+    "k_proj",
+    "down_proj",
     "v_proj"
   ],
   "target_parameters": null,

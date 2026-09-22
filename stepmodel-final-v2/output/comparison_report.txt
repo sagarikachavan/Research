@@ -8,34 +8,34 @@ OVERALL PERFORMANCE METRICS
             baseline_zeroshot       0.458955       0.458955       0.360036        0.484224      0.404979      0.347294             0.186567               0.270911             0.545696                         NaN
                baseline_3shot       0.544776       0.544776       0.411295        0.661704      0.579979      0.473962             0.361940               0.176030             0.366652                         NaN
                baseline_5shot       0.615672       0.615672       0.461854        0.646137      0.583333      0.460389             0.320896               0.202247             0.366967                         NaN
-                       stage1       0.791045       0.791045       0.576712        0.761567      0.753799      0.682295             0.608209               0.248439             0.153646                         NaN
-                       stage2       0.720149       0.720149       0.441215        0.638308      0.634461      0.455335             0.503731               0.386392             0.250996                      0.6083
-                       stage3       0.731343       0.731343       0.445272        0.628358      0.625806      0.424939             0.496269               0.391386             0.257085                      0.6337
-pen_strategist_paper_reported       0.828700       0.800000            NaN             NaN      0.640000           NaN             0.488800                    NaN                  NaN                         NaN
+                       stage1       0.791045       0.791045       0.549831        0.786692      0.765396      0.699457             0.611940               0.207241             0.163510                         NaN
+                       stage2       0.813433       0.813433       0.518269        0.722388      0.710167      0.636119             0.541045               0.285893             0.189689                      0.6458
+                       stage3       0.809701       0.809701       0.524210        0.725249      0.725076      0.553093             0.567164               0.287141             0.189081                      0.6100
+pen_strategist_paper_reported       0.787300       0.787300       0.564700        0.161900      0.496800      0.325000             0.273700               0.516000             0.444400                         NaN
 
 KEY IMPROVEMENTS (Stage 2 vs Zero-shot Baseline)
 --------------------------------------------------------------------------------
-step_accuracy            : 0.7201 vs 0.4590 (+0.2612, +56.9% better)
-step_micro_f1            : 0.7201 vs 0.4590 (+0.2612, +56.9% better)
-step_macro_f1            : 0.4412 vs 0.3600 (+0.0812, +22.5% better)
-mcp_samples_f1           : 0.6383 vs 0.4842 (+0.1541, +31.8% better)
-mcp_micro_f1             : 0.6345 vs 0.4050 (+0.2295, +56.7% better)
-mcp_macro_f1             : 0.4553 vs 0.3473 (+0.1080, +31.1% better)
-mcp_subset_accuracy      : 0.5037 vs 0.1866 (+0.3172, +170.0% better)
-mcp_missing_tool_rate    : 0.3864 vs 0.2709 (+0.1155, -42.6% worse)
-mcp_extra_tool_rate      : 0.2510 vs 0.5457 (-0.2947, +54.0% better)
+step_accuracy            : 0.8134 vs 0.4590 (+0.3545, +77.2% better)
+step_micro_f1            : 0.8134 vs 0.4590 (+0.3545, +77.2% better)
+step_macro_f1            : 0.5183 vs 0.3600 (+0.1582, +43.9% better)
+mcp_samples_f1           : 0.7224 vs 0.4842 (+0.2382, +49.2% better)
+mcp_micro_f1             : 0.7102 vs 0.4050 (+0.3052, +75.4% better)
+mcp_macro_f1             : 0.6361 vs 0.3473 (+0.2888, +83.2% better)
+mcp_subset_accuracy      : 0.5410 vs 0.1866 (+0.3545, +190.0% better)
+mcp_missing_tool_rate    : 0.2859 vs 0.2709 (+0.0150, -5.5% worse)
+mcp_extra_tool_rate      : 0.1897 vs 0.5457 (-0.3560, +65.2% better)
 
 BEST MODEL PER METRIC
 --------------------------------------------------------------------------------
-step_accuracy            : pen_strategist_paper_reported (0.8287)
-step_micro_f1            : pen_strategist_paper_reported (0.8000)
-step_macro_f1            : stage1 (0.5767)
-mcp_samples_f1           : stage1 (0.7616)
-mcp_micro_f1             : stage1 (0.7538)
-mcp_macro_f1             : stage1 (0.6823)
-mcp_subset_accuracy      : stage1 (0.6082)
+step_accuracy            : stage2 (0.8134)
+step_micro_f1            : stage2 (0.8134)
+step_macro_f1            : pen_strategist_paper_reported (0.5647)
+mcp_samples_f1           : stage1 (0.7867)
+mcp_micro_f1             : stage1 (0.7654)
+mcp_macro_f1             : stage1 (0.6995)
+mcp_subset_accuracy      : stage1 (0.6119)
 mcp_missing_tool_rate    : baseline_3shot (0.1760) (lower is better)
-mcp_extra_tool_rate      : stage1 (0.1536) (lower is better)
-explanation_judge_accuracy: stage3 (0.6337)
+mcp_extra_tool_rate      : stage1 (0.1635) (lower is better)
+explanation_judge_accuracy: stage2 (0.6458)
 
 ================================================================================

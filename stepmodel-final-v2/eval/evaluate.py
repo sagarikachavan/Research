@@ -837,6 +837,7 @@ def report_classification(
     missing_total = 0
     extra_total = 0
     exact_match_count = 0
+    exact_match_denom = 0
     for pred_row, gold_row in zip(mcp_preds, mcp_gold):
         pred_set = {j for j, v in enumerate(pred_row) if v == 1}
         gold_set = {j for j, v in enumerate(gold_row) if v == 1}
@@ -850,12 +851,18 @@ def report_classification(
             extra_rates.append(len(extra) / len(pred_set))
         missing_total += len(missing)
         extra_total += len(extra)
-        exact_match_count += int(pred_set == gold_set)
+        # An empty gold set matched by an empty prediction is excluded from
+        # exact-match scoring entirely (neither counted as a match nor as a
+        # miss) -- it isn't a case of the model correctly identifying "no
+        # tools needed", it's simply undefined for this metric.
+        if gold_set or pred_set:
+            exact_match_denom += 1
+            exact_match_count += int(pred_set == gold_set)
     avg_missing_tools = float(np.mean(missing_counts)) if missing_counts else 0.0
     avg_extra_tools = float(np.mean(extra_counts)) if extra_counts else 0.0
     missing_tool_rate = float(np.mean(missing_rates)) if missing_rates else 0.0
     extra_tool_rate = float(np.mean(extra_rates)) if extra_rates else 0.0
-    exact_match_rate = float(exact_match_count / len(mcp_preds)) if len(mcp_preds) else 0.0
+    exact_match_rate = float(exact_match_count / exact_match_denom) if exact_match_denom else 0.0
 
     # ── STEP metrics ──
     step_acc = float(accuracy_score(step_gold, step_preds))
@@ -901,7 +908,10 @@ def report_classification(
     print(cm)
 
     # ── MCP metrics ──
-    subset_acc = float(accuracy_score(mcp_gold, mcp_preds))
+    # subset_acc is the same exact-row-match definition as exact_match_rate
+    # above: rows where gold and pred are both empty are excluded rather than
+    # counted as a match.
+    subset_acc = exact_match_rate
     micro_f1 = float(f1_score(mcp_gold, mcp_preds, average='micro', zero_division=0))
     macro_f1 = float(f1_score(mcp_gold, mcp_preds, average='macro', zero_division=0))
     samples_f1 = float(f1_score(mcp_gold, mcp_preds, average='samples', zero_division=0))

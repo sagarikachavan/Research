@@ -6,8 +6,9 @@ Qwen input.
 
 Training input: stepmodelv2/input/train.json
 A 10% held-out validation split is used to track val loss each epoch.
-The best checkpoint (lowest val loss) is saved and early stopping fires
-after STAGE2_EARLY_STOP_PATIENCE epochs without improvement.
+Training always runs the full STAGE2_EPOCHS; the best checkpoint (by
+val_step_field_acc, tiebroken by lowest val loss) is saved regardless of
+where in training it occurs.
 
 Target output per example:
     {"New step": <STEP_LABELS entry>,
@@ -720,9 +721,8 @@ def main():
     os.makedirs(STAGE2_ADAPTER_DIR, exist_ok=True)
 
     print(f"[Stage 2] Training input  : {INPUT_TRAIN_JSON}")
-    print(f"[Stage 2] Max epochs      : {STAGE2_EPOCHS}")
+    print(f"[Stage 2] Epochs (fixed)  : {STAGE2_EPOCHS} (early stopping disabled; always trains to completion)")
     print(f"[Stage 2] Val split       : {STAGE2_VAL_SPLIT:.0%}")
-    print(f"[Stage 2] Early-stop pat. : {STAGE2_EARLY_STOP_PATIENCE} epochs")
     print(f"[Stage 2] Effective batch : {STAGE2_BATCH_SIZE * STAGE2_GRAD_ACCUM}")
 
     # ── Tokenizer ─────────────────────────────────────────────────────────────
@@ -1031,11 +1031,9 @@ def main():
             print(f"  → best checkpoint saved  (val_step_field_acc={best_step_acc:.4f}, val_loss={best_val_loss:.4f})")
         else:
             no_improve_count += 1
-            print(f"  → no improvement for {no_improve_count}/{STAGE2_EARLY_STOP_PATIENCE} epochs")
-            if no_improve_count >= STAGE2_EARLY_STOP_PATIENCE:
-                print(f"\n[Stage 2] Early stopping at epoch {epoch+1}. "
-                      f"Best was epoch {best_epoch} (val_step_field_acc={best_step_acc:.4f}, val_loss={best_val_loss:.4f})")
-                break
+            print(f"  → no improvement for {no_improve_count} epoch(s); best epoch {best_epoch} "
+                  f"(val_step_field_acc={best_step_acc:.4f}, val_loss={best_val_loss:.4f}); "
+                  f"continuing to full STAGE2_EPOCHS.")
 
     # ── Copy best checkpoint to the canonical STAGE2_ADAPTER_DIR ─────────────
     # Stage 3 and evaluate.py load from STAGE2_ADAPTER_DIR directly, so the

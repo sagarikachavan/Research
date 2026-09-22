@@ -398,7 +398,10 @@ MCP_DECISION_THRESHOLD = 0.5
 STEP_LABEL_SMOOTHING = 0.0  # disabled to remove any class imbalance effects
 
 STAGE1_LR = 3.0e-4  # increased from 2.0e-4 for faster convergence
-STAGE1_EPOCHS = 80  # increased from 60 for longer training
+STAGE1_EPOCHS = 120  # increased from 80; early stopping is disabled (see
+                       # training/stage1_gnn_train.py) so this is now the
+                       # actual, always-completed training length -- only the
+                       # best-val-score checkpoint across all 120 epochs ships.
 STAGE1_BATCH_SIZE = 20  # increased from 16 for larger batch (if memory allows)
 STAGE1_WARMUP_EPOCHS = 5  # increased from 4
 STAGE1_GRAD_CLIP = 1.0
@@ -521,7 +524,13 @@ LORA_DROPOUT = 0.12              # Slightly increased for regularization
 # CORRECTED (architecture re-audit): this was 1e-5 while
 # training/stage2_sft_qwen.py's main() actually used an independently
 STAGE2_LR = 2e-6
-STAGE2_EPOCHS = 8                # Short bridge stage before GRPO; avoid overtraining
+STAGE2_EPOCHS = 16               # increased from 8; early stopping is disabled
+                                  # (see training/stage2_sft_qwen.py) so this
+                                  # is the actual, always-completed length --
+                                  # only the best val_step_field_acc checkpoint
+                                  # across all 16 epochs ships, so a longer run
+                                  # cannot regress the shipped checkpoint, only
+                                  # cost more GPU time.
 STAGE2_BATCH_SIZE = 1
 STAGE2_GRAD_ACCUM = 16
 # Upweight the loss on the "New step" label tokens (and MCP tokens) relative
@@ -553,7 +562,10 @@ STAGE3_W_EXP = float(os.environ.get("STAGE3_W_EXP", "0.51"))
 
 
 STAGE2_VAL_SPLIT = 0.15          # 15% held-out for validation
-STAGE2_EARLY_STOP_PATIENCE = 3   # Stop quickly once validation stops improving
+# UNUSED (kept only so callers that still import it don't break): early
+# stopping is disabled in training/stage2_sft_qwen.py -- training always
+# runs the full STAGE2_EPOCHS and keeps the best checkpoint by val score.
+STAGE2_EARLY_STOP_PATIENCE = 3
 STAGE2_GRAD_CLIP = 1.0
 STAGE2_WARMUP_RATIO = 0.05       # Short warmup for the compact bridge stage
 STAGE2_WEIGHT_DECAY = 1e-4
@@ -567,9 +579,12 @@ STAGE2_ADAPTER_LR_MULT = 50.0
 STAGE3_GROUP_SIZE = 8            # 8 completions per prompt for the GRPO group
 STAGE3_LR = 2e-6                # matches main branch's working Stage-3 run;
                                   # 1e-7 was 20x too small and never moved the policy
-STAGE3_STEPS = 1500             # user-requested; enough real updates to
-                                  # actually shift the policy (150 updates at
-                                  # 600 steps did nothing)
+STAGE3_STEPS = 2500              # increased from 1500; early stopping is
+                                  # disabled (see training/stage3_grpo_rl.py)
+                                  # so this is the actual, always-completed
+                                  # step budget -- only the best-val-score
+                                  # checkpoint (subject to the promotion gate
+                                  # vs. the Stage-2 anchor) ships.
 STAGE3_KL_COEF = 0.08            # Increased for better stability
 STAGE3_PPO_CLIP = 0.2            # Standard (symmetric) PPO clipping lower bound
 # DAPO "Clip-Higher" (Yu et al., "DAPO: An Open-Source LLM Reinforcement
@@ -590,9 +605,11 @@ STAGE3_DUAL_CLIP_COEF = 3.0
 STAGE3_KL_HARD_CAP = 4.0         # Per-MICRO-BATCH mean-KL cap (not per-window
                                   # — see training/stage3_grpo_rl.py). Originally
                                   # set to 1.0 and applied to the whole 4-batch
-STAGE3_EARLY_STOP_PATIENCE = 2   # Stop the run after this many consecutive
-                                  # held-out evals (every EVAL_EVERY=200 steps)
-                                  # with no new best checkpoint. Deliberately
+# UNUSED (kept only so callers that still import it don't break): early
+# stopping is disabled in training/stage3_grpo_rl.py -- training always runs
+# the full STAGE3_STEPS and keeps the best checkpoint (subject to the
+# promotion gate vs. the Stage-2 anchor).
+STAGE3_EARLY_STOP_PATIENCE = 2
 
 # Env-overridable so a multi-seed variance check (see STAGE1_IMPROVEMENTS.md
 # Round 6) doesn't require editing this file between runs:

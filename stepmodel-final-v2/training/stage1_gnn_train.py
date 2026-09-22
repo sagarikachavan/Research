@@ -670,7 +670,6 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
     ]
 
     best_score, best_epoch, no_improve = -1.0, -1, 0
-    patience = 12
     train_losses, val_scores = [], []
     # Rolling pool of the top-K checkpoints by val score, kept in CPU RAM,
     # used for Stochastic Weight Averaging after training ends (see
@@ -781,9 +780,8 @@ def train_one_split(full_ds, train_idx, val_idx, device, ckpt_path, tag="[Stage 
             print(f"{tag}   -> saved best checkpoint to {ckpt_path}")
         else:
             no_improve += 1
-            if no_improve >= patience:
-                print(f"{tag} Early stopping at epoch {epoch+1}; best epoch {best_epoch}.")
-                break
+            print(f"{tag}   -> no improvement for {no_improve} epoch(s); best epoch {best_epoch} "
+                  f"(score {best_score:.4f}); continuing to full STAGE1_EPOCHS.")
 
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     model.load_state_dict(ckpt["model_state_dict"])
