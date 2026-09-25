@@ -1135,7 +1135,9 @@ def main():
             # objective suffers a material regression versus the Stage-2 anchor.
             step_ok = val_step >= baseline_step - 0.01
             mcp_ok = val_mcp >= baseline_mcp - 0.01
-            exp_ok = val_exp >= baseline_exp - 0.01
+            # Exp must strictly improve here too, mirroring the final gate --
+            # Stage 3's job is to beat Stage 2 on explanation/judge quality.
+            exp_ok = val_exp >= baseline_exp + 0.002
             better = val_score >= best_score + 0.002
             flag = ""
             if step_ok and mcp_ok and exp_ok and better:
@@ -1202,10 +1204,18 @@ def main():
     # an RL checkpoint could ship having improved step/MCP while degrading
     # explanation quality -- which is exactly what happened (judge 66.12% ->
     # 55.60%). All three objectives must hold for RL to replace Stage 2.
+    # Promotion priority flipped to match the actual goal of this stage:
+    # Stage 3 exists to win on explanation quality (the LLM judge), so the
+    # gate now requires explanation to strictly improve over Stage 2, and
+    # only requires step/MCP not to regress materially -- not the other way
+    # around. The old gate (step must improve, exp just can't regress) let
+    # RL ship checkpoints with unchanged step accuracy but no requirement
+    # that explanation actually got better, which is exactly why Stage 3
+    # kept losing to Stage 2 on judge accuracy despite being the RL stage.
     if (best_step > 0 and best_score > baseline_score
-            and best_step_metric >= baseline_step + 0.002
-            and best_mcp_metric >= baseline_mcp - 0.002
-            and best_exp_metric >= baseline_exp - 0.002):
+            and best_exp_metric >= baseline_exp + 0.002
+            and best_step_metric >= baseline_step - 0.002
+            and best_mcp_metric >= baseline_mcp - 0.002):
         for name in os.listdir(STAGE3_ADAPTER_DIR):
             if name == "best" or name.startswith("step_") or name == "last_step_raw":
                 continue

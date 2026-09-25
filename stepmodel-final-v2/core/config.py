@@ -435,8 +435,8 @@ STAGE1_SUPCON_TEMPERATURE = 0.10   # Khosla et al.'s recommended range (0.07-0.1
 STAGE1_HARD_NEGATIVE_MARGIN = 0.25  # increased from 0.20
 # Optional per-class boosts used by the Stage-1 hard-negative/class-aware loss.
 # Keep these modest so rare/confusable classes get extra emphasis without
-STAGE1_USE_STEP_CLASS_WEIGHTS = False
-STAGE1_USE_STEP_FOCAL = False
+STAGE1_USE_STEP_CLASS_WEIGHTS = True
+STAGE1_USE_STEP_FOCAL = True
 STAGE1_STEP_FOCAL_GAMMA = 1.5  # increased from 1.0 for better hard example focus
 STAGE1_STEP_HARD_CLASS_BOOSTS = {
     0: 1.15,  # increased from 1.10
@@ -452,13 +452,17 @@ STAGE1_STEP_HARD_CLASS_BOOSTS = {
 # Class-imbalance fixes added in the Stage-1 architecture/imbalance audit
 # (see STAGE1_IMPROVEMENTS.md for full rationale + cited papers).
 # ----------------------------------------------------------------------------
-STAGE1_USE_LOGIT_ADJUSTMENT = False
-STAGE1_LOGIT_ADJ_TAU = 1.0        # paper's default value. If combined with
-                                   # STAGE1_USE_STEP_CLASS_WEIGHTS over-
-                                   # corrects (majority-class recall drops a
-                                   # lot), first try lowering this to ~0.5
-                                   # before touching the weights -- see
-                                   # STAGE1_IMPROVEMENTS.md.
+STAGE1_USE_LOGIT_ADJUSTMENT = True
+STAGE1_LOGIT_ADJ_TAU = 0.5        # Starting at the doc's recommended
+                                   # pre-corrected value (not the paper's 1.0)
+                                   # since STAGE1_USE_STEP_CLASS_WEIGHTS is
+                                   # also on -- running both at tau=1.0 risks
+                                   # stacking/over-correcting (majority-class
+                                   # recall drop). Goal: close the
+                                   # step_macro_f1 gap vs
+                                   # pen_strategist_paper_reported (0.565)
+                                   # without giving up step_accuracy. See
+                                   # STAGE1_IMPROVEMENTS.md's ablation order.
 
 # Asymmetric Loss for multi-label MCP prediction (Ridnik & Ben-Baruch et
 # al., "Asymmetric Loss For Multi-Label Classification", ICCV 2021):
@@ -552,13 +556,16 @@ STAGE2_MCP_TOKEN_LOSS_WEIGHT = float(os.environ.get("STAGE2_MCP_TOKEN_LOSS_WEIGH
 # ---------------------------------------------------------------------------
 # Was 0.01 / 0.33 / 0.33 / 0.33 (format / step / mcp / explanation), i.e. GRPO
 STAGE3_W_FMT = float(os.environ.get("STAGE3_W_FMT", "0.01"))
-STAGE3_W_STEP = float(os.environ.get("STAGE3_W_STEP", "0.24"))
-STAGE3_W_MCP = float(os.environ.get("STAGE3_W_MCP", "0.24"))
-# Explanation stays the LARGEST single objective (0.51 > 0.24), but step and
-# MCP are now equal to each other and materially weighted rather than nearly
-# ignored. At 0.69 the RL over-optimised a misaligned explanation proxy and
-# regressed every objective; 0.01+0.24+0.24+0.51 = 1.00.
-STAGE3_W_EXP = float(os.environ.get("STAGE3_W_EXP", "0.51"))
+STAGE3_W_STEP = float(os.environ.get("STAGE3_W_STEP", "0.19"))
+STAGE3_W_MCP = float(os.environ.get("STAGE3_W_MCP", "0.19"))
+# Stage 3's job is to win explanation/judge quality specifically (the
+# promotion gate in stage3_grpo_rl.py now requires exp to strictly improve
+# over Stage 2, not just step). Raised from 0.51 back toward 0.61 -- not all
+# the way back to the 0.69 that caused the earlier truncation collapse,
+# because the explanation proxy now includes the grounding/completeness
+# terms added specifically to fix that misalignment (see
+# _deterministic_explanation_score). 0.01+0.19+0.19+0.61 = 1.00.
+STAGE3_W_EXP = float(os.environ.get("STAGE3_W_EXP", "0.61"))
 
 
 STAGE2_VAL_SPLIT = 0.15          # 15% held-out for validation

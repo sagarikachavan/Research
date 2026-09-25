@@ -1,113 +1,113 @@
 {
   "model_tag": "stage2_qwen_lora",
-  "timestamp": "2026-09-22T04:53:00.807479+00:00",
+  "timestamp": "2026-09-25T09:02:46.074125+00:00",
   "n_samples": 268,
   "mcp_thresholds": [
-    0.85,
-    0.5,
+    0.4,
+    0.55,
     0.25,
+    0.8,
+    0.55,
     0.15,
-    0.2,
-    0.5,
-    0.09,
+    0.05,
     0.35,
-    0.6,
-    0.6,
+    0.85,
+    0.2,
     0.6
   ],
   "step": {
-    "accuracy": 0.8134328358208955,
-    "macro_f1": 0.5700960049200303,
-    "weighted_f1": 0.8094964720504942,
-    "jaccard_exact_match": 0.8134328358208955
+    "accuracy": 0.8059701492537313,
+    "macro_f1": 0.5941461474844024,
+    "weighted_f1": 0.793084515535914,
+    "jaccard_exact_match": 0.8059701492537313
   },
   "mcp": {
-    "subset_accuracy": 0.5410447761194029,
-    "exact_match_rate": 0.5410447761194029,
-    "avg_missing_tools": 0.458955223880597,
-    "avg_extra_tools": 0.2537313432835821,
-    "missing_tool_rate": 0.2858926342072409,
-    "extra_tool_rate": 0.18968871595330739,
-    "total_missing_tools": 123,
-    "total_extra_tools": 68,
-    "micro_f1": 0.7101669195751138,
-    "macro_f1": 0.6361188642139484,
-    "samples_f1": 0.7223880597014924,
-    "samples_precision": 0.7770522388059702,
-    "samples_recall": 0.7114427860696517,
-    "micro_precision": 0.7748344370860927,
-    "micro_recall": 0.6554621848739496,
-    "hamming_loss": 0.06478968792401628,
-    "jaccard_mean": 0.6772388059701493,
-    "jaccard_pass_rate_at_0.5": 0.7686567164179104,
+    "subset_accuracy": 0.5335820895522388,
+    "exact_match_rate": 0.5335820895522388,
+    "avg_missing_tools": 0.5335820895522388,
+    "avg_extra_tools": 0.30597014925373134,
+    "missing_tool_rate": 0.31835205992509363,
+    "extra_tool_rate": 0.22692307692307692,
+    "total_missing_tools": 143,
+    "total_extra_tools": 82,
+    "micro_f1": 0.655436447166922,
+    "macro_f1": 0.46425870736400476,
+    "samples_f1": 0.6924129353233831,
+    "samples_precision": 0.75,
+    "samples_recall": 0.6791044776119403,
+    "micro_precision": 0.722972972972973,
+    "micro_recall": 0.5994397759103641,
+    "hamming_loss": 0.07632293080054274,
+    "jaccard_mean": 0.6489427860696517,
+    "jaccard_pass_rate_at_0.5": 0.7052238805970149,
     "per_label": {
       "Nmap": {
-        "precision": 0.7666666666666667,
-        "recall": 0.8214285714285714,
-        "f1": 0.7931034482758621,
+        "precision": 0.6,
+        "recall": 0.9642857142857143,
+        "f1": 0.7397260273972602,
         "support": 28
       },
       "Metasploit": {
-        "precision": 0.4583333333333333,
-        "recall": 0.6470588235294118,
-        "f1": 0.5365853658536586,
+        "precision": 0.38461538461538464,
+        "recall": 0.8823529411764706,
+        "f1": 0.5357142857142857,
         "support": 17
       },
       "Netcat": {
-        "precision": 0.42857142857142855,
-        "recall": 0.21428571428571427,
-        "f1": 0.2857142857142857,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
         "support": 14
       },
       "Dirbuster": {
-        "precision": 0.8235294117647058,
-        "recall": 0.6086956521739131,
-        "f1": 0.7,
+        "precision": 0.7647058823529411,
+        "recall": 0.5652173913043478,
+        "f1": 0.65,
         "support": 23
       },
       "SQLmap": {
-        "precision": 1.0,
-        "recall": 0.7142857142857143,
-        "f1": 0.8333333333333334,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
         "support": 7
       },
       "Smb client": {
-        "precision": 1.0,
-        "recall": 0.35294117647058826,
-        "f1": 0.5217391304347826,
+        "precision": 0.8333333333333334,
+        "recall": 0.29411764705882354,
+        "f1": 0.43478260869565216,
         "support": 17
       },
       "hydra": {
-        "precision": 0.3333333333333333,
-        "recall": 0.3333333333333333,
-        "f1": 0.3333333333333333,
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
         "support": 3
       },
       "John-the-ripper": {
-        "precision": 0.8888888888888888,
+        "precision": 0.8,
         "recall": 0.6666666666666666,
-        "f1": 0.7619047619047619,
+        "f1": 0.7272727272727273,
         "support": 12
       },
       "Google search": {
-        "precision": 0.8695652173913043,
-        "recall": 0.7142857142857143,
-        "f1": 0.7843137254901961,
+        "precision": 1.0,
+        "recall": 0.6428571428571429,
+        "f1": 0.782608695652174,
         "support": 28
       },
       "Interactive CLI": {
-        "precision": 0.8294573643410853,
-        "recall": 0.7039473684210527,
-        "f1": 0.7615658362989324,
+        "precision": 0.8257575757575758,
+        "recall": 0.7171052631578947,
+        "f1": 0.7676056338028169,
         "support": 152
       },
       "Web page interaction": {
-        "precision": 0.7346938775510204,
-        "recall": 0.6428571428571429,
-        "f1": 0.6857142857142857,
+        "precision": 0.76,
+        "recall": 0.3392857142857143,
+        "f1": 0.4691358024691358,
         "support": 56
       }
     }
   },
-  "combined_jaccard_step_mcp": 0.7453358208955224
+  "combined_jaccard_step_mcp": 0.7274564676616915
 }

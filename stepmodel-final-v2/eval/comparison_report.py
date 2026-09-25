@@ -98,15 +98,15 @@ PAPER_ROW_NAME = "pen_strategist_paper_reported"
 # }
 
 PAPER_REPORTED = {
-  "step_accuracy": 0.7873,
-  "step_micro_f1": 0.7873,
-  "step_macro_f1": 0.5647,
-  "mcp_samples_f1": 0.1619,
-  "mcp_micro_f1": 0.4968,
-  "mcp_macro_f1": 0.3250,
-  "mcp_subset_accuracy": 0.2737,
-  "mcp_missing_tool_rate": 0.5160,
-  "mcp_extra_tool_rate": 0.4444
+  "step_accuracy": 0.7649,
+  "step_micro_f1": 0.7649,
+  "step_macro_f1": 0.5521,
+  "mcp_samples_f1": 0.6525,
+  "mcp_micro_f1": 0.6541,
+  "mcp_macro_f1": 0.4522,
+  "mcp_subset_accuracy": 0.4515,
+  "mcp_missing_tool_rate": 0.3152,
+  "mcp_extra_tool_rate": 0.2790
 }
 
 

@@ -16,10 +16,15 @@ Usage:
     python run.py                        # run all stages
     python run.py --start-from stage2   # resume from a specific stage
     python run.py --only generate_graphs build_input_json  # run specific stages
-    python run.py --only graph_ablation                  # diagnostics (opt-in only)
+    python run.py --only commercial_gpt5 commercial_claude  # diagnostics (opt-in only)
 
 Available stage names:
     generate_graphs, build_input_json, stage1, stage2, stage3, evaluate
+
+Opt-in diagnostic stages (need OPENAI_API_KEY/ANTHROPIC_API_KEY/GOOGLE_API_KEY,
+never run by default, never reachable via --start-from -- run with --only):
+    commercial_gpt5, commercial_gpt5mini, commercial_claude, commercial_gemini,
+    multi_judge, manual_sample
 """
 
 import argparse
@@ -34,15 +39,60 @@ from pathlib import Path
 STAGES = [
     # ("generate_graphs",   "data_prep/generate_graphs.py",  []),
     # ("build_input_json",  "data_prep/build_input_json.py", []),
-    ("stage1",            "training/stage1_gnn_train.py",  []),
+    # ("stage1",            "training/stage1_gnn_train.py",  []),
     ("stage2",            "training/stage2_sft_qwen.py",   []),
     ("stage3",             "training/stage3_grpo_rl.py",    []),
     ("evaluate",           "eval/evaluate.py",              []),
-    ("baseline_zeroshot", "eval/baseline_llm_eval.py",     ["--num_shots", "0"]),
-    ("baseline_3shot",    "eval/baseline_llm_eval.py",     ["--num_shots", "3"]),
-    ("baseline_5shot",    "eval/baseline_llm_eval.py",     ["--num_shots", "5"]),
+    # ("baseline_zeroshot", "eval/baseline_llm_eval.py",     ["--num_shots", "0"]),
+    # ("baseline_3shot",    "eval/baseline_llm_eval.py",     ["--num_shots", "3"]),
+    # ("baseline_5shot",    "eval/baseline_llm_eval.py",     ["--num_shots", "5"]),
     ("comparison",        "eval/comparison_report.py",     []),
+    ("commercial_gpt5",       "eval/commercial_explanation_baselines.py", ["--model", "gpt-5"]),
+    ("commercial_gpt5mini",   "eval/commercial_explanation_baselines.py", ["--model", "gpt-5-mini"]),
+    ("commercial_claude",     "eval/commercial_explanation_baselines.py", ["--model", "claude-sonnet"]),
+    ("commercial_gemini",     "eval/commercial_explanation_baselines.py", ["--model", "gemini-flash"]),
+    # Scores stage2/stage3 + whichever commercial_* baselines you've already
+    # generated above, with both your local judge and a commercial judge.
+    # Edit the --models list if you only ran a subset of the commercial_* stages.
+    ("multi_judge",           "eval/multi_judge_explanation_eval.py", [
+        "--models",
+        "stage2:output/stage2.csv",
+        "stage3:output/stage3.csv",
+        "commercial_gpt-5:output/commercial_gpt-5.csv",
+        "commercial_claude-sonnet:output/commercial_claude-sonnet.csv",
+        "commercial_gemini-flash:output/commercial_gemini-flash.csv",
+        "--judges", "local_qwen", "gpt-4o",
+    ]),
+    ("manual_sample",         "eval/manual_validation_sample.py", [
+        "sample", "--per-row", "output/multi_judge_per_row.csv", "--n", "40",
+    ]),
 ]
+
+# Opt-in only -- never run by `python run.py` with no args and never reachable
+# via --start-from (see the pipeline_names check below). These need
+# OPENAI_API_KEY / ANTHROPIC_API_KEY / GOOGLE_API_KEY set and hit paid APIs,
+# so they must be requested explicitly with --only <name>.
+# DIAGNOSTIC_STAGES = [
+#     ("commercial_gpt5",       "eval/commercial_explanation_baselines.py", ["--model", "gpt-5"]),
+#     ("commercial_gpt5mini",   "eval/commercial_explanation_baselines.py", ["--model", "gpt-5-mini"]),
+#     ("commercial_claude",     "eval/commercial_explanation_baselines.py", ["--model", "claude-sonnet"]),
+#     ("commercial_gemini",     "eval/commercial_explanation_baselines.py", ["--model", "gemini-flash"]),
+#     # Scores stage2/stage3 + whichever commercial_* baselines you've already
+#     # generated above, with both your local judge and a commercial judge.
+#     # Edit the --models list if you only ran a subset of the commercial_* stages.
+#     ("multi_judge",           "eval/multi_judge_explanation_eval.py", [
+#         "--models",
+#         "stage2:output/stage2.csv",
+#         "stage3:output/stage3.csv",
+#         "commercial_gpt-5:output/commercial_gpt-5.csv",
+#         "commercial_claude-sonnet:output/commercial_claude-sonnet.csv",
+#         "commercial_gemini-flash:output/commercial_gemini-flash.csv",
+#         "--judges", "local_qwen", "gpt-4o",
+#     ]),
+#     ("manual_sample",         "eval/manual_validation_sample.py", [
+#         "sample", "--per-row", "output/multi_judge_per_row.csv", "--n", "40",
+#     ]),
+# ]
 
 ALL_STAGES = STAGES
 STAGE_NAMES = [s[0] for s in ALL_STAGES]
