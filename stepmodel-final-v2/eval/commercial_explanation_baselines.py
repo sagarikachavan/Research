@@ -30,11 +30,20 @@ for _p in (_ROOT, os.path.join(_ROOT, "core"), os.path.join(_ROOT, "data_prep"),
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
+# commercial_llm (and openai/anthropic/google-generativeai underneath it) is
+# imported FIRST, before torch/transformers pull in via config/data_utils/
+# stage2_sft_qwen below. A repeatable `process() takes no keyword arguments`
+# TypeError was seen ONLY when the commercial API call happened after torch
+# was already loaded, and never in an isolated openai-only script -- so the
+# import order itself is the suspected trigger (some global HTTP/SSL/thread
+# state torch or transformers touches on import, which httpx2 depends on
+# being untouched). Importing the API client first sidesteps that ordering.
+from commercial_llm import generate_text, MODEL_REGISTRY
+
 from config import INPUT_TEST_JSON, ROOT, STEP_LABELS, MCP_LABELS
 from data_utils import load_from_input_json, StepLabelNormalizer, extract_mcp_labels
 from baseline_llm_eval import SYSTEM_PROMPT, build_user_content
 from stage2_sft_qwen import build_obj_parser
-from commercial_llm import generate_text, MODEL_REGISTRY
 
 
 def main():

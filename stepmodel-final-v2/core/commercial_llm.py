@@ -114,6 +114,15 @@ def generate_text(system_prompt: str, user_content: str, model_key: str,
 
         except Exception as e:
             last_err = e
+            if attempt == 0:
+                # Full traceback on the FIRST failure only -- repeating it on every
+                # retry/row would flood the log, but silently keeping only str(e)
+                # (the old behavior) hides exactly the info needed to tell a real
+                # API error apart from an import-order/environment bug.
+                import traceback
+                print(f"[commercial_llm] {model_key} call failed -- full traceback "
+                      f"(only printed once, further retries/rows just log the message):")
+                traceback.print_exc()
             if attempt < retries - 1:
                 time.sleep(2 * (attempt + 1))
     raise RuntimeError(f"generate_text failed for {model_key} after {retries} attempts: {last_err}")
