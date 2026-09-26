@@ -30,27 +30,20 @@ for _p in (_ROOT, os.path.join(_ROOT, "core"), os.path.join(_ROOT, "data_prep"),
     if _p not in sys.path:
         sys.path.insert(0, _p)
 
-# commercial_llm (and openai/anthropic/google-generativeai underneath it) is
-# imported FIRST, before torch/transformers pull in via config/data_utils/
-# stage2_sft_qwen below. A repeatable `process() takes no keyword arguments`
-# TypeError was seen ONLY when the commercial API call happened after torch
-# was already loaded, and never in an isolated openai-only script -- so the
-# import order itself is the suspected trigger (some global HTTP/SSL/thread
-# state torch or transformers touches on import, which httpx2 depends on
-# being untouched). Importing the API client first sidesteps that ordering.
-from commercial_llm import generate_text, MODEL_REGISTRY
-
 from config import INPUT_TEST_JSON, ROOT, STEP_LABELS, MCP_LABELS
 from data_utils import load_from_input_json, StepLabelNormalizer, extract_mcp_labels
 from baseline_llm_eval import SYSTEM_PROMPT, build_user_content
 from stage2_sft_qwen import build_obj_parser
+from commercial_llm import generate_text, MODEL_REGISTRY
 
 
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--model", required=True, choices=sorted(MODEL_REGISTRY.keys()))
     ap.add_argument("--max-samples", type=int, default=None, help="Smoke-test on a subset first")
-    ap.add_argument("--max-tokens", type=int, default=800)
+    ap.add_argument("--max-tokens", type=int, default=1500)
+    ap.add_argument("--debug-rows", type=int, default=0,
+                     help="Print raw model output + parsed/normalized step for the first N rows")
     args = ap.parse_args()
 
     examples = load_from_input_json(INPUT_TEST_JSON, "test")
@@ -80,6 +73,7 @@ def main():
 
         gold_step = ex["step_label"]
         gold_mcp = ex["mcp_labels"]
+        normalized_pred = normalizer.normalize(pred_step)
         rows.append({
             "machine": ex["machine"],
             "new_strategy": ex["context"]["New strategy"],
@@ -90,8 +84,11 @@ def main():
             "predicted_step_explanation": pred_expl,
             "gold_mcp_tasks": "|".join(gold_mcp),
             "predicted_mcp_tasks": "|".join(pred_mcp),
-            "step_correct": int(normalizer.normalize(pred_step) == gold_step),
+            "step_correct": int(normalized_pred == gold_step),
         })
+        if args.debug_rows and i < args.debug_rows:
+            print(f"[{i+1}] RAW (first 300 chars): {raw[:300]!r}")
+            print(f"[{i+1}] pred_step={pred_step!r} -> normalized={normalized_pred!r} | gold={gold_step!r}")
         print(f"[{i+1}/{len(examples)}] step_correct={rows[-1]['step_correct']}")
 
     out_path = os.path.join(ROOT, "output", f"commercial_{args.model}.csv")

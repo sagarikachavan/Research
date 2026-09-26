@@ -39,7 +39,19 @@ def _get_openai_client():
         api_key = os.environ.get("OPENAI_API_KEY")
         if not api_key:
             raise RuntimeError("OPENAI_API_KEY not set")
-        _openai_client = OpenAI(api_key=api_key)
+        # Force gzip/deflate instead of the default Accept-Encoding (which
+        # includes brotli). Root cause of a real failure: this environment's
+        # installed brotli/brotlicffi binding has a `.process()` method that
+        # doesn't accept the `output_buffer_limit` kwarg httpx2's brotli
+        # decoder passes it (TypeError: process() takes no keyword arguments,
+        # raised from httpx2/_decoders.py inside response.read()) -- a
+        # version mismatch between httpx2 and the brotli package, not
+        # anything about the request itself. Declining brotli here sidesteps
+        # that decoder path entirely; gzip/deflate use stdlib zlib.
+        _openai_client = OpenAI(
+            api_key=api_key,
+            default_headers={"Accept-Encoding": "gzip, deflate"},
+        )
     return _openai_client
 
 
@@ -67,7 +79,7 @@ def _get_google_client():
 
 
 def generate_text(system_prompt: str, user_content: str, model_key: str,
-                   max_tokens: int = 800, retries: int = 3) -> str:
+                   max_tokens: int = 1500, retries: int = 3) -> str:
     """Call `model_key` (a MODEL_REGISTRY key) and return its raw text
     response. Retries on transient API errors with linear backoff; raises
     on the final failure so callers can log/skip that row explicitly rather
@@ -81,7 +93,7 @@ def generate_text(system_prompt: str, user_content: str, model_key: str,
         try:
             if provider == "openai":
                 client = _get_openai_client()
-                resp = client.chat.completions.create(
+                kwargs = dict(
                     model=api_model,
                     messages=[
                         {"role": "system", "content": system_prompt},
@@ -89,6 +101,17 @@ def generate_text(system_prompt: str, user_content: str, model_key: str,
                     ],
                     max_completion_tokens=max_tokens,
                 )
+                # GPT-5-family reasoning models spend part of max_completion_tokens
+                # on invisible reasoning tokens before the visible answer -- at
+                # the old 800-token budget, reasoning could consume the whole
+                # thing and leave an EMPTY visible completion, which parses as
+                # UNPARSEABLE on every single row (looked like 0% step accuracy,
+                # not a crash). Capping reasoning effort low leaves more of the
+                # budget for the actual JSON answer. gpt-4o is not a reasoning
+                # model and rejects this param, so only set it for gpt-5*.
+                if api_model.startswith("gpt-5"):
+                    kwargs["reasoning_effort"] = "low"
+                resp = client.chat.completions.create(**kwargs)
                 return resp.choices[0].message.content or ""
 
             if provider == "anthropic":
@@ -117,8 +140,7 @@ def generate_text(system_prompt: str, user_content: str, model_key: str,
             if attempt == 0:
                 # Full traceback on the FIRST failure only -- repeating it on every
                 # retry/row would flood the log, but silently keeping only str(e)
-                # (the old behavior) hides exactly the info needed to tell a real
-                # API error apart from an import-order/environment bug.
+                # hides exactly the info that found the brotli/httpx2 bug above.
                 import traceback
                 print(f"[commercial_llm] {model_key} call failed -- full traceback "
                       f"(only printed once, further retries/rows just log the message):")
