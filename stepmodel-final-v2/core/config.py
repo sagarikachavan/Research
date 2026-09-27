@@ -567,6 +567,28 @@ STAGE3_W_MCP = float(os.environ.get("STAGE3_W_MCP", "0.19"))
 # _deterministic_explanation_score). 0.01+0.19+0.19+0.61 = 1.00.
 STAGE3_W_EXP = float(os.environ.get("STAGE3_W_EXP", "0.61"))
 
+# ---------------------------------------------------------------------------
+# Opt-in: score the explanation reward with a commercial LLM via G-Eval,
+# matching the Pen-Strategist paper's R_s exactly (arxiv.org/pdf/2605.04499,
+# Section 4.2.1) instead of the local deterministic proxy.
+# ---------------------------------------------------------------------------
+# DEFAULT IS "geval_gpt4o" (user-directed, matching the Pen-Strategist
+# paper's own choice) -- accepts two real costs the "deterministic" proxy
+# exists specifically to avoid: (1) thousands of paid, network-latency API
+# calls across GRPO's rollouts instead of one cheap local forward pass, and
+# (2) training directly against the same KIND of judge used to report
+# held-out quality, which lets the policy learn to exploit that judge's
+# specific blind spots rather than genuinely write better explanations
+# (Goodhart's law) -- mitigated, not eliminated, by the existing KL penalty
+# against the frozen Stage-2 reference. BECAUSE this mode trains against
+# gpt-4o, your held-out explanation_judge_accuracy judge MUST be a
+# DIFFERENT model (Claude, or the local Qwen judge) -- not gpt-4o again --
+# or you lose the independence the judge is there to provide. Requires
+# OPENAI_API_KEY set for the entire training run. Set to "deterministic" to
+# fall back to the cheap local proxy (_deterministic_explanation_score).
+STAGE3_EXPLANATION_REWARD_MODE = os.environ.get("STAGE3_EXPLANATION_REWARD_MODE", "geval_gpt4o")
+STAGE3_GEVAL_JUDGE_MODEL = os.environ.get("STAGE3_GEVAL_JUDGE_MODEL", "gpt-4o")
+
 
 STAGE2_VAL_SPLIT = 0.15          # 15% held-out for validation
 # UNUSED (kept only so callers that still import it don't break): early
@@ -665,6 +687,7 @@ _SUMMARY_GROUPS = {
     "STAGE 3": [
         "STAGE3_STEPS", "STAGE3_GROUP_SIZE", "STAGE3_LR",
         "STAGE3_W_FMT", "STAGE3_W_STEP", "STAGE3_W_MCP", "STAGE3_W_EXP",
+        "STAGE3_EXPLANATION_REWARD_MODE", "STAGE3_GEVAL_JUDGE_MODEL",
         
     ],
     "EVALUATION": ["LLM_JUDGE_MODEL_NAME", "MCP_DECISION_THRESHOLD"],

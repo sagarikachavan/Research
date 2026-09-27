@@ -70,7 +70,12 @@ STAGES = [
         "commercial_gpt-5-mini:output/commercial_gpt-5-mini.csv",
         "commercial_claude-sonnet:output/commercial_claude-sonnet.csv",
         "commercial_gemini-flash:output/commercial_gemini-flash.csv",
-        "--judges", "local_qwen", "gpt-4o",
+        # NOT gpt-4o: STAGE3_EXPLANATION_REWARD_MODE now defaults to
+        # "geval_gpt4o" (stage3's reward is gpt-4o-based G-Eval), so judging
+        # stage3 with gpt-4o here would score it against the same judge it
+        # was trained to satisfy -- exactly the independence violation
+        # flagged in config.py. claude-sonnet keeps this judge held-out.
+        "--judges", "local_qwen", "claude-sonnet",
     ]),
     ("manual_sample",         "eval/manual_validation_sample.py", [
         "sample", "--per-row", "output/multi_judge_per_row.csv", "--n", "40",

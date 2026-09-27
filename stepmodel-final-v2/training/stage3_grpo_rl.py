@@ -128,6 +128,7 @@ from config import (
     STAGE3_ADAPTER_DIR,
     STAGE3_GROUP_SIZE,
     STAGE3_W_FMT, STAGE3_W_STEP, STAGE3_W_MCP, STAGE3_W_EXP,
+    STAGE3_EXPLANATION_REWARD_MODE, STAGE3_GEVAL_JUDGE_MODEL,
        STAGE3_LR,
     STAGE3_STEPS,
     STAGE3_KL_COEF,
@@ -345,6 +346,98 @@ def _technical_token_recall(pred: str, gold: str) -> float:
     return len(toks(pred) & g) / len(g)
 
 
+# ---------------------------------------------------------------------------
+# Opt-in explanation reward: G-Eval via a commercial LLM, matching the
+# Pen-Strategist paper's R_s exactly (arxiv.org/pdf/2605.04499, Section
+# 4.2.1). OFF by default (STAGE3_EXPLANATION_REWARD_MODE="deterministic") --
+# see the long comment in config.py for why: cost, latency, and training
+# directly against the same kind of judge used for held-out evaluation.
+# When enabled, every one of GRPO's G completions per prompt costs one
+# commercial API call; a disk cache (same pattern as core/llm_judge.py's
+# cache) at least avoids re-paying for byte-identical repeats.
+# ---------------------------------------------------------------------------
+import hashlib as _hashlib
+import pathlib as _pathlib
+
+_GEVAL_CACHE_DIR = _pathlib.Path(__file__).parent.parent / "core" / ".geval_reward_cache"
+
+_GEVAL_CRITERIA = [
+    "logical_alignment",   # does the reasoning logically follow from the same rationale as the reference?
+    "evidence_reference",  # does it reference similar evidence / the same primary task as the reference?
+    "decision_consistency", # is the final step decision consistent with the reference, given the context?
+    "tool_technique_use",  # does it invoke similar tools/techniques as the reference?
+]
+
+_GEVAL_PROMPT = """You are scoring a penetration-testing step explanation against a reference (ground truth) explanation, using the G-Eval methodology.
+
+Score the PREDICTED explanation on FOUR criteria, each as an INTEGER from 1 (poor) to 5 (excellent), by comparing it to the REFERENCE explanation:
+1. logical_alignment: Does the predicted explanation's reasoning logically align with the reference's rationale?
+2. evidence_reference: Does it reference similar evidence and the same primary task as the reference?
+3. decision_consistency: Is the final step decision consistent with the reference's decision, given the context?
+4. tool_technique_use: Does it invoke similar tools/techniques as the reference?
+
+CONTEXT:
+- New strategy: {new_strategy}
+- Strategy explanation: {strategy_explanation}
+- Predicted step: {pred_step}
+
+PREDICTED EXPLANATION: {pred_expl}
+
+REFERENCE EXPLANATION: {gold_expl}
+
+Respond with ONLY this JSON object, no other text:
+{{"logical_alignment": <1-5>, "evidence_reference": <1-5>, "decision_consistency": <1-5>, "tool_technique_use": <1-5>}}"""
+
+
+def _geval_cache_key(pred_expl: str, gold_expl: str, pred_step: str, context: dict) -> str:
+    h = _hashlib.sha256()
+    for part in (STAGE3_GEVAL_JUDGE_MODEL, pred_expl, gold_expl, pred_step,
+                 context.get("New strategy", ""), context.get("Strategy explanation", "")):
+        h.update(str(part).encode("utf-8"))
+        h.update(b"\x00")
+    return h.hexdigest()
+
+
+def _geval_explanation_score(pred_expl: str, gold_expl: str, pred_step: str,
+                              context: dict) -> float:
+    """R_s from the paper: average of 4 G-Eval criteria, each 1-5, scored by
+    a commercial LLM (STAGE3_GEVAL_JUDGE_MODEL, default gpt-4o), normalized
+    to [0,1]. Falls back to 0.0 on any API/parse failure so a transient
+    network issue degrades one reward sample rather than crashing training."""
+    cache_key = _geval_cache_key(pred_expl, gold_expl, pred_step, context)
+    cache_path = _GEVAL_CACHE_DIR / f"{cache_key}.json"
+    if cache_path.exists():
+        try:
+            return json.loads(cache_path.read_text())["score"]
+        except Exception:
+            pass
+
+    from commercial_llm import generate_text
+    prompt = _GEVAL_PROMPT.format(
+        new_strategy=context.get("New strategy", ""),
+        strategy_explanation=context.get("Strategy explanation", ""),
+        pred_step=pred_step, pred_expl=pred_expl, gold_expl=gold_expl,
+    )
+    try:
+        raw = generate_text("Respond with ONLY the requested JSON object.", prompt,
+                             STAGE3_GEVAL_JUDGE_MODEL, max_tokens=100)
+        match = re.search(r"\{[^{}]*\}", raw, re.DOTALL)
+        parsed = json.loads(match.group()) if match else {}
+        vals = [float(parsed[c]) for c in _GEVAL_CRITERIA]
+        score = (sum(vals) / len(vals) - 1.0) / 4.0  # 1-5 -> 0-1
+        score = max(0.0, min(1.0, score))
+    except Exception as e:
+        print(f"[Stage 3] G-Eval reward call failed, scoring 0.0 for this sample: {e}")
+        score = 0.0
+
+    try:
+        _GEVAL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
+        cache_path.write_text(json.dumps({"score": score}))
+    except Exception:
+        pass
+    return score
+
+
 def compute_reward(completion: str, gold: dict,
                    w_fmt: float = STAGE3_W_FMT,
                    w_step: float = STAGE3_W_STEP,
@@ -375,10 +468,18 @@ def compute_reward(completion: str, gold: dict,
     inter = pred_mcp & gold_mcp
     mcp_r = (len(inter) / len(union)) if union else 1.0
 
-    exp_r = _deterministic_explanation_score(
-        str(obj.get("Step explanation", "")), gold.get("gold_step_explanation", ""),
-        pred_step, gold_step, pred_mcp, gold_mcp
-    )
+    pred_expl = str(obj.get("Step explanation", ""))
+    gold_expl = gold.get("gold_step_explanation", "")
+    if STAGE3_EXPLANATION_REWARD_MODE == "geval_gpt4o":
+        exp_r = _geval_explanation_score(
+            pred_expl, gold_expl, pred_step,
+            {"New strategy": gold.get("new_strategy", ""),
+             "Strategy explanation": gold.get("strategy_explanation", "")},
+        )
+    else:
+        exp_r = _deterministic_explanation_score(
+            pred_expl, gold_expl, pred_step, gold_step, pred_mcp, gold_mcp
+        )
     fmt_r = 1.0
     total = w_fmt * fmt_r + w_step * step_r + w_mcp * mcp_r + w_exp * exp_r
     out = {"total": total, "fmt": fmt_r, "step": step_r, "mcp": mcp_r, "exp": exp_r}
@@ -614,6 +715,8 @@ def evaluate_policy_on_val(policy, adapter, graph_encoder, embed_layer, tokenize
                 "step_label": ex["step_label"],
                 "mcp_labels": ex["mcp_labels"],
                 "gold_step_explanation": ex["gold_step_explanation"],
+                "new_strategy": ex["context"].get("New strategy", ""),
+                "strategy_explanation": ex["context"].get("Strategy explanation", ""),
             }
             prefix_embeds = build_prefix_embeds(
                 ex, graph_encoder, adapter, device, dtype
@@ -918,6 +1021,8 @@ def main():
             "step_label": ex["step_label"],
             "mcp_labels": ex["mcp_labels"],
             "gold_step_explanation": ex.get("gold_step_explanation", ""),
+            "new_strategy": ex["context"].get("New strategy", ""),
+            "strategy_explanation": ex["context"].get("Strategy explanation", ""),
         }
 
         prefix_embeds = build_prefix_embeds(ex, graph_encoder, adapter, device, dtype)
