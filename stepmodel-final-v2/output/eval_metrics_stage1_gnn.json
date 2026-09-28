@@ -1,6 +1,6 @@
 {
   "model_tag": "stage1_gnn",
-  "timestamp": "2026-09-25T08:08:42.781851+00:00",
+  "timestamp": "2026-09-28T06:06:11.180040+00:00",
   "n_samples": 268,
   "mcp_thresholds": [
     0.4,

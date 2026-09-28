@@ -349,93 +349,102 @@ def _technical_token_recall(pred: str, gold: str) -> float:
 # ---------------------------------------------------------------------------
 # Opt-in explanation reward: G-Eval via a commercial LLM, matching the
 # Pen-Strategist paper's R_s exactly (arxiv.org/pdf/2605.04499, Section
-# 4.2.1). OFF by default (STAGE3_EXPLANATION_REWARD_MODE="deterministic") --
-# see the long comment in config.py for why: cost, latency, and training
-# directly against the same kind of judge used for held-out evaluation.
-# When enabled, every one of GRPO's G completions per prompt costs one
-# commercial API call; a disk cache (same pattern as core/llm_judge.py's
-# cache) at least avoids re-paying for byte-identical repeats.
+# 4.2.1). Rubric/prompt/parsing live in core/geval.py -- SINGLE SOURCE OF
+# TRUTH shared with eval/multi_judge_explanation_eval.py's test-time
+# commercial-LLM comparison, so training reward and held-out judging can
+# never drift onto different rubrics again (they had: this reward used
+# G-Eval while the test-time comparison used core/llm_judge.py's separate
+# project rubric). See the long comment in config.py for the cost/
+# reward-hacking tradeoff of this mode. When enabled, every one of GRPO's G
+# completions per prompt costs one commercial API call; core/geval.py's
+# disk cache at least avoids re-paying for byte-identical repeats.
 # ---------------------------------------------------------------------------
-import hashlib as _hashlib
-import pathlib as _pathlib
+import geval as _geval
 
-_GEVAL_CACHE_DIR = _pathlib.Path(__file__).parent.parent / "core" / ".geval_reward_cache"
-
-_GEVAL_CRITERIA = [
-    "logical_alignment",   # does the reasoning logically follow from the same rationale as the reference?
-    "evidence_reference",  # does it reference similar evidence / the same primary task as the reference?
-    "decision_consistency", # is the final step decision consistent with the reference, given the context?
-    "tool_technique_use",  # does it invoke similar tools/techniques as the reference?
-]
-
-_GEVAL_PROMPT = """You are scoring a penetration-testing step explanation against a reference (ground truth) explanation, using the G-Eval methodology.
-
-Score the PREDICTED explanation on FOUR criteria, each as an INTEGER from 1 (poor) to 5 (excellent), by comparing it to the REFERENCE explanation:
-1. logical_alignment: Does the predicted explanation's reasoning logically align with the reference's rationale?
-2. evidence_reference: Does it reference similar evidence and the same primary task as the reference?
-3. decision_consistency: Is the final step decision consistent with the reference's decision, given the context?
-4. tool_technique_use: Does it invoke similar tools/techniques as the reference?
-
-CONTEXT:
-- New strategy: {new_strategy}
-- Strategy explanation: {strategy_explanation}
-- Predicted step: {pred_step}
-
-PREDICTED EXPLANATION: {pred_expl}
-
-REFERENCE EXPLANATION: {gold_expl}
-
-Respond with ONLY this JSON object, no other text:
-{{"logical_alignment": <1-5>, "evidence_reference": <1-5>, "decision_consistency": <1-5>, "tool_technique_use": <1-5>}}"""
+# Lazy-loaded local judge model, used when STAGE3_GEVAL_JUDGE_MODEL is a
+# local HF model id rather than a commercial_llm.MODEL_REGISTRY key (default:
+# Qwen2.5-14B-Instruct -- see config.py for why this specific model). Kept
+# as its own globals, separate from core/llm_judge.py's, so this reward-time
+# judge and the held-out explanation_judge_accuracy judge stay two distinct
+# model instances even if someone points both at the same model id.
+_local_geval_model = None
+_local_geval_tokenizer = None
+_local_geval_device = None
 
 
-def _geval_cache_key(pred_expl: str, gold_expl: str, pred_step: str, context: dict) -> str:
-    h = _hashlib.sha256()
-    for part in (STAGE3_GEVAL_JUDGE_MODEL, pred_expl, gold_expl, pred_step,
-                 context.get("New strategy", ""), context.get("Strategy explanation", "")):
-        h.update(str(part).encode("utf-8"))
-        h.update(b"\x00")
-    return h.hexdigest()
+def _load_local_geval_judge():
+    global _local_geval_model, _local_geval_tokenizer, _local_geval_device
+    if _local_geval_model is not None:
+        return
+    from transformers import AutoTokenizer, AutoModelForCausalLM
+    _local_geval_device = "cuda" if torch.cuda.is_available() else "cpu"
+    dtype = torch.bfloat16 if torch.cuda.is_available() else torch.float32
+    print(f"[Stage 3] Loading local G-Eval reward judge: {STAGE3_GEVAL_JUDGE_MODEL} "
+          f"(separate from the policy and from the held-out eval judge)")
+    tok = AutoTokenizer.from_pretrained(STAGE3_GEVAL_JUDGE_MODEL)
+    if tok.pad_token is None:
+        tok.pad_token = tok.eos_token
+    model = AutoModelForCausalLM.from_pretrained(
+        STAGE3_GEVAL_JUDGE_MODEL, torch_dtype=dtype, device_map=None
+    ).to(_local_geval_device)
+    model.eval()
+    for p in model.parameters():
+        p.requires_grad_(False)
+    _local_geval_tokenizer = tok
+    _local_geval_model = model
+
+
+def _local_geval_generate(system_prompt: str, user_prompt: str) -> str:
+    _load_local_geval_judge()
+    messages = [
+        {"role": "system", "content": system_prompt},
+        {"role": "user", "content": user_prompt},
+    ]
+    try:
+        chat_text = _local_geval_tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True, enable_thinking=False,
+        )
+    except TypeError:
+        chat_text = _local_geval_tokenizer.apply_chat_template(
+            messages, tokenize=False, add_generation_prompt=True,
+        )
+    inputs = _local_geval_tokenizer(
+        chat_text, return_tensors="pt", truncation=True, max_length=1536, add_special_tokens=False,
+    ).to(_local_geval_device)
+    with torch.no_grad():
+        outputs = _local_geval_model.generate(
+            **inputs, max_new_tokens=150, do_sample=False, num_beams=1,
+            temperature=None, top_p=None, top_k=None,
+            pad_token_id=_local_geval_tokenizer.pad_token_id or _local_geval_tokenizer.eos_token_id,
+        )
+    return _local_geval_tokenizer.decode(
+        outputs[0][inputs["input_ids"].shape[1]:], skip_special_tokens=True
+    )
 
 
 def _geval_explanation_score(pred_expl: str, gold_expl: str, pred_step: str,
                               context: dict) -> float:
     """R_s from the paper: average of 4 G-Eval criteria, each 1-5, scored by
-    a commercial LLM (STAGE3_GEVAL_JUDGE_MODEL, default gpt-4o), normalized
-    to [0,1]. Falls back to 0.0 on any API/parse failure so a transient
-    network issue degrades one reward sample rather than crashing training."""
-    cache_key = _geval_cache_key(pred_expl, gold_expl, pred_step, context)
-    cache_path = _GEVAL_CACHE_DIR / f"{cache_key}.json"
-    if cache_path.exists():
-        try:
-            return json.loads(cache_path.read_text())["score"]
-        except Exception:
-            pass
+    STAGE3_GEVAL_JUDGE_MODEL, normalized to [0,1]. Dispatches to a commercial
+    API if the configured model is a commercial_llm.MODEL_REGISTRY key,
+    otherwise loads it as a local HF model (the default). Falls back to 0.0
+    on any failure so one bad/slow call degrades a single reward sample
+    rather than crashing training."""
+    from commercial_llm import generate_text, MODEL_REGISTRY
 
-    from commercial_llm import generate_text
-    prompt = _GEVAL_PROMPT.format(
-        new_strategy=context.get("New strategy", ""),
-        strategy_explanation=context.get("Strategy explanation", ""),
-        pred_step=pred_step, pred_expl=pred_expl, gold_expl=gold_expl,
-    )
-    try:
-        raw = generate_text("Respond with ONLY the requested JSON object.", prompt,
-                             STAGE3_GEVAL_JUDGE_MODEL, max_tokens=100)
-        match = re.search(r"\{[^{}]*\}", raw, re.DOTALL)
-        parsed = json.loads(match.group()) if match else {}
-        vals = [float(parsed[c]) for c in _GEVAL_CRITERIA]
-        score = (sum(vals) / len(vals) - 1.0) / 4.0  # 1-5 -> 0-1
-        score = max(0.0, min(1.0, score))
-    except Exception as e:
+    if STAGE3_GEVAL_JUDGE_MODEL in MODEL_REGISTRY:
+        def _generate(system_prompt, user_prompt):
+            return generate_text(system_prompt, user_prompt, STAGE3_GEVAL_JUDGE_MODEL, max_tokens=100)
+    else:
+        def _generate(system_prompt, user_prompt):
+            return _local_geval_generate(system_prompt, user_prompt)
+
+    def _on_error(e):
         print(f"[Stage 3] G-Eval reward call failed, scoring 0.0 for this sample: {e}")
-        score = 0.0
 
-    try:
-        _GEVAL_CACHE_DIR.mkdir(parents=True, exist_ok=True)
-        cache_path.write_text(json.dumps({"score": score}))
-    except Exception:
-        pass
-    return score
+    result = _geval.score(pred_expl, gold_expl, pred_step, context,
+                           _generate, STAGE3_GEVAL_JUDGE_MODEL, on_error=_on_error)
+    return result if result is not None else 0.0
 
 
 def compute_reward(completion: str, gold: dict,

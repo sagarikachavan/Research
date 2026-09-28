@@ -49,12 +49,12 @@ STAGES = [
     ("build_input_json",  "data_prep/build_input_json.py", []),
     # ("stage1",            "training/stage1_gnn_train.py",  []),
     # ("stage2",            "training/stage2_sft_qwen.py",   []),
-    # ("stage3",             "training/stage3_grpo_rl.py",    []),
-    # ("evaluate",           "eval/evaluate.py",              []),
+    ("stage3",             "training/stage3_grpo_rl.py",    []),
+    ("evaluate",           "eval/evaluate.py",              []),
     # ("baseline_zeroshot", "eval/baseline_llm_eval.py",     ["--num_shots", "0"]),
     # ("baseline_3shot",    "eval/baseline_llm_eval.py",     ["--num_shots", "3"]),
     # ("baseline_5shot",    "eval/baseline_llm_eval.py",     ["--num_shots", "5"]),
-    # ("comparison",        "eval/comparison_report.py",     []),
+    ("comparison",        "eval/comparison_report.py",     []),
     ("commercial_gpt5",       "eval/commercial_explanation_baselines.py", ["--model", "gpt-5"]),
     ("commercial_gpt5mini",   "eval/commercial_explanation_baselines.py", ["--model", "gpt-5-mini"]),
     ("commercial_claude",     "eval/commercial_explanation_baselines.py", ["--model", "claude-sonnet"]),
@@ -70,12 +70,20 @@ STAGES = [
         "commercial_gpt-5-mini:output/commercial_gpt-5-mini.csv",
         "commercial_claude-sonnet:output/commercial_claude-sonnet.csv",
         "commercial_gemini-flash:output/commercial_gemini-flash.csv",
-        # NOT gpt-4o: STAGE3_EXPLANATION_REWARD_MODE now defaults to
-        # "geval_gpt4o" (stage3's reward is gpt-4o-based G-Eval), so judging
-        # stage3 with gpt-4o here would score it against the same judge it
-        # was trained to satisfy -- exactly the independence violation
-        # flagged in config.py. claude-sonnet keeps this judge held-out.
+        # NOT STAGE3_GEVAL_JUDGE_MODEL (default: local Qwen2.5-14B-Instruct,
+        # see config.py): stage3's reward is G-Eval-scored by that model, so
+        # judging stage3 with the SAME model here would score it against
+        # the judge it was trained to satisfy -- the independence violation
+        # flagged in config.py. local_qwen (Qwen2.5-7B-Instruct) and
+        # claude-sonnet are both distinct from the reward judge, so both
+        # stay genuinely held-out.
         "--judges", "local_qwen", "claude-sonnet",
+        # geval: same rubric as stage3's training reward (core/geval.py),
+        # so this held-out score is directly comparable to what the reward
+        # actually optimized -- not core/llm_judge.py's separate project
+        # rubric, which would silently judge by different criteria than
+        # what trained the policy.
+        "--rubric", "geval",
     ]),
     ("manual_sample",         "eval/manual_validation_sample.py", [
         "sample", "--per-row", "output/multi_judge_per_row.csv", "--n", "40",

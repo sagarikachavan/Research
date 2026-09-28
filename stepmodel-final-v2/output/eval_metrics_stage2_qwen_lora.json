@@ -1,6 +1,6 @@
 {
   "model_tag": "stage2_qwen_lora",
-  "timestamp": "2026-09-25T09:02:46.074125+00:00",
+  "timestamp": "2026-09-28T06:58:16.494631+00:00",
   "n_samples": 268,
   "mcp_thresholds": [
     0.4,
@@ -16,41 +16,41 @@
     0.6
   ],
   "step": {
-    "accuracy": 0.8059701492537313,
-    "macro_f1": 0.5941461474844024,
-    "weighted_f1": 0.793084515535914,
-    "jaccard_exact_match": 0.8059701492537313
+    "accuracy": 0.8097014925373134,
+    "macro_f1": 0.5974319874375245,
+    "weighted_f1": 0.7983204626291105,
+    "jaccard_exact_match": 0.8097014925373134
   },
   "mcp": {
-    "subset_accuracy": 0.5335820895522388,
-    "exact_match_rate": 0.5335820895522388,
-    "avg_missing_tools": 0.5335820895522388,
-    "avg_extra_tools": 0.30597014925373134,
-    "missing_tool_rate": 0.31835205992509363,
-    "extra_tool_rate": 0.22692307692307692,
-    "total_missing_tools": 143,
-    "total_extra_tools": 82,
-    "micro_f1": 0.655436447166922,
-    "macro_f1": 0.46425870736400476,
-    "samples_f1": 0.6924129353233831,
-    "samples_precision": 0.75,
-    "samples_recall": 0.6791044776119403,
-    "micro_precision": 0.722972972972973,
-    "micro_recall": 0.5994397759103641,
-    "hamming_loss": 0.07632293080054274,
-    "jaccard_mean": 0.6489427860696517,
-    "jaccard_pass_rate_at_0.5": 0.7052238805970149,
+    "subset_accuracy": 0.5373134328358209,
+    "exact_match_rate": 0.5373134328358209,
+    "avg_missing_tools": 0.5186567164179104,
+    "avg_extra_tools": 0.27611940298507465,
+    "missing_tool_rate": 0.31086142322097376,
+    "extra_tool_rate": 0.20371794871794874,
+    "total_missing_tools": 139,
+    "total_extra_tools": 74,
+    "micro_f1": 0.6718027734976888,
+    "macro_f1": 0.4953348304477961,
+    "samples_f1": 0.7044243070362474,
+    "samples_precision": 0.7725124378109453,
+    "samples_recall": 0.6865671641791045,
+    "micro_precision": 0.7465753424657534,
+    "micro_recall": 0.6106442577030813,
+    "hamming_loss": 0.07225237449118047,
+    "jaccard_mean": 0.6585820895522388,
+    "jaccard_pass_rate_at_0.5": 0.7164179104477612,
     "per_label": {
       "Nmap": {
-        "precision": 0.6,
+        "precision": 0.6428571428571429,
         "recall": 0.9642857142857143,
-        "f1": 0.7397260273972602,
+        "f1": 0.7714285714285715,
         "support": 28
       },
       "Metasploit": {
-        "precision": 0.38461538461538464,
-        "recall": 0.8823529411764706,
-        "f1": 0.5357142857142857,
+        "precision": 0.3888888888888889,
+        "recall": 0.8235294117647058,
+        "f1": 0.5283018867924528,
         "support": 17
       },
       "Netcat": {
@@ -60,21 +60,21 @@
         "support": 14
       },
       "Dirbuster": {
-        "precision": 0.7647058823529411,
-        "recall": 0.5652173913043478,
-        "f1": 0.65,
+        "precision": 0.8333333333333334,
+        "recall": 0.6521739130434783,
+        "f1": 0.7317073170731707,
         "support": 23
       },
       "SQLmap": {
-        "precision": 0.0,
-        "recall": 0.0,
-        "f1": 0.0,
+        "precision": 0.5,
+        "recall": 0.14285714285714285,
+        "f1": 0.2222222222222222,
         "support": 7
       },
       "Smb client": {
-        "precision": 0.8333333333333334,
+        "precision": 0.7142857142857143,
         "recall": 0.29411764705882354,
-        "f1": 0.43478260869565216,
+        "f1": 0.4166666666666667,
         "support": 17
       },
       "hydra": {
@@ -96,18 +96,18 @@
         "support": 28
       },
       "Interactive CLI": {
-        "precision": 0.8257575757575758,
-        "recall": 0.7171052631578947,
-        "f1": 0.7676056338028169,
+        "precision": 0.8333333333333334,
+        "recall": 0.7236842105263158,
+        "f1": 0.7746478873239436,
         "support": 152
       },
       "Web page interaction": {
-        "precision": 0.76,
-        "recall": 0.3392857142857143,
-        "f1": 0.4691358024691358,
+        "precision": 0.8,
+        "recall": 0.35714285714285715,
+        "f1": 0.49382716049382713,
         "support": 56
       }
     }
   },
-  "combined_jaccard_step_mcp": 0.7274564676616915
+  "combined_jaccard_step_mcp": 0.7341417910447761
 }

@@ -568,26 +568,36 @@ STAGE3_W_MCP = float(os.environ.get("STAGE3_W_MCP", "0.19"))
 STAGE3_W_EXP = float(os.environ.get("STAGE3_W_EXP", "0.61"))
 
 # ---------------------------------------------------------------------------
-# Opt-in: score the explanation reward with a commercial LLM via G-Eval,
-# matching the Pen-Strategist paper's R_s exactly (arxiv.org/pdf/2605.04499,
-# Section 4.2.1) instead of the local deterministic proxy.
+# Opt-in: score the explanation reward via G-Eval, matching the
+# Pen-Strategist paper's R_s exactly (arxiv.org/pdf/2605.04499, Section
+# 4.2.1) instead of the local deterministic proxy.
 # ---------------------------------------------------------------------------
-# DEFAULT IS "geval_gpt4o" (user-directed, matching the Pen-Strategist
-# paper's own choice) -- accepts two real costs the "deterministic" proxy
-# exists specifically to avoid: (1) thousands of paid, network-latency API
-# calls across GRPO's rollouts instead of one cheap local forward pass, and
-# (2) training directly against the same KIND of judge used to report
-# held-out quality, which lets the policy learn to exploit that judge's
-# specific blind spots rather than genuinely write better explanations
-# (Goodhart's law) -- mitigated, not eliminated, by the existing KL penalty
-# against the frozen Stage-2 reference. BECAUSE this mode trains against
-# gpt-4o, your held-out explanation_judge_accuracy judge MUST be a
-# DIFFERENT model (Claude, or the local Qwen judge) -- not gpt-4o again --
-# or you lose the independence the judge is there to provide. Requires
-# OPENAI_API_KEY set for the entire training run. Set to "deterministic" to
-# fall back to the cheap local proxy (_deterministic_explanation_score).
+# DEFAULT IS "geval_gpt4o" (mode name kept for backward compat -- it now
+# means "run the G-Eval reward", not specifically GPT-4o; the model used is
+# whatever STAGE3_GEVAL_JUDGE_MODEL names below).
+#
+# STAGE3_GEVAL_JUDGE_MODEL: a COMMERCIAL_LLM.MODEL_REGISTRY key (e.g.
+# "gpt-4o") calls a paid API per rollout -- real $ cost (~25k calls/run,
+# roughly $40-55 at GPT-4o pricing last checked) and network latency/
+# reliability risk added to training. Switched to a LOCAL Qwen model
+# instead: free (GPU compute only), no network dependency. Deliberately
+# NOT Qwen3-14B (QWEN_MODEL_NAME, the training base -- would let the policy
+# judge itself) and NOT Qwen2.5-7B-Instruct (LLM_JUDGE_MODEL_NAME, the
+# existing held-out eval judge used as "local_qwen" in
+# multi_judge_explanation_eval.py -- reusing it here would make that eval
+# judge's score contaminated by training against the same model, same
+# independence problem as gpt-4o-trains/gpt-4o-judges). Qwen2.5-14B-Instruct
+# is a third, separate model: same size class your GPU already handles
+# (you're already running Qwen3-14B policy + a frozen 14B reference copy
+# for stage3's KL penalty), so it should fit without new memory headroom
+# problems, while keeping all three roles -- policy, reward judge, held-out
+# judge -- on genuinely different models. If this OOMs, drop to
+# "Qwen/Qwen2.5-7B-Instruct" but then also swap multi_judge_explanation_eval.py's
+# "local_qwen" judge for a commercial one when scoring stage3, to preserve
+# independence. Set STAGE3_EXPLANATION_REWARD_MODE="deterministic" to skip
+# all of this and fall back to the cheap embedding/lexical proxy instead.
 STAGE3_EXPLANATION_REWARD_MODE = os.environ.get("STAGE3_EXPLANATION_REWARD_MODE", "geval_gpt4o")
-STAGE3_GEVAL_JUDGE_MODEL = os.environ.get("STAGE3_GEVAL_JUDGE_MODEL", "gpt-4o")
+STAGE3_GEVAL_JUDGE_MODEL = os.environ.get("STAGE3_GEVAL_JUDGE_MODEL", "Qwen/Qwen2.5-14B-Instruct")
 
 
 STAGE2_VAL_SPLIT = 0.15          # 15% held-out for validation
