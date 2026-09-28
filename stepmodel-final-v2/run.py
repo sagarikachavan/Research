@@ -45,20 +45,20 @@ from pathlib import Path
 # Each entry: (name, script_path relative to this file, extra_args)
 # Paths reflect the restructured layout: data_prep/, training/, eval/.
 STAGES = [
-    ("generate_graphs",   "data_prep/generate_graphs.py",  []),
-    ("build_input_json",  "data_prep/build_input_json.py", []),
+    # ("generate_graphs",   "data_prep/generate_graphs.py",  []),
+    # ("build_input_json",  "data_prep/build_input_json.py", []),
     # ("stage1",            "training/stage1_gnn_train.py",  []),
     # ("stage2",            "training/stage2_sft_qwen.py",   []),
-    ("stage3",             "training/stage3_grpo_rl.py",    []),
-    ("evaluate",           "eval/evaluate.py",              []),
+    # ("stage3",             "training/stage3_grpo_rl.py",    []),
+    # ("evaluate",           "eval/evaluate.py",              []),
     # ("baseline_zeroshot", "eval/baseline_llm_eval.py",     ["--num_shots", "0"]),
     # ("baseline_3shot",    "eval/baseline_llm_eval.py",     ["--num_shots", "3"]),
     # ("baseline_5shot",    "eval/baseline_llm_eval.py",     ["--num_shots", "5"]),
-    ("comparison",        "eval/comparison_report.py",     []),
-    ("commercial_gpt5",       "eval/commercial_explanation_baselines.py", ["--model", "gpt-5"]),
-    ("commercial_gpt5mini",   "eval/commercial_explanation_baselines.py", ["--model", "gpt-5-mini"]),
-    ("commercial_claude",     "eval/commercial_explanation_baselines.py", ["--model", "claude-sonnet"]),
-    ("commercial_gemini",     "eval/commercial_explanation_baselines.py", ["--model", "gemini-flash"]),
+    # ("comparison",        "eval/comparison_report.py",     []),
+    # ("commercial_gpt5",       "eval/commercial_explanation_baselines.py", ["--model", "gpt-5"]),
+    # ("commercial_gpt5mini",   "eval/commercial_explanation_baselines.py", ["--model", "gpt-5-mini"]),
+    # ("commercial_claude",     "eval/commercial_explanation_baselines.py", ["--model", "claude-sonnet"]),
+    # ("commercial_gemini",     "eval/commercial_explanation_baselines.py", ["--model", "gemini-flash"]),
     # Scores stage2/stage3 + whichever commercial_* baselines you've already
     # generated above, with both your local judge and a commercial judge.
     # Edit the --models list if you only ran a subset of the commercial_* stages.
@@ -68,8 +68,8 @@ STAGES = [
         "stage3:output/stage3.csv",
         "commercial_gpt-5:output/commercial_gpt-5.csv",
         "commercial_gpt-5-mini:output/commercial_gpt-5-mini.csv",
-        "commercial_claude-sonnet:output/commercial_claude-sonnet.csv",
-        "commercial_gemini-flash:output/commercial_gemini-flash.csv",
+        # "commercial_claude-sonnet:output/commercial_claude-sonnet.csv",
+        # "commercial_gemini-flash:output/commercial_gemini-flash.csv",
         # NOT STAGE3_GEVAL_JUDGE_MODEL (default: local Qwen2.5-14B-Instruct,
         # see config.py): stage3's reward is G-Eval-scored by that model, so
         # judging stage3 with the SAME model here would score it against
@@ -77,7 +77,7 @@ STAGES = [
         # flagged in config.py. local_qwen (Qwen2.5-7B-Instruct) and
         # claude-sonnet are both distinct from the reward judge, so both
         # stay genuinely held-out.
-        "--judges", "local_qwen", "claude-sonnet",
+        "--judges", "local_qwen",
         # geval: same rubric as stage3's training reward (core/geval.py),
         # so this held-out score is directly comparable to what the reward
         # actually optimized -- not core/llm_judge.py's separate project
