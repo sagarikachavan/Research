@@ -1,5 +1,9 @@
 model,judge,n_scored,n_errors,accuracy,mean_correctness_score
-stage2,local_qwen,259,9,0.3707,0.5034
-stage3,local_qwen,252,16,0.3810,0.5196
-commercial_gpt-5,local_qwen,268,0,0.3358,0.4104
-commercial_gpt-5-mini,local_qwen,266,2,0.3910,0.4370
+stage2,local_qwen,240,28,0.5792,0.6637
+stage2,gpt-4o,268,0,0.7351,0.7032
+stage3,local_qwen,237,31,0.6414,0.6668
+stage3,gpt-4o,268,0,0.8022,0.7513
+commercial_gpt-5,local_qwen,251,17,0.7171,0.6755
+commercial_gpt-5,gpt-4o,268,0,0.7052,0.6600
+commercial_gpt-5-mini,local_qwen,251,17,0.6813,0.7043
+commercial_gpt-5-mini,gpt-4o,268,0,0.6343,0.6213
