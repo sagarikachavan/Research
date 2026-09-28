@@ -70,14 +70,13 @@ STAGES = [
         "commercial_gpt-5-mini:output/commercial_gpt-5-mini.csv",
         # "commercial_claude-sonnet:output/commercial_claude-sonnet.csv",
         # "commercial_gemini-flash:output/commercial_gemini-flash.csv",
-        # NOT STAGE3_GEVAL_JUDGE_MODEL (default: local Qwen2.5-14B-Instruct,
-        # see config.py): stage3's reward is G-Eval-scored by that model, so
-        # judging stage3 with the SAME model here would score it against
-        # the judge it was trained to satisfy -- the independence violation
-        # flagged in config.py. local_qwen (Qwen2.5-7B-Instruct) and
-        # claude-sonnet are both distinct from the reward judge, so both
-        # stay genuinely held-out.
-        "--judges", "local_qwen",
+        # gpt-4o, not claude-sonnet/gemini-flash: no ANTHROPIC_API_KEY or
+        # GOOGLE_API_KEY available, only OPENAI_API_KEY. Still valid/
+        # independent -- STAGE3_GEVAL_JUDGE_MODEL (the training reward
+        # judge) defaults to local Qwen2.5-14B-Instruct, NOT gpt-4o, so
+        # gpt-4o was never used to train the policy. local_qwen
+        # (Qwen2.5-7B-Instruct) is also distinct from the reward judge.
+        "--judges", "local_qwen", "gpt-4o",
         # geval: same rubric as stage3's training reward (core/geval.py),
         # so this held-out score is directly comparable to what the reward
         # actually optimized -- not core/llm_judge.py's separate project
