@@ -347,17 +347,22 @@ def _technical_token_recall(pred: str, gold: str) -> float:
 
 
 # ---------------------------------------------------------------------------
-# Opt-in explanation reward: G-Eval via a commercial LLM, matching the
-# Pen-Strategist paper's R_s exactly (arxiv.org/pdf/2605.04499, Section
-# 4.2.1). Rubric/prompt/parsing live in core/geval.py -- SINGLE SOURCE OF
-# TRUTH shared with eval/multi_judge_explanation_eval.py's test-time
-# commercial-LLM comparison, so training reward and held-out judging can
-# never drift onto different rubrics again (they had: this reward used
-# G-Eval while the test-time comparison used core/llm_judge.py's separate
-# project rubric). See the long comment in config.py for the cost/
-# reward-hacking tradeoff of this mode. When enabled, every one of GRPO's G
-# completions per prompt costs one commercial API call; core/geval.py's
-# disk cache at least avoids re-paying for byte-identical repeats.
+# Opt-in explanation reward: G-Eval-STYLE scoring (have an LLM score it
+# against a fixed rubric) using core/geval.py's rubric, which as of
+# 2026-09-30 is the SAME 4 criteria as core/llm_judge.py's project rubric
+# (relevance/technical_accuracy/completeness/clarity, 0-3) -- no longer the
+# Pen-Strategist paper's own G-Eval criteria (arxiv.org/pdf/2605.04499,
+# Section 4.2.1); see core/geval.py's module docstring for that history.
+# Rubric/prompt/parsing live in core/geval.py -- SINGLE SOURCE OF TRUTH
+# shared with eval/multi_judge_explanation_eval.py's test-time commercial-LLM
+# comparison, so training reward and held-out judging can never drift onto
+# different rubrics again (they had, twice: first reward=G-Eval vs
+# test-time=project rubric; now fixed by unifying on one rubric everywhere).
+# See the long comment in config.py for the cost/reward-hacking tradeoff of
+# this mode. When enabled, every one of GRPO's G completions per prompt
+# costs one commercial API call (or one local-model generation, if
+# STAGE3_GEVAL_JUDGE_MODEL is a local HF model id); core/geval.py's disk
+# cache at least avoids re-paying for byte-identical repeats.
 # ---------------------------------------------------------------------------
 import geval as _geval
 
@@ -424,7 +429,9 @@ def _local_geval_generate(system_prompt: str, user_prompt: str) -> str:
 
 def _geval_explanation_score(pred_expl: str, gold_expl: str, pred_step: str,
                               context: dict) -> float:
-    """R_s from the paper: average of 4 G-Eval criteria, each 1-5, scored by
+    """G-Eval-style explanation reward: average of core/geval.py's 4 criteria
+    (relevance/technical_accuracy/completeness/clarity, 0-3 -- same rubric
+    as core/llm_judge.py's project rubric, 2026-09-30), scored by
     STAGE3_GEVAL_JUDGE_MODEL, normalized to [0,1]. Dispatches to a commercial
     API if the configured model is a commercial_llm.MODEL_REGISTRY key,
     otherwise loads it as a local HF model (the default). Falls back to 0.0

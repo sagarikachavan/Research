@@ -8,14 +8,19 @@ validate those judges against manual human scoring
 (manual_validation_sample.py).
 
 Two selectable rubrics (--rubric), each applied identically across every
-judge so only the generation call differs per backend:
-  - "project" (default): core/llm_judge.py's rubric (relevance/
-    technical_accuracy/completeness/clarity, 0-3, strict AND-gate).
-  - "geval": core/geval.py's rubric -- the SAME one stage3's training
+judge so only the generation call differs per backend. Both now use the
+SAME 4 criteria/scale (relevance/technical_accuracy/completeness/clarity,
+0-3) -- they differ only in how "correct" is decided:
+  - "project" (default): core/llm_judge.py's mechanism -- strict AND-gate
+    on the raw ints (relevance>=2 AND technical_accuracy>=2 AND
+    completeness>=1; clarity never gates).
+  - "geval": core/geval.py's mechanism -- average the 4 ints, normalize to
+    [0,1], threshold at 0.6. This is the rubric/mechanism stage3's training
     reward uses when STAGE3_EXPLANATION_REWARD_MODE=geval_gpt4o. Use this
     to get a held-out score directly comparable to what stage3 actually
-    optimized (was previously a real gap: reward and test-time comparison
-    used two different rubrics with no way to line them up).
+    optimized. Because an average can let one high score compensate for a
+    low one, "geval" and "project" can disagree on the same row even
+    though they're scoring the same 4 criteria.
 
 Usage:
     python multi_judge_explanation_eval.py \
@@ -158,10 +163,11 @@ def main():
     ap.add_argument("--max-samples", type=int, default=None)
     ap.add_argument("--rubric", choices=["project", "geval"], default="project",
                      help="'project' = core/llm_judge.py's rubric (relevance/technical_accuracy/"
-                          "completeness/clarity, 0-3, strict AND-gate). 'geval' = the SAME rubric "
-                          "used by the stage3 training reward when STAGE3_EXPLANATION_REWARD_MODE="
-                          "geval_gpt4o (core/geval.py: logical_alignment/evidence_reference/"
-                          "decision_consistency/tool_technique_use, 1-5). Use 'geval' for a score "
+                          "completeness/clarity, 0-3, strict AND-gate on the raw ints). 'geval' = "
+                          "the SAME 4 criteria/scale, scored via core/geval.py's G-Eval-style "
+                          "mechanism (average-threshold pass instead of the AND-gate) -- this is "
+                          "the rubric used by the stage3 training reward when "
+                          "STAGE3_EXPLANATION_REWARD_MODE=geval_gpt4o. Use 'geval' for a score "
                           "directly comparable to what stage3's reward actually optimized.")
     args = ap.parse_args()
 
