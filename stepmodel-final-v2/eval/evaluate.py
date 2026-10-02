@@ -146,7 +146,14 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
         mcp_thresholds = [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)
         print("[eval] Legacy checkpoint — using uniform threshold=0.5 for all MCP labels.")
 
-    model = Stage1Classifier().to(device)
+    # Rebuild in the mode the checkpoint was trained in. An ablated checkpoint
+    # (text_only / graph_only) evaluated as full fusion would feed a tower its
+    # weights never saw. Checkpoints that predate the ablation switch have no
+    # "ablation" key and are full fusion by definition.
+    ckpt_ablation = ckpt.get("ablation", "fusion") if isinstance(ckpt, dict) else "fusion"
+    if ckpt_ablation != "fusion":
+        print(f"[eval] Checkpoint is an ABLATION run: modality mode = {ckpt_ablation}")
+    model = Stage1Classifier(ablation=ckpt_ablation).to(device)
     model.load_state_dict(state_dict)
     model.eval()
     models = [model]

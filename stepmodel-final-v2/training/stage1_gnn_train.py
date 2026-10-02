@@ -31,6 +31,7 @@ for _p in (_ROOT, os.path.join(_ROOT, "core"), os.path.join(_ROOT, "data_prep"),
         sys.path.insert(0, _p)
 
 from config import (
+    STAGE1_ABLATION, STAGE1_RUN_TAG, STAGE1_WORK_CKPT, STAGE1_CSV_PATH,
     INPUT_TRAIN_JSON, INPUT_TEST_JSON, STAGE1_CKPT, STAGE1_LR, STAGE1_EPOCHS,
     STAGE1_BATCH_SIZE, STEP_LOSS_WEIGHT, MCP_LOSS_WEIGHT, RANDOM_SEED,
     MCP_LABELS, STEP_LABELS, ROOT, STEP_LABEL_SMOOTHING, STAGE1_WARMUP_EPOCHS,
@@ -908,6 +909,8 @@ def main():
           + f" + Qwen3-Embedding text tower -> fusion -> Step/MCP heads")
     print(f"[Stage 1] Text encoder   : {TEXT_ENCODER_NAME} ({TEXT_EMB_DIM}-d)")
     print(f"[Stage 1] Epochs         : {STAGE1_EPOCHS} (warmup {STAGE1_WARMUP_EPOCHS})")
+    print(f"[Stage 1] Modality mode  : {STAGE1_ABLATION}"
+          + (f"  (tagged run {STAGE1_RUN_TAG!r}: writes under ablations/, not the main Stage-1 outputs)" if STAGE1_RUN_TAG else ""))
 
     full_ds = Stage1Dataset(INPUT_TRAIN_JSON, split="train")
     examples = full_ds.examples
@@ -920,7 +923,7 @@ def main():
 
     test_ds = Stage1Dataset(INPUT_TEST_JSON, split="test")
     test_loader = DataLoader(test_ds, batch_size=STAGE1_BATCH_SIZE, shuffle=False, collate_fn=collate)
-    csv_path = os.path.join(ROOT, "output", "stage1.csv")
+    csv_path = STAGE1_CSV_PATH  # output/stage1.csv unless this is a tagged ablation run
 
     # ── ONE machine-grouped train/val split, ONE model ───────────────────────
     train_idx, val_idx = _machine_split(examples, STAGE1_VAL_SPLIT, RANDOM_SEED + 1)
@@ -931,7 +934,7 @@ def main():
           f"train {len(train_idx)} rows / {len(tm)} machines  |  "
           f"val {len(val_idx)} rows / {len(vm)} machines")
 
-    ckpt_path = os.path.join(ROOT, "checkpoints", "stage1_model.pt")
+    ckpt_path = STAGE1_WORK_CKPT  # checkpoints/stage1_model.pt unless this is a tagged ablation run
     (model, mcp_w_np, mcp_counts, val_probs, val_gold,
      val_metrics, _thr, _bias, eval_support) = train_one_split(
         full_ds, train_idx, val_idx, device, ckpt_path,
@@ -975,6 +978,7 @@ def main():
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
     ckpt["model_state_dict"] = model.state_dict()
     ckpt["stage2_encoder"] = "single_model"
+    ckpt["ablation"] = model.ablation
     # Persisted so eval/evaluate.py -- a SEPARATE process that only ever reads
     # the checkpoint -- applies the identical mask rather than silently
     # allowing a zero-support class to be predicted again at eval time.

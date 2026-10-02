@@ -342,8 +342,42 @@ STAGE1_NATURAL_SAMPLING = os.environ.get("STAGE1_NATURAL_SAMPLING", "0") in ("1"
 # (graph-only Stage 1). These two runs plus the default give the three rows
 # that decide whether the graph earns its place:
 #     text-only / graph-only / fusion
+# IMPLEMENTED 2026-10-02: these flags used to be defined but never read by any
+# code (setting them did nothing). They are now consumed by
+# core/graph_encoder.py's Stage1Classifier -- the ablated tower's output is
+# replaced by zeros inside encode_and_predict, so the parameter count and the
+# rest of the architecture stay identical to the fusion model (a controlled
+# ablation, not a different model).
 STAGE1_ABLATE_GRAPH = os.environ.get("STAGE1_ABLATE_GRAPH", "0") in ("1", "true", "True")
 STAGE1_ABLATE_TEXT = os.environ.get("STAGE1_ABLATE_TEXT", "0") in ("1", "true", "True")
+if STAGE1_ABLATE_GRAPH and STAGE1_ABLATE_TEXT:
+    raise ValueError("STAGE1_ABLATE_GRAPH and STAGE1_ABLATE_TEXT are both set -- "
+                     "that would remove every input. Set at most one.")
+STAGE1_ABLATION = ("text_only" if STAGE1_ABLATE_GRAPH
+                   else "graph_only" if STAGE1_ABLATE_TEXT else "fusion")
+
+# Where an ablation run writes. A fusion run with no tag keeps the original
+# paths, so default behaviour is unchanged. Any ablated run ALWAYS gets its own
+# tagged directory (auto-derived from mode + seed if STAGE1_RUN_TAG is unset),
+# because stage1_gnn_train.py otherwise writes output/stage1.csv and the Stage-1
+# checkpoint unconditionally -- an untagged ablation would silently overwrite
+# the real Stage-1 result that Stage 2/3 and the comparison report depend on.
+_ablation_seed = os.environ.get("RANDOM_SEED", "42")
+STAGE1_RUN_TAG = os.environ.get("STAGE1_RUN_TAG", "")
+if not STAGE1_RUN_TAG and STAGE1_ABLATION != "fusion":
+    STAGE1_RUN_TAG = f"{STAGE1_ABLATION}_seed{_ablation_seed}"
+if STAGE1_RUN_TAG:
+    _abl_ckpt_dir = os.path.join(CKPT_DIR, "ablations", STAGE1_RUN_TAG)
+    _abl_out_dir = os.path.join(ROOT, "output", "ablations", STAGE1_RUN_TAG)
+    os.makedirs(_abl_ckpt_dir, exist_ok=True)
+    os.makedirs(_abl_out_dir, exist_ok=True)
+    if "STAGE1_CKPT" not in os.environ:
+        STAGE1_CKPT = os.path.join(_abl_ckpt_dir, "stage1_gnn_classifier.pt")
+    STAGE1_WORK_CKPT = os.path.join(_abl_ckpt_dir, "stage1_model.pt")
+    STAGE1_CSV_PATH = os.path.join(_abl_out_dir, "stage1.csv")
+else:
+    STAGE1_WORK_CKPT = os.path.join(ROOT, "checkpoints", "stage1_model.pt")
+    STAGE1_CSV_PATH = os.path.join(ROOT, "output", "stage1.csv")
 
 
 
@@ -686,6 +720,7 @@ _SUMMARY_GROUPS = {
     ],
     "ABLATIONS (all default off)": [
         "STAGE1_ABLATE_MIXUP", "STAGE1_ABLATE_SUPCON", "STAGE1_ABLATE_GRAPH",
+        "STAGE1_ABLATION", "STAGE1_RUN_TAG",
         "STAGE1_ABLATE_TEXT", "STAGE1_NATURAL_SAMPLING",
         "STAGE1_USE_TOOL_CONSTRAINTS",
     ],

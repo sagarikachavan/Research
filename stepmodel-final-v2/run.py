@@ -45,8 +45,8 @@ from pathlib import Path
 # Each entry: (name, script_path relative to this file, extra_args)
 # Paths reflect the restructured layout: data_prep/, training/, eval/.
 STAGES = [
-    # ("generate_graphs",   "data_prep/generate_graphs.py",  []),
-    # ("build_input_json",  "data_prep/build_input_json.py", []),
+    ("generate_graphs",   "data_prep/generate_graphs.py",  []),
+    ("build_input_json",  "data_prep/build_input_json.py", []),
     # ("stage1",            "training/stage1_gnn_train.py",  []),
     # ("stage2",            "training/stage2_sft_qwen.py",   []),
     # ("stage3",             "training/stage3_grpo_rl.py",    []),
@@ -62,31 +62,31 @@ STAGES = [
     # Scores stage2/stage3 + whichever commercial_* baselines you've already
     # generated above, with both your local judge and a commercial judge.
     # Edit the --models list if you only ran a subset of the commercial_* stages.
-    ("multi_judge",           "eval/multi_judge_explanation_eval.py", [
-        "--models",
-        "stage2:output/stage2.csv",
-        "stage3:output/stage3.csv",
-        "commercial_gpt-5:output/commercial_gpt-5.csv",
-        "commercial_gpt-5-mini:output/commercial_gpt-5-mini.csv",
-        # "commercial_claude-sonnet:output/commercial_claude-sonnet.csv",
-        # "commercial_gemini-flash:output/commercial_gemini-flash.csv",
-        # gpt-4o, not claude-sonnet/gemini-flash: no ANTHROPIC_API_KEY or
-        # GOOGLE_API_KEY available, only OPENAI_API_KEY. Still valid/
-        # independent -- STAGE3_GEVAL_JUDGE_MODEL (the training reward
-        # judge) defaults to local Qwen2.5-14B-Instruct, NOT gpt-4o, so
-        # gpt-4o was never used to train the policy. local_qwen
-        # (Qwen2.5-7B-Instruct) is also distinct from the reward judge.
-        "--judges", "local_qwen", "gpt-4o",
-        # geval: same rubric as stage3's training reward (core/geval.py),
-        # so this held-out score is directly comparable to what the reward
-        # actually optimized -- not core/llm_judge.py's separate project
-        # rubric, which would silently judge by different criteria than
-        # what trained the policy.
-        "--rubric", "geval",
-    ]),
-    ("manual_sample",         "eval/manual_validation_sample.py", [
-        "sample", "--per-row", "output/multi_judge_per_row.csv", "--n", "40",
-    ]),
+    # ("multi_judge",           "eval/multi_judge_explanation_eval.py", [
+    #     "--models",
+    #     "stage2:output/stage2.csv",
+    #     "stage3:output/stage3.csv",
+    #     "commercial_gpt-5:output/commercial_gpt-5.csv",
+    #     "commercial_gpt-5-mini:output/commercial_gpt-5-mini.csv",
+    #     # "commercial_claude-sonnet:output/commercial_claude-sonnet.csv",
+    #     # "commercial_gemini-flash:output/commercial_gemini-flash.csv",
+    #     # gpt-4o, not claude-sonnet/gemini-flash: no ANTHROPIC_API_KEY or
+    #     # GOOGLE_API_KEY available, only OPENAI_API_KEY. Still valid/
+    #     # independent -- STAGE3_GEVAL_JUDGE_MODEL (the training reward
+    #     # judge) defaults to local Qwen2.5-14B-Instruct, NOT gpt-4o, so
+    #     # gpt-4o was never used to train the policy. local_qwen
+    #     # (Qwen2.5-7B-Instruct) is also distinct from the reward judge.
+    #     "--judges", "local_qwen", "gpt-4o",
+    #     # geval: same rubric as stage3's training reward (core/geval.py),
+    #     # so this held-out score is directly comparable to what the reward
+    #     # actually optimized -- not core/llm_judge.py's separate project
+    #     # rubric, which would silently judge by different criteria than
+    #     # what trained the policy.
+    #     "--rubric", "geval",
+    # ]),
+    # ("manual_sample",         "eval/manual_validation_sample.py", [
+    #     "sample", "--per-row", "output/multi_judge_per_row.csv", "--n", "40",
+    # ]),
 ]
 
 ALL_STAGES = STAGES

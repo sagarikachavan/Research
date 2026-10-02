@@ -65,7 +65,7 @@ from config import (
     STAGE1_TEXT_TOKEN_DIM, STAGE1_TEXT_ATTN_HEADS,
     STAGE1_EDGE_DROPOUT, STAGE1_NODE_FEAT_DROPOUT,
     STAGE1_GNN_TYPE, GNN_HEADS,
-    N_STEP_PHASES,
+    N_STEP_PHASES, STAGE1_ABLATION,
 )
 
 
@@ -482,9 +482,24 @@ class Stage1Classifier(nn.Module):
     approximating once its sequence dimension collapsed to one.
     """
 
+    ABLATION_MODES = ("fusion", "text_only", "graph_only")
+
     def __init__(self, edge_dim: int = EDGE_ATTR_DIM,
-                 text_input_dim: int = STAGE1_TEXT_TOKEN_DIM):
+                 text_input_dim: int = STAGE1_TEXT_TOKEN_DIM,
+                 ablation: str = None):
         super().__init__()
+        # Modality ablation (see config.STAGE1_ABLATE_GRAPH / _TEXT):
+        #   "fusion"     -- both towers (the real model)
+        #   "text_only"  -- graph tower output replaced by zeros
+        #   "graph_only" -- text tower output replaced by zeros
+        # The architecture and parameter count are identical in every mode; only
+        # the information reaching the fusion layer differs. None -> follow the
+        # config flags. Saved in the checkpoint so evaluate.py rebuilds the same
+        # mode instead of silently running an ablated model as full fusion.
+        self.ablation = STAGE1_ABLATION if ablation is None else ablation
+        if self.ablation not in self.ABLATION_MODES:
+            raise ValueError(f"ablation must be one of {self.ABLATION_MODES}, "
+                             f"got {self.ablation!r}")
         self.graph_encoder = GraphEncoder(edge_dim=edge_dim)
         self.graph_dim = GNN_OUT_DIM
         self.text_dim = STAGE1_TEXT_PROJ_DIM
@@ -585,9 +600,19 @@ class Stage1Classifier(nn.Module):
                 "Stage 1 requires text_tokens and text_mask from "
                 "data_utils.precompute_text_tokens()."
             )
-        graph_h = self.graph_encoder(x, edge_index, batch, edge_attr=edge_attr)
-        text_h = self.encode_text(text_tokens.to(graph_h.dtype), text_mask)
-        graph_p = self.graph_proj(graph_h)
+        if self.ablation == "text_only":
+            # Graph tower is not run at all; its slot in the fusion input is 0.
+            text_h = self.encode_text(
+                text_tokens.to(self.text_token_proj.weight.dtype), text_mask)
+            graph_p = torch.zeros_like(text_h)
+        elif self.ablation == "graph_only":
+            graph_h = self.graph_encoder(x, edge_index, batch, edge_attr=edge_attr)
+            graph_p = self.graph_proj(graph_h)
+            text_h = torch.zeros_like(graph_p)
+        else:
+            graph_h = self.graph_encoder(x, edge_index, batch, edge_attr=edge_attr)
+            text_h = self.encode_text(text_tokens.to(graph_h.dtype), text_mask)
+            graph_p = self.graph_proj(graph_h)
 
         fused_step = self._fuse(text_h, graph_p, self.graph_gate_step_raw)
         fused_mcp = self._fuse(text_h, graph_p, self.graph_gate_mcp_raw)

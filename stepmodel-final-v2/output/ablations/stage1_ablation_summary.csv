@@ -1,0 +1,4 @@
+n_seeds,variant,mcp_macro_f1_mean,mcp_macro_f1_std,mcp_micro_f1_mean,mcp_micro_f1_std,mcp_samples_f1_mean,mcp_samples_f1_std,mcp_subset_accuracy_mean,mcp_subset_accuracy_std,step_accuracy_mean,step_accuracy_std,step_macro_f1_mean,step_macro_f1_std
+3,fusion,0.6732,0.0146,0.7467,0.0147,0.7676,0.013,0.592,0.0206,0.7886,0.0168,0.6913,0.0251
+3,text_only,0.623,0.0446,0.7177,0.0324,0.7397,0.0303,0.5597,0.0325,0.796,0.0057,0.707,0.02
+3,graph_only,0.3666,0.0397,0.5666,0.0191,0.5737,0.036,0.3893,0.0225,0.6281,0.0155,0.4838,0.0221
