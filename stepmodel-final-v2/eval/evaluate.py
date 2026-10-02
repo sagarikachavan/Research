@@ -60,34 +60,50 @@ for _p in (_ROOT, _os.path.join(_ROOT, "core"), _os.path.join(_ROOT, "data_prep"
 
 from config import (
     INPUT_TEST_JSON, STAGE1_CKPT, STEP_LABELS, MCP_LABELS, MCP_DECISION_THRESHOLD,
-    QWEN_MODEL_NAME, ROOT, LLM_JUDGE_MODEL_NAME,
+    QWEN_MODEL_NAME, ROOT, LLM_JUDGE_MODEL_NAME, STAGE1_TEXT_MAX_TOKENS,
+    TEXT_ENCODER_NAME, STAGE1_TEXT_TOKEN_DIM,
 )
 from data_utils import (
-    load_from_input_json, CONTEXT_COLUMNS, _embed_texts,
-    mcp_multihot, StepLabelNormalizer, extract_mcp_labels,
+    load_from_input_json, mcp_multihot, StepLabelNormalizer, extract_mcp_labels,
+    precompute_text_tokens,
 )
-from graph_encoder import Stage1Classifier
+from graph_encoder import Stage1Classifier, mask_unsupported_logits
 from mcp_threshold_search import predict_with_per_class_thresholds
 from llm_judge import batch_evaluate_explanations, print_llm_judge_results
-
-
-# ---------------------------------------------------------------------------
-# Checkpoint loading
-# ---------------------------------------------------------------------------
-
 def load_stage1_checkpoint(ckpt_path: str, device: str):
     """
     Handles both checkpoint formats:
       - New (Improvement 2): dict with 'model_state_dict' + 'mcp_thresholds'
       - Legacy: plain state dict
-    Returns (model, mcp_thresholds).
+    Returns (models, mcp_thresholds, step_logit_bias, step_support_mask);
+    `models` is a LIST.
+
+    ---------------------------------------------------------------------
+    Stage 1 is ONE model trained on a single machine-grouped split -- no
+    cross-validation, no ensembling. The checkpoint IS the model that produced
+    the headline metric, and it is also the model Stage 2/3 load. Nothing is
+    reconstructed here beyond the weights and the calibration vectors (MCP
+    thresholds, step logit bias, step support mask) saved next to them.
+
+    step_support_mask: bool per STEP_LABELS entry, True if that class had >=1
+    training row. A class with zero support (e.g. "Ask for human assistant")
+    is UNLEARNABLE, and this checkpoint's training run masked its logit to
+    -inf everywhere it evaluated -- so it must be masked here too, or this
+    separate process would silently let the model predict a class it was
+    never actually trained to recognise.
     """
     ckpt = torch.load(ckpt_path, map_location=device, weights_only=False)
+    step_logit_bias = None
+    step_support_mask = None
     if isinstance(ckpt, dict) and "model_state_dict" in ckpt:
         state_dict = ckpt["model_state_dict"]
         mcp_thresholds = ckpt.get(
             "mcp_thresholds", [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)
         )
+        step_logit_bias = ckpt.get("step_logit_bias", None)
+        if step_logit_bias is not None and not any(abs(b) > 1e-9 for b in step_logit_bias):
+            step_logit_bias = None
+        step_support_mask = ckpt.get("step_support_mask", None)
         print(
             f"[eval] Loaded checkpoint "
             f"(epoch={ckpt.get('best_epoch','?')}, "
@@ -99,6 +115,32 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
             f"[eval] Per-class MCP thresholds: "
             f"{[round(t, 2) for t in mcp_thresholds]}"
         )
+        if step_logit_bias is not None:
+            print(f"[eval] Per-class STEP logit bias: {[round(b, 2) for b in step_logit_bias]}")
+        if step_support_mask is not None and not all(step_support_mask):
+            dead = [i for i, ok in enumerate(step_support_mask) if not ok]
+            print(f"[eval] Masking step classes with no training support "
+                  f"(0 weight, cannot be predicted): {dead}")
+
+        # Fail LOUD and EARLY on an encoder mismatch. `python run.py` inherits
+        # env vars into every stage subprocess, so a full pipeline run is
+        # always consistent -- but a standalone `python evaluate.py` in a
+        # fresh shell (no TEXT_ENCODER_NAME exported) silently falls back to
+        # the 0.6B default. Without this check that surfaces as a confusing
+        # PyTorch size-mismatch deep inside load_state_dict below; with it,
+        # the fix is stated directly.
+        ckpt_encoder = ckpt.get("text_encoder_name")
+        ckpt_dim = ckpt.get("text_token_dim")
+        if ckpt_encoder is not None and ckpt_encoder != TEXT_ENCODER_NAME:
+            raise RuntimeError(
+                f"Checkpoint was trained with TEXT_ENCODER_NAME={ckpt_encoder!r} "
+                f"(hidden dim {ckpt_dim}), but this process has "
+                f"TEXT_ENCODER_NAME={TEXT_ENCODER_NAME!r} "
+                f"(STAGE1_TEXT_TOKEN_DIM={STAGE1_TEXT_TOKEN_DIM}). "
+                f"Re-run with:\n"
+                f"  TEXT_ENCODER_NAME={ckpt_encoder} STAGE1_TEXT_TOKEN_DIM={ckpt_dim} "
+                f"python eval/evaluate.py --model gnn"
+            )
     else:
         state_dict = ckpt
         mcp_thresholds = [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)
@@ -107,7 +149,8 @@ def load_stage1_checkpoint(ckpt_path: str, device: str):
     model = Stage1Classifier().to(device)
     model.load_state_dict(state_dict)
     model.eval()
-    return model, mcp_thresholds
+    models = [model]
+    return models, mcp_thresholds, step_logit_bias, step_support_mask
 
 
 # ---------------------------------------------------------------------------
@@ -159,10 +202,13 @@ def compute_explanation_metrics_with_llm_judge(
     return llm_results
 
 
-# ---------------------------------------------------------------------------
-# GNN evaluation  (classification only — no text generation)
-# ---------------------------------------------------------------------------
 
+
+# REMOVED: BERTScore / BLEURT reference metrics. Both load their own
+# pretrained encoders (RoBERTa and BLEURT's BERT checkpoint), which is exactly
+# the multi-encoder sprawl this project moved away from. Explanation quality is
+# measured by the Qwen LLM judge (core/llm_judge.py); embedding overlap with a
+# single reference was never the metric being reported anyway.
 def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"[eval] Test input: {INPUT_TEST_JSON}")
@@ -172,39 +218,76 @@ def eval_gnn(threshold_override=None, auto_save_csv=False) -> None:
         print(f"[eval] Checkpoint not found at {STAGE1_CKPT}. Run stage1_gnn_train.py first.")
         return
 
-    model, ckpt_thresholds = load_stage1_checkpoint(STAGE1_CKPT, device)
+    models, ckpt_thresholds, step_logit_bias, step_support_mask = load_stage1_checkpoint(STAGE1_CKPT, device)
     use_thresholds = (
         [float(threshold_override)] * len(MCP_LABELS)
         if threshold_override is not None
         else ckpt_thresholds
     )
 
-    graphs, field_embs_list, step_gold, mcp_gold = [], [], [], []
+    # Stage-1 text input: one frozen Qwen3-Embedding vector per example of
+    # "New strategy" + "Strategy explanation". Built with the SAME helper the
+    # training Dataset uses (data_utils._embed_texts), so eval and training
+    # see byte-identical inputs.
+    for ex in examples:
+        ex["text_input"] = (
+            f"{(ex['context'].get('New strategy','') or '').strip()} "
+            f"{(ex['context'].get('Strategy explanation','') or '').strip()}"
+        ).strip() or "empty"
+    precompute_text_tokens(examples, max_tokens=STAGE1_TEXT_MAX_TOKENS, device=device)
+
+    graphs, step_gold, mcp_gold = [], [], []
     for ex in examples:
         # Graph is already a torch_geometric Data object from load_from_input_json
         graphs.append(ex["graph"])
-        field_embs_list.append(
-            _embed_texts([ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS])
-        )
         step_gold.append(ex["step_idx"])
         mcp_gold.append(ex["mcp_vec"])
 
     step_preds, mcp_preds = [], []
+
     bs = 16
     with torch.no_grad():
         for i in range(0, len(graphs), bs):
             from torch_geometric.data import Batch as PyGBatch
+            batch_examples = examples[i : i + bs]
             batch_graphs = PyGBatch.from_data_list(graphs[i : i + bs]).to(device)
-            batch_fe = torch.tensor(
-                np.stack(field_embs_list[i : i + bs]), dtype=torch.float32
-            ).to(device)
+
+            _toks = [ex["text_tokens"] for ex in batch_examples]
+            _L = max(int(t.shape[0]) for t in _toks)
+            _D = int(_toks[0].shape[1])
+            text_tok = torch.zeros(len(_toks), _L, _D, dtype=torch.float32)
+            text_mask = torch.zeros(len(_toks), _L, dtype=torch.bool)
+            for _j, _t in enumerate(_toks):
+                _n = int(_t.shape[0])
+                text_tok[_j, :_n] = _t.float()
+                text_mask[_j, :_n] = True
+            text_tok = text_tok.to(device); text_mask = text_mask.to(device)
+
             edge_attr = getattr(batch_graphs, 'edge_attr', None)
-            step_logits, mcp_logits, _ = model(
-                batch_graphs.x, batch_graphs.edge_index, batch_graphs.batch, batch_fe,
-                edge_attr=edge_attr,
-            )
-            step_preds.append(step_logits.argmax(-1).cpu().numpy())
-            probs = torch.sigmoid(mcp_logits).cpu().numpy()
+            # Average step LOGITS and MCP PROBABILITIES across ensemble members
+            # -- byte-identical to training/stage1_gnn_train.py's evaluate().
+            sl_sum, mp_sum = None, None
+            for _m in models:
+                _sl, _ml, _ = _m(
+                    batch_graphs.x, batch_graphs.edge_index, batch_graphs.batch,
+                    text_tokens=text_tok, text_mask=text_mask, edge_attr=edge_attr,
+                )
+                _sl = _sl.detach().float()
+                _mp = torch.sigmoid(_ml.detach().float())
+                sl_sum = _sl if sl_sum is None else sl_sum + _sl
+                mp_sum = _mp if mp_sum is None else mp_sum + _mp
+            step_logits = sl_sum / len(models)
+            mcp_prob_t = mp_sum / len(models)
+            if step_support_mask is not None:
+                step_logits = mask_unsupported_logits(step_logits, step_support_mask)
+            sl_np = step_logits.detach().cpu().numpy()
+            if step_logit_bias is not None:
+                step_preds.append(
+                    np.argmax(sl_np + np.asarray(step_logit_bias, dtype=np.float64)[None, :], axis=1)
+                )
+            else:
+                step_preds.append(sl_np.argmax(-1))
+            probs = mcp_prob_t.cpu().numpy()
             mcp_preds.append(predict_with_per_class_thresholds(probs, use_thresholds))
 
     step_preds = np.concatenate(step_preds)
@@ -285,10 +368,9 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     from torch_geometric.data import Batch as PyGBatch
     from stage2_sft_qwen import (
         build_prompt, SYSTEM_PROMPT, GraphPrefixAdapter,
-        GRAPH_PREFIX_SRC_DIM, precompute_stage1_hints,
+        GRAPH_PREFIX_SRC_DIM,
     )
     from graph_encoder import Stage1Classifier
-    from data_utils import _embed_texts, CONTEXT_COLUMNS
     from llm_judge import set_llm_judge_model
 
     # Resolve LLM judge model name
@@ -300,7 +382,7 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     if threshold_override is not None:
         use_thresholds = [float(threshold_override)] * len(MCP_LABELS)
     elif os.path.exists(STAGE1_CKPT):
-        _, use_thresholds = load_stage1_checkpoint(STAGE1_CKPT, "cpu")
+        _, use_thresholds, _, _ = load_stage1_checkpoint(STAGE1_CKPT, "cpu")
         print("[eval] MCP thresholds loaded from Stage-1 checkpoint (for reference).")
     else:
         use_thresholds = [MCP_DECISION_THRESHOLD] * len(MCP_LABELS)
@@ -353,21 +435,17 @@ def eval_llm(adapter_dir: str, threshold_override=None,
         stage1.load_state_dict(ckpt["model_state_dict"])
     else:
         stage1.load_state_dict(ckpt)
-    # FIX: keep the whole frozen Stage-1 classifier (not just graph_encoder)
-    # so generation-time inference matches what Stage 2/3 training actually
-    # conditioned on -- see graph_encoder.Stage1Classifier.encode_and_predict.
-    # Previously this used graph_encoder ALONE (no context/strategy fusion
-    # at all), which was out-of-distribution relative to both Stage 2's
-    # training-time fusion and this fix's own training-time fusion, and is
-    # the most likely single cause of Stage 2/3's generation-time accuracy
-    # being far below their own training-time (teacher-forced) metrics.
+    # Stage 2/3 graph conditioning uses ONLY the raw 512-d GINE representation.
+    # Stage-1 fusion/classification outputs are not part of the LLM interface.
     stage1 = stage1.to(device).eval()
     for p in stage1.parameters():
         p.requires_grad_(False)
 
     from config import GRAPH_PREFIX_TOKENS
     llm_hidden = llm_model.config.hidden_size
-    adapter = GraphPrefixAdapter(GRAPH_PREFIX_SRC_DIM, llm_hidden).to(device).to(dtype)
+    # FIX (architecture re-audit): this used to build the adapter directly in
+    # bf16 (`.to(dtype)`) before loading its checkpoint. Training deliberately
+    adapter = GraphPrefixAdapter(GRAPH_PREFIX_SRC_DIM, llm_hidden).to(device)
     adapter_ckpt = os.path.join(adapter_dir, "graph_adapter.pt")
     if os.path.exists(adapter_ckpt):
         adapter.load_state_dict(torch.load(adapter_ckpt, map_location=device))
@@ -380,19 +458,20 @@ def eval_llm(adapter_dir: str, threshold_override=None,
     embed_layer = llm_model.get_input_embeddings()
 
     examples = load_from_input_json(INPUT_TEST_JSON, "test")
-    # REMOVED: precompute_stage1_hints to force model to decode graph prefix tokens
-    # instead of copying Stage 1 predictions. This is critical for Stage 2/3 to
-    # actually improve over Stage 1.
+    # NOTE: precompute_stage1_hints has been removed. Per the architecture
+    # contract, the graph prefix tokens are the ONLY graph-derived signal;
+    # no classifier predictions are leaked as text into the prompt. The LLM
+    # must decode graph structure from the soft-prompt tokens and combine it
+    # with the strategy text itself, rather than copying a provided hint.
     normalizer = StepLabelNormalizer()
 
     step_preds, mcp_preds, step_gold, mcp_gold       = [], [], [], []
     pred_explanations, gold_explanations               = [], []
     parse_failures                                     = 0
-    # rows saved to CSV if --save-explanations is set
     csv_rows: list[dict]                               = []
 
     for ex in tqdm(examples, desc="Generating", unit="sample"):
-        prompt = build_prompt(ex, mask_hint=True)  # Force model to decode graph tokens
+        prompt = build_prompt(ex)
         full_prompt = (
             f"<|system|>\n{SYSTEM_PROMPT}\n"
             f"<|user|>\n{prompt}\n"
@@ -402,32 +481,44 @@ def eval_llm(adapter_dir: str, threshold_override=None,
         with torch.no_grad():
             pyg_batch = PyGBatch.from_data_list([ex["graph"]]).to(device)
             edge_attr = getattr(pyg_batch, 'edge_attr', None)
-            field_embs = torch.tensor(
-                _embed_texts([ex["context"].get(c, "") or "empty" for c in CONTEXT_COLUMNS]),
-                dtype=torch.float32,
-            ).unsqueeze(0).to(device)
-            combined_emb, _, _ = stage1.encode_and_predict(
-                pyg_batch.x, pyg_batch.edge_index, pyg_batch.batch, field_embs, edge_attr=edge_attr
+            # Stage 2/3 graph conditioning uses ONLY the raw 512-d GINE
+            # representation (see stage2_sft_qwen.py's forward_batch comment
+            graph_h, node_states, node_mask = stage1.graph_encoder.forward_with_nodes(
+                pyg_batch.x, pyg_batch.edge_index, pyg_batch.batch,
+                edge_attr=edge_attr
             )
-            prefix_embeds = adapter(combined_emb.to(dtype))
+            expected_dim = adapter.graph_dim
+            if graph_h.shape[-1] != expected_dim:
+                raise RuntimeError(
+                    f"Evaluation graph-prefix dimension mismatch: Stage-1 GINE produced {graph_h.shape[-1]} dims, "
+                    f"but the adapter expects {expected_dim}."
+                )
+            # fp32 forward through the adapter (matching training's
+            # forward_batch), cast only the output to the model's dtype.
+            # Per-node states are passed so the resampler sees real graph
+            # structure, exactly as in Stage-2 training.
+            prefix_embeds = adapter(graph_h.float(), node_states.float(), node_mask).to(dtype)
+            # BUG FIX (train/eval mismatch): this used
+            # `truncation=True, max_length=900`, which keeps the FIRST 900
             ids = tokenizer(
                 full_prompt,
                 return_tensors="pt",
                 add_special_tokens=False,
-                truncation=True,
-                max_length=900,
-            ).input_ids.to(device)
+            ).input_ids
+            if ids.shape[1] > 1536:
+                ids = ids[:, -1536:]
+            ids = ids.to(device)
             token_embeds  = embed_layer(ids).to(dtype)
             inputs_embeds = torch.cat([prefix_embeds, token_embeds], dim=1)
             attn = torch.ones(inputs_embeds.shape[:2], dtype=torch.long, device=device)
 
+            # BUG FIX (train/eval mismatch): `repetition_penalty=1.1` was
+            # applied here but NOWHERE in training or in stage2_sft_qwen.py's
             out = llm_model.generate(
                 inputs_embeds=inputs_embeds,
                 attention_mask=attn,
                 max_new_tokens=max_new_tokens,
                 do_sample=False,
-                temperature=1.0,
-                repetition_penalty=1.1,
                 pad_token_id=tokenizer.pad_token_id,
                 eos_token_id=tokenizer.eos_token_id,
             )
@@ -592,14 +683,19 @@ def eval_llm(adapter_dir: str, threshold_override=None,
 
     # ── Classification report ─────────────────────────────────────────────
     llm_model_tag = os.path.basename(os.path.normpath(adapter_dir)) or "llm"
-    report_classification(step_preds_arr, step_gold_arr, mcp_preds_arr, mcp_gold_arr,
-                           model_tag=llm_model_tag, mcp_thresholds=use_thresholds)
+    metrics_summary = report_classification(
+        step_preds_arr, step_gold_arr, mcp_preds_arr, mcp_gold_arr,
+        model_tag=llm_model_tag, mcp_thresholds=use_thresholds,
+    )
 
     # ── Explanation quality report (LLM Judge) ────────────────────────────────
     print("\n\n" + "=" * 60)
     print("STEP EXPLANATION QUALITY - LLM JUDGE")
     print("=" * 60)
     if use_llm_judge:
+        out_path = os.path.join(ROOT, "output", f"eval_metrics_{llm_model_tag}.json")
+        with open(out_path, "w", encoding="utf-8") as f:
+            json.dump(metrics_summary, f, indent=2)
         print("Using LLM to evaluate explanation quality...")
         # Run LLM judge evaluation
         llm_results = compute_explanation_metrics_with_llm_judge(
@@ -728,6 +824,46 @@ def report_classification(
     mcp_jac_pass = sum(1 for j in mcp_jaccards if j >= 0.5)
     combined_jac = (mean_step_jac + mean_mcp_jac) / 2.0
 
+    # Tool-set error analysis requested for the final evaluation: how many
+    # gold tools were omitted and how many non-gold tools were added.
+    missing_counts = []
+    extra_counts = []
+    missing_rates = []  # per-row: |missing| / |gold| -- "what fraction of the
+                         # tools we needed did we forget", only defined for
+                         # rows with a non-empty gold set.
+    extra_rates = []    # per-row: |extra| / |predicted| -- "what fraction of
+                         # what we predicted was wrong", only defined for
+                         # rows where we predicted at least one tool.
+    missing_total = 0
+    extra_total = 0
+    exact_match_count = 0
+    exact_match_denom = 0
+    for pred_row, gold_row in zip(mcp_preds, mcp_gold):
+        pred_set = {j for j, v in enumerate(pred_row) if v == 1}
+        gold_set = {j for j, v in enumerate(gold_row) if v == 1}
+        missing = gold_set - pred_set
+        extra = pred_set - gold_set
+        missing_counts.append(len(missing))
+        extra_counts.append(len(extra))
+        if gold_set:
+            missing_rates.append(len(missing) / len(gold_set))
+        if pred_set:
+            extra_rates.append(len(extra) / len(pred_set))
+        missing_total += len(missing)
+        extra_total += len(extra)
+        # An empty gold set matched by an empty prediction is excluded from
+        # exact-match scoring entirely (neither counted as a match nor as a
+        # miss) -- it isn't a case of the model correctly identifying "no
+        # tools needed", it's simply undefined for this metric.
+        if gold_set or pred_set:
+            exact_match_denom += 1
+            exact_match_count += int(pred_set == gold_set)
+    avg_missing_tools = float(np.mean(missing_counts)) if missing_counts else 0.0
+    avg_extra_tools = float(np.mean(extra_counts)) if extra_counts else 0.0
+    missing_tool_rate = float(np.mean(missing_rates)) if missing_rates else 0.0
+    extra_tool_rate = float(np.mean(extra_rates)) if extra_rates else 0.0
+    exact_match_rate = float(exact_match_count / exact_match_denom) if exact_match_denom else 0.0
+
     # ── STEP metrics ──
     step_acc = float(accuracy_score(step_gold, step_preds))
     step_macro_f1 = float(f1_score(step_gold, step_preds, average='macro', zero_division=0))
@@ -741,9 +877,20 @@ def report_classification(
     print(f"  Weighted F1   : {step_weighted_f1:.4f}")
     print(f"  [Jaccard] Step: {mean_step_jac:.4f}  (exact match ratio)")
 
-    labels_present = sorted(
-        set(step_gold.tolist()) | set(int(p) for p in step_preds if p >= 0)
+    # Always report EVERY class in STEP_LABELS, not just the ones that happen
+    # to appear in this split's gold/predictions. A class with zero support
+    # (e.g. "Ask for human assistant") used to be silently dropped from the
+    # table -- its logit is masked to -inf (see STAGE1_MASK_UNSUPPORTED_CLASSES)
+    # so it will show precision/recall/F1 = 0.00 with support = 0, rather than
+    # not appearing at all. Any genuinely out-of-range value (there should not
+    # be one from this classifier, but stay defensive) is still folded in as
+    # its own "UNPARSEABLE" row instead of being dropped.
+    all_labels = list(range(len(STEP_LABELS)))
+    stray = sorted(
+        (set(step_gold.tolist()) | set(int(p) for p in step_preds))
+        - set(all_labels)
     )
+    labels_present = all_labels + stray
     print("\n  Per-class report:")
     print(
         classification_report(
@@ -761,7 +908,10 @@ def report_classification(
     print(cm)
 
     # ── MCP metrics ──
-    subset_acc = float(accuracy_score(mcp_gold, mcp_preds))
+    # subset_acc is the same exact-row-match definition as exact_match_rate
+    # above: rows where gold and pred are both empty are excluded rather than
+    # counted as a match.
+    subset_acc = exact_match_rate
     micro_f1 = float(f1_score(mcp_gold, mcp_preds, average='micro', zero_division=0))
     macro_f1 = float(f1_score(mcp_gold, mcp_preds, average='macro', zero_division=0))
     samples_f1 = float(f1_score(mcp_gold, mcp_preds, average='samples', zero_division=0))
@@ -775,6 +925,13 @@ def report_classification(
     print("MCP TOOL CLASSIFICATION  (multi-label)")
     print("=" * 60)
     print(f"  Subset (exact-match) accuracy : {subset_acc:.4f}")
+    print(f"  Exact MCP set match rate      : {exact_match_rate:.4f}")
+    print(f"  Avg missing gold tools / row  : {avg_missing_tools:.3f}  (total={missing_total})")
+    print(f"  Missing-tool rate             : {missing_tool_rate:.4f}  "
+          f"(mean of |missing|/|gold| per row)")
+    print(f"  Avg extra predicted tools/row : {avg_extra_tools:.3f}  (total={extra_total})")
+    print(f"  Extra-tool rate               : {extra_tool_rate:.4f}  "
+          f"(mean of |extra|/|predicted| per row)")
     print(f"  Micro F1  (pooled over matrix): {micro_f1:.4f}")
     print(f"  Macro F1  (per-label avg)     : {macro_f1:.4f}")
     print(f"  Samples F1 (per-row avg, ***paper-comparable Micro F1***): {samples_f1:.4f}")
@@ -824,6 +981,13 @@ def report_classification(
         },
         "mcp": {
             "subset_accuracy": subset_acc,
+            "exact_match_rate": exact_match_rate,
+            "avg_missing_tools": avg_missing_tools,
+            "avg_extra_tools": avg_extra_tools,
+            "missing_tool_rate": missing_tool_rate,
+            "extra_tool_rate": extra_tool_rate,
+            "total_missing_tools": int(missing_total),
+            "total_extra_tools": int(extra_total),
             "micro_f1": micro_f1,
             "macro_f1": macro_f1,
             "samples_f1": samples_f1,

@@ -118,6 +118,66 @@ python generate_graphs.py --use-llm
 | `build_input_json.py` | Produces `input/train.json`, `input/test.json`. |
 | `generate_graphs.py` | Produces `processed_graph/{train,test}/<machine>/row_NNNN_graph.{json,html}` for manual visual QA. |
 
+## Full 3-stage training pipeline
+
+This README covers the data-prep step above; for the architecture of Stage
+1 (GNN+CNN classifier) → Stage 2 (graph-prefix Qwen SFT) → Stage 3 (GRPO),
+see `PIPELINE_ARCHITECTURE.md`. All run commands below assume `data/` and
+`input/` are already populated (the data-prep step above).
+
+```bash
+# Full pipeline (all stages run.py currently has enabled), in order:
+python run.py
+
+# Or run/resume individual stages:
+python run.py --only generate_graphs build_input_json
+python run.py --only stage1
+python run.py --only stage2
+python run.py --only stage3
+python run.py --only evaluate
+python run.py --start-from stage2   # resume from a specific stage
+
+# Individual scripts directly (equivalent to the above, useful for passing
+# extra env-var overrides — see core/config.py's STAGE1_*/STAGE2_*/STAGE3_*
+# constants, most of which have a matching *_SAFE_* env-var override):
+python data_prep/build_input_json.py
+python data_prep/generate_graphs.py
+python training/stage1_gnn_train.py
+python training/stage2_sft_qwen.py
+python training/stage3_grpo_rl.py
+python eval/evaluate.py --model all
+python eval/graph_conditioning_ablation.py --n 60
+```
+
+### Smoke test (small-N dry run of each stage)
+
+No dedicated "tiny mode" flags exist on the training scripts, but every
+stage already reads its input paths from `INPUT_TRAIN_JSON`/`INPUT_TEST_JSON`
+env vars, and `build_input_json.py --limit N` already exists for exactly
+this purpose — so a full-pipeline smoke test is just: point every stage at
+a tiny dataset built with `--limit`.
+
+```bash
+# 1) Build a tiny (20-row) dataset in its own input/ dir so it never
+#    overwrites the real input/train.json / input/test.json
+mkdir -p /tmp/smoke_input
+python data_prep/build_input_json.py --limit 20
+cp input/train.json input/test.json /tmp/smoke_input/
+
+# 2) Point every stage at it (each stage picks up STAGE1_EPOCHS/STAGE2_EPOCHS
+#    unchanged, but with a 20-row dataset each epoch is seconds, not minutes)
+export INPUT_TRAIN_JSON=/tmp/smoke_input/train.json
+export INPUT_TEST_JSON=/tmp/smoke_input/test.json
+export STAGE3_SAFE_STEPS=20          # Stage 3 already supports this override
+export STAGE3_SAFE_EVAL_EVERY=10
+export CKPT_DIR=/tmp/smoke_ckpt      # keep smoke-test checkpoints separate
+
+python training/stage1_gnn_train.py
+python training/stage2_sft_qwen.py
+python training/stage3_grpo_rl.py
+python eval/evaluate.py --model all
+```
+
 ## If you spot more mismatches
 
 The classification rule above is regex/heuristic-based, so it won't be

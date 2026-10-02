@@ -1,0 +1,113 @@
+{
+  "model_tag": "stage2_qwen_lora",
+  "timestamp": "2026-09-20T03:22:46.931774+00:00",
+  "n_samples": 268,
+  "mcp_thresholds": [
+    0.55,
+    0.5,
+    0.55,
+    0.5,
+    0.2,
+    0.3,
+    0.45,
+    0.35,
+    0.45,
+    0.55,
+    0.45
+  ],
+  "step": {
+    "accuracy": 0.75,
+    "macro_f1": 0.5770288814111779,
+    "weighted_f1": 0.7470306073232225,
+    "jaccard_exact_match": 0.75
+  },
+  "mcp": {
+    "subset_accuracy": 0.48134328358208955,
+    "exact_match_rate": 0.48134328358208955,
+    "avg_missing_tools": 0.6343283582089553,
+    "avg_extra_tools": 0.2462686567164179,
+    "missing_tool_rate": 0.40699126092384513,
+    "extra_tool_rate": 0.24173553719008264,
+    "total_missing_tools": 170,
+    "total_extra_tools": 66,
+    "micro_f1": 0.6131147540983607,
+    "macro_f1": 0.4042532795667684,
+    "samples_f1": 0.6165422885572139,
+    "samples_precision": 0.6847014925373134,
+    "samples_recall": 0.5907960199004975,
+    "micro_precision": 0.7391304347826086,
+    "micro_recall": 0.5238095238095238,
+    "hamming_loss": 0.08005427408412483,
+    "jaccard_mean": 0.5805348258706466,
+    "jaccard_pass_rate_at_0.5": 0.6455223880597015,
+    "per_label": {
+      "Nmap": {
+        "precision": 0.6666666666666666,
+        "recall": 0.8571428571428571,
+        "f1": 0.75,
+        "support": 28
+      },
+      "Metasploit": {
+        "precision": 1.0,
+        "recall": 0.058823529411764705,
+        "f1": 0.1111111111111111,
+        "support": 17
+      },
+      "Netcat": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 14
+      },
+      "Dirbuster": {
+        "precision": 0.6666666666666666,
+        "recall": 0.08695652173913043,
+        "f1": 0.15384615384615385,
+        "support": 23
+      },
+      "SQLmap": {
+        "precision": 1.0,
+        "recall": 0.42857142857142855,
+        "f1": 0.6,
+        "support": 7
+      },
+      "Smb client": {
+        "precision": 0.0,
+        "recall": 0.0,
+        "f1": 0.0,
+        "support": 17
+      },
+      "hydra": {
+        "precision": 0.5,
+        "recall": 0.3333333333333333,
+        "f1": 0.4,
+        "support": 3
+      },
+      "John-the-ripper": {
+        "precision": 1.0,
+        "recall": 0.25,
+        "f1": 0.4,
+        "support": 12
+      },
+      "Google search": {
+        "precision": 0.76,
+        "recall": 0.6785714285714286,
+        "f1": 0.7169811320754716,
+        "support": 28
+      },
+      "Interactive CLI": {
+        "precision": 0.7535211267605634,
+        "recall": 0.7039473684210527,
+        "f1": 0.7278911564625851,
+        "support": 152
+      },
+      "Web page interaction": {
+        "precision": 0.75,
+        "recall": 0.48214285714285715,
+        "f1": 0.5869565217391305,
+        "support": 56
+      }
+    }
+  },
+  "combined_jaccard_step_mcp": 0.6652674129353233
+}

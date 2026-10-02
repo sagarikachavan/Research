@@ -22,7 +22,7 @@ downstream keeps working unchanged.
 
 from ptt_parser import (
     STATE_SHADES, ACTION_SHADES, FINDING_COLOR,
-    STATE_TRANSITION_COLOR, SEARCH_UPDATE_COLOR, TRACK_UPDATE_COLOR, PREDICTION_COLOR,
+    STATE_TRANSITION_COLOR, ACTION_UPDATE_COLOR, FINDING_UPDATE_COLOR, PREDICTION_COLOR,
     NON_ACTION_LABEL_RE, IP_LABEL_WITH_VALUE_RE, PHASE_NAME_RE, short,
 )
 
@@ -124,13 +124,13 @@ def build_graph_from_items(machine, row_index, items, extra_meta=None):
         add_node(node_id, f"Action {item['number']}\n{short(item['title'], 30)}",
                  "Action", color, a_title, status=item["status"])
         add_edge(current_state, node_id, f"{item['number']} {short(item['title'], 18)}",
-                 "SearchUpdate", SEARCH_UPDATE_COLOR, 2)
+                 "ActionUpdate", ACTION_UPDATE_COLOR, 2)
 
         if item["payload"]:
             finding_id = f"finding:{machine}:r{row_index}:{item['number']}"
             add_node(finding_id, f"Finding {item['number']}\n{short(item['payload'], 30)}",
                      "Finding", FINDING_COLOR, item["payload"], status=None, size=32)
-            add_edge(node_id, finding_id, "Discover", "TrackUpdate", TRACK_UPDATE_COLOR, 2)
+            add_edge(node_id, finding_id, "Discover", "FindingUpdate", FINDING_UPDATE_COLOR, 2)
             add_edge(finding_id, current_state, "Leads to", "Prediction", PREDICTION_COLOR, 1)
         else:
             add_edge(node_id, current_state, "Leads to", "Prediction", PREDICTION_COLOR, 1)
@@ -159,8 +159,8 @@ def build_graph_from_items(machine, row_index, items, extra_meta=None):
             },
             "edge_types": {
                 "StateTransition (Black)": "State -> State, advancing through the PTT",
-                "SearchUpdate (Green)": "State -> Action, starting work on a PTT item",
-                "TrackUpdate (Blue)": "Action -> Finding, item execution produced findings",
+                "ActionUpdate (Green)": "State -> Action, starting work on a PTT item",
+                "FindingUpdate (Blue)": "Action -> Finding, item execution produced findings",
                 "Prediction (Purple)": "Finding -> State, findings lead back into state",
             },
         },
@@ -176,13 +176,6 @@ def build_graph_from_items(machine, row_index, items, extra_meta=None):
 # ------------------------------------------------------------------------
 # Validation -- automated correctness checks, run on every row, every
 # pipeline (rule-only, LLM, hybrid). This is what makes "don't ship a
-# graph the user has to manually catch problems in" an enforced guarantee
-# rather than a hope: any row that fails a check below is collected into
-# a report instead of silently passing through. It does not replace the
-# classification quality itself (that's the parser/LLM/hybrid's job) --
-# it catches assembly/consistency bugs and the one classification error
-# the dataset owner called out as a hard rule (identity fields must never
-# become Action).
 # ------------------------------------------------------------------------
 def validate_row_graph(items, graph, machine, row_index):
     """Check structural + hard-rule invariants for one row's graph.

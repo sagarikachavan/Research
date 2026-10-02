@@ -54,8 +54,10 @@ Usage:
 """
 
 import argparse
+import hashlib
 import json
 import pathlib
+import re
 
 import pandas as pd
 
@@ -84,13 +86,6 @@ CSV_TO_OUTPUT = {
 
 # INPUT CONTRACT: each record's model input is machine + graph +
 # new_strategy + strategy_explanation ONLY. No other fields are carried
-# into the model input. (A previous version of this file also carried
-# forward "previous_strategy"/"previous_step"/"previous_step_result" from
-# the same machine's prior row -- removed: it wasn't part of the requested
-# input schema, and "previous_step" duplicated the gold "New step" label
-# text of the prior row, letting the model partly solve step classification
-# by copying step-to-step transition frequency instead of reasoning over
-# the graph + strategy.)
 EXTRA_OUTPUT_KEYS = []
 
 
@@ -100,25 +95,113 @@ def safe_str(value):
     return str(value).strip()
 
 
+# ---------------------------------------------------------------------------
+# Repair for upstream column misalignment
+# ---------------------------------------------------------------------------
+# 166 of 1894 training rows (8.8%) arrive with the PTT tree sitting in the
+_REPAIR_ENABLED = _os.environ.get("REPAIR_MISALIGNED_ROWS", "1") not in ("0", "false", "False")
+
+_CANON_STEPS = None
+
+
+def _canon_step_lookup():
+    global _CANON_STEPS
+    if _CANON_STEPS is None:
+        from config import STEP_LABELS
+        _CANON_STEPS = {
+            re.sub(r"\s+", " ", l).strip().lower().rstrip("."): l for l in STEP_LABELS
+        }
+    return _CANON_STEPS
+
+
+def _match_canonical_step(text):
+    return _canon_step_lookup().get(
+        re.sub(r"\s+", " ", str(text)).strip().lower().rstrip(".")
+    )
+
+
+def _repair_misaligned_row(row, columns):
+    """Recover a column-shifted row, or return None if it cannot be trusted.
+
+    Returns a dict with the same keys _collect_rows would have produced for a
+    clean row: machine / ptt_text / the CSV_TO_OUTPUT values.
+    """
+    values = [safe_str(row.get(c, "")) for c in columns]
+    ptt_text = values[0]              # the PTT leaked into the Machine slot
+
+    # Scan right-to-left; prefer the two-column rejoin so a comma-split label
+    # is reassembled rather than half-matched.
+    merged, pos = None, None
+    for i in range(len(values) - 1, 0, -1):
+        lab = _match_canonical_step(values[i - 1] + ", " + values[i])
+        if lab:
+            merged = values[:i - 1] + [lab] + values[i + 1:]
+            pos = i - 1
+            break
+        lab = _match_canonical_step(values[i])
+        if lab:
+            merged = list(values)
+            merged[i] = lab
+            pos = i
+            break
+    if merged is None:
+        return None                   # no canonical step found -> still drop
+
+    def at(offset):
+        k = pos + offset
+        return merged[k] if 0 <= k < len(merged) else ""
+
+    machine_key = hashlib.sha1(
+        re.sub(r"\s+", " ", " ".join(ptt_text.split("\n")[:2])).strip().lower().encode()
+    ).hexdigest()[:8]
+
+    return {
+        "machine": f"RECOVERED_{machine_key}",
+        "ptt_text": ptt_text,
+        "new_strategy": at(-2),
+        "strategy_explanation": at(-1),
+        "gold_new_step": at(0),
+        "gold_step_explanation": at(+1),
+        "gold_mcp_tasks": at(+2),
+    }
+
+
 def _collect_rows(csv_path: pathlib.Path, limit=None):
     df = pd.read_csv(csv_path)
     if limit:
         df = df.head(limit)
 
-    rows, skipped_rows = [], []
+    rows, skipped_rows, repaired_rows = [], [], []
     machine_row_counter = {}
 
     for csv_row_idx, row in df.iterrows():
         machine = safe_str(row.get("Machine", ""))
 
         if not is_valid_machine_name(machine):
-            # Row's columns are misaligned (PTT text leaked into the
-            # Machine column upstream) -- the rest of the row is unreliable
-            # too, so drop it rather than emit a bad training example.
-            skipped_rows.append({
+            # Row's columns are misaligned (PTT text leaked into the Machine
+            # column upstream). Try to repair it rather than discard 8.8% of
+            # the training set -- see _repair_misaligned_row above.
+            fixed = _repair_misaligned_row(row, list(df.columns)) if _REPAIR_ENABLED else None
+            if fixed is None:
+                skipped_rows.append({
+                    "csv_row_index": int(csv_row_idx),
+                    "machine_value_preview": machine[:80],
+                })
+                continue
+            machine = fixed["machine"]
+            row_num = machine_row_counter.get(machine, 0)
+            machine_row_counter[machine] = row_num + 1
+            entry = {
+                "machine": machine,
+                "row_index": row_num,
+                "ptt_text": fixed["ptt_text"],
                 "csv_row_index": int(csv_row_idx),
-                "machine_value_preview": machine[:80],
-            })
+                "repaired": True,
+            }
+            for out_key in CSV_TO_OUTPUT.values():
+                entry[out_key] = fixed[out_key]
+            rows.append(entry)
+            repaired_rows.append(int(csv_row_idx))
             continue
 
         row_num = machine_row_counter.get(machine, 0)
@@ -134,7 +217,16 @@ def _collect_rows(csv_path: pathlib.Path, limit=None):
             entry[out_key] = safe_str(row.get(csv_col, ""))
         rows.append(entry)
 
-    return rows, skipped_rows
+    if repaired_rows or skipped_rows:
+        total_bad = len(repaired_rows) + len(skipped_rows)
+        print(f"  Column-misaligned rows: {total_bad} found -> "
+              f"{len(repaired_rows)} repaired, {len(skipped_rows)} unrecoverable "
+              f"(repair {'ON' if _REPAIR_ENABLED else 'OFF'})")
+        if repaired_rows:
+            n_synth = len({r['machine'] for r in rows if r.get('repaired')})
+            print(f"  Repaired rows grouped into {n_synth} synthetic machines "
+                  f"(prefix 'RECOVERED_'), used for training/validation grouping only.")
+    return rows, skipped_rows, repaired_rows
 
 
 def _items_from_ptt(ptt_text):
@@ -164,7 +256,7 @@ def _build_one_record_deterministic(entry):
 
 
 def build_records_deterministic(csv_path: pathlib.Path, limit=None):
-    rows, skipped_rows = _collect_rows(csv_path, limit=limit)
+    rows, skipped_rows, repaired_rows = _collect_rows(csv_path, limit=limit)
     records, row_problems = [], []
     for entry in rows:
         record, problems = _build_one_record_deterministic(entry)
@@ -180,7 +272,7 @@ def build_records_llm(csv_path: pathlib.Path, client, model, workers, limit=None
     from llm_ptt_parser import parse_ptt_items
     from graph_builder import build_graph_from_items, validate_row_graph
 
-    rows, skipped_rows = _collect_rows(csv_path, limit=limit)
+    rows, skipped_rows, repaired_rows = _collect_rows(csv_path, limit=limit)
     records = [None] * len(rows)
     sources = {"llm": 0, "llm_cache": 0, "fallback_regex": 0}
     row_problems = []
@@ -224,7 +316,7 @@ def build_records_hybrid(csv_path: pathlib.Path, client, model, workers, limit=N
     from llm_ptt_parser import parse_ptt_items_hybrid
     from graph_builder import build_graph_from_items, validate_row_graph
 
-    rows, skipped_rows = _collect_rows(csv_path, limit=limit)
+    rows, skipped_rows, repaired_rows = _collect_rows(csv_path, limit=limit)
     records = [None] * len(rows)
     sources = {"llm": 0, "llm_cache": 0, "fallback_regex": 0}
     row_problems, all_disagreements = [], []

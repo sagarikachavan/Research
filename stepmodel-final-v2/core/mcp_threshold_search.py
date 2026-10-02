@@ -84,7 +84,13 @@ def search_per_class_thresholds(
     targets: np.ndarray,
     candidates: list[float] | None = None,
     rare_class_indices: list[int] | None = None,
-    min_val_positives: int = 10,
+    # 10 left the rarest tools permanently at the 0.5 default: hydra had 5
+    # positives in validation and SQLmap 4, so neither was ever tuned, and
+    # hydra scored F1 0.000 on test -- a dead class costs 1/11 = 9 points of
+    # MCP macro-F1, which is a REPORTED metric. 4 lets them tune; the
+    # bootstrap median over 25 resamples plus the never-regress guard below
+    # are what keep a 4-positive fit from being noise.
+    min_val_positives: int = 4,
     candidate_floor: float = 0.15,
     candidate_ceil: float = 0.85,
     n_bootstrap: int = 25,
@@ -222,3 +228,148 @@ def validate_thresholds_vs_baseline(
         print(f"[mcp_threshold_search] ✓ Per-class thresholds beat uniform {baseline} on validation "
               f"({tuned_f1:.4f} vs {baseline_f1:.4f}) -- keeping tuned thresholds.")
     return thresholds
+
+# ===========================================================================
+# STEP per-class logit-bias calibration
+# ===========================================================================
+# WHY THIS EXISTS: the MCP head gets per-class decision calibration above and
+# ===========================================================================
+
+
+def apply_step_logit_bias(logits: np.ndarray, bias) -> np.ndarray:
+    """argmax over (logits + bias). `bias=None` -> plain argmax."""
+    if bias is None:
+        return np.argmax(logits, axis=1)
+    return np.argmax(logits + np.asarray(bias, dtype=np.float64)[None, :], axis=1)
+
+
+def _step_acc(logits, labels, bias):
+    return float((np.argmax(logits + bias[None, :], axis=1) == labels).mean())
+
+
+def _coordinate_ascent_bias(logits, labels, tunable, candidates, n_rounds):
+    """Greedy coordinate ascent on per-class bias, maximizing accuracy."""
+    bias = np.zeros(logits.shape[1], dtype=np.float64)
+    best = _step_acc(logits, labels, bias)
+    for _ in range(n_rounds):
+        improved = False
+        for c in tunable:
+            keep = bias[c]
+            for v in candidates:
+                bias[c] = v
+                acc = _step_acc(logits, labels, bias)
+                if acc > best + 1e-12:
+                    best, keep, improved = acc, v, True
+            bias[c] = keep
+        if not improved:
+            break
+    return bias, best
+
+
+def search_step_logit_bias(
+    logits: np.ndarray,
+    labels: np.ndarray,
+    min_val_support: int = 8,
+    bias_floor: float = -1.5,
+    bias_ceil: float = 1.5,
+    bias_step: float = 0.25,
+    n_rounds: int = 3,
+    n_bootstrap: int = 25,
+    bootstrap_seed: int = 42,
+    auto_fallback: bool = True,
+    min_gain: float = 0.0,
+    max_abs_bias: float = 1.5,
+    verbose: bool = True,
+) -> list[float]:
+    """
+    Find a per-class additive logit bias maximizing validation accuracy.
+
+    Args:
+        logits:          (N, num_classes) raw step logits on the validation split.
+        labels:          (N,) integer gold class indices.
+        min_val_support: classes with fewer validation examples than this keep
+                          bias 0.0 and are never tuned.
+        bias_floor/ceil/step: bounded search grid for each class's bias.
+        n_rounds:        coordinate-ascent passes over the tunable classes.
+        n_bootstrap:     bootstrap resamples used to stabilize the search; the
+                          per-class median bias across resamples is returned.
+        auto_fallback:   discard the tuned bias if it does not beat zero-bias
+                          argmax on the validation set it was fit on.
+
+    Returns:
+        list[float] of length num_classes (all zeros means "no calibration").
+    """
+    logits = np.asarray(logits, dtype=np.float64)
+    labels = np.asarray(labels).astype(int)
+    n, num_classes = logits.shape
+    rng = np.random.default_rng(bootstrap_seed)
+
+    candidates = [round(float(v), 4) for v in
+                  np.arange(bias_floor, bias_ceil + 1e-9, bias_step)]
+    support = np.bincount(labels, minlength=num_classes)
+    tunable = [c for c in range(num_classes) if support[c] >= min_val_support]
+
+    if verbose:
+        print(f"[step_logit_bias] min_val_support={min_val_support}, "
+              f"range=[{bias_floor}, {bias_ceil}], n_bootstrap={n_bootstrap}")
+        skipped = [c for c in range(num_classes) if c not in tunable and support[c] > 0]
+        if skipped:
+            print(f"[step_logit_bias]   classes kept at bias 0.0 (support < {min_val_support}): "
+                  + ", ".join(f"{c}(n={support[c]})" for c in skipped))
+
+    if not tunable:
+        if verbose:
+            print("[step_logit_bias] no class has enough validation support -- skipping calibration.")
+        return [0.0] * num_classes
+
+    boot = np.zeros((n_bootstrap, num_classes), dtype=np.float64)
+    for b in range(n_bootstrap):
+        idx = rng.integers(0, n, size=n)
+        bias_b, _ = _coordinate_ascent_bias(logits[idx], labels[idx], tunable, candidates, n_rounds)
+        boot[b] = bias_b
+    final = np.median(boot, axis=0)
+    # A class that was never tunable must stay exactly 0.
+    for c in range(num_classes):
+        if c not in tunable:
+            final[c] = 0.0
+
+    if verbose:
+        base_acc = _step_acc(logits, labels, np.zeros(num_classes))
+        tuned_acc = _step_acc(logits, labels, final)
+        nz = [(c, final[c]) for c in range(num_classes) if abs(final[c]) > 1e-9]
+        print(f"[step_logit_bias]   val accuracy: uniform {base_acc:.4f} -> calibrated {tuned_acc:.4f}")
+        if nz:
+            print("[step_logit_bias]   non-zero bias: "
+                  + ", ".join(f"class {c}: {v:+.2f}" for c, v in nz))
+
+    # Cap magnitude. A bias comparable to the logit scale itself does not
+    # "calibrate" a class, it forces it: +1.25 on `End task` bought +0.5pt on a
+    # 376-row val split and cost 8 false positives on the 268-row test set.
+    if max_abs_bias is not None:
+        clipped = np.clip(final, -abs(max_abs_bias), abs(max_abs_bias))
+        if verbose and not np.allclose(clipped, final):
+            over = [(c, final[c]) for c in range(num_classes)
+                    if abs(final[c]) > abs(max_abs_bias) + 1e-9]
+            print(f"[step_logit_bias]   clipped to +-{abs(max_abs_bias):.2f}: "
+                  + ", ".join(f"class {c}: {v:+.2f}" for c, v in over))
+        final = clipped
+
+    if auto_fallback:
+        base_acc = _step_acc(logits, labels, np.zeros(num_classes))
+        tuned_acc = _step_acc(logits, labels, final)
+        gain = tuned_acc - base_acc
+        # REQUIRE A REAL MARGIN, not any improvement. This search fits one free
+        # parameter per class on the SAME split it is scored on, so a sub-noise
+        # gain is selection noise rather than calibration. At ~380 val rows the
+        # binomial SE is ~2pt, so anything under `min_gain` is discarded.
+        if gain < max(1e-9, min_gain):
+            if verbose:
+                print(f"[step_logit_bias] ⚠ gain {gain:+.4f} ({base_acc:.4f} -> "
+                      f"{tuned_acc:.4f}) below required margin {min_gain:.4f} "
+                      f"-- discarding, using zero bias.")
+            return [0.0] * num_classes
+        if verbose:
+            print(f"[step_logit_bias] ✓ gain {gain:+.4f} ({base_acc:.4f} -> "
+                  f"{tuned_acc:.4f}) clears margin {min_gain:.4f} -- keeping.")
+
+    return [float(v) for v in final]

@@ -42,6 +42,7 @@ stepmodel-final-v2/.dbg
 # LLM cache
 stepmodel-final/.llm_cache
 stepmodel-final-v2/.llm_cache
+stepmodel-final-v2/core/.llm_judge_cache
 
 # PyTorch models
 *.pt

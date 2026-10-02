@@ -90,22 +90,6 @@ _WEIGHT_SUM = sum(RUBRIC_WEIGHTS[d] for d in RUBRIC_DIMS)
 # ---------------------------------------------------------------------------
 # is_correct is a GATE on the raw 0-3 integers, not a threshold on a
 # normalized/weighted float.
-#
-# Why: averaging four 0-3 scores into one 0-1 number and then cutting at 0.6
-# lets dimensions compensate for each other — e.g. relevance=3,
-# technical_accuracy=0, completeness=3, clarity=3 weighted-averages to
-# ~0.69, clearing the old 0.6 bar, even though the explanation is
-# technically WRONG. A composite score can't tell you that; a gate can.
-# "Accuracy" should mean "the explanation is substantively right", and
-# substantively right specifically requires: same step (relevance) AND
-# technically correct claims (technical_accuracy) AND at least some of the
-# actual reasoning present (completeness). Clarity is prose quality, not
-# correctness — a correct-but-clunky explanation still gets marked correct.
-#
-# Each cutoff is an integer already on the rubric's own 0-3 scale (2 = the
-# rubric's own "mostly/clearly right" band), so there's no new arbitrary
-# constant introduced, no normalization step, and the number is directly
-# legible from the rubric prompt itself.
 # ---------------------------------------------------------------------------
 CRITICAL_DIMS = ["relevance", "technical_accuracy"]
 CRITICAL_MIN = 2       # both must be at least "mostly/clearly right" (rubric's own 2)
@@ -543,11 +527,6 @@ def batch_evaluate_explanations(
 
     # Per-dimension accuracy: the % of samples that were "mostly/clearly
     # right" (rubric >= 2) on EACH dimension separately, instead of folding
-    # all four into one number. This is usually more actionable than a
-    # single blended accuracy — e.g. relevance_pass_rate=95% but
-    # technical_accuracy_pass_rate=60% tells you the model is confidently
-    # explaining the WRONG technical reasoning for the right step, which a
-    # single composite accuracy would hide.
     dimension_pass_rates = {
         dim: {
             "pass_rate_percent": float(sum(vals) / len(vals) * 100) if vals else 0.0,

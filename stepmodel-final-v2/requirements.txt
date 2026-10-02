@@ -30,6 +30,16 @@ scipy>=1.10.0
 # ── ML utilities ──────────────────────────────────────────────────────────────
 scikit-learn>=1.3.0
 
+# ── Explanation-quality secondary metric (eval/evaluate.py) ──────────────────
+# Reference-based semantic similarity, reported alongside (never instead of)
+# the LLM judge -- research shows embedding-similarity metrics like this one
+# can score high (F1 0.81-0.90) while missing factual/technical correctness,
+# so it's a cheap secondary signal, not the primary explanation-quality
+# metric. BLEURT deliberately not added: its official checkpoints are stale
+# relative to BERTScore and not worth the extra dependency for a secondary
+# signal.
+bert-score>=0.3.13
+
 # ── Graph utilities ───────────────────────────────────────────────────────────
 networkx>=3.0.0
 

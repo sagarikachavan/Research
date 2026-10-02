@@ -8,8 +8,9 @@ Data utilities:
   3. Primary loader: load_from_input_json() reads input/train.json or
      input/test.json (produced by build_input_json.py) and builds
      torch_geometric Data objects directly from the embedded Graph JSON.
-     Node features: 387-dim = 384-dim bge-small-en-v1.5 title embedding +
-     3-dim one-hot type (Agent=0, Search=1, Track=2).
+     Node features: 783-dim = 768-dim Qwen3-Embedding title embedding
+     (TEXT_EMB_DIM) + NODE_AUX_DIM(15) = one-hot type(3) + status(4) +
+     8 structural channels (degrees, depth, position, leaf/root, branching).
   4. Fallback loader for pre-built per-row graphs from processed_data/,
      with a PTT-text graph builder when no pre-built file exists.
   5. A GNN-stage PyTorch Dataset that returns (graph, context_text_fields,
@@ -27,20 +28,13 @@ import numpy as np
 import pandas as pd
 
 from config import (
-    STEP_LABELS, STEP2IDX, MCP_LABELS, MCP2IDX,
+    STEP_LABELS, STEP_LABELS_FINE, STEP_FINE_TO_ACTIVE, STEP2IDX, MCP_LABELS, MCP2IDX,
     GRAPH_DIR_TRAIN, GRAPH_DIR_TEST,
     INPUT_TRAIN_JSON, INPUT_TEST_JSON,
 )
 
 # INPUT CONTRACT: the model input is machine + graph + new_strategy +
 # strategy_explanation ONLY. No "previous step" fields -- those used to be
-# carried forward from the same machine's prior CSV row and fed into every
-# stage, which (a) is not part of the requested input schema, and (b) is a
-# soft label leak: "previous_step" is literally the gold "New step" label
-# text of the immediately preceding row for that machine, drawn from the
-# same STEP_LABELS taxonomy as the thing being predicted, so a model can
-# partly solve step classification by pattern-matching step-to-step
-# transition frequency instead of reasoning over the graph + strategy.
 CONTEXT_COLUMNS = [
     "New strategy",
     "Strategy explanation",
@@ -49,17 +43,20 @@ CONTEXT_COLUMNS = [
 # ----------------------------------------------------------------------------
 # 1. Step label normalization
 # ----------------------------------------------------------------------------
+# Parses at FULL 10-class resolution against STEP_LABELS_FINE. Positional
+# STEP_LABELS[i] would silently mis-resolve once the active label space is
+# merged (the list shrinks and index i means something else).
 _STEP_REGEX = [
-    (re.compile(r"google search", re.I), STEP_LABELS[0]),
-    (re.compile(r"enumerate further on the .*(service|http|ftp|smb|ssh)", re.I), STEP_LABELS[1]),
-    (re.compile(r"explore.*(suspicious|files|commands).*summary", re.I), STEP_LABELS[2]),
-    (re.compile(r"further enumerate the website", re.I), STEP_LABELS[3]),
-    (re.compile(r"enumerate the domain", re.I), STEP_LABELS[4]),
-    (re.compile(r"exploit the selected exploitation", re.I), STEP_LABELS[5]),
-    (re.compile(r"analy[sz]e the outcomes.*attack path", re.I), STEP_LABELS[6]),
-    (re.compile(r"ask for human", re.I), STEP_LABELS[7]),
-    (re.compile(r"explore the source code", re.I), STEP_LABELS[8]),
-    (re.compile(r"end task.*(permission|report)", re.I), STEP_LABELS[9]),
+    (re.compile(r"google search", re.I), STEP_LABELS_FINE[0]),
+    (re.compile(r"enumerate further on the .*(service|http|ftp|smb|ssh)", re.I), STEP_LABELS_FINE[1]),
+    (re.compile(r"explore.*(suspicious|files|commands).*summary", re.I), STEP_LABELS_FINE[2]),
+    (re.compile(r"further enumerate the website", re.I), STEP_LABELS_FINE[3]),
+    (re.compile(r"enumerate the domain", re.I), STEP_LABELS_FINE[4]),
+    (re.compile(r"exploit the selected exploitation", re.I), STEP_LABELS_FINE[5]),
+    (re.compile(r"analy[sz]e the outcomes.*attack path", re.I), STEP_LABELS_FINE[6]),
+    (re.compile(r"ask for human", re.I), STEP_LABELS_FINE[7]),
+    (re.compile(r"explore the source code", re.I), STEP_LABELS_FINE[8]),
+    (re.compile(r"end task.*(permission|report)", re.I), STEP_LABELS_FINE[9]),
 ]
 
 
@@ -82,21 +79,33 @@ class StepLabelNormalizer:
 
     def __init__(self, sim_threshold: float = 0.55):
         self.sim_threshold = sim_threshold
-        self._canon_norm = {_normalize_whitespace(l): l for l in STEP_LABELS}
+        # FINE labels: parsing keeps full resolution; normalize() collapses after.
+        self._canon_norm = {_normalize_whitespace(l): l for l in STEP_LABELS_FINE}
         self._encoder = None
         self._canon_emb = None
 
     def _lazy_encoder(self):
         if self._encoder is None:
-            from sentence_transformers import SentenceTransformer
-            from config import TEXT_ENCODER_NAME
-            self._encoder = SentenceTransformer(TEXT_ENCODER_NAME)
-            self._canon_emb = self._encoder.encode(STEP_LABELS, normalize_embeddings=True)
+            from config import TEXT_ENCODER_NAME, TEXT_EMB_DIM
+            self._encoder = _load_sentence_transformer(TEXT_ENCODER_NAME,
+                                                        truncate_dim=TEXT_EMB_DIM)
+            self._canon_emb = self._encoder.encode(STEP_LABELS_FINE, normalize_embeddings=True)
         return self._encoder
 
     def normalize(self, raw: str) -> str:
+        """Map a free-text step string onto the ACTIVE label space.
+
+        Matching happens at full 10-class resolution (STEP_LABELS_FINE) so the
+        regex/embedding rules keep their precision, then the result is
+        collapsed through STEP_FINE_TO_ACTIVE. Under STEP_TAXONOMY=fine that
+        collapse is the identity, so behaviour is unchanged.
+        """
         if raw is None or (isinstance(raw, float) and np.isnan(raw)):
             return None
+        fine = self._normalize_fine(raw)
+        return STEP_FINE_TO_ACTIVE.get(fine, fine) if fine is not None else None
+
+    def _normalize_fine(self, raw: str) -> str:
         norm = _normalize_whitespace(raw)
         if norm in self._canon_norm:
             return self._canon_norm[norm]
@@ -111,7 +120,7 @@ class StepLabelNormalizer:
         sims = self._canon_emb @ emb[0]
         best = int(np.argmax(sims))
         if sims[best] >= self.sim_threshold:
-            return STEP_LABELS[best]
+            return STEP_LABELS_FINE[best]
         return None  # unresolvable -> drop row / route to "Ask for human assistant" at caller's discretion
 
 
@@ -246,10 +255,13 @@ def build_graph_from_input_json_graph(graph_dict: dict):
     Builds a torch_geometric.data.Data object from the Graph JSON (as exported
     by build_input_json.py, which comes from generate_graphs.py).
 
-    Node features (388-dim):
-      - 384-dim: BAAI/bge-small-en-v1.5 embedding of node title  (cached)
-      - 3-dim: one-hot type encoding (Agent=0, Search=1, Track=2)
-      - 1-dim: normalized node degree feature
+    Node features:
+      - TEXT_EMB_DIM: frozen BGE node-title embedding
+      - 3-dim: one-hot node type (State/Action/Finding; legacy Agent/Search/Track supported)
+      - 4-dim: one-hot node status (completed/in_progress/to_do/unknown)
+      - 1-dim: normalized node degree
+      - 1-dim: normalized depth in the PTT hierarchy
+      - 1-dim: normalized position in the ordered PTT snapshot
 
     Edge index: constructed from the 'from' → 'to' field of each edge.
 
@@ -290,8 +302,8 @@ def build_graph_from_input_json_graph(graph_dict: dict):
             type_onehot[i, type_map_v2.get(ntype, 0)] = 1.0
 
     # Build edge_list first (support both stepmodelv2 "from"/"to" and stepmodelv3 "source"/"target")
-    # Also keep each edge's semantic "type" (StateTransition/SearchUpdate/
-    # TrackUpdate/Prediction, as emitted by graph_builder.py) alongside it so
+    # Also keep each edge's semantic "type" (StateTransition/ActionUpdate/
+    # FindingUpdate/Prediction, as emitted by graph_builder.py) alongside it so
     # edge_attr below can actually encode it instead of discarding it.
     edge_list = []
     edge_type_list = []
@@ -316,32 +328,68 @@ def build_graph_from_input_json_graph(graph_dict: dict):
         degree_counts[e[0]] += 1  # out-degree
         degree_counts[e[1]] += 1  # in-degree (undirected)
 
-    # Normalize degrees and add as feature
-    max_degree = max(degree_counts.values()) if degree_counts else 1
-    degree_features = np.zeros((len(nodes), 1), dtype=np.float32)
-    for i in range(len(nodes)):
-        degree_features[i, 0] = degree_counts.get(i, 0) / max_degree
+    # Explicit structural/state features. These are derived only from the graph
+    # itself; no target label or future information is used.
+    n_nodes = len(nodes)
+    in_degree = np.zeros(n_nodes, dtype=np.float32)
+    out_degree = np.zeros(n_nodes, dtype=np.float32)
+    for e in edge_list:
+        out_degree[e[0]] += 1.0
+        in_degree[e[1]] += 1.0
+    total_degree = in_degree + out_degree
 
-    # Combine: (N, TEXT_EMB_DIM + 3 + 1) = (N, TEXT_EMB_DIM + 4)
-    x = np.concatenate([title_embs, type_onehot, degree_features], axis=1)
+    def _norm(arr):
+        m = float(arr.max()) if len(arr) else 1.0
+        return arr / max(m, 1.0)
+
+    total_degree_f = _norm(total_degree).reshape(-1, 1)
+    in_degree_f = _norm(in_degree).reshape(-1, 1)
+    out_degree_f = _norm(out_degree).reshape(-1, 1)
+
+    status_map = {
+        "completed": 0, "in_progress": 1, "to_do": 2, "unknown": 3,
+    }
+    status_onehot = np.zeros((n_nodes, 4), dtype=np.float32)
+
+    depths = np.zeros(n_nodes, dtype=np.float32)
+    for i, n in enumerate(nodes):
+        number = str(n.get("number", "")).strip()
+        if number and number != "0":
+            parts = [p for p in number.split(".") if p.strip()]
+            depths[i] = max(0, len(parts) - 1)
+    depth_features = (depths / max(float(depths.max()), 1.0)).reshape(-1, 1)
+
+    pos_denom = max(1, n_nodes - 1)
+    position_features = (np.arange(n_nodes, dtype=np.float32) / pos_denom).reshape(-1, 1)
+    leaf_flag = (out_degree == 0).astype(np.float32).reshape(-1, 1)
+    root_flag = np.zeros((n_nodes, 1), dtype=np.float32)
+
+    for i, n in enumerate(nodes):
+        status = str(n.get("status", "unknown") or "unknown").strip().lower()
+        status = status.replace("-", "_").replace(" ", "_")
+        status_onehot[i, status_map.get(status, 3)] = 1.0
+        nid = str(n.get("id", ""))
+        number = str(n.get("number", "")).strip()
+        if i == 0 or nid.endswith(":START") or number == "0":
+            root_flag[i, 0] = 1.0
+
+    # Branch-count ratio captures whether a node opens a broad or narrow next
+    # state without encoding the gold next-step label.
+    branch_ratio = (out_degree / np.maximum(total_degree, 1.0)).reshape(-1, 1)
+
+    # Combine: title + type + status + 8 structural features.
+    x = np.concatenate([
+        title_embs, type_onehot, status_onehot,
+        total_degree_f, in_degree_f, out_degree_f,
+        depth_features, position_features, leaf_flag, root_flag, branch_ratio,
+    ], axis=1)
 
     # Build edge_attr: one-hot over the actual semantic edge type emitted by
     # graph_builder.py, not a fixed placeholder.
-    #
-    # PREVIOUS BEHAVIOR (bug): every non-self-loop edge was assigned the
-    # identical [0.5, 0.5, 0] vector regardless of its real "type" field, so
-    # the GNN could never distinguish e.g. "we advanced to a new pentest
-    # state" from "this action's finding fed back into the state" — the
-    # exact structural signal that encodes the pentest strategy. The edge
-    # dicts already carry this via `e["type"]` (see graph_builder.py's
-    # add_edge calls: StateTransition / SearchUpdate / TrackUpdate /
-    # Prediction) — it just wasn't being read.
-    #
-    # dims: [StateTransition, SearchUpdate, TrackUpdate, Prediction, SelfLoop]
     EDGE_TYPE_TO_DIM = {
         "StateTransition": 0,
-        "SearchUpdate": 1,
-        "TrackUpdate": 2,
+        "ActionUpdate": 1,
+        "FindingUpdate": 2,
         "Prediction": 3,
     }
     from config import EDGE_ATTR_DIM
@@ -549,7 +597,7 @@ def build_graph_from_ptt(ptt_text: str):
     type_onehot = np.zeros((len(nodes), 3), dtype=np.float32)
     type_onehot[:, 0] = 1.0  # Agent = index 0
 
-    # Calculate node degrees for consistency with JSON loader (needed for 388-dim)
+    # Calculate node degrees for consistency with the primary JSON loader.
     from collections import Counter
     edges_for_degree = []
     stack = []  # (depth, index)
@@ -574,8 +622,20 @@ def build_graph_from_ptt(ptt_text: str):
     for i in range(len(nodes)):
         degree_features[i, 0] = degree_counts.get(i, 0) / max_degree
 
-    # Now: 384 + 3 + 1 = 388 (matches JSON loader and graph_encoder NODE_FEAT_DIM)
-    x = np.concatenate([embs, type_onehot, degree_features], axis=1)  # (N, 388)
+    # Add status, hierarchy depth, and ordered position exactly as in the
+    # primary JSON loader.
+    status_map = {"completed": 0, "in_progress": 1, "to_do": 2, "unknown": 3}
+    status_onehot = np.zeros((len(nodes), 4), dtype=np.float32)
+    depths = np.asarray([max(0, int(n[0])) for n in nodes], dtype=np.float32)
+    max_depth = max(float(depths.max()) if len(depths) else 0.0, 1.0)
+    depth_features = (depths / max_depth).reshape(-1, 1)
+    n_nodes = max(1, len(nodes) - 1)
+    position_features = (np.arange(len(nodes), dtype=np.float32) / float(n_nodes)).reshape(-1, 1)
+    for i, (_, _, status) in enumerate(nodes):
+        status_onehot[i, status_map.get(str(status).strip().lower().replace("-", "_").replace(" ", "_"), 3)] = 1.0
+
+    x = np.concatenate([embs, type_onehot, status_onehot, degree_features,
+                        depth_features, position_features], axis=1)
 
     edges = []
     stack = []  # (depth, index)
@@ -598,11 +658,6 @@ def build_graph_from_ptt(ptt_text: str):
 
     # Edge features, widened to EDGE_ATTR_DIM (5) to stay shape-compatible
     # with the primary loader's semantic edge-type encoding (see
-    # build_graph_from_input_json_graph). This fallback has no access to the
-    # real StateTransition/SearchUpdate/TrackUpdate/Prediction types (it's
-    # built straight from PTT text, not the graph_builder.py output), so
-    # parent-child/sibling/self-loop are mapped onto 3 of the 5 slots and the
-    # other 2 are left at zero.
     from config import EDGE_ATTR_DIM
     edge_attr = np.zeros((edge_index.shape[1], EDGE_ATTR_DIM), dtype=np.float32)
     sibling_set = set()
@@ -613,7 +668,7 @@ def build_graph_from_ptt(ptt_text: str):
         if u == v:
             edge_attr[e_idx, 4] = 1.0  # self-loop
         elif (int(u), int(v)) in sibling_set:
-            edge_attr[e_idx, 1] = 1.0  # sibling (sequential) -> SearchUpdate slot
+            edge_attr[e_idx, 1] = 1.0  # sibling (sequential) -> ActionUpdate slot
         else:
             edge_attr[e_idx, 0] = 1.0  # parent-child (hierarchical) -> StateTransition slot
 
@@ -625,31 +680,63 @@ def build_graph_from_ptt(ptt_text: str):
     return data
 
 
+def _load_sentence_transformer(model_name: str, **kwargs):
+    """Load a SentenceTransformer, preferring the local cache with no network.
+
+    Stage 1 downloads the encoder once; every later process in the SAME
+    pipeline run (Stage 2, Stage 3, a second `evaluate.py` invocation, ...)
+    constructs its own SentenceTransformer and, by default, still issues a HEAD
+    request to Hugging Face to check for updates before falling back to cache.
+    On a GPU cluster where compute nodes have no (or flaky) internet -- common
+    when the login node has it and the compute node does not -- that HEAD
+    request hangs through 5 retries with exponential backoff (~23s) EVERY time,
+    for a file that is already fully cached locally and does not need to
+    change mid-run. Observed directly: Stage 2 tried to fetch
+    'sentence_bert_config.json' over the network seconds after Stage 1 had
+    already downloaded and cached the exact same model.
+
+    `local_files_only=True` skips the network entirely and reads straight from
+    cache -- correct here because if Stage 1 just downloaded this model, it
+    IS cached. This only tries the network at all when the local attempt
+    fails, which covers the genuine first-ever download (no cache exists yet).
+    """
+    from sentence_transformers import SentenceTransformer
+    try:
+        return SentenceTransformer(model_name, local_files_only=True, **kwargs)
+    except Exception:
+        return SentenceTransformer(model_name, **kwargs)
+
+
 @lru_cache(maxsize=1)
 def _get_embedder():
-    from sentence_transformers import SentenceTransformer
-    from config import TEXT_ENCODER_NAME
-    return SentenceTransformer(TEXT_ENCODER_NAME)
+    """The single text encoder for the whole project: Qwen3-Embedding.
+
+    ONE ENCODER FAMILY, DELIBERATELY. This used to be BAAI/bge-base-en-v1.5,
+    with a frozen GPT-2 alongside it for the semantic CNN and a DeBERTa NLI
+    cross-encoder in the Stage-3 reward -- three unrelated pretrained text
+    models feeding one pipeline whose generator is Qwen3-14B. Every embedding
+    in Stage 1 now comes from the Qwen3 family, so the text space Stage 1
+    reasons in and the space Stage 2/3 generate in share a tokenizer and
+    pretraining lineage.
+
+    TEXT_EMB_DIM uses Qwen3-Embedding's Matryoshka (MRL) support: the model is
+    natively 1024-d but is trained so that truncated prefixes remain valid
+    embeddings. Requesting 768 keeps node features at 768 + NODE_AUX_DIM(15) =
+    783-d, the contract data_utils and graph_encoder already share.
+    """
+    from config import TEXT_ENCODER_NAME, TEXT_EMB_DIM
+    return _load_sentence_transformer(TEXT_ENCODER_NAME, truncate_dim=TEXT_EMB_DIM)
 
 
 def _embed_texts(texts):
     enc = _get_embedder()
-    return enc.encode(texts, normalize_embeddings=True, show_progress_bar=False)
+    return enc.encode(list(texts), normalize_embeddings=True,
+                      show_progress_bar=False)
 
 
 # ---------------------------------------------------------------------------
 # Title embedding cache — process-level, persists across all dataset loads.
 #
-# Without this, build_graph_from_input_json_graph calls _embed_texts() once
-# per graph (~17 nodes × 1,894 records = ~32,000 encoder calls at Stage 1
-# init alone, repeated identically at Stage 2 and Stage 3). Many node titles
-# are shared across records of the same machine (e.g. the START node title
-# appears in every row for that machine), so the same string gets re-embedded
-# thousands of times.
-#
-# The cache maps title_string → np.ndarray(384, float32).
-# build_graph_from_input_json_graph batches all cache-miss titles into a
-# single encoder call, then stores results before building the Data object.
 # ---------------------------------------------------------------------------
 _TITLE_EMB_CACHE: dict[str, np.ndarray] = {}
 
@@ -753,3 +840,53 @@ class GNNStageDataset:
         ex = self.examples[idx]
         graph = load_graph(ex["machine"], ex["row_id"], ex["ptt"], self.split)
         return graph, ex
+# ---------------------------------------------------------------------------
+# Token-level text features for the Stage-1 text tower.
+#
+# The tower used to consume ONE pooled sentence vector per example. Measured on
+# the 268-row test set that was the dominant cost: the step head learns to
+# ignore the graph (gate_step ~0.04), so step accuracy is essentially text
+# tower quality -- and a token-level model scored 0.8396 on the same rows where
+# the pooled-vector model scored 0.7388. Pooling before the model sees anything
+# discards exactly the distinctions the step labels turn on ("Research an
+# exploit" -> google-search, vs "Exploit the selected exploitation").
+#
+# The tower now receives per-token hidden states and learns its own pooling.
+# Still ONE encoder family: these come from the same frozen Qwen3-Embedding
+# model used for node titles, via its underlying transformer, so nothing extra
+# is downloaded or held in memory.
+# ---------------------------------------------------------------------------
+def precompute_text_tokens(examples, max_tokens=256, device="cpu", batch_size=16):
+    """Attach ex["text_tokens"] = (L_i, H) float16 token states, L_i <= max_tokens.
+
+    Reads ex["text_input"]. Stored as float16 on CPU: ~1.9k examples x 256
+    tokens x 1024 dims is ~1GB in fp16 vs ~2GB in fp32, and the tower casts
+    per batch anyway.
+    """
+    import torch
+    st = _get_embedder()
+    tokenizer = st.tokenizer
+    model = st[0].auto_model.to(device).eval()
+    for _p in model.parameters():
+        _p.requires_grad_(False)
+
+    texts = [str(ex.get("text_input", "") or "empty") for ex in examples]
+    for start in range(0, len(examples), batch_size):
+        chunk = examples[start:start + batch_size]
+        enc = tokenizer(texts[start:start + batch_size], return_tensors="pt",
+                        padding=True, truncation=True, max_length=max_tokens)
+        enc = {k: v.to(device) for k, v in enc.items()}
+        with torch.no_grad():
+            out = model(**enc).last_hidden_state            # (B, L, H)
+        for i, ex in enumerate(chunk):
+            # Select by MASK, not by prefix: Qwen embedding models are commonly
+            # LEFT-padded, so out[i, :L] would hand back padding, not content.
+            idx = enc["attention_mask"][i].nonzero(as_tuple=True)[0]
+            if idx.numel() == 0:                            # degenerate empty row
+                idx = torch.zeros(1, dtype=torch.long, device=out.device)
+            ex["text_tokens"] = out[i, idx].detach().cpu().half()
+    if device == "cuda":
+        torch.cuda.empty_cache()
+    return int(examples[0]["text_tokens"].shape[-1]) if examples else 0
+# ---------------------------------------------------------------------------
+
